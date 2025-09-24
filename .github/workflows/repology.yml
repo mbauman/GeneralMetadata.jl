@@ -1,0 +1,47 @@
+name: Export from Repology's DB dump
+
+on:
+  workflow_dispatch:
+
+jobs:
+  repology-export:
+    runs-on: ubuntu-latest
+    env:
+      POSTGRESQL: 17
+
+    steps:
+      - name: Install dependencies
+        run: |
+          curl -s https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+          sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main $POSTGRESQL" > /etc/apt/sources.list.d/pgdg.list'
+          sudo apt-get update
+          sudo apt-get install postgresql-$POSTGRESQL postgresql-server-dev-$POSTGRESQL
+      - name: Install libversion
+        run: |
+          mkdir _libversion
+          cd _libversion
+          wget -qO- https://github.com/repology/libversion/archive/master.tar.gz | tar -xzf- --strip-components 1
+          cmake .
+          make
+          sudo make install
+          sudo ldconfig
+      - name: Install postgresql-libversion
+        run: |
+          mkdir _postgresql-libversion
+          cd _postgresql-libversion
+          wget -qO- https://github.com/repology/postgresql-libversion/archive/master.tar.gz | tar -xzf- --strip-components 1
+          make
+          sudo make install
+      - name : Import database dump
+        run: |
+          sudo sed -i -e 's|peer|trust|' /etc/postgresql/$POSTGRESQL/main/pg_hba.conf
+          sudo sed -i -e 's|5433|5432|' /etc/postgresql/$POSTGRESQL/main/postgresql.conf
+          sudo service postgresql restart
+          psql --username postgres -c "CREATE DATABASE repology"
+          psql --username postgres -c "CREATE USER repology WITH PASSWORD 'repology'"
+          psql --username postgres -c "GRANT ALL ON DATABASE repology TO repology"
+          psql --username postgres --dbname repology -c "GRANT CREATE ON SCHEMA public TO PUBLIC"
+          psql --username postgres --dbname repology -c "CREATE EXTENSION pg_trgm"
+          psql --username postgres --dbname repology -c "CREATE EXTENSION libversion"
+          curl -s https://dumps.repology.org/repology-database-dump-latest.sql.zst | zstd -d | psql -U repology -v ON_ERROR_STOP=1
+          echo "success!"
