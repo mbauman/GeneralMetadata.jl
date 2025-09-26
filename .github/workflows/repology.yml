@@ -15,7 +15,7 @@ jobs:
           curl -s https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
           sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main $POSTGRESQL" > /etc/apt/sources.list.d/pgdg.list'
           sudo apt-get update
-          sudo apt-get install postgresql-$POSTGRESQL postgresql-server-dev-$POSTGRESQL
+          sudo apt-get install postgresql-$POSTGRESQL postgresql-server-dev-$POSTGRESQL postgresql-$POSTGRESQL-pg-parquet
       - name: Install libversion
         run: |
           mkdir _libversion
@@ -38,6 +38,7 @@ jobs:
           sudo -u postgres psql -p 5433 -c "CREATE DATABASE repology"
           sudo -u postgres psql -p 5433 -c "CREATE USER repology WITH PASSWORD 'repology'"
           sudo -u postgres psql -p 5433 -c "GRANT ALL ON DATABASE repology TO repology"
+          sudo -u postgres psql -p 5433 -c "GRANT pg_write_server_files TO repology"
           sudo -u postgres psql -p 5433 --dbname repology -c "GRANT CREATE ON SCHEMA public TO PUBLIC"
           sudo -u postgres psql -p 5433 --dbname repology -c "CREATE EXTENSION pg_trgm"
           sudo -u postgres psql -p 5433 --dbname repology -c "CREATE EXTENSION libversion"

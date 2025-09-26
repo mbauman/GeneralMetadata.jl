@@ -1,123 +1,103 @@
-using TOML
+using TOML: TOML
+using DataStructures: DefaultOrderedDict, OrderedDict
+using CSV: CSV
+using DataFrames: DataFrames, DataFrame, groupby, combine, transform, combine, eachrow
 
 function main()
-    package_components_path = joinpath(@__DIR__, "..", "package_components.toml")
-    toml = isfile(package_components_path) ? TOML.parsefile(package_components_path) : Dict{String, Any}()
+    sql = """
+        COPY (SELECT
+            (elem.value ->> 0)::integer AS link_type,
+            l.url,
+            p.repo,
+            p.effname,
+            p.rawversion,
+            p.arch,
+            p.origversion,
+            p.versionclass
+        FROM packages p
+        CROSS JOIN LATERAL json_array_elements(p.links) AS elem(value)
+        JOIN links l ON l.id = (elem.value ->> 1)::integer
+        WHERE (NOT p.shadow='t') AND
+              ((elem.value ->> 0)::integer = 1 or (elem.value ->> 0)::integer = 2))
+        TO '$pwd/out.csv' WITH (format csv);
+    """
+    run(`psql -h localhost -p 5433 -c $sql`)
+    df = CSV.read("out.csv", DataFrame, header=["link_type",
+           "url",
+           "repo",
+           "effname",
+           "arch",
+           "rawversion",
+           "origversion",
+           "versionclass"])
+    # We'll only trust download URLs when only one was used for the given package
+    # Many packages have more than one download, but then we don't know if that was a (build) dependency
+    # or the actual project or perhaps some larger meta-project that vendors lots of deps.
+    filtered_df = df |>
+        x -> groupby(x, [:repo, :effname, :rawversion, :arch]) |>
+        x -> transform(x, :url => (x -> length(unique(x))) => :n_unique_urls) |>
+        x -> filter(row -> row.n_unique_urls == 1, x) |>
+        # And also remove any rows for which the same URL points at two different effnames:
+        x -> groupby(x, :url) |>
+        x -> transform(x, :effname => (x -> length(unique(x))) => :n_unique_effnames) |>
+        x -> filter(row -> row.n_unique_effnames == 1, x)
 
-    project_info = TOML.parsefile(joinpath(@__DIR__, "..", "upstream_project_info.toml"))
+    # For repositories (link_type == 2), I know I can ignore versions:
+    repo_to_effname = Dict(row.url => row.effname for row in eachrow(filtered_df[filtered_df.link_type .== 2, :]))
+
+    # For downloads (link_type == 1), we may be able to get versions:
+    url_groups = combine(groupby(filtered_df[filtered_df.link_type .== 1, :], [:url, :effname]), :origversion => (x -> [unique(x)]) => :versions)
+    url_to_effname_versions = Dict(row.url => (row.effname, row.versions) for row in eachrow(url_groups))
+
+    package_components = DefaultOrderedDict{String, Any}(()->DefaultOrderedDict{String, Any}(()->OrderedDict{String, Any}()))
+
+    # Now walk through the JLL metadata to populate it
     jll_metadata = TOML.parsefile(joinpath(@__DIR__, "..", "jll_metadata.toml"))
-    jll_urls = [(jllname, jllversion, s["url"])
-        for (jllname, jllinfo) in jll_metadata
-            for (jllversion, verinfo) in jllinfo if haskey(verinfo, "sources")
-                for s in verinfo["sources"] if haskey(s, "url")]
-    jll_repos = [(jllname, jllversion, s["repo"], s["hash"])
-        for (jllname, jllinfo) in jll_metadata
-            for (jllversion, verinfo) in jllinfo if haskey(verinfo, "sources")
-                for s in verinfo["sources"] if haskey(s, "repo")]
-    info = Dict{String,Any}()
-    info["skips"] = Tuple{String,String,String,String,String}[] # (package,version,project,newprojectversion,oldprojectversion) that had updates but were skipped because we already had a value set
-    info["missings"] = Tuple{String,String,String}[] # (package,version,project) that stored a "*"
-    info["updates"] = Tuple{String,String,String}[] # (package,version,project) that stored a non-missing value
-    info["missing_reasons"] = Dict{Tuple{String,String,String}, String}()
     git_cache = Dict{String,String}()
-    for (proj, projinfo) in project_info
-        # Look for JLLs whose sources match this project
-        url_regexes = get(projinfo, "url_regexes", String[])
-        matches = Dict{Tuple{String,String},Any}()
-        if !isempty(url_regexes)
-            for (jllname, jllversion, url) in jll_urls
-                ms = filter(!isnothing, match.(Regex.(url_regexes, "i"), url))
-                isempty(ms) && continue
-                # In most cases, there's only one upstream version. But this supports arrays for multiple captures
-                # we also append to a previously-found match from a prior URL, if it's there
-                captures = unique(vcat((x->x.captures[1]).(ms), get(matches, (jllname, jllversion), String[])))
-                matches[(jllname, jllversion)] = length(captures) == 1 ? captures[1] : captures
-            end
-        end
-        if haskey(projinfo, "repo")
-            for (jllname, jllversion, repo, commit) in jll_repos
-                if repo in vcat(get(projinfo, "repo", ""), get(projinfo, "repos", String[]))
-                    dir = get!(git_cache, proj) do
-                        tmp = mktempdir()
-                        run(pipeline(`git clone $(projinfo["repo"]) $tmp`, stdout=Base.devnull, stderr=Base.devnull))
-                        tmp
-                    end
-                    tag = cd(dir) do
-                        t = try readchomp(`git tag --points-at $commit`) catch _ "" end
-                        if isempty(t)
-                            t = try readchomp(`git tag --points-at $commit\~`) catch _ "" end
-                            !isempty(t) && @info "$proj: found tag at $commit~;\n\n$(readchomp(`git show --format=oneline $commit`))"
+    for (jllname, jllinfo) in sort(OrderedDict(jll_metadata))
+        for (jllversion, verinfo) in sort(OrderedDict(jllinfo), by=VersionNumber)
+            haskey(verinfo, "sources") || continue
+            for s in verinfo["sources"]
+                if haskey(s, "url") && haskey(url_to_effname_versions, s["url"])
+                    (upstream_project, upstream_versions) = url_to_effname_versions[s["url"]]
+                    haskey(package_components[jllname][jllversion], upstream_project) ?
+                        append!(package_components[jllname][jllversion][upstream_project], upstream_versions) :
+                        package_components[jllname][jllversion][upstream_project] = upstream_versions
+                end
+                if haskey(s, "repo") && haskey(s, "hash") && haskey(repo_to_effname, s["repo"])
+                    upstream_project = repo_to_effname[s["repo"]]
+                    # Now the hard part are versions...
+                    upstream_versions = try
+                        dir = get!(git_cache, upstream_project) do
+                            tmp = mktempdir()
+                            run(pipeline(`git clone $(s["repo"]) $tmp`, stdout=Base.devnull, stderr=Base.devnull))
+                            tmp
                         end
-                        t
+                        tag = cd(dir) do
+                            t = try readchomp(`git tag --points-at $commit`) catch _ "" end
+                            if isempty(t)
+                                t = try readchomp(`git tag --points-at $commit\~`) catch _ "" end
+                                !isempty(t) && @info "$upstream_project: found tag at $commit~;\n\n$(readchomp(`git show --format=oneline $commit`))"
+                            end
+                            t
+                        end
+                        # It can be challenging to parse a version number out of a tag; some options here include: v1.2.3 and PCRE2-1.2.3
+                        # This strips all non-numeric prefixes with up to one digit as long as the digit is not followed by a period.
+                        # and ignore everything after a newline
+                        ver = strip(split(chopprefix(tag, r"^[^\d]*(?:\d[^\d.]+)?"), "\n", limit=2)[1])
+                        @assert !isempty(ver)
+                        @info "$upstream_project: got version $(ver) from git tag $tag"
+                        haskey(package_components[jllname][jllversion], upstream_project) ?
+                            push!(package_components[jllname][jllversion][upstream_project], ver) :
+                            package_components[jllname][jllversion][upstream_project] = [ver]
+                    catch ex
+                        @info "$upstream_project: failed to get tag from repo $(s["repo"])" ex
+                        package_components[jllname][jllversion][upstream_project] = ["*"]
                     end
-                    if isempty(tag)
-                        info["missing_reasons"][(jllname, jllversion, proj)] = "commit $repo @ $commit is not tagged"
-                        continue
-                    end
-                    # It can be challenging to parse a version number out of a tag; some options here include: v1.2.3 and PCRE2-1.2.3
-                    # This strips all non-numeric prefixes with up to one digit as long as the digit is not followed by a period.
-                    # and ignore everything after a newline
-                    ver = strip(split(chopprefix(tag, r"^[^\d]*(?:\d[^\d.]+)?"), "\n", limit=2)[1])
-                    @info "$proj: got version $(ver) from git tag $tag"
-                    versions = unique(vcat(ver, get(matches, (jllname, jllversion), String[])))
-                    matches[(jllname, jllversion)] = length(versions) == 1 ? versions[1] : versions
                 end
-            end
-        end
-        matching_jlls = unique(first.(keys(matches)))
-        for jll in matching_jlls
-            all_versions = keys(jll_metadata[jll])
-            jll_toml = get!(toml, jll, Dict{String, Any}())
-            for version in all_versions
-                jll_toml_versioninfo = get!(jll_toml, version, Dict{String,Any}())
-                if haskey(jll_toml_versioninfo, proj) && jll_toml_versioninfo[proj] != "*"
-                    if haskey(matches, (jll, version)) && matches[(jll, version)] != jll_toml_versioninfo[proj]
-                        # This is a mismatch that would otherwise be an update; report it
-                        @info "skipping update to $jll@$version for $proj; found `$(matches[(jll, version)])` but `$(jll_toml_versioninfo[proj])` was already stored"
-                        push!(info["skips"], (jll, version, proj, matches[(jll, version)], jll_toml_versioninfo[proj]))
-                    end
-                    continue
-                end
-                if !haskey(matches, (jll, version))
-                    push!(info["missings"], (jll, version, proj))
-                    if !haskey(info["missing_reasons"], (jll, version, proj))
-                        # Gather the JLL's sources to report them
-                        source_urls = (x->x[3]).(jll_urls[first.(jll_urls) .== jll .&& (x->x[2]).(jll_urls) .== version])
-                        source_repo = (x->x[3]).(jll_repos[first.(jll_repos) .== jll .&& (x->x[2]).(jll_repos) .== version])
-                        sources = vcat(source_urls, source_repo)
-                        source_info_str = isempty(sources) ? "no sources" : "sources:\n    * " * join(sources, "\n    * ")
-                        info["missing_reasons"][(jll, version, proj)] = "no matched sources; the JLL had $source_info_str"
-                    end
-                    @info "$proj: no version captured for $jll@$version; $(info["missing_reasons"][(jll, version, proj)])"
-                else
-                    push!(info["updates"], (jll, version, proj))
-                end
-                jll_toml_versioninfo[proj] = get(matches, (jll, version), "*")
             end
         end
     end
-
-    io = open(get(ENV, "GITHUB_OUTPUT", tempname()), "w")
-    println(io, "exact=", isempty(info["missings"]))
-    updated_packages = unique(first.(info["updates"]))
-    n_pkgs = length(updated_packages)
-    pkg_str = string(n_pkgs == 1 ? "package" : "packages", n_pkgs <= 3 ? ": " * join(updated_packages, ", ", ", and ") : "")
-    missing_str = isempty(info["missings"]) ? "" : string(
-        "### Failed to find versions for ", length(info["missings"]), length(info["missings"]) == 1 ? " entry" : " entries", "\n\n* ",
-        join([string(pkg, "@", pkgver, ", ", proj, ": ", info["missing_reasons"][(pkg, pkgver, proj)]) for (pkg,pkgver,proj) in info["missings"]], "\n* "),
-        "\n\n Address these by manually replacing the `\"*\"` entries with either `[]` (to confirm that project does not exist) or the appropriate upstream version number.")
-    skip_str = isempty(info["skips"]) ? "" : string(
-        "<details><summary>", length(info["skips"]), "updates were skipped because their values were already set</summary>\n\n",
-        "* ", join([string(pkg, "@", pkgver, " ", proj, ": found ", newver, "; have ", oldver, " set")], "\n* "),
-        "\n\n</details>\n")
-    println(io, "title=[automatic] update upstream component versions for $n_pkgs $pkg_str")
-    println(io, """
-        body<<BODY_EOF
-        This automated action used `upstream_project_info.toml` to match upstream projects against the JLL sources reported in `jll_metadata.toml`.
-
-        $missing_str$skip_str
-        BODY_EOF
-        """)
 
     open(package_components_path, "w") do f
         println("""
@@ -131,9 +111,8 @@ function main()
             # The automatic update script (`scripts/update_package_components.jl`) assumes that if a project is included at _some_
             # package version, then it should have definitions (perhaps manually entered) at all versions. To explicitly state that
             # the project is not incorporated and prevent such suggestions, use an empty array.""")
-        TOML.print(f, toml, sorted=true,
-            by=x->something(tryparse(VersionNumber, x), x),
-            inline_tables=IdSet{Dict{String,Any}}(vertable for jlltable in values(toml) for vertable in values(jlltable) if length(values(vertable)) <= 2))
+        TOML.print(f, package_components,
+            inline_tables=IdSet{Dict{String,Any}}(vertable for jlltable in values(package_components) for vertable in values(jlltable) if length(values(vertable)) <= 2))
     end
     return toml
 end
