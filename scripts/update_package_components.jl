@@ -19,10 +19,10 @@ function main()
         JOIN links l ON l.id = (elem.value ->> 1)::integer
         WHERE (NOT p.shadow='t') AND
               ((elem.value ->> 0)::integer = 1 or (elem.value ->> 0)::integer = 2))
-        TO '$pwd/out.csv' WITH (format csv);
+        TO '/tmp/out.csv' WITH (format csv);
     """
-    run(`psql -h localhost -p 5433 -c $sql`)
-    df = CSV.read("out.csv", DataFrame, header=["link_type",
+    # run(`psql -U repology -c $sql`)
+    df = CSV.read("/tmp/out.csv", DataFrame, header=["link_type",
            "url",
            "repo",
            "effname",
@@ -66,6 +66,7 @@ function main()
                 end
                 if haskey(s, "repo") && haskey(s, "hash") && haskey(repo_to_effname, s["repo"])
                     upstream_project = repo_to_effname[s["repo"]]
+                    commit = s["hash"]
                     # Now the hard part are versions...
                     upstream_versions = try
                         dir = get!(git_cache, upstream_project) do
@@ -99,7 +100,7 @@ function main()
         end
     end
 
-    open(package_components_path, "w") do f
+    open(joinpath(@__DIR__, "..", "package_components.toml"), "w") do f
         println("""
             # This file contains the mapping between a Julia package version and the upstream project(s) it directly provides.
             # The keys are package name and version, pointing to a table that maps from an included upstream project name
@@ -114,7 +115,7 @@ function main()
         TOML.print(f, package_components,
             inline_tables=IdSet{Dict{String,Any}}(vertable for jlltable in values(package_components) for vertable in values(jlltable) if length(values(vertable)) <= 2))
     end
-    return toml
+    return package_components
 end
 
 if abspath(PROGRAM_FILE) == @__FILE__
