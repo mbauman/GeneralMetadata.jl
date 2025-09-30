@@ -31,8 +31,8 @@ function main()
     # Now walk through the JLL metadata to populate the package_components
     jll_metadata = TOML.parsefile(joinpath(@__DIR__, "..", "jll_metadata.toml"))
     package_components = DefaultOrderedDict{String, Any}(()->DefaultOrderedDict{String, Any}(()->OrderedDict{String, Any}()))
-    git_cache = Dict{String,String}()
     @time for (jllname, jllinfo) in sort(OrderedDict(jll_metadata))
+        git_cache = Dict{String,String}()
         for (jllversion, verinfo) in sort(OrderedDict(jllinfo), by=VersionNumber)
             haskey(verinfo, "sources") || continue
             for s in verinfo["sources"]
@@ -52,7 +52,7 @@ function main()
                     try
                         dir = get!(git_cache, upstream_project) do
                             tmp = mktempdir()
-                            run(pipeline(`git clone $(s["repo"]) $tmp`, stdout=Base.devnull, stderr=Base.devnull))
+                            run(pipeline(`git clone --bare $(s["repo"]) $tmp`, stdout=Base.devnull, stderr=Base.devnull))
                             tmp
                         end
                         tag = cd(dir) do
@@ -79,6 +79,10 @@ function main()
                 end
             end
         end
+        for (_, path) in git_cache
+            Filesystem.rm(path, recursive=true)
+        end
+        empty!(git_cache)
     end
 
     open(joinpath(@__DIR__, "..", "package_components.toml"), "w") do f
