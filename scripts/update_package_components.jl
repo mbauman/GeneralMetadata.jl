@@ -86,11 +86,28 @@ function main()
     for (_, pkginfo) in package_components, (_, components) in pkginfo, (component, component_versions) in components
         if length(component_versions) == 1
             components[component] = only(component_versions)
+        elseif "*" in component_versions
+            components[component] = "*"
         end
     end
 
-    # If a JLL has a component at _one_ version, assume it's there on all versions:
-    for (pkg, pkginfo) in package_components
+    # Now update the existing package_components if any of our versions are better than what's stored
+    package_components_toml = joinpath(@__DIR__, "..", "package_components.toml")
+    out = TOML.parsefile(package_components_toml)
+    for (jll, jllinfo) in package_components
+        haskey(out, jll) || (out[jll] = Dict{String, Any}())
+        for (jll_version, components) in jllinfo
+            haskey(out[jll], jll_version) || (out[jll][jll_version] = Dict{String, Any}())
+            for (component, component_versions) in components
+                if !haskey(out[jll][jll_version], component) || out[jll][jll_version][component] == "*"
+                    out[jll][jll_version][component] = component_versions
+                end
+            end
+        end
+    end
+
+    # If a JLL has a component at _one_ version, ensure it's there on all versions by default:
+    for (pkg, pkginfo) in out
         components = unique(Iterators.flatten(keys.(values(pkginfo))))
         for version in keys(jll_metadata[pkg])
             !haskey(pkginfo, version) && (pkginfo[version] = Dict{String, Any}())
@@ -101,7 +118,7 @@ function main()
         end
     end
 
-    open(joinpath(@__DIR__, "..", "package_components.toml"), "w") do f
+    open(package_components_toml, "w") do f
         println(f, """
             # This file contains the mapping between a Julia package version and the upstream project(s) it directly provides.
             # The keys are package name and version, pointing to a table that maps from an included upstream project name
@@ -113,8 +130,8 @@ function main()
             # The automatic update script (`scripts/update_package_components.jl`) assumes that if a project is included at _some_
             # package version, then it should have definitions (perhaps manually entered) at all versions. To explicitly state that
             # the project is not incorporated and prevent such suggestions, use an empty array.""")
-        TOML.print(f, package_components,
-            inline_tables=IdSet{Dict{String,Any}}(vertable for jlltable in values(package_components) for vertable in values(jlltable) if length(values(vertable)) <= 2),
+        TOML.print(f, out,
+            inline_tables=IdSet{Dict{String,Any}}(vertable for jlltable in values(out) for vertable in values(jlltable) if length(values(vertable)) <= 2),
             sorted = true, by = x->something(tryparse(VersionNumber, x), x))
     end
     return package_components
