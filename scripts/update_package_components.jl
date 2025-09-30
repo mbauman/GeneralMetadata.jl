@@ -19,12 +19,15 @@ function main()
     for (proj, info) in repology_info
         if haskey(info, "repositories")
             for repo in info["repositories"]
-                repositories[repo] = proj
+                # Allow repositories both with and without a git suffix
+                repositories[chopsuffix(repo, ".git")] = proj
+                repositories[chopsuffix(repo, ".git")*".git"] = proj
             end
         end
         if haskey(info, "url_patterns")
             for pattern in info["url_patterns"]
-                push!(url_patterns, (Regex(pattern) => proj))
+                # And allow both http and https
+                push!(url_patterns, (Regex(replace(pattern, r"https?://" => "http\\Es?\\Q://"), "i") => proj))
             end
         end
     end
@@ -37,7 +40,7 @@ function main()
             haskey(verinfo, "sources") || continue
             for s in verinfo["sources"]
                 if haskey(s, "url")
-                    m = first_match(url_patterns, s["url"])
+                    m = first_match(url_patterns, s["url"]) # TODO: get all matches
                     if !isnothing(m)
                         (upstream_project, upstream_version) = m
                         haskey(package_components[jllname][jllversion], upstream_project) ?
@@ -45,8 +48,8 @@ function main()
                             package_components[jllname][jllversion][upstream_project] = [upstream_version]
                     end
                 end
-                if haskey(s, "repo") && haskey(s, "hash") && haskey(repositories, s["repo"])
-                    upstream_project = repositories[s["repo"]]
+                if haskey(s, "repo") && haskey(s, "hash") && has_repo_url(repositories, s["repo"])
+                    upstream_project = get_repo_url_value(repositories, s["repo"])
                     commit = s["hash"]
                     # Now the hard part are versions...
                     try
