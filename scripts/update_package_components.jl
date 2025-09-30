@@ -32,7 +32,7 @@ function main()
     jll_metadata = TOML.parsefile(joinpath(@__DIR__, "..", "jll_metadata.toml"))
     package_components = DefaultOrderedDict{String, Any}(()->DefaultOrderedDict{String, Any}(()->OrderedDict{String, Any}()))
     git_cache = Dict{String,String}()
-    @time for (jllname, jllinfo) in sort(OrderedDict(jll_metadata))
+    for (jllname, jllinfo) in sort(OrderedDict(jll_metadata))
         for (jllversion, verinfo) in sort(OrderedDict(jllinfo), by=VersionNumber)
             haskey(verinfo, "sources") || continue
             for s in verinfo["sources"]
@@ -59,7 +59,7 @@ function main()
                             t = try readchomp(`git tag --points-at $commit`) catch _ "" end
                             if isempty(t)
                                 t = try readchomp(`git tag --points-at $commit\~`) catch _ "" end
-                                !isempty(t) && @info "$upstream_project: found tag at $commit~;\n\n$(readchomp(`git show --format=oneline $commit`))"
+                                !isempty(t) && @info "$upstream_project: found tag at $commit~"
                             end
                             t
                         end
@@ -83,7 +83,7 @@ function main()
     end
 
     open(joinpath(@__DIR__, "..", "package_components.toml"), "w") do f
-        println("""
+        println(f, """
             # This file contains the mapping between a Julia package version and the upstream project(s) it directly provides.
             # The keys are package name and version, pointing to a table that maps from an included upstream project name
             # (as defined in upstream_project_info.toml) and its version(s). Typically versions can simply be a string, but
