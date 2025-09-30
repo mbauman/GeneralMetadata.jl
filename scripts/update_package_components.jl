@@ -3,17 +3,19 @@ using DataStructures: DefaultOrderedDict, OrderedDict
 using CSV: CSV
 using DataFrames: DataFrames, DataFrame, groupby, combine, transform, combine, eachrow
 
-function first_match(pattern_project_pairs, needle)
+function all_matches(pattern_project_pairs, needle)
+    result = Tuple{String,String}[]
     for (pattern, project) in pattern_project_pairs
         m = match(pattern, needle)
-        !isnothing(m) && return (project, m.captures[1])
+        !isnothing(m) && push!(result, (project, m.captures[1]))
     end
-    return nothing
+    return result
 end
 
 function main()
     # Load Repology data and reshape for efficiency
     repology_info = TOML.parsefile(joinpath(@__DIR__, "..", "repology_info.toml"))
+    additional_info = TOML.parsefile(joinpath(@__DIR__, "..", "additional_info.toml"))
     repositories = Dict{String, String}()
     url_patterns = Pair{Regex, String}[]
     for (proj, info) in repology_info
@@ -31,6 +33,23 @@ function main()
             end
         end
     end
+
+    for (proj, info) in additional_info
+        if haskey(info, "repositories")
+            for repo in info["repositories"]
+                # Allow repositories both with and without a git suffix
+                repositories[chopsuffix(repo, ".git")] = proj
+                repositories[chopsuffix(repo, ".git")*".git"] = proj
+            end
+        end
+        if haskey(info, "url_patterns")
+            for pattern in info["url_patterns"]
+                # And allow both http and https
+                push!(url_patterns, (Regex(replace(pattern, r"https?://" => "http\\Es?\\Q://"), "i") => proj))
+            end
+        end
+    end
+
     # Now walk through the JLL metadata to populate the package_components
     jll_metadata = TOML.parsefile(joinpath(@__DIR__, "..", "jll_metadata.toml"))
     package_components = DefaultOrderedDict{String, Any}(()->DefaultOrderedDict{String, Any}(()->OrderedDict{String, Any}()))
@@ -40,11 +59,9 @@ function main()
             haskey(verinfo, "sources") || continue
             for s in verinfo["sources"]
                 if haskey(s, "url")
-                    m = first_match(url_patterns, s["url"]) # TODO: get all matches
-                    if !isnothing(m)
-                        (upstream_project, upstream_version) = m
+                    for (upstream_project, upstream_version) in all_matches(url_patterns, s["url"])
                         haskey(package_components[jllname][jllversion], upstream_project) ?
-                            push!(package_components[jllname][jllversion][upstream_project], upstream_version) :
+                            union!(package_components[jllname][jllversion][upstream_project], [upstream_version]) :
                             package_components[jllname][jllversion][upstream_project] = [upstream_version]
                     end
                 end
@@ -73,7 +90,7 @@ function main()
                         @assert !isempty(ver)
                         @info "$upstream_project: got version $(ver) from git tag $tag"
                         haskey(package_components[jllname][jllversion], upstream_project) ?
-                            push!(package_components[jllname][jllversion][upstream_project], ver) :
+                            union!(package_components[jllname][jllversion][upstream_project], [ver]) :
                             package_components[jllname][jllversion][upstream_project] = [ver]
                     catch ex
                         ex isa InterruptException && return package_components
