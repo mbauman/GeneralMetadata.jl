@@ -80,7 +80,7 @@ function main()
             end
         end
         for (_, path) in git_cache
-            Filesystem.rm(path, recursive=true)
+            rm(path, recursive=true)
         end
         empty!(git_cache)
     end
