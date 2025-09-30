@@ -3,72 +3,53 @@ using DataStructures: DefaultOrderedDict, OrderedDict
 using CSV: CSV
 using DataFrames: DataFrames, DataFrame, groupby, combine, transform, combine, eachrow
 
+function first_match(pattern_project_pairs, needle)
+    for (pattern, project) in pattern_project_pairs
+        m = match(pattern, needle)
+        !isnothing(m) && return (project, m.captures[1])
+    end
+    return nothing
+end
+
 function main()
-    sql = """
-        COPY (SELECT
-            (elem.value ->> 0)::integer AS link_type,
-            l.url,
-            p.repo,
-            p.effname,
-            p.rawversion,
-            p.arch,
-            p.origversion,
-            p.versionclass
-        FROM packages p
-        CROSS JOIN LATERAL json_array_elements(p.links) AS elem(value)
-        JOIN links l ON l.id = (elem.value ->> 1)::integer
-        WHERE (NOT p.shadow='t') AND
-              ((elem.value ->> 0)::integer = 1 or (elem.value ->> 0)::integer = 2))
-        TO '/tmp/out.csv' WITH (format csv);
-    """
-    # run(`psql -U repology -c $sql`)
-    df = CSV.read("/tmp/out.csv", DataFrame, header=["link_type",
-           "url",
-           "repo",
-           "effname",
-           "arch",
-           "rawversion",
-           "origversion",
-           "versionclass"])
-    # We'll only trust download URLs when only one was used for the given package
-    # Many packages have more than one download, but then we don't know if that was a (build) dependency
-    # or the actual project or perhaps some larger meta-project that vendors lots of deps.
-    filtered_df = df |>
-        x -> groupby(x, [:repo, :effname, :rawversion, :arch]) |>
-        x -> transform(x, :url => (x -> length(unique(x))) => :n_unique_urls) |>
-        x -> filter(row -> row.n_unique_urls == 1, x) |>
-        # And also remove any rows for which the same URL points at two different effnames:
-        x -> groupby(x, :url) |>
-        x -> transform(x, :effname => (x -> length(unique(x))) => :n_unique_effnames) |>
-        x -> filter(row -> row.n_unique_effnames == 1, x)
-
-    # For repositories (link_type == 2), I know I can ignore versions:
-    repo_to_effname = Dict(row.url => row.effname for row in eachrow(filtered_df[filtered_df.link_type .== 2, :]))
-
-    # For downloads (link_type == 1), we may be able to get versions:
-    url_groups = combine(groupby(filtered_df[filtered_df.link_type .== 1, :], [:url, :effname]), :origversion => (x -> [unique(x)]) => :versions)
-    url_to_effname_versions = Dict(row.url => (row.effname, row.versions) for row in eachrow(url_groups))
-
-    package_components = DefaultOrderedDict{String, Any}(()->DefaultOrderedDict{String, Any}(()->OrderedDict{String, Any}()))
-
-    # Now walk through the JLL metadata to populate it
+    # Load Repology data and reshape for efficiency
+    repology_info = TOML.parsefile(joinpath(@__DIR__, "..", "repology_info.toml"))
+    repositories = Dict{String, String}()
+    url_patterns = Pair{Regex, String}[]
+    for (proj, info) in repology_info
+        if haskey(info, "repositories")
+            for repo in info["repositories"]
+                repositories[repo] = proj
+            end
+        end
+        if haskey(info, "url_patterns")
+            for pattern in info["url_patterns"]
+                push!(url_patterns, (Regex(pattern) => proj))
+            end
+        end
+    end
+    # Now walk through the JLL metadata to populate the package_components
     jll_metadata = TOML.parsefile(joinpath(@__DIR__, "..", "jll_metadata.toml"))
+    package_components = DefaultOrderedDict{String, Any}(()->DefaultOrderedDict{String, Any}(()->OrderedDict{String, Any}()))
     git_cache = Dict{String,String}()
-    for (jllname, jllinfo) in sort(OrderedDict(jll_metadata))
+    @time for (jllname, jllinfo) in sort(OrderedDict(jll_metadata))
         for (jllversion, verinfo) in sort(OrderedDict(jllinfo), by=VersionNumber)
             haskey(verinfo, "sources") || continue
             for s in verinfo["sources"]
-                if haskey(s, "url") && haskey(url_to_effname_versions, s["url"])
-                    (upstream_project, upstream_versions) = url_to_effname_versions[s["url"]]
-                    haskey(package_components[jllname][jllversion], upstream_project) ?
-                        append!(package_components[jllname][jllversion][upstream_project], upstream_versions) :
-                        package_components[jllname][jllversion][upstream_project] = upstream_versions
+                if haskey(s, "url")
+                    m = first_match(url_patterns, s["url"])
+                    if !isnothing(m)
+                        (upstream_project, upstream_version) = m
+                        haskey(package_components[jllname][jllversion], upstream_project) ?
+                            push!(package_components[jllname][jllversion][upstream_project], upstream_version) :
+                            package_components[jllname][jllversion][upstream_project] = [upstream_version]
+                    end
                 end
-                if haskey(s, "repo") && haskey(s, "hash") && haskey(repo_to_effname, s["repo"])
-                    upstream_project = repo_to_effname[s["repo"]]
+                if haskey(s, "repo") && haskey(s, "hash") && haskey(repositories, s["repo"])
+                    upstream_project = repositories[s["repo"]]
                     commit = s["hash"]
                     # Now the hard part are versions...
-                    upstream_versions = try
+                    try
                         dir = get!(git_cache, upstream_project) do
                             tmp = mktempdir()
                             run(pipeline(`git clone $(s["repo"]) $tmp`, stdout=Base.devnull, stderr=Base.devnull))
