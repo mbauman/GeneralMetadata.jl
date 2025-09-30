@@ -82,6 +82,25 @@ function main()
         end
     end
 
+    # Flatten arrays of versions if they are not needed
+    for (_, pkginfo) in package_components, (_, components) in pkginfo, (component, component_versions) in components
+        if length(component_versions) == 1
+            components[component] = only(component_versions)
+        end
+    end
+
+    # If a JLL has a component at _one_ version, assume it's there on all versions:
+    for (pkg, pkginfo) in package_components
+        components = unique(Iterators.flatten(keys.(values(pkginfo))))
+        for version in keys(jll_metadata[pkg])
+            !haskey(pkginfo, version) && (pkginfo[version] = Dict{String, Any}())
+            for component in components
+                component in keys(pkginfo[version]) && continue
+                pkginfo[version][component] = "*"
+            end
+        end
+    end
+
     open(joinpath(@__DIR__, "..", "package_components.toml"), "w") do f
         println(f, """
             # This file contains the mapping between a Julia package version and the upstream project(s) it directly provides.
@@ -95,7 +114,8 @@ function main()
             # package version, then it should have definitions (perhaps manually entered) at all versions. To explicitly state that
             # the project is not incorporated and prevent such suggestions, use an empty array.""")
         TOML.print(f, package_components,
-            inline_tables=IdSet{Dict{String,Any}}(vertable for jlltable in values(package_components) for vertable in values(jlltable) if length(values(vertable)) <= 2))
+            inline_tables=IdSet{Dict{String,Any}}(vertable for jlltable in values(package_components) for vertable in values(jlltable) if length(values(vertable)) <= 2),
+            sorted = true, by = x->something(tryparse(VersionNumber, x), x))
     end
     return package_components
 end
