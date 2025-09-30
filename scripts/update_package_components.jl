@@ -48,8 +48,8 @@ function main()
                             package_components[jllname][jllversion][upstream_project] = [upstream_version]
                     end
                 end
-                if haskey(s, "repo") && haskey(s, "hash") && has_repo_url(repositories, s["repo"])
-                    upstream_project = get_repo_url_value(repositories, s["repo"])
+                if haskey(s, "repo") && haskey(s, "hash") && haskey(repositories, s["repo"])
+                    upstream_project = repositories[s["repo"]]
                     commit = s["hash"]
                     # Now the hard part are versions...
                     try
