@@ -57,11 +57,11 @@ function main()
         # these are often things like -latest or the like
         v = only(row.versions)
         contains(row.url, v) || continue
-        contains("\\E(.+)\\Q", v) && continue # These are invalid versions and corrupt the Regex
+        contains("\\E(\\d.*)\\Q", v) && continue # These are invalid versions and corrupt the Regex
         rs = download_patterns[row.effname]
         any(r->!isnothing(match(Regex(r), row.url)), rs) && continue # We already have this pattern
         pattern = string("^\\Q", row.url, "\\E\$")
-        pattern = replace(pattern, v => "\\E(.+)\\Q"; count = 1)
+        pattern = replace(pattern, v => "\\E(\\d.*)\\Q"; count = 1)
         pattern = replace(pattern, v => "\\E\\1\\Q")
         push!(rs, pattern)
     end
