@@ -10,7 +10,35 @@ jobs:
       POSTGRESQL: 17
 
     steps:
-      - name: Install dependencies
+      - name: Maximize build disk space
+        uses: easimon/maximize-build-space@v10
+        with:
+          remove-dotnet: true
+          remove-android: true
+          remove-haskell: true
+          remove-codeql: true
+          remove-docker-images: true
+
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref || github.ref_name }}
+
+      - name: Set up git user
+        run: |
+            git config --global user.name "github-actions[bot]"
+            git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Setup Julia
+        uses: julia-actions/setup-julia@v1
+
+      - name: Install Julia dependencies
+        run: |
+            julia --project=. -e 'using Pkg; Pkg.instantiate()'
+
+      - name: Install repology/postgres dependencies
         run: |
           curl -s https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
           sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main $POSTGRESQL" > /etc/apt/sources.list.d/pgdg.list'
@@ -38,6 +66,7 @@ jobs:
           sudo -u postgres psql -p 5433 -c "CREATE DATABASE repology"
           sudo -u postgres psql -p 5433 -c "CREATE USER repology WITH PASSWORD 'repology'"
           sudo -u postgres psql -p 5433 -c "GRANT ALL ON DATABASE repology TO repology"
+          sudo -u postgres psql -p 5433 -c "GRANT pg_write_server_files TO repology"
           sudo -u postgres psql -p 5433 --dbname repology -c "GRANT CREATE ON SCHEMA public TO PUBLIC"
           sudo -u postgres psql -p 5433 --dbname repology -c "CREATE EXTENSION pg_trgm"
           sudo -u postgres psql -p 5433 --dbname repology -c "CREATE EXTENSION libversion"
@@ -47,4 +76,28 @@ jobs:
           PGPASSWORD: repology
         run: |
           curl -s https://dumps.repology.org/repology-database-dump-latest.sql.zst | zstd -d | psql -h localhost -p 5433 -v ON_ERROR_STOP=1
-          echo "success!"
+
+      - name: Update package components
+        id: update
+        run: |
+          julia --project=. scripts/update_repology_info.jl
+
+      - name: Commit changes (if any)
+        id: git_commit
+        run: |
+            git add repology_info.toml
+            if git diff --cached --quiet; then
+            echo "No changes to commit."
+            echo "committed=false" >> $GITHUB_OUTPUT
+            else
+            git commit -m "[automatic] update repology_info.toml"
+            echo "committed=true" >> $GITHUB_OUTPUT
+            fi
+
+      - name: Push directly to branch or main if exact
+        if: |
+            steps.git_commit.outputs.committed == 'true'
+        run: |
+            # For PRs, push to the PR's branch; for main, push to main
+            current_branch="${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}"
+            git push origin HEAD:"$current_branch"
