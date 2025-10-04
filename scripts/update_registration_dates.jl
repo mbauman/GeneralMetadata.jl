@@ -4,7 +4,7 @@ using TOML
 function main()
     dates = GeneralMetadata.extract_registration_dates()
     open(joinpath(@__DIR__, "..", "registration_dates.toml"), "w") do io
-        TOML.print(io, dates, sorted=true, by=x->something(tryparse(x, VersionNumber), x))
+        TOML.print(io, dates, sorted=true, by=x->something(tryparse(VersionNumber, x), x))
     end
 end
 
