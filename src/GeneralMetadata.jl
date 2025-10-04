@@ -54,6 +54,7 @@ function store_missing_dates!(dates; before, value)
     reg = TOML.parsefile("Registry.toml")
     for (uuid, pkginfo) in reg["packages"]
         pkg = pkginfo["name"]
+        isfile(joinpath(pkginfo["path"], "Versions.toml")) || continue
         versions = TOML.parsefile(joinpath(pkginfo["path"], "Versions.toml"))
         if !haskey(dates, pkg)
             dates[pkg] = Dict{String, Any}()
