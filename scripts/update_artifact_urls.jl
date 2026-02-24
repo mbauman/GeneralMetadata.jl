@@ -4,13 +4,13 @@ using Pkg: Pkg
 using Artifacts: Artifacts
 using Tar: Tar
 using CodecZlib: GzipDecompressorStream
-using Downloads: download
+using Downloads: Downloads
 using DataStructures: SortedDict
 
 function gather_artifact_urls(uuid, sha)
     url = "https://pkg.julialang.org/package/$(uuid)/$(sha)"
     mktemp() do _, iogz
-        download(url, iogz)
+        Downloads.download(url, iogz)
         seekstart(iogz)
         artifact_toml = untar_file(x->x.path in Artifacts.artifact_names, GzipDecompressorStream(iogz))
         isnothing(artifact_toml) && return String[]
@@ -73,8 +73,8 @@ function main(; max_downloads=2000)
                     # If we get a 404, skip all subsquent versions of this package, but keep going with other packages.
                     break
                 else
-                    # For all other errors, we stop entirely to avoid hitting rate limits or other issues
-                    download_count = typemax(Int)
+                    # For all other errors, ensure we don't hammer with more than 5 retries
+                    download_count += max(10, max_downloads÷5)
                     break
                 end
             end
