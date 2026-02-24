@@ -49,12 +49,12 @@ function untar_file(filter, io)
     return result[]
 end
 
-function main(; max_downloads=1000)
+function main(; max_downloads=500)
     download_count = 0
     artifact_urls_toml = joinpath(@__DIR__, "..", "artifact_urls.toml")
     out = TOML.parsefile(artifact_urls_toml)
     registry = only(filter(x->x.name == "General", Pkg.Registry.reachable_registries()))
-    for (pkg_uuid, pkg_info) in registry.pkgs # TODO: remove this limit once we're sure the script is working correctly
+    for (pkg_uuid, pkg_info) in registry.pkgs
         Pkg.Registry.init_package_info!(pkg_info)
         pkg_name = pkg_info.name
         pkg_urls = get(out, pkg_name, Dict{String,Any}())
@@ -65,7 +65,13 @@ function main(; max_downloads=1000)
                 continue
             end
             @info "Package $pkg_name version $version"
-            artifact_urls = gather_artifact_urls(pkg_uuid, ver_info.git_tree_sha1)
+            artifact_urls = try
+                gather_artifact_urls(pkg_uuid, ver_info.git_tree_sha1)
+            catch ex
+                @warn "Failed to gather artifact URLs for $pkg_name version $version+: $ex" ex
+                download_count = typemax(Int) # Stop further attempts if we encounter an error
+                break
+            end
             download_count += 1
             if artifact_urls == last_recorded_urls
                 pop!(pkg_urls, string(last_recorded_version), String[])
