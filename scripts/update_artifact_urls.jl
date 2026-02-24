@@ -49,7 +49,7 @@ function untar_file(filter, io)
     return result[]
 end
 
-function main(; max_downloads=500)
+function main(; max_downloads=2000)
     download_count = 0
     artifact_urls_toml = joinpath(@__DIR__, "..", "artifact_urls.toml")
     out = TOML.parsefile(artifact_urls_toml)
@@ -69,8 +69,14 @@ function main(; max_downloads=500)
                 gather_artifact_urls(pkg_uuid, ver_info.git_tree_sha1)
             catch ex
                 @warn "Failed to gather artifact URLs for $pkg_name version $version+: $ex" ex
-                download_count = typemax(Int) # Stop further attempts if we encounter an error
-                break
+                if ex isa Downloads.RequestError && ex.response.status == 404
+                    # If we get a 404, skip all subsquent versions of this package, but keep going with other packages.
+                    break
+                else
+                    # For all other errors, we stop entirely to avoid hitting rate limits or other issues
+                    download_count = typemax(Int)
+                    break
+                end
             end
             download_count += 1
             if artifact_urls == last_recorded_urls
