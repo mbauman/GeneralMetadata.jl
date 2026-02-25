@@ -57,7 +57,7 @@ function main()
     git_cache = Dict{String,String}()
     for (jllname, jllinfo) in sort(OrderedDict(jll_metadata))
         if !haskey(package_components, jllname)
-            package_components[jllname] = DefaultOrderedDict{String, Any}(()->OrderedDict{String, Any}())
+            package_components[jllname] = OrderedDict{String, Any}()
         end
         for (jllversion, verinfo) in sort(OrderedDict(jllinfo), by=VersionNumber)
             haskey(verinfo, "sources") || continue
