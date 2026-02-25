@@ -127,10 +127,15 @@ Given a URL to some repository, strip the schema (e.g., https:// or git://) and 
 normalize_repo(url) = chopprefix(chopsuffix(url, ".git"), r"[^:/]+://")
 
 function get_version_from_commit(repo, commit; git_cache=Dict{String,String}())
-    dir = get!(git_cache, repo) do
-        tmp = mktempdir()
-        run(pipeline(`git clone --filter=tree:0 --no-checkout --tags $repo $tmp`, stdout=Base.devnull, stderr=Base.devnull))
-        tmp
+    try
+        dir = get!(git_cache, repo) do
+            tmp = mktempdir()
+            run(pipeline(`git clone --filter=tree:0 --no-checkout --tags $repo $tmp`, stdout=Base.devnull, stderr=Base.devnull))
+            tmp
+        end
+    catch _
+        @warn "Failed to clone repo $repo to get version information for commit $commit"
+        return ""
     end
     tag = cd(dir) do
         try
