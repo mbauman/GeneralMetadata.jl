@@ -133,27 +133,28 @@ function get_version_from_commit(repo, commit; git_cache=Dict{String,String}())
             run(pipeline(`git clone --filter=tree:0 --no-checkout --tags $repo $tmp`, stdout=Base.devnull, stderr=Base.devnull))
             tmp
         end
-    catch _
-        @warn "Failed to clone repo $repo to get version information for commit $commit"
-        return ""
-    end
-    tag = cd(dir) do
-        try
-            readchomp(`git tag --points-at $commit`)
-        catch _
+        tag = cd(dir) do
             try
-                run(`git fetch origin $commit`)
                 readchomp(`git tag --points-at $commit`)
             catch _
-                ""
+                try
+                    run(`git fetch origin $commit`)
+                    readchomp(`git tag --points-at $commit`)
+                catch _
+                    ""
+                end
             end
         end
+        # It can be challenging to parse a version number out of a tag; some options here include: v1.2.3 and PCRE2-1.2.3
+        # This strips all non-numeric prefixes with up to one digit as long as the digit is not followed by a period.
+        # and ignore everything after a newline (multiple tags are newline separated, with the latest first)
+        ver = strip(split(chopprefix(tag, r"^[^\d]*(?:\d[^\d.]+)?"), "\n", limit=2)[1])
+        return ver
+    catch ex
+        @warn "Failed to clone repo $repo to get version information for commit $commit" ex
+        return ""
     end
-    # It can be challenging to parse a version number out of a tag; some options here include: v1.2.3 and PCRE2-1.2.3
-    # This strips all non-numeric prefixes with up to one digit as long as the digit is not followed by a period.
-    # and ignore everything after a newline (multiple tags are newline separated, with the latest first)
-    ver = strip(split(chopprefix(tag, r"^[^\d]*(?:\d[^\d.]+)?"), "\n", limit=2)[1])
-    return ver
+
 end
 
 function merge_components!(dest, src)
