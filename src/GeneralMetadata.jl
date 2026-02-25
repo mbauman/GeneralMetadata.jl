@@ -154,7 +154,6 @@ function get_version_from_commit(repo, commit; git_cache=Dict{String,String}())
         @warn "Failed to clone repo $repo to get version information for commit $commit" ex
         return ""
     end
-
 end
 
 function merge_components!(dest, src)

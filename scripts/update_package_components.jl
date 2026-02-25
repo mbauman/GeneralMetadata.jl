@@ -11,6 +11,7 @@ function main()
     additional_info = TOML.parsefile(joinpath(@__DIR__, "..", "additional_info.toml"))
     repositories = Dict{String, String}()
     url_patterns = Pair{Regex, String}[]
+    @info "loading repology info"
     for (proj, info) in repology_info
         if haskey(info, "repositories")
             for repo in info["repositories"]
@@ -33,6 +34,7 @@ function main()
         end
     end
 
+    @info "adding additional info"
     for (proj, info) in additional_info
         if haskey(info, "repositories")
             for repo in info["repositories"]
@@ -49,7 +51,7 @@ function main()
         end
     end
 
-    # Now walk through the JLL metadata to update the package_components
+    @info "updating package components"
     package_components_toml = joinpath(@__DIR__, "..", "package_components.toml")
     package_components = TOML.parsefile(package_components_toml)
 
@@ -75,12 +77,15 @@ function main()
         end
     end
 
+    @info "standardizing representations"
     # Flatten arrays of versions if they are not needed
     for (_, pkginfo) in package_components, (_, components) in pkginfo, (component, component_versions) in components
-        if length(component_versions) == 1
-            components[component] = only(component_versions)
-        elseif "*" in component_versions
-            components[component] = "*"
+        if component_versions isa AbstractArray
+            if length(component_versions) == 1
+                components[component] = only(component_versions)
+            elseif "*" in component_versions
+                components[component] = "*"
+            end
         end
     end
 
@@ -96,6 +101,7 @@ function main()
         end
     end
 
+    @info "writing output"
     open(package_components_toml, "w") do f
         println(f, """
             # This file contains the mapping between a Julia package version and the upstream project(s) it directly provides.
