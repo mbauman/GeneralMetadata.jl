@@ -56,9 +56,16 @@ function main()
     jll_metadata = TOML.parsefile(joinpath(@__DIR__, "..", "jll_metadata.toml"))
     git_cache = Dict{String,String}()
     for (jllname, jllinfo) in sort(OrderedDict(jll_metadata))
+        if !haskey(package_components, jllname)
+            package_components[jllname] = DefaultOrderedDict{String, Any}(()->OrderedDict{String, Any}())
+        end
         for (jllversion, verinfo) in sort(OrderedDict(jllinfo), by=VersionNumber)
             haskey(verinfo, "sources") || continue
-            haskey(package_components, jllname) && haskey(package_components[jllname], jllversion) && continue
+            if haskey(package_components[jllname], jllversion)
+                continue
+            else
+                package_components[jllname][jllversion] = OrderedDict{String, Any}()
+            end
             for source in verinfo["sources"]
                 components = identify_components(source; repositories, url_patterns, git_cache)
                 if !isempty(components)
