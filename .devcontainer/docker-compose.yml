@@ -1,0 +1,27 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ../..:/workspaces/GeneralMetadata.jl:cached
+    # Keep the container running so VS Code / Codespaces can attach.
+    command: sleep infinity
+
+  db:
+    build:
+      context: .
+      dockerfile: Dockerfile.postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: repology
+      POSTGRES_PASSWORD: repology
+      POSTGRES_DB: repology
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      # init.sql runs on first startup (when the data volume is empty).
+      # Mounting it here means changes take effect after `docker compose down -v`.
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+volumes:
+  postgres-data:
