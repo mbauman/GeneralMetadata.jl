@@ -4,24 +4,27 @@ FROM postgres:17
 
 # Build tools are only needed at image build time; the extension .so files
 # are what postgres actually needs at runtime.
+# curl -fSL is used instead of wget: -f fails on HTTP errors, -S shows errors
+# in silent mode, and -L follows redirects — preventing silent truncated
+# downloads from being piped straight into tar.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         cmake \
-        wget \
+        curl \
         build-essential \
         postgresql-server-dev-17 \
     && mkdir /tmp/_libversion \
     && cd /tmp/_libversion \
-    && wget -qO- https://github.com/repology/libversion/archive/master.tar.gz | tar -xzf- --strip-components 1 \
+    && curl -fSL https://github.com/repology/libversion/archive/master.tar.gz | tar -xzf- --strip-components 1 \
     && cmake . \
     && make \
     && make install \
     && ldconfig \
     && mkdir /tmp/_postgresql-libversion \
     && cd /tmp/_postgresql-libversion \
-    && wget -qO- https://github.com/repology/postgresql-libversion/archive/master.tar.gz | tar -xzf- --strip-components 1 \
+    && curl -fSL https://github.com/repology/postgresql-libversion/archive/master.tar.gz | tar -xzf- --strip-components 1 \
     && make \
     && make install \
-    && apt-get purge -y cmake wget build-essential postgresql-server-dev-17 \
+    && apt-get purge -y cmake curl build-essential postgresql-server-dev-17 \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/* /tmp/_libversion /tmp/_postgresql-libversion
