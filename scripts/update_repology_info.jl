@@ -4,6 +4,10 @@ using CSV: CSV
 using DataFrames: DataFrames, DataFrame, groupby, combine, transform, combine, eachrow
 
 function main()
+    run(pipeline(`curl -s https://dumps.repology.org/repology-database-dump-latest.sql.zst`,
+        `zstd -d`,
+        `psql -v ON_ERROR_STOP=1`))
+
     sql = """
         COPY (SELECT
             (elem.value ->> 0)::integer AS link_type,
