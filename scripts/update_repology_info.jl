@@ -8,6 +8,7 @@ function main()
         `zstd -d`,
         `psql -v ON_ERROR_STOP=1`))
 
+    @info "gather repositories"
     sql = """
         COPY (SELECT
             (elem.value ->> 0)::integer AS link_type,
@@ -23,17 +24,20 @@ function main()
         JOIN links l ON l.id = (elem.value ->> 1)::integer
         WHERE (NOT p.shadow='t') AND
               ((elem.value ->> 0)::integer = 1 or (elem.value ->> 0)::integer = 2))
-        TO '/tmp/out.csv' WITH (format csv);
+        TO STDOUT WITH (format csv);
     """
-    run(`psql -U repology -c $sql`)
-    df = CSV.read("/tmp/out.csv", DataFrame, header=["link_type",
-           "url",
-           "repo",
-           "effname",
-           "arch",
-           "rawversion",
-           "origversion",
-           "versionclass"])
+    df = mktemp() do _, io
+        run(pipeline(`psql -U repology -c $sql`, stdout=io))
+        seekstart(io)
+        CSV.read(io, DataFrame, header=["link_type",
+            "url",
+            "repo",
+            "effname",
+            "arch",
+            "rawversion",
+            "origversion",
+            "versionclass"])
+    end
     # We'll only trust download URLs when only one was used for the given package
     # Many packages have more than one download, but then we don't know if that was a (build) dependency
     # or the actual project or perhaps some larger meta-project that vendors lots of deps.
@@ -52,6 +56,7 @@ function main()
         push!(repositories[row.effname], row.url)
     end
 
+    @info "gather downloads"
     # For downloads (link_type == 1), the versions may be meaningfully linked to the URL
     url_groups = combine(groupby(filtered_df[filtered_df.link_type .== 1, :], [:url, :effname]), :origversion => (x -> [unique(x)]) => :versions)
     download_patterns = DefaultDict{String, Vector{String}}(()->String[])
@@ -70,16 +75,20 @@ function main()
         push!(rs, pattern)
     end
 
+    @info "gather CPEs"
     sql = """
         COPY (SELECT
             p.effname,
             p.cpe_vendor || ':' || p.cpe_product AS cpe
         FROM project_cpe p
         WHERE p.cpe_vendor IS NOT NULL AND p.cpe_product IS NOT NULL)
-        TO '/tmp/out.csv' WITH (format csv);
+        TO STDOUT WITH (format csv);
     """
-    run(`psql -U repology -c $sql`)
-    cpes = CSV.read("/tmp/out.csv", DataFrame, header=["effname", "cpe"])
+    cpes = mktemp() do _, io
+        run(pipeline(`psql -U repology -c $sql`, stdout=io))
+        seekstart(io)
+        CSV.read(io, DataFrame, header=["effname", "cpe"])
+    end
 
     repology_info = Dict{String, Any}()
     for project in union(keys(download_patterns), keys(repositories))
