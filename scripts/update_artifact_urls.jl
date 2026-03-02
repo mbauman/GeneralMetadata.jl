@@ -20,7 +20,7 @@ function gather_artifact_urls(uuid, sha)
         for (_, artifact_info) in artifacts
             # Normalize to a vector of dicts, even if there's only one artifact
             for entry in (artifact_info isa AbstractDict ? [artifact_info] : artifact_info)
-                for dl in entry["download"]
+                for dl in get(entry, "download", [])
                     push!(urls, dl["url"])
                 end
             end
