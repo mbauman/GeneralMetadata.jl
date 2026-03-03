@@ -1,6 +1,6 @@
 module GeneralMetadata
 
-import TOML, JSON3, HTTP, CSV
+import TOML, JSON3, HTTP, CSV, Pkg
 using DataFrames: DataFrames, DataFrame
 using Dates: Dates, DateTime, Date, Day, Millisecond
 
