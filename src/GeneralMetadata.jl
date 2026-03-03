@@ -1,6 +1,6 @@
 module GeneralMetadata
 
-import TOML, JSON3, HTTP, CSV, Pkg, Downloads
+import TOML, JSON3, HTTP, CSV, Pkg, Downloads, Tar
 using DataFrames: DataFrames, DataFrame
 using Dates: Dates, DateTime, Date, Day, Millisecond
 using CodecZlib: GzipDecompressorStream
