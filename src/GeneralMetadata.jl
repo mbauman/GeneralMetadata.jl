@@ -13,7 +13,7 @@ end
 function registered_package_versions(pkgname)
     registry = only(filter(x->x.name == "General", Pkg.Registry.reachable_registries()))
     pkg_info = only(values(filter(((k,v),)->v.name == pkgname, registry.pkgs)))
-    if VERSION < v"1.13"
+    if VERSION < v"1.13-"
         Pkg.Registry.init_package_info!(pkg_info)
     else
         Pkg.Registry.init_package_info!(registry, pkg_info)
@@ -343,11 +343,12 @@ function update_artifact_urls!(meta = metadata(); max_downloads=10000)
     download_count = 0
     for (pkg_name, pkg_info) in meta
         pkg_uuid = uuid_from_name(pkg_name)
+        reg_info = registered_package_versions(pkg_name)
         for (ver, ver_info) in pkg_info
             haskey(ver_info, "artifact_urls") && continue
             @info "Updating artifact URLs for $pkg_name v$ver"
             artifact_urls = try
-                gather_artifact_urls(pkg_uuid, ver_info.git_tree_sha1)
+                gather_artifact_urls(pkg_uuid, reg_info[ver].git_tree_sha1)
             catch ex
                 @warn "Failed to gather artifact URLs for $pkg_name version $ver: $ex" ex
                 if ex isa Downloads.RequestError && ex.response.status == 404
