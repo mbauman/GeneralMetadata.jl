@@ -4,6 +4,29 @@ import TOML, JSON3, HTTP, CSV, Pkg
 using DataFrames: DataFrames, DataFrame
 using Dates: Dates, DateTime, Date, Day, Millisecond
 
+## Abstract away some Pkg internals into one common place:
+function registered_package_names()
+    registry = only(filter(x->x.name == "General", Pkg.Registry.reachable_registries()))
+    return Set(x.name for x in values(registry.pkgs))
+end
+
+function registered_package_versions(pkgname)
+    registry = only(filter(x->x.name == "General", Pkg.Registry.reachable_registries()))
+    pkg_info = only(values(filter(((k,v),)->v.name == pkgname, registry.pkgs)))
+    if VERSION < v"1.13"
+        Pkg.Registry.init_package_info!(pkg_info)
+    else
+        Pkg.Registry.init_package_info!(registry, pkg_info)
+    end
+    return pkg_info.info.version_info
+end
+
+function uuid_from_name(pkg_name)
+    registry = only(filter(x->x.name == "General", Pkg.Registry.reachable_registries()))
+    return only(Pkg.Registry.uuids_from_name(registry, pkg_name))
+end
+
+## The main entry point:
 function metadata()
     if isdir(joinpath(@__DIR__, "..", "metadata"))
         meta = Dict{String,Any}()
@@ -20,20 +43,19 @@ function metadata()
         dates = TOML.parsefile(joinpath(@__DIR__, "..", "registration_dates.toml"))
         artifacts = TOML.parsefile(joinpath(@__DIR__, "..", "artifact_urls.toml"))
 
-        all_registered_packages = Pkg.Registry.reachable_registries() |> filter(x->x.name == "General") |> only |> x->x.pkgs
-        all_registered_names = Set(values(all_registered_packages) .|> x->x.name)
+        all_registered_names = registered_package_names()
         for package in union(keys(dates), keys(artifacts))
             if !(package in all_registered_names)
                 # Remove deleted packages from the metadata (typically a cappened one)
                 continue
             end
-            reg_info = Pkg.Registry.init_package_info!(filter(((k,v),)->v.name == package, all_registered_packages) |> values |> only)
+            reg_info = registered_package_versions(package)
             pkg_dates = get(dates, package, Dict{String,Any}())
             pkg_artifacts = get(artifacts, package, Dict{String,Any}())
             pkg_meta = Dict{String,Any}()
             last_artifacts = nothing
             for version in sort(collect(union(keys(pkg_dates), keys(pkg_artifacts))), by=VersionNumber, rev=true)
-                if !(VersionNumber(version) in keys(reg_info.version_info))
+                if !(VersionNumber(version) in keys(reg_info))
                     # Remove deleted versions from the metadata (typically a cappened one), but some mistakes, too
                     continue
                 end
@@ -75,7 +97,6 @@ function manifest_packages(manifest_path)
     collect(keys(TOML.parsefile(manifest_path)["deps"]))
 end
 
-# Write your package code here.
 function license(packagename)
     JSON3.read(String(HTTP.get("https://juliahub.com/docs/General/$packagename/stable/pkg.json").body)).license
 end
@@ -321,7 +342,7 @@ end
 function update_artifact_urls!(meta = metadata(); max_downloads=10000)
     download_count = 0
     for (pkg_name, pkg_info) in meta
-        pkg_uuid = Registry.uuids_from_name(only(filter(x->x.name == "General", Pkg.Registry.reachable_registries())), pkg_name) |> only
+        pkg_uuid = uuid_from_name(pkg_name)
         for (ver, ver_info) in pkg_info
             haskey(ver_info, "artifact_urls") && continue
             @info "Updating artifact URLs for $pkg_name v$ver"
