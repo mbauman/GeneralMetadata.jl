@@ -11,7 +11,7 @@ function main()
         uuid = GeneralMetadata.uuid_from_name(pkg)
         pkgdir = mkpath(joinpath(root, pkg))
         JSON.json(joinpath(pkgdir, "versions.json"), sort(OrderedDict(versions), by=VersionNumber))
-        JSON.json(joinpath(pkgdir, "info.json"), (; name=pkg, uuid=string(only(uuid))))
+        JSON.json(joinpath(pkgdir, "info.json"), (; name=pkg, uuid=string(uuid)))
     end
 end
 
