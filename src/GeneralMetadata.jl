@@ -94,7 +94,7 @@ function general_repo()
     return GENERAL[] = dir
 end
 
-function update_registration_dates!(meta = metadata(); after=maximum(Iterators.flatmap(values, Iterators.flatmap(values, values(meta))), init=DateTime("2018-08-08T17:02:39")), before=after + Dates.Year(1))
+function update_registration_dates!(meta = metadata(); after=maximum(Iterators.map(v->get(v, "registered", Dates.DateTime(0)), Iterators.flatmap(values, values(meta))), init=DateTime("2018-08-08T17:02:39")), before=after + Dates.Year(1))
     # This uses --first-parent to get the _availability_ date on master
     cd(general_repo()) do
         commits = split(readchomp(`git rev-list --first-parent --reverse --after=$(after)Z --before=$(before)Z master`), "\n")
@@ -147,10 +147,13 @@ function process_commit!(dates, commit)
             if !haskey(dates, pkg)
                 dates[pkg] = Dict{String, Any}()
             end
-            if haskey(dates[pkg], ver) && dates[pkg][ver]["registered"] != timestamp
-                @warn "commit $commit ($timestamp) introduced $pkg $ver, but it's already set to $(dates[pkg][ver]["registered"])"
+            if !haskey(dates[pkg], ver)
+                dates[pkg][ver] = Dict{String, Any}()
+            end
+            if haskey(dates[pkg][ver], "registered") && dates[pkg][ver]["registered"] != timestamp
+                error("commit $commit ($timestamp) introduced $pkg $ver, but it's already set to $(dates[pkg][ver]["registered"])")
             else
-                dates[pkg][ver] = Dict{String,Any}("registered" => timestamp)
+                dates[pkg][ver]["registered"] = timestamp
             end
         end
     else
