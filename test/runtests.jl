@@ -10,9 +10,9 @@ using Dates: Dates
     all_registered_names = Set(values(all_registered_packages) .|> x->x.name)
     for (pkg, pkginfo) in meta
         @test pkg in all_registered_names
-        reg_info = Pkg.Registry.init_package_info!(filter(((k,v),)->v.name == pkg, all_registered_packages) |> values |> only)
+        reg_info = GeneralMetadata.registered_package_versions(pkg)
         for (ver, verinfo) in pkginfo
-            @test haskey(reg_info.version_info, VersionNumber(ver))
+            @test haskey(reg_info, VersionNumber(ver))
         end
     end
     cd(GeneralMetadata.general_repo()) do
@@ -26,8 +26,8 @@ using Dates: Dates
             pkg_name = pkginfo.name
             @test haskey(meta, pkg_name)
             meta_info = meta[pkg_name]
-            Registry.init_package_info!(pkginfo)
-            for (ver, verinfo) in pkginfo.info.version_info
+            reg_info = GeneralMetadata.registered_package_versions(pkg)
+            for (ver, verinfo) in reg_info.version_info
                 @test haskey(meta_info, string(ver))
             end
          end

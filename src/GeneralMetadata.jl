@@ -1,6 +1,6 @@
 module GeneralMetadata
 
-import TOML, JSON3, HTTP, CSV, Pkg
+import TOML, JSON3, HTTP, CSV, Pkg, Downloads
 using DataFrames: DataFrames, DataFrame
 using Dates: Dates, DateTime, Date, Day, Millisecond
 
@@ -348,9 +348,9 @@ function update_artifact_urls!(meta = metadata(); max_downloads=10000)
             haskey(ver_info, "artifact_urls") && continue
             @info "Updating artifact URLs for $pkg_name v$ver"
             artifact_urls = try
-                gather_artifact_urls(pkg_uuid, reg_info[ver].git_tree_sha1)
+                gather_artifact_urls(pkg_uuid, reg_info[VersionNumber(ver)].git_tree_sha1)
             catch ex
-                @warn "Failed to gather artifact URLs for $pkg_name version $ver: $ex" ex
+                @warn "Failed to gather artifact URLs for $pkg_name version $ver:" ex
                 if ex isa Downloads.RequestError && ex.response.status == 404
                     # If we get a 404, skip all subsquent versions of this package, but keep going with other packages.
                     break
