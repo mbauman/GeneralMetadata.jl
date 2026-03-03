@@ -27,7 +27,7 @@ using Dates: Dates
             @test haskey(meta, pkg_name)
             meta_info = meta[pkg_name]
             reg_info = GeneralMetadata.registered_package_versions(pkg)
-            for (ver, verinfo) in reg_info.version_info
+            for (ver, verinfo) in reg_info
                 @test haskey(meta_info, string(ver))
             end
          end
