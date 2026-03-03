@@ -12,7 +12,7 @@ using Dates: Dates
         @test pkg in all_registered_names
         reg_info = GeneralMetadata.registered_package_versions(pkg)
         for (ver, verinfo) in pkginfo
-            if (Dates.now() - verinfo["registered"]) < Day(1)
+            if (Dates.now() - verinfo["registered"]) < Dates.Day(1)
                 # Recently registered versions might not have propagated to the package servers yet
                 continue
             end
