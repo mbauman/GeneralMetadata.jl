@@ -3,6 +3,7 @@ module GeneralMetadata
 import TOML, JSON3, HTTP, CSV, Pkg, Downloads
 using DataFrames: DataFrames, DataFrame
 using Dates: Dates, DateTime, Date, Day, Millisecond
+using CodecZlib: GzipDecompressorStream
 
 ## Abstract away some Pkg internals into one common place:
 function registered_package_names()
@@ -13,12 +14,19 @@ end
 function registered_package_versions(pkgname)
     registry = only(filter(x->x.name == "General", Pkg.Registry.reachable_registries()))
     pkg_info = only(values(filter(((k,v),)->v.name == pkgname, registry.pkgs)))
+    return registered_package_versions(registry, pkg_info)
+end
+function registered_package_versions(pkguuid::Base.UUID)
+    registry = only(filter(x->x.name == "General", Pkg.Registry.reachable_registries()))
+    return registered_package_versions(registry, registry[pkguuid])
+end
+function registered_package_versions(registry, pkgentry)
     if VERSION < v"1.13-"
-        Pkg.Registry.init_package_info!(pkg_info)
+        Pkg.Registry.init_package_info!(pkgentry)
     else
-        Pkg.Registry.init_package_info!(registry, pkg_info)
+        Pkg.Registry.init_package_info!(registry, pkgentry)
     end
-    return pkg_info.info.version_info
+    return pkgentry.info.version_info
 end
 
 function uuid_from_name(pkg_name)
