@@ -2,10 +2,11 @@ using GeneralMetadata
 using TOML
 
 function main()
-    dates = GeneralMetadata.extract_registration_dates()
-    open(joinpath(@__DIR__, "..", "registration_dates.toml"), "w") do io
-        TOML.print(io, dates, sorted=true, by=x->something(tryparse(VersionNumber, x), x))
-    end
+    meta = GeneralMetadata.metadata()
+    GeneralMetadata.update_registration_dates!(meta)
+    GeneralMetadata.update_artifact_urls!(meta)
+    GeneralMetadata.save_metadata!(meta)
+    return meta
 end
 
 if abspath(PROGRAM_FILE) == @__FILE__

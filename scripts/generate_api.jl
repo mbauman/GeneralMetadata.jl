@@ -4,7 +4,7 @@ using DataStructures: DataStructures, OrderedDict
 using Pkg: Pkg, Registry
 
 function main()
-    allversions = TOML.parsefile(joinpath(@__DIR__, "..", "registration_dates.toml"))
+    allversions = GeneralMetadata.metadata()
     general = only(filter(x->x.uuid==Base.UUID("23338594-aafe-5451-b93e-139f81909106"), Registry.reachable_registries()))
     root = mkpath(joinpath(@__DIR__, "..", "webroot", "api"))
     for (pkg, versions) in allversions
