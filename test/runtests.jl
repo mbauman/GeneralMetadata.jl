@@ -6,6 +6,7 @@ using Dates: Dates
 @testset "Package coverage" begin
     cd(GeneralMetadata.general_repo()) do
         # Roll the registry back to the commit at the time of the last recorded update
+        meta = GeneralMetadata.metadata()
         timestamp = GeneralMetadata.last_update(meta) + Dates.Millisecond(500) # --before is exclusive
         last_commit = split(readchomp(`git rev-list --first-parent --before=$(timestamp)Z master`), "\n")[1]
         run(`git checkout --quiet --force $last_commit`)
@@ -13,7 +14,6 @@ using Dates: Dates
         last_update = GeneralMetadata.last_update(meta)
 
         # Ensure all registry packages are present in the metadata, and that all versions present in the metadata are present in the registry
-        meta = GeneralMetadata.metadata()
         all_registered_names = Set(values(reg.pkgs) .|> x->x.name)
         in_meta_but_not_registered = Pair{String,String}[]
         for (pkg, pkginfo) in meta
