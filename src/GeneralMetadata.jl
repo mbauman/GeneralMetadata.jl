@@ -1,14 +1,108 @@
 module GeneralMetadata
 
-import TOML, JSON3, HTTP, CSV
+import TOML, JSON3, HTTP, CSV, Pkg, Downloads, Tar, Artifacts
 using DataFrames: DataFrames, DataFrame
 using Dates: Dates, DateTime, Date, Day, Millisecond
+using CodecZlib: GzipDecompressorStream
+
+## Abstract away some Pkg internals into one common place:
+function registered_package_names()
+    registry = only(filter(x->x.name == "General", Pkg.Registry.reachable_registries()))
+    return Set(x.name for x in values(registry.pkgs))
+end
+
+function registered_package_versions(pkgname; registry=only(filter(x->x.name == "General", Pkg.Registry.reachable_registries())))
+    pkg_info = only(values(filter(((k,v),)->v.name == pkgname, registry.pkgs)))
+    return _registered_package_versions(registry, pkg_info)
+end
+function registered_package_versions(pkguuid::Base.UUID; registry = only(filter(x->x.name == "General", Pkg.Registry.reachable_registries())))
+    return _registered_package_versions(registry, registry[pkguuid])
+end
+function _registered_package_versions(registry, pkgentry)
+    if VERSION < v"1.13-"
+        Pkg.Registry.init_package_info!(pkgentry)
+    else
+        Pkg.Registry.init_package_info!(registry, pkgentry)
+    end
+    return pkgentry.info.version_info
+end
+
+function uuid_from_name(pkg_name)
+    registry = only(filter(x->x.name == "General", Pkg.Registry.reachable_registries()))
+    return only(Pkg.Registry.uuids_from_name(registry, pkg_name))
+end
+
+## The main entry point:
+function metadata()
+    if isdir(joinpath(@__DIR__, "..", "metadata"))
+        meta = Dict{String,Any}()
+        for (root, _, files) in walkdir(joinpath(@__DIR__, "..", "metadata")), file in files
+             path = joinpath(root, file)
+             if endswith(path, ".toml")
+                pkg = splitext(basename(path))[1]
+                meta[pkg] = TOML.parsefile(path)
+            end
+        end
+        return meta
+    else
+        meta = Dict{String,Any}()
+        dates = TOML.parsefile(joinpath(@__DIR__, "..", "registration_dates.toml"))
+        artifacts = TOML.parsefile(joinpath(@__DIR__, "..", "artifact_urls.toml"))
+
+        all_registered_names = registered_package_names()
+        for package in union(keys(dates), keys(artifacts))
+            if !(package in all_registered_names)
+                # Remove deleted packages from the metadata (typically a cappened one)
+                continue
+            end
+            reg_info = registered_package_versions(package)
+            pkg_dates = get(dates, package, Dict{String,Any}())
+            pkg_artifacts = get(artifacts, package, Dict{String,Any}())
+            pkg_meta = Dict{String,Any}()
+            last_artifacts = nothing
+            for version in sort(collect(union(keys(pkg_dates), keys(pkg_artifacts))), by=VersionNumber, rev=true)
+                if !(VersionNumber(version) in keys(reg_info))
+                    # Remove deleted versions from the metadata (typically a cappened one), but some mistakes, too
+                    continue
+                end
+                pkg_meta[version] = Dict{String,Any}()
+                if haskey(pkg_dates, version)
+                    pkg_meta[version] = pkg_dates[version]
+                end
+                if haskey(pkg_artifacts, version)
+                    pkg_meta[version]["artifact_urls"] = pkg_artifacts[version]
+                    last_artifacts = pkg_artifacts[version]
+                elseif !isnothing(last_artifacts)
+                    pkg_meta[version]["artifact_urls"] = last_artifacts
+                end
+            end
+            meta[package] = pkg_meta
+        end
+        return meta
+    end
+end
+
+function save_metadata!(meta)
+    for (pkg_name, pkg_meta) in meta
+        output_path = joinpath(@__DIR__, "..", "metadata", string(uppercase(pkg_name[1])), "$pkg_name.toml")
+        mkpath(dirname(output_path))
+        if isfile(output_path)
+            @assert basename(output_path) == "$pkg_name.toml" "Output path $output_path does not match expected package name $pkg_name"
+        end
+        open(output_path, "w") do io
+            TOML.print(io, pkg_meta, sorted = true, by = x->something(tryparse(VersionNumber, x), x))
+        end
+    end
+end
+
+function last_update(meta)
+    maximum(get(verinfo, "registered", Dates.DateTime(0)) for (pkg, pkginfo) in meta for (ver, verinfo) in pkginfo)
+end
 
 function manifest_packages(manifest_path)
     collect(keys(TOML.parsefile(manifest_path)["deps"]))
 end
 
-# Write your package code here.
 function license(packagename)
     JSON3.read(String(HTTP.get("https://juliahub.com/docs/General/$packagename/stable/pkg.json").body)).license
 end
@@ -26,12 +120,8 @@ function general_repo()
     run(`git clone https://github.com/JuliaRegistries/General $dir`)
     return GENERAL[] = dir
 end
-const REGISTRATION_DATES = Ref{Dict{String, Any}}()
-registration_dates() = isassigned(REGISTRATION_DATES) ? REGISTRATION_DATES[] :
-    (REGISTRATION_DATES[] = isfile(joinpath(@__DIR__, "..", "registration_dates.toml")) ?
-        TOML.parsefile(joinpath(@__DIR__, "..", "registration_dates.toml")) : Dict{String, Any}())
 
-function extract_registration_dates(dates = registration_dates(); after=maximum(Iterators.flatmap(values, Iterators.flatmap(values, values(dates))), init=DateTime("2018-08-08T17:02:39")), before=after + Dates.Year(1))
+function update_registration_dates!(meta = metadata(); after=maximum(Iterators.map(v->get(v, "registered", Dates.DateTime(0)), Iterators.flatmap(values, values(meta))), init=DateTime("2018-08-08T17:02:39")), before=after + Dates.Year(1))
     # This uses --first-parent to get the _availability_ date on master
     cd(general_repo()) do
         commits = split(readchomp(`git rev-list --first-parent --reverse --after=$(after)Z --before=$(before)Z master`), "\n")
@@ -40,11 +130,11 @@ function extract_registration_dates(dates = registration_dates(); after=maximum(
         t = Dates.now()-Dates.Hour(1)
         fastpaths = 0
         for (i, commit) in enumerate(commits)
-            fastpaths += process_commit!(dates, commit)
+            fastpaths += process_commit!(meta, commit)
             (Dates.now()-t) > Dates.Second(60) && (println("commit: ", commit, " ($i/$N; $fastpaths/$i fastpaths)"); t = Dates.now())
         end
     end
-    return dates
+    return meta
 end
 
 function extract_simple_tags_from_diff(commit)
@@ -84,10 +174,13 @@ function process_commit!(dates, commit)
             if !haskey(dates, pkg)
                 dates[pkg] = Dict{String, Any}()
             end
-            if haskey(dates[pkg], ver) && dates[pkg][ver]["registered"] != timestamp
-                @warn "commit $commit ($timestamp) introduced $pkg $ver, but it's already set to $(dates[pkg][ver]["registered"])"
+            if !haskey(dates[pkg], ver)
+                dates[pkg][ver] = Dict{String, Any}()
+            end
+            if haskey(dates[pkg][ver], "registered") && dates[pkg][ver]["registered"] != timestamp
+                error("commit $commit ($timestamp) introduced $pkg $ver, but it's already set to $(dates[pkg][ver]["registered"])")
             else
-                dates[pkg][ver] = Dict{String,Any}("registered" => timestamp)
+                dates[pkg][ver]["registered"] = timestamp
             end
         end
     else
@@ -210,5 +303,78 @@ function all_matches(pattern_project_pairs, needle)
     return result
 end
 
+function gather_artifact_urls(uuid, sha)
+    url = "https://pkg.julialang.org/package/$(uuid)/$(sha)"
+    mktemp() do _, iogz
+        Downloads.download(url, iogz)
+        seekstart(iogz)
+        artifact_toml = untar_file(x->x.path in Artifacts.artifact_names, GzipDecompressorStream(iogz))
+        isnothing(artifact_toml) && return String[]
+
+        artifacts = TOML.parse(artifact_toml)
+        urls = Set{String}()
+        for (_, artifact_info) in artifacts
+            # Normalize to a vector of dicts, even if there's only one artifact
+            for entry in (artifact_info isa AbstractDict ? [artifact_info] : artifact_info)
+                for dl in get(entry, "download", [])
+                    push!(urls, dl["url"])
+                end
+            end
+        end
+        return sort(collect(urls))
+    end
+end
+
+function get_artifact_toml(tarball)
+    open(tarball) do iogz
+        io = GzipDecompressorStream(iogz)
+        return untar_file(x->x.path in Artifacts.artifact_names, io)
+    end
+end
+
+function untar_file(filter, io)
+    buf = Vector{UInt8}(undef, Tar.DEFAULT_BUFFER_SIZE)
+    result = Ref{Union{Nothing, String}}(nothing)
+    Tar.read_tarball(filter, io; buf) do hdr, _
+        if hdr.type == :file
+            ret = IOBuffer()
+            Tar.read_data(io, ret; size=hdr.size, buf)
+            result[] = String(take!(ret))
+        end
+    end
+    return result[]
+end
+
+function update_artifact_urls!(meta = metadata(); max_downloads=10000)
+    download_count = 0
+    for (pkg_name, pkg_info) in meta
+        pkg_uuid = uuid_from_name(pkg_name)
+        reg_info = registered_package_versions(pkg_name)
+        for (ver, ver_info) in pkg_info
+            haskey(ver_info, "artifact_urls") && continue
+            @info "Updating artifact URLs for $pkg_name v$ver"
+            artifact_urls = try
+                gather_artifact_urls(pkg_uuid, reg_info[VersionNumber(ver)].git_tree_sha1)
+            catch ex
+                @warn "Failed to gather artifact URLs for $pkg_name version $ver:" ex
+                if ex isa Downloads.RequestError && ex.response.status == 404
+                    # If we get a 404, skip all subsquent versions of this package, but keep going with other packages.
+                    break
+                else
+                    # For all other errors, ensure we don't hammer with more than 5 retries
+                    download_count += max(10, max_downloads÷5)
+                    break
+                end
+            end
+            download_count += 1
+            ver_info["artifact_urls"] = artifact_urls
+        end
+        if download_count >= max_downloads
+            @warn "Reached maximum download limit of $max_downloads, stopping early."
+            break
+        end
+    end
+    return meta
+end
 
 end
