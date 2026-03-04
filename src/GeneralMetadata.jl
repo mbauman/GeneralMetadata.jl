@@ -11,16 +11,14 @@ function registered_package_names()
     return Set(x.name for x in values(registry.pkgs))
 end
 
-function registered_package_versions(pkgname)
-    registry = only(filter(x->x.name == "General", Pkg.Registry.reachable_registries()))
+function registered_package_versions(pkgname; registry=only(filter(x->x.name == "General", Pkg.Registry.reachable_registries())))
     pkg_info = only(values(filter(((k,v),)->v.name == pkgname, registry.pkgs)))
-    return registered_package_versions(registry, pkg_info)
+    return _registered_package_versions(registry, pkg_info)
 end
-function registered_package_versions(pkguuid::Base.UUID)
-    registry = only(filter(x->x.name == "General", Pkg.Registry.reachable_registries()))
-    return registered_package_versions(registry, registry[pkguuid])
+function registered_package_versions(pkguuid::Base.UUID; registry = only(filter(x->x.name == "General", Pkg.Registry.reachable_registries())))
+    return _registered_package_versions(registry, registry[pkguuid])
 end
-function registered_package_versions(registry, pkgentry)
+function _registered_package_versions(registry, pkgentry)
     if VERSION < v"1.13-"
         Pkg.Registry.init_package_info!(pkgentry)
     else

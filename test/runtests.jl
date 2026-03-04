@@ -18,7 +18,7 @@ using Dates: Dates
         in_meta_but_not_registered = Pair{String,String}[]
         for (pkg, pkginfo) in meta
             @test pkg in all_registered_names
-            reg_info = GeneralMetadata.registered_package_versions(pkg)
+            reg_info = GeneralMetadata.registered_package_versions(pkg; registry=reg)
             for (ver, verinfo) in pkginfo
                 if !haskey(reg_info, VersionNumber(ver))
                     push!(in_meta_but_not_registered, (pkg=>ver))
@@ -32,7 +32,7 @@ using Dates: Dates
         for (pkguuid, pkginfo) in reg.pkgs
             pkg_name = pkginfo.name
             meta_info = get(meta, pkg_name, Dict{String,Any}())
-            reg_info = GeneralMetadata.registered_package_versions(pkguuid)
+            reg_info = GeneralMetadata.registered_package_versions(pkguuid; registry=reg)
             for (ver, verinfo) in reg_info
                 if !haskey(meta_info, string(ver))
                     push!(in_registry_but_not_meta, (pkg_name=>string(ver)))
