@@ -10,7 +10,10 @@ function main()
     for (pkg, versions) in allversions
         uuid = GeneralMetadata.uuid_from_name(pkg)
         pkgdir = mkpath(joinpath(root, pkg))
-        JSON.json(joinpath(pkgdir, "versions.json"), sort(OrderedDict(versions), by=VersionNumber))
+        versioninfo = sort(OrderedDict(
+                ver => sort(OrderedDict(k=>v for (k,v) in info if k in ("registered", "yanked")))
+            for (ver, info) in versions), by=VersionNumber)
+        JSON.json(joinpath(pkgdir, "versions.json"), versioninfo)
         JSON.json(joinpath(pkgdir, "info.json"), (; name=pkg, uuid=string(uuid)))
     end
 end
