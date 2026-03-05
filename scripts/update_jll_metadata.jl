@@ -1,7 +1,6 @@
 using TOML: TOML
 using HTTP: HTTP
-using JSON3: JSON3
-using BinaryBuilder: BinaryBuilder, BinaryBuilderBase
+using JSON: JSON
 using Pkg: Pkg, Registry, PackageSpec
 using Base64: base64decode
 
@@ -26,7 +25,7 @@ const GITHUB_API_BASE = "https://api.github.com"
 function build_headers()
     headers = [
         "Accept" => "application/vnd.github+json",
-        "User-Agent" => "Julia-Advisory-Fetcher/1.0"
+        "User-Agent" => "JuliaRegistries-GeneralMetadata.jl-Fetcher/1.0"
     ]
     if haskey(ENV, "GITHUB_TOKEN")
         push!(headers, "Authorization" => "Bearer $(ENV["GITHUB_TOKEN"])")
@@ -156,7 +155,7 @@ function metadata_for_jll(jll::Registry.PkgEntry, versions = Registry.registry_i
             nothing
         end
         commit, buildscript = "", ""
-        sources, products, dependencies = cd(yggy) do
+        metadata[string(version)] = cd(yggy) do
             # First look to the
             commit = @something commit_from_readme strip(read(`git rev-list -n 1 --before=$(release_published_at) master`, String))
             run(pipeline(`git checkout $commit`, stdout=Base.devnull, stderr=Base.devnull))
@@ -180,131 +179,94 @@ function metadata_for_jll(jll::Registry.PkgEntry, versions = Registry.registry_i
             end
             !isfile(buildscript) && error("could not find build script for $jllname at Ygg $commit")
             @info "$jllname@$version: $buildscript @ $commit"
-            # Now we can evaluate the buildscript at the time of this release's publication
-            # but with `build_tarballs` shadowed to simply log the sources and products:
-            m = Module(gensym())
-            sources = []
-            products = []
-            dependencies = []
-            cd(dirname(buildscript)) do
-                @eval m begin
-                    include(p) = Base.include($m, p)
-                    using BinaryBuilder, Pkg
-                    # Patch up support for old Products that used prefixes and avoid collisions with Base
-                    _avoid_collisions(x::Symbol) = isdefined(Base, x) ? Symbol(x, :_is_not_defined_in_base) : x
-                    LibraryProduct(x, varname, args...;kwargs...) = BinaryBuilder.LibraryProduct(x, _avoid_collisions(varname), args...; kwargs...)
-                    LibraryProduct(prefix::String, name::String, var::Symbol, args...; kwargs...) = LibraryProduct([prefix*name], var, args...; kwargs...)
-                    LibraryProduct(prefix::String, name::Vector{<:AbstractString}, var::Symbol, args...; kwargs...) = LibraryProduct(prefix.*name, var, args...; kwargs...)
-                    ExecutableProduct(x, varname, args...;kwargs...) = BinaryBuilder.ExecutableProduct(x, _avoid_collisions(varname), args...; kwargs...)
-                    ExecutableProduct(prefix::String, name::String, var::Symbol, args...; kwargs...) = ExecutableProduct([prefix*name], var, args...; kwargs...)
-                    ExecutableProduct(prefix::String, name::Vector{<:AbstractString}, var::Symbol, args...; kwargs...) = ExecutableProduct(prefix.*name, var, args...; kwargs...)
-                    FileProduct(x, varname, args...;kwargs...) = BinaryBuilder.FileProduct(x, _avoid_collisions(varname), args...; kwargs...)
-                    FileProduct(prefix::String, name::String, args...; kwargs...) = FileProduct([prefix*name], args...; kwargs...)
-                    FileProduct(prefix::String, name::Vector{<:AbstractString}, args...; kwargs...) = FileProduct(prefix.*name, args...; kwargs...)
-                    # Ignore unknown FileSource kwargs (old versions supported an unpack_target kwarg)
-                    FileSource(args...; kwargs...) = BinaryBuilder.FileSource(args...; filter((==)(:filename)∘first, kwargs)...)
-                    # fancy_toys.jl used to define this with Pkg APIs that no longer work on v1.7. This defines it with a tighter signature than it used:
-                    get_addable_spec(name::String, version::VersionNumber; kwargs...) = BinaryBuilder.BinaryBuilderBase.get_addable_spec(name, version; kwargs...)
-                    # Just use the old Pkg BinaryPlatforms always; this is quite fragile/broken but the DB here ignores platform-specifics as much as possible
-                    using Pkg.BinaryPlatforms: CompilerABI, UnknownPlatform, Linux, MacOS, Windows, FreeBSD, Platform
-                    supported_platforms(; kwargs...) = BinaryBuilder.supported_platforms() # These kwargs require BinaryBuilder.Platforms
-                    ARGS = []
-                    expand_gcc_versions(p) = p isa AbstractVector ? p : [p]
-                    prefix = ""
-                    function build_tarballs(ARGS, src_name, src_version, sources, script, platforms, products, dependencies; kwargs...)
-                        append!($sources, sources)
-                        append!($dependencies, dependencies)
-                        if products isa AbstractVector
-                            append!($products, products)
+            # Now find the version of BinaryBuilder/Julia to run
+            if isfile(".ci/Manifest.toml")
+                manifest = TOML.parsefile(".ci/Manifest.toml")
+                proj = ".ci"
+                if haskey(manifest, "julia") && haskey(manifest["julia"], "version")
+                    julia_version = majorminor(VersionNumber(manifest["julia"]["version"])) # ignore patch versions for these
+                else
+                    # Try to find it from .ci/azp_agent/install_agents.sh (which should be present alongside the manifest)
+                    @assert isfile(".ci/azp_agent/install_agents.sh")
+                    # Extract Julia version from the install_agents.sh script; this has varied over time (and note there's sometimes commented ones, too)
+                    #     JULIA_URL="https://julialang-s3.julialang.org/bin/linux/x64/1.6/julia-1.6.0-linux-x86_64.tar.gz"
+                    #     JULIA_URL="https://julialang-s3.julialang.org/bin/linux/x64/1.6/julia-1.6.0-linux-x86_64.tar.gz"
+                    #     JULIA_URL="https://julialang-s3.julialang.org/bin/linux/x64/1.6/julia-1.6.0-rc1-linux-x86_64.tar.gz"
+                    #     JULIA_URL="https://julialangnightlies-s3.julialang.org/bin/linux/x64/julia-latest-linux64.tar.gz"
+                    #     JULIA_URL="https://julialang-s3.julialang.org/bin/linux/x64/1.4/julia-1.4.1-linux-x86_64.tar.gz"
+                    #     JULIA_URL="https://julialang-s3.julialang.org/bin/linux/x64/1.4/julia-1.4.0-linux-x86_64.tar.gz"
+                    #     JULIA_URL="julialangnightlies-s3.julialang.org/assert_pretesting/linux/x64/1.4/julia-3a22e2fdcf-linux64.tar.gz"
+                    julia_match = match(r"^\s*JULIA_URL=\".*?/julia-(.*)-linux", readchomp(".ci/azp_agent/install_agents.sh"))
+                    julia_version = if !isnothing(julia_match)
+                        if julia_match[1] == "latest" || julia_match[1] == "1.6.0-rc1"
+                            # lol. https://github.com/JuliaPackaging/Yggdrasil/blob/e0c5ee45cb0b6aea8006ad25f388ad116da22a01/.ci/azp_agent/install_agents.sh#L54-L57
+                            "1.6.0"
+                        elseif julia_match[1] == "3a22e2fdcf"
+                            # This was https://github.com/JuliaLang/julia/commit/3a22e2fdcf, a v1.4-rc2 pre-release
+                            "1.4.0"
                         else
-                            # Old versions of binary builder used a function that could add a prefix:
-                            append!($products, products(""))
+                            julia_match[1]
                         end
-                        nothing
+                    else
+                        # Prior to https://github.com/JuliaPackaging/Yggdrasil/commit/5ce813311a8066095115635e05e8805efccfd873, this was in run_agent.sh (or not included at all)
+                        "1.3.0"
                     end
-                    include($buildscript)
                 end
+            else
+                # Prior to https://github.com/JuliaPackaging/Yggdrasil/commit/102b6ec47081ccb932e59bd604b02959ffbbdc16, there was no manifest
+                # and Julia lived inside a pre-built docker container... from somewhere...
+                proj = joinpath(@__DIR__, "yggdrasil_env_pre_2020_02_07") # This has BB v0.2.2 (Jan 2020); there are older buildscripts that predate this, but start here
+                julia_version = "1.3.0"
             end
-            sources, products, dependencies
+            # Now ask the build script for its meta-json
+            bb_meta = mktemp() do (path, io)
+                run(`julia +$julia_version --project=$proj $buildscript --meta-json=$path`, stderr=Base.devnull)
+                JSON.parse(io)
+            end
+            return Dict{String,Any}(
+                "system" => "Yggdrasil",
+                "buildscript" => "https://github.com/JuliaPackaging/Yggdrasil/tree/$commit/$buildscript",
+                "version" => TOML.parsefile("scripts/jll_metadata/Manifest.toml")["deps"]["BinaryBuilder"][]["version"],
+                "metadata" => bb_meta,
+            )
         end
-
-        product_names(x::BinaryBuilder.LibraryProduct) = x.libnames
-        product_names(x::BinaryBuilder.FrameworkProduct) = x.libraryproduct.libnames
-        product_names(x::BinaryBuilder.ExecutableProduct) = x.binnames
-        product_names(x::BinaryBuilder.FileProduct) = x.paths
-        libs = unique(collect(Iterators.flatten(product_names.(filter(x->isa(x,Union{BinaryBuilder.LibraryProduct,BinaryBuilder.FrameworkProduct}), products)))))
-        exes = unique(collect(Iterators.flatten(product_names.(filter(x->isa(x,BinaryBuilder.ExecutableProduct), products)))))
-        files = unique(collect(Iterators.flatten(product_names.(filter(x->isa(x,BinaryBuilder.FileProduct), products)))))
-
-        # Old binary builders toggled between gits and archives based on endswith(.git)
-        # https://github.com/JuliaPackaging/BinaryBuilder.jl/blob/2b2c87be8a9ce47070d4ba92c91a3d0f4d4af2fc/src/wizard/obtain_source.jl#L95
-        source_info(x::Pair{String, String}) = endswith(x[1], ".git") ? Dict("repo"=>x[1], "hash"=>x[2]) : Dict("url"=>x[1], "hash"=>x[2])
-        source_info(x::AbstractString) = source_info(BinaryBuilder.DirectorySource(x))
-        source_info(x::Union{BinaryBuilder.ArchiveSource, BinaryBuilder.FileSource}) = Dict("url"=>x.url, "hash"=>x.hash)
-        source_info(x::BinaryBuilder.GitSource) = Dict("repo"=>x.url, "hash"=>x.hash)
-        source_info(x::BinaryBuilder.DirectorySource) = Dict(
-            "patches"=>string("https://github.com/JuliaPackaging/Yggdrasil/blob/", commit, "/", chopprefix(joinpath(dirname(buildscript), x.path), yggy)))
-        srcs = unique(source_info.(sources))
-
-        # We ignore runtime dependencies; those are in the Project/Manifest
-        builddeps = unique([Dict(dict(x.pkg)..., "target"=>x isa BinaryBuilder.HostBuildDependency ? "host" : "target") for x in dependencies if !(x isa Union{String, BinaryBuilder.Dependency, BinaryBuilder.RuntimeDependency})])
-
-        version_meta = get!(metadata, string(version), Dict{String,Any}())
-        !isempty(libs) && (version_meta["libraries"] = libs)
-        !isempty(exes) && (version_meta["executables"] = exes)
-        !isempty(files) && (version_meta["files"] = files)
-        !isempty(srcs) && (version_meta["sources"] = srcs)
-        !isempty(builddeps) && (version_meta["build_dependencies"] = builddeps)
     end
-
     return metadata
 end
 
-function update_metadata(force = false)
-    toml_path = joinpath(@__DIR__, "..", "..", "jll_metadata.toml")
-    toml = try
-        force && error()
-        t = TOML.parsefile(toml_path)
-        @info "updating toml with $(length(t)) entries"
-        t
-    catch
-        @info "starting from scratch"
-        Dict{String,Any}()
-    end
+function update_metadata(; force = false, max_pkgs=10)
+    artifact_metadata = GeneralMetadata.artifact_metadata()
+    pkg_count = 0
     for (uuid, pkgentry) in jlls()
-        if !haskey(toml, pkgentry.name)
+        if !haskey(artifact_metadata, pkgentry.name) || force
             @info "populating $(pkgentry.name) from scratch"
             try
-                toml[pkgentry.name] = metadata_for_jll(pkgentry)
+                artifact_metadata[pkgentry.name] = metadata_for_jll(pkgentry)
             catch ex
                 @error "error getting metadata for $(pkgentry.name)" ex
                 ex isa HTTP.Exceptions.StatusError && ex.status == 403 && break
             end
+            pkg_count += 1
+            pkg_count >= max_pkgs && break
         else
-            toml_versions = keys(toml[pkgentry.name])
-            version_info = Registry.registry_info(pkgentry).version_info
-            reg_versions = string.(keys(version_info))
-            missing_versions = setdiff(reg_versions, toml_versions)
-            isempty(missing_versions) && continue
-            @info "updating $(pkgentry.name) for $missing_versions"
-            try
-                updates = metadata_for_jll(pkgentry, filter(((k,v),)->string(k) in missing_versions, version_info))
-                merge!(toml[pkgentry.name], updates)
-            catch ex
-                @error "error getting metadata for $(pkgentry.name) at some versions" ex missing_versions
-                ex isa HTTP.Exceptions.StatusError && ex.status == 403 && break
-            end
+            error("TODO: need to refactor version subset logic for new sharded structure...")
+            # toml_versions = keys(artifact_metadata[pkgentry.name])
+            # version_info = Registry.registry_info(pkgentry).version_info
+            # reg_versions = string.(keys(version_info))
+            # missing_versions = setdiff(reg_versions, toml_versions)
+            # isempty(missing_versions) && continue
+            # @info "updating $(pkgentry.name) for $missing_versions"
+            # try
+            #     updates = metadata_for_jll(pkgentry, filter(((k,v),)->string(k) in missing_versions, version_info))
+            #     merge!(toml[pkgentry.name], updates)
+            # catch ex
+            #     @error "error getting metadata for $(pkgentry.name) at some versions" ex missing_versions
+            #     ex isa HTTP.Exceptions.StatusError && ex.status == 403 && break
+            # end
         end
     end
-    @info "writing toml with $(length(toml)) entries"
-    open(toml_path,"w") do f
-        println(f, "#############################################################################")
-        println(f, "# This file is autogenerated by scripts/jll_metadata/update_jll_metadata.jl #")
-        println(f, "###################### Do not manually edit this file! ######################")
-        println(f, "#############################################################################")
-        TOML.print(f, toml, sorted=true, by=x->something(tryparse(VersionNumber, x), x))
-    end
-    return toml
+    GeneralMetadata.save_artifact_metadata!(artifact_metadata)
+    return artifact_metadata
 end
 
 if abspath(PROGRAM_FILE) == @__FILE__
