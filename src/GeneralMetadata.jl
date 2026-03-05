@@ -4,6 +4,7 @@ import TOML, JSON, HTTP, CSV, Pkg, Downloads, Tar, Artifacts
 using DataFrames: DataFrames, DataFrame
 using Dates: Dates, DateTime, Date, Day, Millisecond
 using CodecZlib: GzipDecompressorStream
+using DataStructures: DataStructures, DefaultDict
 
 ## Abstract away some Pkg internals into one common place:
 function registered_package_names()
