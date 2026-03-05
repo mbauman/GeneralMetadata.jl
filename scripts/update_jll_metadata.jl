@@ -3,6 +3,7 @@ using HTTP: HTTP
 using JSON: JSON
 using Pkg: Pkg, Registry, PackageSpec
 using Base64: base64decode
+using GeneralMetadata: GeneralMetadata
 
 # Copied from SecurityAdvisories just to make life a little easier, since this runs v1.7
 function get_registry(reg=Registry.RegistrySpec(name="General", uuid = "23338594-aafe-5451-b93e-139f81909106"); depot=Pkg.depots1())
