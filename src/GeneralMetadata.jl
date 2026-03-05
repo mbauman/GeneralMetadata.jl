@@ -98,12 +98,13 @@ end
 
 function artifact_metadata()
     meta = DefaultDict{String,Any}(()->Dict{String,Any}())
-    for (root, _, files) in walkdir(joinpath(@__DIR__, "..", "artifact_metadata")), file in files
-        path = joinpath(root, file)
-        if endswith(path, ".toml")
-            pkg = basename(dirname(path))
-            artifact = splitext(basename(path))[1]
-            meta[pkg][artifact] = TOML.parsefile(path)
+    base = joinpath(@__DIR__, "..", "artifact_metadata")
+    isdir(base) || return Dict{String,Any}()
+    for (root, _, files) in walkdir(base), file in files
+        if endswith(file, ".toml")
+            pkg = basename(root)
+            artifact = splitext(file)[1]
+            meta[pkg][artifact] = TOML.parsefile(joinpath(root, file))
         end
     end
     return Dict{String,Any}(meta)
