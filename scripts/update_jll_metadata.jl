@@ -181,9 +181,8 @@ function metadata_for_jll(jll::Registry.PkgEntry, versions = Registry.registry_i
                 proj = ".ci"
                 if haskey(manifest, "julia") && haskey(manifest["julia"], "version")
                     julia_version = majorminor(VersionNumber(manifest["julia"]["version"])) # ignore patch versions for these
-                else
+                elseif isfile(".ci/azp_agent/install_agents.sh")
                     # Try to find it from .ci/azp_agent/install_agents.sh (which should be present alongside the manifest)
-                    @assert isfile(".ci/azp_agent/install_agents.sh")
                     # Extract Julia version from the install_agents.sh script; this has varied over time (and note there's sometimes commented ones, too)
                     #     JULIA_URL="https://julialang-s3.julialang.org/bin/linux/x64/1.6/julia-1.6.0-linux-x86_64.tar.gz"
                     #     JULIA_URL="https://julialang-s3.julialang.org/bin/linux/x64/1.6/julia-1.6.0-linux-x86_64.tar.gz"
@@ -207,6 +206,8 @@ function metadata_for_jll(jll::Registry.PkgEntry, versions = Registry.registry_i
                         # Prior to https://github.com/JuliaPackaging/Yggdrasil/commit/5ce813311a8066095115635e05e8805efccfd873, this was in run_agent.sh (or not included at all)
                         "1.3.0"
                     end
+                else
+                    julia_version = "1.3.0"
                 end
             else
                 # Prior to https://github.com/JuliaPackaging/Yggdrasil/commit/102b6ec47081ccb932e59bd604b02959ffbbdc16, there was no manifest
@@ -215,7 +216,7 @@ function metadata_for_jll(jll::Registry.PkgEntry, versions = Registry.registry_i
                 julia_version = "1.3.0"
             end
             # Now ask the build script for its meta-json
-            bb_meta = mktemp() do (path, io)
+            bb_meta = mktemp() do path, io
                 run(`julia +$julia_version --project=$proj -e 'using Pkg; Pkg.instantiate()'`)
                 run(`julia +$julia_version --project=$proj $buildscript --meta-json=$path`)
                 JSON.parse(io)
