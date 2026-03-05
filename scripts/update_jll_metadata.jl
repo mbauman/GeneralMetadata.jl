@@ -38,7 +38,7 @@ function get_releases(owner, repo)
         error("Failed to fetch advisories: HTTP $(response.status)")
     end
 
-    return JSON3.read(response.body)
+    return JSON.parse(response.body)
 end
 function get_readme(owner, repo, tree_sha)
     response = HTTP.get(string(GITHUB_API_BASE, "/repos/", owner, "/", repo, "/git/trees/", tree_sha), build_headers())
@@ -46,11 +46,11 @@ function get_readme(owner, repo, tree_sha)
         error("Failed to fetch advisories: HTTP $(response.status)")
     end
 
-    tree = JSON3.read(response.body)
+    tree = JSON.parse(response.body)
     readme = filter(x->x.path == "README.md", tree.tree)
     isempty(readme) && return nothing
 
-    blob = JSON3.read(HTTP.get(readme[].url, build_headers()).body)
+    blob = JSON.parse(HTTP.get(readme[].url, build_headers()).body)
     blob.encoding == "base64" || return nothing
     return String(base64decode(blob.content))
 end
@@ -65,9 +65,9 @@ function find_commit_date_from_tree_sha(owner, repo, tree_sha)
     url = string(GITHUB_API_BASE, "/repos/", owner, "/", repo, "/commits?per_page=100")
     while true
         commits = HTTP.get(url, build_headers())
-        for commit in JSON3.read(commits.body)
+        for commit in JSON.parse(commits.body)
             info = get!(COMMIT_INFO, (owner,repo,commit.sha)) do
-                JSON3.read(HTTP.get(string(GITHUB_API_BASE, "/repos/", owner, "/", repo, "/commits/", commit.sha), build_headers()).body)
+                JSON.parse(HTTP.get(string(GITHUB_API_BASE, "/repos/", owner, "/", repo, "/commits/", commit.sha), build_headers()).body)
             end
             if strip(info.commit.tree.sha) == tree_sha
                 return info.commit.committer.date

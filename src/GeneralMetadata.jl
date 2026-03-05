@@ -1,6 +1,6 @@
 module GeneralMetadata
 
-import TOML, JSON3, HTTP, CSV, Pkg, Downloads, Tar, Artifacts
+import TOML, JSON, HTTP, CSV, Pkg, Downloads, Tar, Artifacts
 using DataFrames: DataFrames, DataFrame
 using Dates: Dates, DateTime, Date, Day, Millisecond
 using CodecZlib: GzipDecompressorStream
@@ -130,7 +130,7 @@ function manifest_packages(manifest_path)
 end
 
 function license(packagename)
-    JSON3.read(String(HTTP.get("https://juliahub.com/docs/General/$packagename/stable/pkg.json").body)).license
+    JSON.parse(HTTP.get("https://juliahub.com/docs/General/$packagename/stable/pkg.json").body).license
 end
 
 function write_csv_for_manifest(manifest_path, output_path)
