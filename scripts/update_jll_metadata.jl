@@ -220,7 +220,8 @@ function metadata_for_jll(jll::Registry.PkgEntry, versions = Registry.registry_i
             end
             # Now ask the build script for its meta-json
             bb_meta = mktemp() do (path, io)
-                run(`julia +$julia_version --project=$proj $buildscript --meta-json=$path`, stderr=Base.devnull)
+                run(`julia +$julia_version --project=$proj -e 'using Pkg; Pkg.instantiate()'`)
+                run(`julia +$julia_version --project=$proj $buildscript --meta-json=$path`)
                 JSON.parse(io)
             end
             return Dict{String,Any}(
