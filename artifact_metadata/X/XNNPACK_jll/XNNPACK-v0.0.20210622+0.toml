@@ -1,0 +1,58 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/728e7c9e273188fefbe5ac008949f269fd9c97a3/X/XNNPACK/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.5.5"
+
+[metadata]
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "XNNPACK"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/XNNPACK\natomic_patch -p1 ../patches/xnnpack-soversion.patch\natomic_patch -p1 ../patches/xnnpack-freebsd.patch\natomic_patch -p1 ../patches/xnnpack-w64-system-libs.patch\nC_FLAGS=()\n# if [[ $bb_full_target == armv7l-*march+neonvfpv4 ]]; then # Requires build for specific micro-architecture\n#     atomic_patch -p1 ../patches/xnnpack-arm-exclude-microkernel-srcs.patch\n#     C_FLAGS+=\"-DXNN_NO_F32_OPERATORS \"\n#     C_FLAGS+=\"-DXNN_NO_QS8_OPERATORS \"\nif [[ $bb_full_target == aarch64-* ]]; then # Building for aarch64-*march+armv8*\n    atomic_patch -p1 ../patches/xnnpack-aarch64-exclude-microkernel-srcs.patch\n    atomic_patch -p1 ../patches/xnnpack-aarch64-armv8-exclude-microkernel-srcs.patch\n    C_FLAGS+=\"-DXNN_NO_F16_OPERATORS \"\n    C_FLAGS+=\"-DXNN_NO_F32_OPERATORS \"\n    C_FLAGS+=\"-DXNN_NO_QS8_OPERATORS \"\n# elif [[ $bb_full_target == aarch64-apple-*march+apple_m1* ]]; then # Requires build for specific micro-architecture\n#     atomic_patch -p1 ../patches/xnnpack-aarch64-exclude-microkernel-srcs.patch\n#     C_FLAGS+=\"-DXNN_NO_F16_OPERATORS \"\nfi\nmkdir build\ncd build\ncmake \\\n    -DCMAKE_INSTALL_PREFIX=$prefix \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DCMAKE_INSTALL_LIBDIR=$libdir \\\n    -DXNNPACK_LIBRARY_TYPE=shared \\\n    -DXNNPACK_BUILD_TESTS=OFF \\\n    -DXNNPACK_BUILD_BENCHMARKS=OFF \\\n    -DXNNPACK_USE_SYSTEM_LIBS=ON \\\n    -DCMAKE_C_FLAGS=\"$C_FLAGS\" \\\n    ..\ncmake --build . -- -j $nproc\nmake install/local\nif [[ $target == *-w64-mingw32 ]]; then\n    install -Dvm 755 libXNNPACK.dll \"${libdir}/libXNNPACK.dll\"\nfi\ninstall_license ../LICENSE\n"""
+version = "v0.0.20210622"
+
+    [[metadata.dependencies]]
+    compat = "0.0.20201217"
+    name = "CPUInfo_jll"
+    platforms = ["any"]
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "FP16_jll"
+    platforms = ["any"]
+    type = "builddependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 20210320
+    [[metadata.dependencies]]
+    compat = "0.0.20201206, 0.0.20210414"
+    name = "PThreadPool_jll"
+    platforms = ["any"]
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libXNNPACK"]
+    type = "lib"
+    variable_name = "libxnnpack"
+
+    [[metadata.sources]]
+    hash = "79cd5f9e18ad0925ac9a050b00ea5a36230072db"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/google/XNNPACK.git"
+    [[metadata.sources]]
+    follow_symlinks = false
+    path = "./bundled"
+    target = ""
+    type = "directory"

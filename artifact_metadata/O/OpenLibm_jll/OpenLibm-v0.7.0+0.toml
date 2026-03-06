@@ -1,0 +1,21 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/8916802c45c4465799043150e2f84b66ab5dfdaa/O/OpenLibm/build_tarballs.jl"
+metadata_source = "retrospective (by timestamp)"
+system = "Yggdrasil"
+version = "0.2.2"
+
+[metadata]
+dependencies = []
+name = "OpenLibm"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "arm-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "arm-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """# Enter the funzone\ncd ${WORKSPACE}/srcdir/openlibm-*\n\n# Install into output\nflags=(\"prefix=${prefix}\")\n\n# Build ARCH from ${target}\nflags+=(\"ARCH=${target%-*-*}\")\n\n# OpenLibm build system doesn't recognize our windows cross compilers properly\nif [[ ${target} == *mingw* ]]; then\n    flags+=(\"OS=WINNT\")\nfi\n\n# Add `CC` override, since OpenLibm seems to think it knows best:\nflags+=(\"CC=$CC\")\n\n# Build the library\nmake \"${flags[@]}\" -j${nproc}\n\n# Install the library\nmake \"${flags[@]}\" install\n\ninstall_license ${WORKSPACE}/srcdir/openlibm-*/LICENSE.md\n"""
+version = "v0.7.0"
+
+    [[metadata.products]]
+    dir_paths = []
+    dont_dlopen = false
+    libnames = ["libopenlibm"]
+    type = "lib"
+    variable_name = "libopenlibm"
+
+    [[metadata.sources]]
+    "https://github.com/JuliaMath/openlibm/archive/v0.7.0.tar.gz" = "1699f773198018b55b12631db9c1801fe3ed191e618a1ee1be743f4570ae06a3"

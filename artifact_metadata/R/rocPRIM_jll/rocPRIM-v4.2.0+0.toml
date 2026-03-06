@@ -1,0 +1,81 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/c5a7ca3cf2b97861941813877ce0341aac5bce29/R/rocPRIM/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.5.2"
+
+[metadata]
+init_block = ""
+julia_compat = "1.7"
+lazy_artifacts = false
+name = "rocPRIM"
+platforms = ["x86_64-linux-gnu-cxx11", "x86_64-linux-musl-cxx11"]
+script = """cd ${WORKSPACE}/srcdir/rocPRIM*/\n\namdgpu_targets=\"gfx900,gfx906,gfx908,gfx1010,gfx1011,gfx1012\"\n\nln -s ${prefix}/bin/clang ${prefix}/tools/clang\nmkdir build && cd build\nexport ROCM_PATH=${prefix}\nexport HIP_CLANG_PATH=$WORKSPACE/destdir/tools\nexport HIP_CLANG_HCC_COMPAT_MODE=1\nexport HIP_RUNTIME=rocclr\nexport HIP_COMPILER=clang\nexport HIP_PLATFORM=amd\nexport HIPCC_VERBOSE=1\ncmake -DCMAKE_PREFIX_PATH=${prefix} \\\n      -DCMAKE_INSTALL_PREFIX=${prefix} \\\n      -DCMAKE_BUILD_TYPE=Release \\\n      -DCMAKE_CXX_COMPILER=${prefix}/hip/bin/hipcc \\\n      -DAMDGPU_TARGETS=$(echo $amdgpu_targets | tr ',' ';') \\\n      ..\nmake -j${nproc}\nmake install\nrm ${prefix}/tools/clang\n"""
+version = "v4.2.0"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "ROCmLLVM_jll"
+    platforms = ["any"]
+    type = "builddependency"
+    version-major = 4
+    version-minor = 2
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "4.2.0"
+    name = "hsa_rocr_jll"
+    platforms = ["any"]
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "4.2.0"
+    name = "ROCmCompilerSupport_jll"
+    platforms = ["any"]
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "4.2.0"
+    name = "ROCmOpenCLRuntime_jll"
+    platforms = ["any"]
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "4.2.0"
+    name = "HIP_jll"
+    platforms = ["any"]
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "rocm_cmake_jll"
+    platforms = ["any"]
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "rocminfo_jll"
+    platforms = ["any"]
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    paths = ["rocprim/"]
+    type = "file"
+    variable_name = "rocprim"
+
+    [[metadata.sources]]
+    hash = "3932cd3a532eea0d227186febc56747dd95841732734d9c751c656de9dd770c8"
+    type = "archive"
+    unpack_target = ""
+    url = "https://github.com/ROCmSoftwarePlatform/rocPRIM/archive/rocm-4.2.0.tar.gz"
