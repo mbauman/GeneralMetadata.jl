@@ -192,8 +192,7 @@ function metadata_for_jll_release(org, repo, release)
     commit_from_readme, path_from_readme = commit_and_path_from_readme(get_readme(org, repo, tree_sha))
     release_published_at = release.published_at
     return cd(yggy) do
-        # First look to the
-        commit = @something commit_from_readme strip(read(`git rev-list -n 1 --before=$(release_published_at) master`, String))
+        commit = @something commit_from_readme strip(read(`git rev-list --first-parent -n 1 --before=$(release_published_at) master`, String))
         run(pipeline(`git checkout $commit`, stdout=Base.devnull, stderr=Base.devnull))
         buildscript = @something path_from_readme joinpath(yggy, uppercase(jllname[1:1]), jllname, "build_tarballs.jl")
         if !isfile(buildscript)
@@ -271,6 +270,10 @@ function metadata_for_jll_release(org, repo, release)
         bb_version = begin
             manifest = TOML.parsefile("$proj/Manifest.toml")
             haskey(manifest, "deps") ? manifest["deps"]["BinaryBuilder"][]["version"] : manifest["BinaryBuilder"][]["version"]
+        end
+        if bb_meta["name"] != jllname || majorminorpatch(VersionNumber(bb_meta["version"])) != majorminorpatch(VersionNumber(version))
+            # Some old buildscripts were committed _after_ the release publication, which means we got the wrong version of the buildscript.
+            error("metadata mismatch: got $(bb_meta["name"])@$(bb_meta["version"]), expected $jllname@$version")
         end
         return Dict{String,Any}(
             "system" => "Yggdrasil",
