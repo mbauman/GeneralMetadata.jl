@@ -277,7 +277,7 @@ function metadata_for_jll_release(org, repo, release)
         end
         return Dict{String,Any}(
             "system" => "Yggdrasil",
-            "buildscript" => "https://github.com/JuliaPackaging/Yggdrasil/tree/$commit/$buildscript",
+            "buildscript" => "https://github.com/JuliaPackaging/Yggdrasil/tree/$(commit)$(chopprefix(buildscript,yggy))",
             "version" => bb_version,
             "metadata" => bb_meta,
         )
