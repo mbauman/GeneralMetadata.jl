@@ -1,0 +1,47 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/1cd793dc29f318cf23e4c5c00fa1ff8d44d5d0fe/L/LibUnwind/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.4.1"
+
+[metadata]
+init_block = ""
+julia_compat = "1.7"
+lazy_artifacts = false
+name = "LibUnwind"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-unknown-freebsd", "armv6l-linux-gnueabihf", "armv6l-linux-musleabihf"]
+script = """cd $WORKSPACE/srcdir/libunwind*/\n\n# We need to massage configure script to convince it to build the shared library\n# for PowerPC.\nif [[ \"${target}\" == powerpc64le-* ]]; then\n    autoreconf -vi\nfi\n\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/libunwind-prefer-extbl.patch\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/libunwind-static-arm.patch\natomic_patch -p0 ${WORKSPACE}/srcdir/patches/libunwind-configure-ppc64le.patch\natomic_patch -p0 ${WORKSPACE}/srcdir/patches/libunwind-configure-static-lzma.patch\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/libunwind-cfa-rsp.patch\n\nCFLAGS=\"${CFLAGS} -DPI -fPIC -I${prefix}/include\"\n./configure \\\n    --prefix=${prefix} \\\n    --build=${MACHTYPE} \\\n    --host=${target} \\\n    CFLAGS=\"${CFLAGS}\" \\\n    --libdir=${libdir} \\\n    --enable-minidebuginfo \\\n    --enable-zlibdebuginfo \\\n    --disable-tests\nmake -j${nproc}\nmake install\n\n# Shoe-horn liblzma.a into libunwind.a\nmkdir -p unpacked/{liblzma,libunwind}\n(cd unpacked/liblzma; ar -x ${prefix}/lib/liblzma.a)\n(cd unpacked/libunwind; ar -x ${prefix}/lib/libunwind.a)\nrm -f ${prefix}/lib/libunwind.a\nar -qc ${prefix}/lib/libunwind.a unpacked/**/*\n"""
+version = "v1.5.0"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "XZ_jll"
+    type = "builddependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Zlib_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libunwind"]
+    type = "lib"
+    variable_name = "libunwind"
+
+    [[metadata.sources]]
+    hash = "90337653d92d4a13de590781371c604f9031cdb50520366aa1e3a91e1efb1017"
+    type = "archive"
+    unpack_target = ""
+    url = "https://github.com/libunwind/libunwind/releases/download/v1.5/libunwind-1.5.0.tar.gz"
+    [[metadata.sources]]
+    follow_symlinks = false
+    path = "./bundled"
+    target = ""
+    type = "directory"
