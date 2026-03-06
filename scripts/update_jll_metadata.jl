@@ -133,6 +133,33 @@ drop_nothings(d::AbstractDict) = Dict(k => drop_nothings(v) for (k, v) in d if v
 drop_nothings(A::AbstractArray) = [drop_nothings(v) for v in A if v !== nothing]
 drop_nothings(v) = v
 
+# From https://github.com/JuliaPackaging/BinaryBuilder.jl/blob/58b87b84742baad7f50a4866aff0c7f2a6a290d9/src/Declarative.jl#L1-L25
+# merge multiple JSON objects garnered via `--meta-json`
+function merge_json_objects(objs::Vector)
+    merged = Dict()
+    for obj in objs
+        for k in keys(obj)
+            if !haskey(merged, k)
+                merged[k] = obj[k]
+            else
+                if merged[k] != obj[k]
+                    if !isa(merged[k], Array)
+                        merged[k] = [merged[k]]
+                    end
+
+                    if isa(obj[k], Array)
+                        append!(merged[k], obj[k])
+                    else
+                        push!(merged[k], obj[k])
+                    end
+                    merged[k] = unique(merged[k])
+                end
+            end
+        end
+    end
+    return merged
+end
+
 metadata_for_jll(jll::String; reg = get_registry()) = metadata_for_jll(only(filter(((k,v),)->v.name==jll, reg.pkgs))[2])
 function metadata_for_jll(jll::Registry.PkgEntry, versions = Registry.registry_info(jll).version_info)
     jllinfo = Registry.registry_info(jll)
@@ -154,7 +181,6 @@ function metadata_for_jll(jll::Registry.PkgEntry, versions = Registry.registry_i
         else
             nothing
         end
-        commit, buildscript = "", ""
         metadata[string(version)] = cd(yggy) do
             # First look to the
             commit = @something commit_from_readme strip(read(`git rev-list -n 1 --before=$(release_published_at) master`, String))
@@ -223,7 +249,7 @@ function metadata_for_jll(jll::Registry.PkgEntry, versions = Registry.registry_i
             bb_meta = mktemp() do path, io
                 run(`julia +$julia_version --project=$proj -e 'using Pkg; Pkg.instantiate()'`)
                 run(`julia +$julia_version --project=$proj $buildscript --meta-json=$path`)
-                drop_nothings(JSON.parse(io))
+                drop_nothings(merge_json_objects(JSON.parse(io, jsonlines=true)))
             end
             return Dict{String,Any}(
                 "system" => "Yggdrasil",
