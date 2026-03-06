@@ -258,7 +258,9 @@ function metadata_for_jll_release(org, repo, release)
         # Now ask the build script for its meta-json
         bb_meta = mktemp() do path, io
             @info "julia +$julia_version --project=$proj -e 'using Pkg; Pkg.instantiate()'"
-            output = readchomp(`julia +$julia_version --project=$proj -e 'using Pkg; Pkg.instantiate()'`)
+            buf = IOBuffer()
+            run(pipeline(`julia +$julia_version --project=$proj -e 'using Pkg; Pkg.instantiate()'`, stdout=buf, stderr=buf))
+            output = String(take!(buf))
             if contains(output, "Error: ")
                 @warn "got error during Pkg.instantiate() for $proj at $commit, output was:\n\n$output"
             end
