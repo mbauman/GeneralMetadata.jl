@@ -1,0 +1,58 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/6a796817283dcfbb23018116abf43aee5c1ad542/L/LightGBM/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.5.6"
+
+[metadata]
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "LightGBM"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir/LightGBM\ngit submodule update --init --depth=1\ngit submodule update --checkout --depth=1\n\n\nif [[ $target == *\"apple-darwin\"* ]]; then\n  cmake_extra_args=\"-DAPPLE=1 -DAPPLE_OUTPUT_DYLIB=1\"\nfi\n\nFLAGS=()\n\nif [[ \"${target}\" == *-mingw* ]]; then\n  # Parches windows\n  for p in $WORKSPACE/srcdir/patches/windows/*.patch; do\n    atomic_patch -p1 \"${p}\"\n  done\n  cmake_extra_args=\"-DWIN32=1 -DMINGW=1\"\n  FLAGS+=(LDFLAGS=\"-no-undefined\")\nfi\n\ncmake \\\n  -DCMAKE_INSTALL_PREFIX=$prefix\\\n  -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n  -DCMAKE_BUILD_TYPE=Release \\\n  $cmake_extra_args\nmake -j${nproc} \"${FLAGS[@]}\"\nmake install\ninstall_license LICENSE\n"""
+version = "v3.3.5"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "CompilerSupportLibraries_jll"
+    platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+    top_level = false
+    type = "dependency"
+    uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "LLVMOpenMP_jll"
+    platforms = ["x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd"]
+    top_level = false
+    type = "dependency"
+    uuid = "1d63c593-3942-5779-bab2-d838dc0a180e"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["lib_lightgbm"]
+    type = "lib"
+    variable_name = "lib_lightgbm"
+    [[metadata.products]]
+    binnames = ["lightgbm"]
+    type = "exe"
+    variable_name = "lightgbm"
+
+    [[metadata.sources]]
+    hash = "ca035b2ee0c2be85832435917b1e0c8301d2e0e0"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/microsoft/LightGBM.git"
+    [[metadata.sources]]
+    follow_symlinks = false
+    path = "./bundled"
+    target = ""
+    type = "directory"

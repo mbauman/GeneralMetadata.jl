@@ -1,9 +1,10 @@
 module GeneralMetadata
 
-import TOML, JSON3, HTTP, CSV, Pkg, Downloads, Tar, Artifacts
+import TOML, JSON, HTTP, CSV, Pkg, Downloads, Tar, Artifacts
 using DataFrames: DataFrames, DataFrame
 using Dates: Dates, DateTime, Date, Day, Millisecond
 using CodecZlib: GzipDecompressorStream
+using DataStructures: DataStructures, DefaultDict
 
 ## Abstract away some Pkg internals into one common place:
 function registered_package_names()
@@ -95,6 +96,33 @@ function save_metadata!(meta)
     end
 end
 
+function artifact_metadata()
+    meta = DefaultDict{String,Any}(()->Dict{String,Any}())
+    base = joinpath(@__DIR__, "..", "artifact_metadata")
+    isdir(base) || return Dict{String,Any}()
+    for (root, _, files) in walkdir(base), file in files
+        if endswith(file, ".toml")
+            pkg = basename(root)
+            artifact = splitext(file)[1]
+            meta[pkg][artifact] = TOML.parsefile(joinpath(root, file))
+        end
+    end
+    return Dict{String,Any}(meta)
+end
+
+function save_artifact_metadata!(meta)
+    for (pkg_name, pkg_meta) in meta, (artifact_name, artifact_meta) in pkg_meta
+        output_path = joinpath(@__DIR__, "..", "artifact_metadata", string(uppercase(pkg_name[1])), pkg_name, "$artifact_name.toml")
+        mkpath(dirname(output_path))
+        if isfile(output_path)
+            @assert basename(output_path) == "$artifact_name.toml" "Output path $output_path does not match expected artifact name $artifact_name"
+        end
+        open(output_path, "w") do io
+            TOML.print(io, artifact_meta, sorted = true)
+        end
+    end
+end
+
 function last_update(meta)
     maximum(get(verinfo, "registered", Dates.DateTime(0)) for (pkg, pkginfo) in meta for (ver, verinfo) in pkginfo)
 end
@@ -104,7 +132,7 @@ function manifest_packages(manifest_path)
 end
 
 function license(packagename)
-    JSON3.read(String(HTTP.get("https://juliahub.com/docs/General/$packagename/stable/pkg.json").body)).license
+    JSON.parse(HTTP.get("https://juliahub.com/docs/General/$packagename/stable/pkg.json").body).license
 end
 
 function write_csv_for_manifest(manifest_path, output_path)
