@@ -36,6 +36,31 @@ function get_releases(owner, repo)
 
     return JSON.parse(response.body)
 end
+function commit_from_tagname(owner, repo, tag_name)
+    response = HTTP.get(string(GITHUB_API_BASE, "/repos/", owner, "/", repo, "/git/ref/tags/", tag_name), build_headers())
+    if response.status != 200
+        error("Failed to fetch tag info for $tag_name: HTTP $(response.status)")
+    end
+    tagsinfo = JSON.parse(response.body)
+    if haskey(tagsinfo, "object") && tagsinfo["object"]["type"] == "tag"
+        # This is an annotated tag, so we need to dereference it to get the commit (and thus tree) SHA
+        error("I don't yet know how to handle annotated tags for $owner/$repo@$tag_name, got tag info: $tagsinfo") # TODO
+    end
+    # This is a lightweight tag, so the object is the commit
+    @assert tagsinfo["object"]["type"] == "commit"
+    return tagsinfo["object"]["sha"]
+end
+
+function tree_sha_from_tagname(owner, repo, tag_name)
+    commit_sha = commit_from_tagname(owner, repo, tag_name)
+    response = HTTP.get(string(GITHUB_API_BASE, "/repos/", owner, "/", repo, "/git/commits/", commit_sha), build_headers())
+    if response.status != 200
+        error("Failed to fetch commit info for $commit_sha: HTTP $(response.status)")
+    end
+    commitinfo = JSON.parse(response.body)
+    return commitinfo["tree"]["sha"]
+end
+
 function get_readme(owner, repo, tree_sha)
     response = HTTP.get(string(GITHUB_API_BASE, "/repos/", owner, "/", repo, "/git/trees/", tree_sha), build_headers())
     if response.status != 200
@@ -160,137 +185,127 @@ function merge_json_objects(objs::Vector)
     return merged
 end
 
-metadata_for_jll(jll::String; reg = get_registry()) = metadata_for_jll(only(filter(((k,v),)->v.name==jll, reg.pkgs))[2])
-function metadata_for_jll(jll::Registry.PkgEntry, versions = Registry.registry_info(jll).version_info)
-    jllinfo = Registry.registry_info(jll)
-    jllrepo = jllinfo.repo
-    jllname = chopsuffix(jll.name, "_jll")
-    m = match(r"github\.com[:/]([^/]+)/(.+?)(?:.git)?$", jllinfo.repo)
-    isnothing(m) && error("unknown repo $(jllinfo.repo)")
-    org, repo = m.captures
-    github_releases = get_releases(org, repo)
-
-    metadata = Dict{String,Any}()
-    for (version, versioninfo) in versions
-        commit_from_readme, path_from_readme = commit_and_path_from_readme(get_readme(org, repo, string(versioninfo.git_tree_sha1)))
-        releasetags = filter(r->endswith(r.tag_name, string(version)), github_releases)
-        release_published_at = if length(releasetags) == 1
-            only(releasetags).published_at
-        elseif isempty(releasetags)
-            find_commit_date_from_tree_sha(org, repo, string(versioninfo.git_tree_sha1))
-        else
-            nothing
-        end
-        metadata[string(version)] = cd(yggy) do
-            # First look to the
-            commit = @something commit_from_readme strip(read(`git rev-list -n 1 --before=$(release_published_at) master`, String))
-            run(pipeline(`git checkout $commit`, stdout=Base.devnull, stderr=Base.devnull))
-            buildscript = @something path_from_readme joinpath(yggy, uppercase(jllname[1:1]), jllname, "build_tarballs.jl")
-            if !isfile(buildscript)
-                # First look for a potentially-deeper nested path, without worrying about case, then consider version numbers
-                for searchpath in ("./$(jllname[1])/$jllname/build_tarballs.jl",
-                                   "*/$jllname/build_tarballs.jl",
-                                   "*/$jllname@$version/build_tarballs.jl",
-                                   "*/$jllname@$(majorminorpatch(version))/build_tarballs.jl",
-                                   "*/$jllname@$(majorminor(version))/build_tarballs.jl",
-                                   "*/$jllname@$(major(version))/build_tarballs.jl")
-                    pathmatches = split(readchomp(`find . -ipath $searchpath`), "\n", keepempty=false)
-                    if length(pathmatches) == 1
-                        buildscript = joinpath(yggy, pathmatches[1])
-                        break
-                    elseif length(pathmatches) > 1
-                        error("found multiple build scripts for $jllname at Ygg $commit, got $pathmatches")
-                    end
+function metadata_for_jll_release(org, repo, release)
+    jllname = chopsuffix(chopsuffix(chopsuffix(repo, ".git"), ".jl"), "_jll")
+    tree_sha = tree_sha_from_tagname(org, repo, release["tag_name"])
+    version = VersionNumber(split(release["tag_name"], "-", limit=2)[2])
+    commit_from_readme, path_from_readme = commit_and_path_from_readme(get_readme(org, repo, tree_sha))
+    release_published_at = release.published_at
+    return cd(yggy) do
+        # First look to the
+        commit = @something commit_from_readme strip(read(`git rev-list -n 1 --before=$(release_published_at) master`, String))
+        run(pipeline(`git checkout $commit`, stdout=Base.devnull, stderr=Base.devnull))
+        buildscript = @something path_from_readme joinpath(yggy, uppercase(jllname[1:1]), jllname, "build_tarballs.jl")
+        if !isfile(buildscript)
+            # First look for a potentially-deeper nested path, without worrying about case, then consider version numbers
+            for searchpath in ("./$(jllname[1])/$jllname/build_tarballs.jl",
+                                "*/$jllname/build_tarballs.jl",
+                                "*/$jllname@$version/build_tarballs.jl",
+                                "*/$jllname@$(majorminorpatch(version))/build_tarballs.jl",
+                                "*/$jllname@$(majorminor(version))/build_tarballs.jl",
+                                "*/$jllname@$(major(version))/build_tarballs.jl")
+                pathmatches = split(readchomp(`find . -ipath $searchpath`), "\n", keepempty=false)
+                if length(pathmatches) == 1
+                    buildscript = joinpath(yggy, pathmatches[1])
+                    break
+                elseif length(pathmatches) > 1
+                    error("found multiple build scripts for $jllname at Ygg $commit, got $pathmatches")
                 end
             end
-            !isfile(buildscript) && error("could not find build script for $jllname at Ygg $commit")
-            @info "$jllname@$version: $buildscript @ $commit"
-            # Now find the version of BinaryBuilder/Julia to run
-            if isfile(".ci/Manifest.toml")
-                manifest = TOML.parsefile(".ci/Manifest.toml")
-                proj = ".ci"
-                if haskey(manifest, "julia_version")
-                    julia_version = majorminor(VersionNumber(manifest["julia_version"])) # ignore patch versions for these
-                elseif isfile(".ci/azp_agent/install_agents.sh")
-                    # Try to find it from .ci/azp_agent/install_agents.sh (which should be present alongside the manifest)
-                    # Extract Julia version from the install_agents.sh script; this has varied over time (and note there's sometimes commented ones, too)
-                    #     JULIA_URL="https://julialang-s3.julialang.org/bin/linux/x64/1.6/julia-1.6.0-linux-x86_64.tar.gz"
-                    #     JULIA_URL="https://julialang-s3.julialang.org/bin/linux/x64/1.6/julia-1.6.0-linux-x86_64.tar.gz"
-                    #     JULIA_URL="https://julialang-s3.julialang.org/bin/linux/x64/1.6/julia-1.6.0-rc1-linux-x86_64.tar.gz"
-                    #     JULIA_URL="https://julialangnightlies-s3.julialang.org/bin/linux/x64/julia-latest-linux64.tar.gz"
-                    #     JULIA_URL="https://julialang-s3.julialang.org/bin/linux/x64/1.4/julia-1.4.1-linux-x86_64.tar.gz"
-                    #     JULIA_URL="https://julialang-s3.julialang.org/bin/linux/x64/1.4/julia-1.4.0-linux-x86_64.tar.gz"
-                    #     JULIA_URL="julialangnightlies-s3.julialang.org/assert_pretesting/linux/x64/1.4/julia-3a22e2fdcf-linux64.tar.gz"
-                    julia_match = match(r"^\s*JULIA_URL=\".*?/julia-(.*)-linux"m, readchomp(".ci/azp_agent/install_agents.sh"))
-                    julia_version = if !isnothing(julia_match)
-                        if julia_match[1] == "latest" || julia_match[1] == "1.6.0-rc1"
-                            # lol. https://github.com/JuliaPackaging/Yggdrasil/blob/e0c5ee45cb0b6aea8006ad25f388ad116da22a01/.ci/azp_agent/install_agents.sh#L54-L57
-                            "1.6.0"
-                        elseif julia_match[1] == "3a22e2fdcf"
-                            # This was https://github.com/JuliaLang/julia/commit/3a22e2fdcf, a v1.4-rc2 pre-release
-                            "1.4.0"
-                        else
-                            julia_match[1]
-                        end
+        end
+        !isfile(buildscript) && error("could not find build script for $jllname at Ygg $commit")
+        @info "$jllname@$version: $buildscript @ $commit"
+        # Now find the version of BinaryBuilder/Julia to run
+        if isfile(".ci/Manifest.toml")
+            manifest = TOML.parsefile(".ci/Manifest.toml")
+            proj = ".ci"
+            if haskey(manifest, "julia_version")
+                julia_version = majorminor(VersionNumber(manifest["julia_version"])) # ignore patch versions for these
+            elseif isfile(".ci/azp_agent/install_agents.sh")
+                # Try to find it from .ci/azp_agent/install_agents.sh (which should be present alongside the manifest)
+                # Extract Julia version from the install_agents.sh script; this has varied over time (and note there's sometimes commented ones, too)
+                #     JULIA_URL="https://julialang-s3.julialang.org/bin/linux/x64/1.6/julia-1.6.0-linux-x86_64.tar.gz"
+                #     JULIA_URL="https://julialang-s3.julialang.org/bin/linux/x64/1.6/julia-1.6.0-linux-x86_64.tar.gz"
+                #     JULIA_URL="https://julialang-s3.julialang.org/bin/linux/x64/1.6/julia-1.6.0-rc1-linux-x86_64.tar.gz"
+                #     JULIA_URL="https://julialangnightlies-s3.julialang.org/bin/linux/x64/julia-latest-linux64.tar.gz"
+                #     JULIA_URL="https://julialang-s3.julialang.org/bin/linux/x64/1.4/julia-1.4.1-linux-x86_64.tar.gz"
+                #     JULIA_URL="https://julialang-s3.julialang.org/bin/linux/x64/1.4/julia-1.4.0-linux-x86_64.tar.gz"
+                #     JULIA_URL="julialangnightlies-s3.julialang.org/assert_pretesting/linux/x64/1.4/julia-3a22e2fdcf-linux64.tar.gz"
+                julia_match = match(r"^\s*JULIA_URL=\".*?/julia-(.*)-linux"m, readchomp(".ci/azp_agent/install_agents.sh"))
+                julia_version = if !isnothing(julia_match)
+                    if julia_match[1] == "latest" || julia_match[1] == "1.6.0-rc1"
+                        # lol. https://github.com/JuliaPackaging/Yggdrasil/blob/e0c5ee45cb0b6aea8006ad25f388ad116da22a01/.ci/azp_agent/install_agents.sh#L54-L57
+                        "1.6.0"
+                    elseif julia_match[1] == "3a22e2fdcf"
+                        # This was https://github.com/JuliaLang/julia/commit/3a22e2fdcf, a v1.4-rc2 pre-release
+                        "1.4.0"
                     else
-                        # Prior to https://github.com/JuliaPackaging/Yggdrasil/commit/5ce813311a8066095115635e05e8805efccfd873, this was in run_agent.sh (or not included at all)
-                        "1.3.0"
+                        julia_match[1]
                     end
                 else
-                    julia_version = "1.3.0"
+                    # Prior to https://github.com/JuliaPackaging/Yggdrasil/commit/5ce813311a8066095115635e05e8805efccfd873, this was in run_agent.sh (or not included at all)
+                    "1.3.0"
                 end
             else
-                # Prior to https://github.com/JuliaPackaging/Yggdrasil/commit/102b6ec47081ccb932e59bd604b02959ffbbdc16, there was no manifest
-                # and Julia lived inside a pre-built docker container... from somewhere...
-                proj = joinpath(@__DIR__, "yggdrasil_env_pre_2020_02_07") # This has BB v0.2.2 (Jan 2020); there are older buildscripts that predate this, but start here
                 julia_version = "1.3.0"
             end
-            # Now ask the build script for its meta-json
-            bb_meta = mktemp() do path, io
-                run(`julia +$julia_version --project=$proj -e 'using Pkg; Pkg.instantiate()'`)
-                run(`julia +$julia_version --project=$proj $buildscript --meta-json=$path`)
-                drop_nothings(merge_json_objects(JSON.parse(io, jsonlines=true)))
-            end
-            return Dict{String,Any}(
-                "system" => "Yggdrasil",
-                "buildscript" => "https://github.com/JuliaPackaging/Yggdrasil/tree/$commit/$buildscript",
-                "version" => TOML.parsefile("$proj/Manifest.toml")["deps"]["BinaryBuilder"][]["version"],
-                "metadata" => bb_meta,
-            )
+        else
+            # Prior to https://github.com/JuliaPackaging/Yggdrasil/commit/102b6ec47081ccb932e59bd604b02959ffbbdc16, there was no manifest
+            # and Julia lived inside a pre-built docker container... from somewhere...
+            proj = joinpath(@__DIR__, "yggdrasil_env_pre_2020_02_07") # This has BB v0.2.2 (Jan 2020); there are older buildscripts that predate this, but start here
+            julia_version = "1.3.0"
         end
+        # Now ask the build script for its meta-json
+        bb_meta = mktemp() do path, io
+            run(`julia +$julia_version --project=$proj -e 'using Pkg; Pkg.instantiate()'`)
+            run(`julia +$julia_version --project=$proj $buildscript --meta-json=$path`)
+            drop_nothings(merge_json_objects(JSON.parse(io, jsonlines=true)))
+        end
+        return Dict{String,Any}(
+            "system" => "Yggdrasil",
+            "buildscript" => "https://github.com/JuliaPackaging/Yggdrasil/tree/$commit/$buildscript",
+            "version" => TOML.parsefile("$proj/Manifest.toml")["deps"]["BinaryBuilder"][]["version"],
+            "metadata" => bb_meta,
+        )
     end
-    return metadata
 end
 
-function update_metadata(; force = false, max_pkgs=10)
+function update_metadata(; force = false, max_releases=10)
     artifact_metadata = GeneralMetadata.artifact_metadata()
-    pkg_count = 0
+    count = 0
     for (uuid, pkgentry) in jlls()
-        if !haskey(artifact_metadata, pkgentry.name) || force
-            @info "populating $(pkgentry.name) from scratch"
-            try
-                artifact_metadata[pkgentry.name] = metadata_for_jll(pkgentry)
-            catch ex
-                @error "error getting metadata for $(pkgentry.name)" ex
-                ex isa HTTP.Exceptions.StatusError && ex.status == 403 && break
+        jllinfo = Registry.registry_info(pkgentry)
+        pkgname = pkgentry.name
+        jllname = chopsuffix(pkgname, "_jll")
+        jllrepo = jllinfo.repo
+        m = match(r"github\.com[:/]([^/]+)/(.+?)(?:.git)?$", jllinfo.repo)
+        if isnothing(m)
+            @warn "unknown repo $(jllinfo.repo)"
+            continue
+        end
+        org, repo = m.captures
+        github_releases = get_releases(org, repo)
+        for release in github_releases
+            tag_name = release["tag_name"]
+            release["draft"] && continue
+            if haskey(artifact_metadata, pkgentry.name) && haskey(artifact_metadata[pkgentry.name], tag_name) && !force
+                continue
             end
-            pkg_count += 1
-            pkg_count >= max_pkgs && break
-        else
-            error("TODO: need to refactor version subset logic for new sharded structure...")
-            # toml_versions = keys(artifact_metadata[pkgentry.name])
-            # version_info = Registry.registry_info(pkgentry).version_info
-            # reg_versions = string.(keys(version_info))
-            # missing_versions = setdiff(reg_versions, toml_versions)
-            # isempty(missing_versions) && continue
-            # @info "updating $(pkgentry.name) for $missing_versions"
-            # try
-            #     updates = metadata_for_jll(pkgentry, filter(((k,v),)->string(k) in missing_versions, version_info))
-            #     merge!(toml[pkgentry.name], updates)
-            # catch ex
-            #     @error "error getting metadata for $(pkgentry.name) at some versions" ex missing_versions
-            #     ex isa HTTP.Exceptions.StatusError && ex.status == 403 && break
-            # end
+            @info "fetching metadata for $jllname at $tag_name"
+            try
+                release_meta = metadata_for_jll_release(org, repo, release)
+                !haskey(artifact_metadata, pkgname) && (artifact_metadata[pkgname] = Dict{String,Any}())
+                artifact_metadata[pkgname][tag_name] = release_meta
+            catch ex
+                @error "error getting metadata for $pkgname at $tag_name" ex
+                ex isa HTTP.Exceptions.StatusError && ex.status == 403 && (count = max_releases; break)
+            end
+            count += 1
+            count >= max_releases && break
+        end
+        if count >= max_releases
+            @info "reached max release limit of $max_releases, stopping here"
+            break
         end
     end
     GeneralMetadata.save_artifact_metadata!(artifact_metadata)
