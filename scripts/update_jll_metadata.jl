@@ -192,7 +192,13 @@ function metadata_for_jll_release(org, repo, release)
     commit_from_readme, path_from_readme = commit_and_path_from_readme(get_readme(org, repo, tree_sha))
     release_published_at = release.published_at
     return cd(yggy) do
-        commit = @something commit_from_readme strip(read(`git rev-list --first-parent -n 1 --before=$(release_published_at) master`, String))
+        if !isnothing(commit_from_readme)
+            commit = commit_from_readme
+            method = "README link"
+        else
+            commit = strip(read(`git rev-list --first-parent -n 1 --before=$(release_published_at) master`, String))
+            method = "timestamp"
+        end
         run(pipeline(`git checkout $commit`, stdout=Base.devnull, stderr=Base.devnull))
         buildscript = @something path_from_readme joinpath(yggy, uppercase(jllname[1:1]), jllname, "build_tarballs.jl")
         if !isfile(buildscript)
@@ -280,6 +286,7 @@ function metadata_for_jll_release(org, repo, release)
             "buildscript" => "https://github.com/JuliaPackaging/Yggdrasil/tree/$(commit)$(chopprefix(buildscript,yggy))",
             "version" => bb_version,
             "metadata" => bb_meta,
+            "metadata_source" => "retrospective (by $method)"
         )
     end
 end
