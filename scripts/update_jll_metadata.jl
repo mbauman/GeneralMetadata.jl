@@ -129,6 +129,10 @@ majorminorpatch(v::VersionNumber) = string(v.major, ".", v.minor, ".", v.patch)
 majorminor(v::VersionNumber) = string(v.major, ".", v.minor)
 major(v::VersionNumber) = string(v.major)
 
+drop_nothings(d::AbstractDict) = Dict(k => drop_nothings(v) for (k, v) in d if v !== nothing)
+drop_nothings(A::AbstractArray) = [drop_nothings(v) for v in A if v !== nothing]
+drop_nothings(v) = v
+
 metadata_for_jll(jll::String; reg = get_registry()) = metadata_for_jll(only(filter(((k,v),)->v.name==jll, reg.pkgs))[2])
 function metadata_for_jll(jll::Registry.PkgEntry, versions = Registry.registry_info(jll).version_info)
     jllinfo = Registry.registry_info(jll)
@@ -179,8 +183,8 @@ function metadata_for_jll(jll::Registry.PkgEntry, versions = Registry.registry_i
             if isfile(".ci/Manifest.toml")
                 manifest = TOML.parsefile(".ci/Manifest.toml")
                 proj = ".ci"
-                if haskey(manifest, "julia") && haskey(manifest["julia"], "version")
-                    julia_version = majorminor(VersionNumber(manifest["julia"]["version"])) # ignore patch versions for these
+                if haskey(manifest, "julia_version")
+                    julia_version = majorminor(VersionNumber(manifest["julia_version"])) # ignore patch versions for these
                 elseif isfile(".ci/azp_agent/install_agents.sh")
                     # Try to find it from .ci/azp_agent/install_agents.sh (which should be present alongside the manifest)
                     # Extract Julia version from the install_agents.sh script; this has varied over time (and note there's sometimes commented ones, too)
@@ -219,12 +223,12 @@ function metadata_for_jll(jll::Registry.PkgEntry, versions = Registry.registry_i
             bb_meta = mktemp() do path, io
                 run(`julia +$julia_version --project=$proj -e 'using Pkg; Pkg.instantiate()'`)
                 run(`julia +$julia_version --project=$proj $buildscript --meta-json=$path`)
-                JSON.parse(io)
+                drop_nothings(JSON.parse(io))
             end
             return Dict{String,Any}(
                 "system" => "Yggdrasil",
                 "buildscript" => "https://github.com/JuliaPackaging/Yggdrasil/tree/$commit/$buildscript",
-                "version" => TOML.parsefile("scripts/jll_metadata/Manifest.toml")["deps"]["BinaryBuilder"][]["version"],
+                "version" => TOML.parsefile("$proj/Manifest.toml")["deps"]["BinaryBuilder"][]["version"],
                 "metadata" => bb_meta,
             )
         end
