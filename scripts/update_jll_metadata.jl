@@ -257,14 +257,23 @@ function metadata_for_jll_release(org, repo, release)
         end
         # Now ask the build script for its meta-json
         bb_meta = mktemp() do path, io
-            run(`julia +$julia_version --project=$proj -e 'using Pkg; Pkg.instantiate()'`)
+            @info "julia +$julia_version --project=$proj -e 'using Pkg; Pkg.instantiate()'"
+            output = readchomp(`julia +$julia_version --project=$proj -e 'using Pkg; Pkg.instantiate()'`)
+            if contains(output, "Error: ")
+                @warn "got error during Pkg.instantiate() for $proj at $commit, output was:\n\n$output"
+            end
+            @info "julia +$julia_version --project=$proj $buildscript --meta-json=...'"
             run(`julia +$julia_version --project=$proj $buildscript --meta-json=$path`)
             drop_nothings(merge_json_objects(JSON.parse(io, jsonlines=true)))
+        end
+        bb_version = begin
+            manifest = TOML.parsefile("$proj/Manifest.toml")
+            haskey(manifest, "deps") ? manifest["deps"]["BinaryBuilder"][]["version"] : manifest["BinaryBuilder"][]["version"]
         end
         return Dict{String,Any}(
             "system" => "Yggdrasil",
             "buildscript" => "https://github.com/JuliaPackaging/Yggdrasil/tree/$commit/$buildscript",
-            "version" => TOML.parsefile("$proj/Manifest.toml")["deps"]["BinaryBuilder"][]["version"],
+            "version" => bb_version,
             "metadata" => bb_meta,
         )
     end
