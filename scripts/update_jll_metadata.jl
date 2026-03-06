@@ -284,7 +284,7 @@ function metadata_for_jll_release(org, repo, release)
     end
 end
 
-function update_metadata(; force = false, max_releases=10)
+function update_metadata(; force = false, max_releases=100)
     artifact_metadata = GeneralMetadata.artifact_metadata()
     count = 0
     for (uuid, pkgentry) in jlls()
