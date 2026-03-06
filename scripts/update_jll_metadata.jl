@@ -285,6 +285,7 @@ function metadata_for_jll_release(org, repo, release)
 end
 
 function update_metadata(; force = false, max_releases=100)
+    metadata = GeneralMetadata.metadata()
     artifact_metadata = GeneralMetadata.artifact_metadata()
     count = 0
     for (uuid, pkgentry) in jlls()
@@ -310,6 +311,15 @@ function update_metadata(; force = false, max_releases=100)
                 release_meta = metadata_for_jll_release(org, repo, release)
                 !haskey(artifact_metadata, pkgname) && (artifact_metadata[pkgname] = Dict{String,Any}())
                 artifact_metadata[pkgname][tag_name] = release_meta
+                # Also update metadata for the package itself
+                if haskey(metadata, pkgname)
+                    for (version, verinfo) in metadata[pkgname]
+                        if all(startswith("https://github.com/$org/$repo/releases/download/$tag_name/"), get(verinfo, "artifact_urls", []))
+                            # TODO: don't hardcode this URL pattern
+                            verinfo["artifact_metadata"] = "artifact_metadata/$(first(pkgname))/$(pkgname)/$(tag_name).toml"
+                        end
+                    end
+                end
             catch ex
                 @error "error getting metadata for $pkgname at $tag_name" ex
                 ex isa HTTP.Exceptions.StatusError && ex.status == 403 && (count = max_releases; break)
@@ -323,6 +333,7 @@ function update_metadata(; force = false, max_releases=100)
         end
     end
     GeneralMetadata.save_artifact_metadata!(artifact_metadata)
+    GeneralMetadata.save_metadata!(metadata)
     return artifact_metadata
 end
 
