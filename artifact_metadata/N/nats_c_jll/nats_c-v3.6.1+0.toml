@@ -1,0 +1,54 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/96627a965ff076cd1d805fb875e4082d9b319ee2/N/nats_c/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.5.6"
+
+[metadata]
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "nats_c"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir\n\n# Fix \"cannot finding openssl\" under Windows\nif [[ ${target} == x86_64-w64-mingw32 ]]; then\n    export OPENSSL_ROOT_DIR=${prefix}/lib64/\nfi\n\ncd nats.c/\natomic_patch -p1 ../patches/freebsd_include.diff\nsed -i 's/Ws2_32/ws2_32/g' CMakeLists.txt\nmkdir build\ncd build\ncmake -DCMAKE_INSTALL_PREFIX=$prefix -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} -DCMAKE_BUILD_TYPE=Release -DNATS_BUILD_EXAMPLES=OFF -DNATS_BUILD_EXAMPLES=OFF -DBUILD_TESTING=OFF ..\nmake -j${nproc}\nmake install\n"""
+version = "v3.6.1"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "protobuf_c_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    uuid = "d730a6b3-54e8-5a61-8821-996059275344"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "3.0.8"
+    name = "OpenSSL_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    uuid = "458c3c95-2e84-50aa-8efc-19380b2a3a95"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libnats"]
+    type = "lib"
+    variable_name = "libnats"
+
+    [[metadata.sources]]
+    hash = "ab983febcff5d6077d8db1a919a74f0ac1a53ef7"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/nats-io/nats.c.git"
+    [[metadata.sources]]
+    follow_symlinks = false
+    path = "./bundled"
+    target = ""
+    type = "directory"

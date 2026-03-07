@@ -1,0 +1,46 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/31c7e325ca53cb63db7414c4da2e9753c739547b/A/ABC/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.5.6"
+
+[metadata]
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "ABC"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin"]
+script = """\nEXFLGS=\"-Wall -Wno-unused-function -Wno-write-strings -Wno-sign-compare -DSIZEOF_INT=4 -DABC_USE_CUDD=1 -DABC_USE_PTHREADS -Wno-unused-but-set-variable -fPIC\"\n\nif [[ ${nbits} == 32 ]]; then\n    EXFLGS=\"${EXFLGS} -DSIZEOF_VOID_P=4\"\n    EXFLGS=\"${EXFLGS} -DSIZEOF_LONG=4\"\n    EXFLGS=\"${EXFLGS} -DLIN\"\nelse\n    EXFLGS=\"${EXFLGS} -DSIZEOF_VOID_P=8\"\n    EXFLGS=\"${EXFLGS} -DSIZEOF_LONG=8\"\n    EXFLGS=\"${EXFLGS} -DLIN64\"\nfi\n\n# musl doesn't like readline\nif [[ ${target} != *\"musl\"* ]]; then\n    EXFLGS=\"${EXFLGS} -DABC_READLINE\"\nfi\n\ncd ${WORKSPACE}/srcdir/abc\n\n# it appears necessary to have the file(s) for the FileProduct(s) live in the destdir\ncp abc.rc ${prefix}/.\n\nmake -j${nproc} ABC_USE_STDINT_H=1 CFLAGS+=\"${EXFLGS}\" libabc.so\n# the abc Makefile always makes a .so  Fix that here.\nmv libabc.so libabc.${dlext}\nmkdir -p \"${libdir}\"\ncp libabc.${dlext} ${libdir}\n\nmake -j${nproc} ABC_USE_STDINT_H=1 CFLAGS+=\"${EXFLGS}\"\nmkdir -p \"${bindir}\"\ncp abc${exeext} ${bindir}\nchmod +x ${bindir}/*\ninstall_license copyright.txt\nexit\n"""
+version = "v1.1.1"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Readline_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    binnames = ["abc"]
+    type = "exe"
+    variable_name = "abc"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libabc"]
+    type = "lib"
+    variable_name = "libabc"
+    [[metadata.products]]
+    paths = ["abc.rc"]
+    type = "file"
+    variable_name = "abc_rc"
+
+    [[metadata.sources]]
+    hash = "08d25f39f2ee717b688529e61acb695cec0deeed"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/berkeley-abc/abc.git"

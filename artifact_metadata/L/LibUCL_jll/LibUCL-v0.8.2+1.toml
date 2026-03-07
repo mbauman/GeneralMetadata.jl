@@ -1,0 +1,52 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/5d5e4b6e590cf09b3313c1265e097a5f8ad79e9a/L/LibUCL/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.5.8"
+
+[metadata]
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "LibUCL"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd ${WORKSPACE}/srcdir/libucl*\n./autogen.sh\nFLAGS=()\nif [[ \"${target}\" == *-mingw* ]]; then\n    cp \"${includedir}/pcreposix.h\" \"${includedir}/regex.h\"\n    sed -i 's/-lregex/-lpcreposix-0/' configure\n    export LIBS=\"-lpcreposix-0\"\n    export LDFLAGS=\"-L${libdir}\"\n    # Patch upstreamed: https://github.com/vstakhov/libucl/pull/270\n    atomic_patch -p1 ../patches/win32.patch\n    FLAGS+=(LDFLAGS=\"${LDFLAGS} -no-undefined\")\nfi\n./configure \\\n    --enable-urls \\\n    --enable-shared \\\n    --disable-static \\\n    --prefix=\"${prefix}\" \\\n    --build=\"${MACHTYPE}\" \\\n    --host=\"${target}\"\nmake -j${nproc} \"${FLAGS[@]}\"\nmake install\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    # Cover up the traces of the hack\n    rm \"${includedir}/regex.h\"\nfi\n"""
+version = "v0.8.2"
+
+    [[metadata.dependencies]]
+    compat = "7.73,8"
+    name = "LibCURL_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "PCRE_jll"
+    platforms = ["i686-w64-mingw32", "x86_64-w64-mingw32"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libucl"]
+    type = "lib"
+    variable_name = "libucl"
+
+    [[metadata.sources]]
+    hash = "a615938cec3ae35c70aa2fb9845c9c12e5c7326f"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/vstakhov/libucl.git"
+    [[metadata.sources]]
+    follow_symlinks = false
+    path = "./bundled"
+    target = ""
+    type = "directory"

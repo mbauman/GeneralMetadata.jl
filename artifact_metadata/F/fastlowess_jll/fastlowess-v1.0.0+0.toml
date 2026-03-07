@@ -1,0 +1,29 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/c6e9d592148689727b3ac1c26a52dea1bf651806/F/fastlowess/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.6.5"
+
+[metadata]
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "fastlowess"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/lowess-project/bindings/julia\n# Use the system linker. On Linux, force BFD to avoid \"lld not built with zlib support\" errors.\nexport RUSTFLAGS=\"-C linker=${CC}\"\nif [[ \"${target}\" == *-linux-* ]]; then\n    RUSTFLAGS=\"${RUSTFLAGS} -C link-arg=-fuse-ld=bfd\"\nfi\n# Build the release library\ncargo build --release --target ${rust_target} --target-dir target\n# Install the shared library\ninstall -Dvm755 target/${rust_target}/release/*fastlowess_jl.${dlext} -t \"${libdir}\"\n# Install licenses\ninstall_license LICENSE-MIT\ninstall_license LICENSE-APACHE\n"""
+version = "v1.0.0"
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = true
+    libnames = ["libfastlowess_jl", "fastlowess_jl"]
+    type = "lib"
+    variable_name = "libfastlowess_jl"
+
+    [[metadata.sources]]
+    hash = "50394eb6d81bd2e1f303685159b5d54f7dd95ce1"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/thisisamirv/lowess-project.git"
