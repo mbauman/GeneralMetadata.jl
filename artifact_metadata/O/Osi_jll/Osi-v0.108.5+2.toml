@@ -1,0 +1,52 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/8c70795bca40d849c3d0d286daf48c7598e9129a/./C/Coin-OR/Osi/build_tarballs.jl"
+metadata_source = "retrospective (by timestamp)"
+system = "Yggdrasil"
+version = "0.2.4"
+
+[metadata]
+lazy_artifacts = false
+name = "Osi"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin14-cxx03", "x86_64-apple-darwin14-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir/Osi*\n\n# Remove misleading libtool files\nrm -f ${prefix}/lib/*.la\nrm -f /opt/${target}/${target}/lib*/*.la\nupdate_configure_scripts\n\nmkdir build\ncd build/\n\nexport CPPFLAGS=\"${CPPFLAGS} -I${prefix}/include -I${prefix}/include/coin\"\nif [[ ${target} == *mingw* ]]; then\n    export LDFLAGS=\"-L$prefix/bin\"\nelif [[ ${target} == *linux* ]]; then\n    export LDFLAGS=\"-ldl -lrt\"\nfi\n\n../configure --prefix=$prefix --build=${MACHTYPE} --host=${target} \\\n--with-pic --disable-pkg-config --disable-debug \\\n--enable-shared lt_cv_deplibs_check_method=pass_all \\\n--with-coinutils-lib=\"-lCoinUtils\" \\\n--with-blas-lib=\"-lopenblas\" --with-lapack-lib=\"-lopenblas\"\n\nmake -j${nproc}\nmake install\n"""
+version = "v0.108.5"
+
+    [[metadata.dependencies]]
+    name = "CoinUtils_jll"
+    type = "dependency"
+    uuid = "be027038-0da8-5614-b30d-e42594cb92df"
+    version-major = 2
+    version-minor = 11
+    version-patch = 3
+    [[metadata.dependencies]]
+    name = "OpenBLAS32_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    name = "CompilerSupportLibraries_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libOsi"]
+    type = "lib"
+    variable_name = "libOsi"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libOsiCommonTests"]
+    type = "lib"
+    variable_name = "libOsiCommonTests"
+
+    [[metadata.sources]]
+    hash = "2bd34ae6b8c93d342d54fd19d4d773f07194583c"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/coin-or/Osi.git"
