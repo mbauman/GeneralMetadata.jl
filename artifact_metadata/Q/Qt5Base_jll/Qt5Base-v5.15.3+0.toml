@@ -1,0 +1,285 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/42ebed562d14ab0dec4a709894d62202224d6b4b/Q/Qt5Base/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.3.5"
+
+[metadata]
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Qt5Base"
+platforms = ["aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-unknown-freebsd", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin"]
+script = """cd $WORKSPACE/srcdir\n\nBIN_DIR=\"/opt/bin/${bb_full_target}\"\n\nmkdir build\ncd build/\n\nqtsrcdir=`ls -d ../qtbase-everywhere-src-*`\n\ncommonoptions=\" \\\n-opensource -confirm-license \\\n-openssl-linked  -nomake examples -release \\\n\"\n\nexport OPENSSL_LIBS=\"-L${libdir} -lssl -lcrypto\"\n\ncp -a ../qtbase-everywhere-src-*/mkspecs/linux-aarch64-gnu-g++ $qtsrcdir/mkspecs/musl\nsed -i 's/aarch64-linux-gnu/x86_64-linux-musl/g' ../qtbase-everywhere-src-*/mkspecs/musl/qmake.conf\n\ncp -a ../qtbase-everywhere-src-*/mkspecs/linux-aarch64-gnu-g++ $qtsrcdir/mkspecs/$target\nsed -i \"s/aarch64-linux-gnu/$target/g\" ../qtbase-everywhere-src-*/mkspecs/$target/qmake.conf\necho \"QMAKE_CFLAGS_ARCH_HASWELL =\" >> ../qtbase-everywhere-src-*/mkspecs/$target/qmake.conf\n\ncase \"$target\" in\n\n\t*linux*)\n        ../qtbase-everywhere-src-*/configure -L ${libdir} -I ${includedir} \\\n            -platform musl -xplatform $target -device-option CROSS_COMPILE=${BIN_DIR}/$target- \\\n            -prefix $prefix $commonoptions \\\n            -fontconfig\n        ;;\n\n\t*apple-darwin*)\n        echo \"QMAKE_CFLAGS_ARCH_HASWELL =\" >> ../qtbase-everywhere-src-*/mkspecs/macx-clang/qmake.conf\n        if [[ \"${target}\" == x86_64-* ]]; then\n            cd $WORKSPACE/srcdir/MacOSX10.14.sdk\n            rm -rf /opt/$target/$target/sys-root/System\n            rsync -a usr/* /opt/$target/$target/sys-root/usr/\n            cp -a System /opt/$target/$target/sys-root/\n        fi\n\n        cd $WORKSPACE/srcdir/qtbase-everywhere-src-*/\n\n        cat <<EOT > mkspecs/features/mac/default_pre.prf\nCONFIG = asset_catalogs rez \\$\\$CONFIG\nload(default_pre)\n\nQMAKE_ASSET_CATALOGS_APP_ICON = AppIcon\n\nmacx-xcode:qtConfig(static): \\\\\n    QMAKE_XCODE_DEBUG_INFORMATION_FORMAT = dwarf\n\nQMAKE_XCODE_LIBRARY_SUFFIX_SETTING = QT_LIBRARY_SUFFIX\n\nxcode_copy_phase_strip_setting.name = COPY_PHASE_STRIP\nxcode_copy_phase_strip_setting.value = NO\nQMAKE_MAC_XCODE_SETTINGS += xcode_copy_phase_strip_setting\nEOT\n\n        sed -i '1s;^;QMAKE_MAC_SDK.macosx.Path = '\"/opt/$target/$target/sys-root\"'\\\n        QMAKE_MAC_SDK.macosx.SDKVersion = '\"10.14\"'\\\n        QMAKE_MAC_SDK.macosx.PlatformPath = '\"/opt/$target\"'\\n;' 'mkspecs/features/mac/sdk.prf'\n        echo \"\" >  mkspecs/features/mac/no_warn_empty_obj_files.prf\n\n        for bin in \"${BIN_DIR}/clang++\" \"${BIN_DIR}/clang\"; do\n            sed -i \"s?-fuse-ld=[^ ]\\+?-fuse-ld=${BIN_DIR}/ld?g\" \"${bin}\"\n        done\n\n        cd $WORKSPACE/srcdir/build\n\n        if [[ \"${target}\" == aarch64-* ]]; then\n            CONFIGURE_EXTRA_FLAGS=(-device-option QMAKE_APPLE_DEVICE_ARCHS=arm64)\n            sed -i 's/QMAKE_APPLE_DEVICE_ARCHS = .*/QMAKE_APPLE_DEVICE_ARCHS = arm64/' ../qtbase-everywhere-src-*/mkspecs/common/macx.conf\n        fi\n\n        export QT_MAC_SDK_NO_VERSION_CHECK=1\n        ../qtbase-everywhere-src-*/configure \\\n            QMAKE_CXXFLAGS+=-F/opt/$target/$target/sys-root/System/Library/Frameworks \\\n            QMAKE_RANLIB=${BIN_DIR}/ranlib \\\n            QMAKE_MACOSX_DEPLOYMENT_TARGET=10.14 \\\n            -platform musl -xplatform macx-clang -device-option CROSS_COMPILE=${BIN_DIR}/$target- \\\n            -prefix ${prefix} $commonoptions \\\n            -skip qtwinextras \\\n            \"${CONFIGURE_EXTRA_FLAGS[@]}\"\n        ;;\n\n    *mingw*)\n        echo \"QMAKE_CFLAGS_ARCH_HASWELL =\" >> ../qtbase-everywhere-src-*/mkspecs/win32-g++/qmake.conf\n        ../qtbase-everywhere-src-*/configure -I $WORKSPACE/srcdir/qtbase-everywhere-src-*/include/QtANGLE -platform musl -xplatform win32-g++ -device-option CROSS_COMPILE=${BIN_DIR}/$target- \\\n            -prefix $prefix $commonoptions \\\n            -opengl dynamic\n\t\t;;\n\n    *x86_64-unknown-freebsd*)\n        sed -i 's/load(qt_config)//' ../qtbase-everywhere-src-*/mkspecs/freebsd-g++/qmake.conf\n        grep -A11 QMAKE_CC ../qtbase-everywhere-src-*/mkspecs/linux-aarch64-gnu-g++/qmake.conf | sed -e 's/aarch64-linux-gnu/x86_64-unknown-freebsd11.1/' >> ../qtbase-everywhere-src-*/mkspecs/freebsd-g++/qmake.conf\n        echo \"QMAKE_CFLAGS_ARCH_HASWELL =\" >> ../qtbase-everywhere-src-*/mkspecs/freebsd-g++/qmake.conf\n\n        ../qtbase-everywhere-src-*/configure -platform musl -xplatform freebsd-g++ -device-option CROSS_COMPILE=${BIN_DIR}/$target- \\\n            -extprefix $prefix $commonoptions \\\n            -skip qtwinextras -fontconfig -sysroot /opt/$target/bin/../$target/sys-root\n\t\t;;\nesac\n\nmake -j${nproc}\nmake install\n$BUILD_STRIP $bindir/qmake\ninstall_license $WORKSPACE/srcdir/qtbase-everywhere-src-*/LICENSE.LGPLv3\n"""
+version = "v5.15.3"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Xorg_libX11_jll"
+    type = "builddependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Xorg_libXext_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Xorg_glproto_jll"
+    type = "builddependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Xorg_libxcb_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Xorg_xcb_util_wm_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Xorg_xcb_util_image_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Xorg_xcb_util_keysyms_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Xorg_xcb_util_renderutil_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "xkbcommon_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Libglvnd_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Fontconfig_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "2.68.1"
+    name = "Glib_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Zlib_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "CompilerSupportLibraries_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "OpenSSL_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["Qt5Concurrent", "libQt5Concurrent", "QtConcurrent"]
+    type = "lib"
+    variable_name = "libqt5concurrent"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["Qt5Core", "libQt5Core", "QtCore"]
+    type = "lib"
+    variable_name = "libqt5core"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["Qt5DBus", "libQt5DBus", "QtDBus"]
+    type = "lib"
+    variable_name = "libqt5dbus"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["Qt5Gui", "libQt5Gui", "QtGui"]
+    type = "lib"
+    variable_name = "libqt5gui"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["Qt5Network", "libQt5Network", "QtNetwork"]
+    type = "lib"
+    variable_name = "libqt5network"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["Qt5OpenGL", "libQt5OpenGL", "QtOpenGL"]
+    type = "lib"
+    variable_name = "libqt5opengl"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["Qt5PrintSupport", "libQt5PrintSupport", "QtPrintSupport"]
+    type = "lib"
+    variable_name = "libqt5printsupport"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["Qt5Sql", "libQt5Sql", "QtSql"]
+    type = "lib"
+    variable_name = "libqt5sql"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["Qt5Test", "libQt5Test", "QtTest"]
+    type = "lib"
+    variable_name = "libqt5test"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["Qt5Widgets", "libQt5Widgets", "QtWidgets"]
+    type = "lib"
+    variable_name = "libqt5widgets"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["Qt5Xml", "libQt5Xml", "QtXml"]
+    type = "lib"
+    variable_name = "libqt5xml"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["QtConcurrent"]
+    type = "framework"
+    variable_name = "libqt5concurrent"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["QtCore"]
+    type = "framework"
+    variable_name = "libqt5core"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["QtDBus"]
+    type = "framework"
+    variable_name = "libqt5dbus"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["QtGui"]
+    type = "framework"
+    variable_name = "libqt5gui"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["QtNetwork"]
+    type = "framework"
+    variable_name = "libqt5network"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["QtOpenGL"]
+    type = "framework"
+    variable_name = "libqt5opengl"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["QtPrintSupport"]
+    type = "framework"
+    variable_name = "libqt5printsupport"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["QtSql"]
+    type = "framework"
+    variable_name = "libqt5sql"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["QtTest"]
+    type = "framework"
+    variable_name = "libqt5test"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["QtWidgets"]
+    type = "framework"
+    variable_name = "libqt5widgets"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["QtXml"]
+    type = "framework"
+    variable_name = "libqt5xml"
+
+    [[metadata.sources]]
+    hash = "909fad2591ee367993a75d7e2ea50ad4db332f05e1c38dd7a5a274e156a4e0f8"
+    type = "archive"
+    unpack_target = ""
+    url = "https://download.qt.io/official_releases/qt/5.15/5.15.2/submodules/qtbase-everywhere-src-5.15.2.tar.xz"
+    [[metadata.sources]]
+    hash = "0f03869f72df8705b832910517b47dd5b79eb4e160512602f593ed243b28715f"
+    type = "archive"
+    unpack_target = ""
+    url = "https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.14.sdk.tar.xz"
