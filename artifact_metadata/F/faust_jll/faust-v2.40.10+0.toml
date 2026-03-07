@@ -1,0 +1,460 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/c0d8fdd3a97d019f44fe605832aad2e6152a2cd8/F/faust/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.5.3"
+
+[metadata]
+augment_platform_block = """    using Base.BinaryPlatforms\n        function augment_llvm!(platform::Platform)\n        haskey(platform, \"llvm_version\") && return platform\n\n        llvm_version = Base.libllvm_version\n        # does our LLVM build use assertions?\n        llvm_assertions = try\n            cglobal((:_ZN4llvm24DisableABIBreakingChecksE, Base.libllvm_path()), Cvoid)\n            false\n        catch\n            true\n        end\n        platform[\"llvm_version\"] = if llvm_assertions\n            \"$(llvm_version.major).asserts\"\n        else\n            \"$(llvm_version.major)\"\n        end\n        return platform\n    end\n\n    function augment_platform!(platform::Platform)\n        augment_llvm!(platform)\n    end\n"""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = true
+name = "faust"
+platforms = ["i686-linux-gnu-cxx03-llvm_version+11", "i686-linux-gnu-cxx11-llvm_version+11", "x86_64-linux-gnu-cxx03-llvm_version+11", "x86_64-linux-gnu-cxx11-llvm_version+11", "aarch64-linux-gnu-cxx03-llvm_version+11", "aarch64-linux-gnu-cxx11-llvm_version+11", "armv6l-linux-gnueabihf-cxx03-llvm_version+11", "armv6l-linux-gnueabihf-cxx11-llvm_version+11", "armv7l-linux-gnueabihf-cxx03-llvm_version+11", "armv7l-linux-gnueabihf-cxx11-llvm_version+11", "powerpc64le-linux-gnu-cxx03-llvm_version+11", "powerpc64le-linux-gnu-cxx11-llvm_version+11", "i686-linux-musl-cxx03-llvm_version+11", "i686-linux-musl-cxx11-llvm_version+11", "x86_64-linux-musl-cxx03-llvm_version+11", "x86_64-linux-musl-cxx11-llvm_version+11", "aarch64-linux-musl-cxx03-llvm_version+11", "aarch64-linux-musl-cxx11-llvm_version+11", "armv6l-linux-musleabihf-cxx03-llvm_version+11", "armv6l-linux-musleabihf-cxx11-llvm_version+11", "armv7l-linux-musleabihf-cxx03-llvm_version+11", "armv7l-linux-musleabihf-cxx11-llvm_version+11", "x86_64-apple-darwin-llvm_version+11", "aarch64-apple-darwin-llvm_version+11", "x86_64-unknown-freebsd-llvm_version+11", "i686-w64-mingw32-cxx03-llvm_version+11", "i686-w64-mingw32-cxx11-llvm_version+11", "x86_64-w64-mingw32-cxx03-llvm_version+11", "x86_64-w64-mingw32-cxx11-llvm_version+11", "i686-linux-gnu-cxx03-llvm_version+12", "i686-linux-gnu-cxx11-llvm_version+12", "x86_64-linux-gnu-cxx03-llvm_version+12", "x86_64-linux-gnu-cxx11-llvm_version+12", "aarch64-linux-gnu-cxx03-llvm_version+12", "aarch64-linux-gnu-cxx11-llvm_version+12", "armv6l-linux-gnueabihf-cxx03-llvm_version+12", "armv6l-linux-gnueabihf-cxx11-llvm_version+12", "armv7l-linux-gnueabihf-cxx03-llvm_version+12", "armv7l-linux-gnueabihf-cxx11-llvm_version+12", "powerpc64le-linux-gnu-cxx03-llvm_version+12", "powerpc64le-linux-gnu-cxx11-llvm_version+12", "i686-linux-musl-cxx03-llvm_version+12", "i686-linux-musl-cxx11-llvm_version+12", "x86_64-linux-musl-cxx03-llvm_version+12", "x86_64-linux-musl-cxx11-llvm_version+12", "aarch64-linux-musl-cxx03-llvm_version+12", "aarch64-linux-musl-cxx11-llvm_version+12", "armv6l-linux-musleabihf-cxx03-llvm_version+12", "armv6l-linux-musleabihf-cxx11-llvm_version+12", "armv7l-linux-musleabihf-cxx03-llvm_version+12", "armv7l-linux-musleabihf-cxx11-llvm_version+12", "x86_64-apple-darwin-llvm_version+12", "aarch64-apple-darwin-llvm_version+12", "x86_64-unknown-freebsd-llvm_version+12", "i686-w64-mingw32-cxx03-llvm_version+12", "i686-w64-mingw32-cxx11-llvm_version+12", "x86_64-w64-mingw32-cxx03-llvm_version+12", "x86_64-w64-mingw32-cxx11-llvm_version+12", "i686-linux-gnu-cxx03-llvm_version+13", "i686-linux-gnu-cxx11-llvm_version+13", "x86_64-linux-gnu-cxx03-llvm_version+13", "x86_64-linux-gnu-cxx11-llvm_version+13", "aarch64-linux-gnu-cxx03-llvm_version+13", "aarch64-linux-gnu-cxx11-llvm_version+13", "armv6l-linux-gnueabihf-cxx03-llvm_version+13", "armv6l-linux-gnueabihf-cxx11-llvm_version+13", "armv7l-linux-gnueabihf-cxx03-llvm_version+13", "armv7l-linux-gnueabihf-cxx11-llvm_version+13", "powerpc64le-linux-gnu-cxx03-llvm_version+13", "powerpc64le-linux-gnu-cxx11-llvm_version+13", "i686-linux-musl-cxx03-llvm_version+13", "i686-linux-musl-cxx11-llvm_version+13", "x86_64-linux-musl-cxx03-llvm_version+13", "x86_64-linux-musl-cxx11-llvm_version+13", "aarch64-linux-musl-cxx03-llvm_version+13", "aarch64-linux-musl-cxx11-llvm_version+13", "armv6l-linux-musleabihf-cxx03-llvm_version+13", "armv6l-linux-musleabihf-cxx11-llvm_version+13", "armv7l-linux-musleabihf-cxx03-llvm_version+13", "armv7l-linux-musleabihf-cxx11-llvm_version+13", "x86_64-apple-darwin-llvm_version+13", "aarch64-apple-darwin-llvm_version+13", "x86_64-unknown-freebsd-llvm_version+13", "i686-w64-mingw32-cxx03-llvm_version+13", "i686-w64-mingw32-cxx11-llvm_version+13", "x86_64-w64-mingw32-cxx03-llvm_version+13", "x86_64-w64-mingw32-cxx11-llvm_version+13"]
+script = """cd $WORKSPACE/srcdir/faust\n\nCMAKE_FLAGS=()\nCMAKE_FLAGS+=(-DINCLUDE_HTTP=OFF)\nCMAKE_FLAGS+=(-DINCLUDE_ITP=OFF)\nCMAKE_FLAGS+=(-DINCLUDE_OSC=OFF)\nCMAKE_FLAGS+=(-DINCLUDE_STATIC=OFF)\nCMAKE_FLAGS+=(-DITPDYNAMIC=OFF)\n\nCMAKE_TARGET=${target}\n\nif [[ \"${target}\" == *musl* ]]; then\n    export CXXFLAGS=\"-DALPINE\"\nfi\n\nif [[ \"${target}\" == *apple* ]]; then\n    export MACOSX_DEPLOYMENT_TARGET=10.9\n    export LDFLAGS=\"${LDFLAGS} -mmacosx-version-min=10.9\"\n    # If we're building for Apple, CMake gets confused with `aarch64-apple-darwin` and instead prefers\n    # `arm64-apple-darwin`.  If this issue persists, we may have to change our triplet printing.\n    if [[ \"${target}\" == aarch64* ]]; then\n        CMAKE_TARGET=arm64-${target#*-}\n    fi\nfi\n\nif [[ \"${target}\" == *mingw* ]]; then\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/ws2.patch\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/ws2_libraries.patch\nfi\n\nif [[ \"${target}\" == *freebsd* ]]; then\n    export LDFLAGS=\"${LDFLAGS} -lexecinfo\"\nfi\n\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/unset_llvm_libs.patch\n\n\nif [[ \"${bb_full_target}\" == x86_64-linux-musl-* ]]; then\n    llvm_lib=$(basename /workspace/destdir/lib/libLLVM-??jl.so)\n    LLVM_LIB=\"-l${llvm_lib:3:9}\"\nelif [[ \"${bb_full_target}\" == *mingw*+13 ]]; then\n    LLVM_LIB=\"-lLLVM-13jl.dll\"\nelif [[ \"${target}\" == *mingw* ]]; then\n    LLVM_LIB=\"-lLLVM.dll\"\nelse\n    LLVM_LIB=\"-lLLVM\"\nfi\n\nLLVM_LIBS=\"${LLVM_LIB} -lstdc++\"\n\nCMAKE_FLAGS+=(-DLLVM_LIBS=\\'${LLVM_LIBS}\\')\n\nCMAKE_FLAGS+=(-DCMAKE_C_COMPILER_TARGET=${CMAKE_TARGET})\nCMAKE_FLAGS+=(-DCMAKE_CXX_COMPILER_TARGET=${CMAKE_TARGET})\n\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix})\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\n\nCMAKE_FLAGS+=(-DUSE_LLVM_CONFIG=OFF)\nCMAKE_FLAGS+=(-DLLVM_DIR=${prefix}/lib/cmake/llvm)\n\nexport CMAKEOPT=\"${CMAKE_FLAGS[@]}\"\nexport PREFIX=$prefix\n\nmake -j${nproc} all\nmake install\n"""
+version = "v2.40.10"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "libmicrohttpd_jll"
+    platforms = ["any"]
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "libsndfile_jll"
+    platforms = ["any"]
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Ncurses_jll"
+    platforms = ["any"]
+    type = "builddependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "XML2_jll"
+    platforms = ["any"]
+    type = "builddependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Zlib_jll"
+    platforms = ["any"]
+    type = "builddependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "LLVM_full_jll"
+    platforms = ["any"]
+    type = "builddependency"
+    version-major = 11
+    version-minor = 0
+    version-patch = 1
+    [[metadata.dependencies]]
+    compat = ""
+    name = "LLVM_full_jll"
+    platforms = ["any"]
+    type = "builddependency"
+    version-major = 12
+    version-minor = 0
+    version-patch = 1
+    [[metadata.dependencies]]
+    compat = ""
+    name = "LLVM_full_jll"
+    platforms = ["any"]
+    type = "builddependency"
+    version-major = 13
+    version-minor = 0
+    version-patch = 1
+
+    [[metadata.products]]
+    binnames = ["faust"]
+    type = "exe"
+    variable_name = "faust"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libfaust"]
+    type = "lib"
+    variable_name = "libfaust"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libHTTPDFaust"]
+    type = "lib"
+    variable_name = "libHTTPDFaust"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libOSCFaust"]
+    type = "lib"
+    variable_name = "libOSCFaust"
+    [[metadata.products]]
+    paths = ["bin/faust2alqt"]
+    type = "file"
+    variable_name = "faust2alqt"
+    [[metadata.products]]
+    paths = ["bin/faust2alsaconsole"]
+    type = "file"
+    variable_name = "faust2alsaconsole"
+    [[metadata.products]]
+    paths = ["bin/faust2alsa"]
+    type = "file"
+    variable_name = "faust2alsa"
+    [[metadata.products]]
+    paths = ["bin/faust2android"]
+    type = "file"
+    variable_name = "faust2android"
+    [[metadata.products]]
+    paths = ["bin/faust2androidunity"]
+    type = "file"
+    variable_name = "faust2androidunity"
+    [[metadata.products]]
+    paths = ["bin/faust2api"]
+    type = "file"
+    variable_name = "faust2api"
+    [[metadata.products]]
+    paths = ["bin/faust2atomsnippets"]
+    type = "file"
+    variable_name = "faust2atomsnippets"
+    [[metadata.products]]
+    paths = ["bin/faust2au"]
+    type = "file"
+    variable_name = "faust2au"
+    [[metadata.products]]
+    paths = ["bin/faust2bela"]
+    type = "file"
+    variable_name = "faust2bela"
+    [[metadata.products]]
+    paths = ["bin/faust2caqt"]
+    type = "file"
+    variable_name = "faust2caqt"
+    [[metadata.products]]
+    paths = ["bin/faust2caqtios"]
+    type = "file"
+    variable_name = "faust2caqtios"
+    [[metadata.products]]
+    paths = ["bin/faust2csound"]
+    type = "file"
+    variable_name = "faust2csound"
+    [[metadata.products]]
+    paths = ["bin/faust2csvplot"]
+    type = "file"
+    variable_name = "faust2csvplot"
+    [[metadata.products]]
+    paths = ["bin/faust2dplug"]
+    type = "file"
+    variable_name = "faust2dplug"
+    [[metadata.products]]
+    paths = ["bin/faust2dssi"]
+    type = "file"
+    variable_name = "faust2dssi"
+    [[metadata.products]]
+    paths = ["bin/faust2dummy"]
+    type = "file"
+    variable_name = "faust2dummy"
+    [[metadata.products]]
+    paths = ["bin/faust2dummymem"]
+    type = "file"
+    variable_name = "faust2dummymem"
+    [[metadata.products]]
+    paths = ["bin/faust2eps"]
+    type = "file"
+    variable_name = "faust2eps"
+    [[metadata.products]]
+    paths = ["bin/faust2esp32"]
+    type = "file"
+    variable_name = "faust2esp32"
+    [[metadata.products]]
+    paths = ["bin/faust2faustvst"]
+    type = "file"
+    variable_name = "faust2faustvst"
+    [[metadata.products]]
+    paths = ["bin/faust2firefox"]
+    type = "file"
+    variable_name = "faust2firefox"
+    [[metadata.products]]
+    paths = ["bin/faust2gen"]
+    type = "file"
+    variable_name = "faust2gen"
+    [[metadata.products]]
+    paths = ["bin/faust2graph"]
+    type = "file"
+    variable_name = "faust2graph"
+    [[metadata.products]]
+    paths = ["bin/faust2graphviewer"]
+    type = "file"
+    variable_name = "faust2graphviewer"
+    [[metadata.products]]
+    paths = ["bin/faust2ios"]
+    type = "file"
+    variable_name = "faust2ios"
+    [[metadata.products]]
+    paths = ["bin/faust2jackconsole"]
+    type = "file"
+    variable_name = "faust2jackconsole"
+    [[metadata.products]]
+    paths = ["bin/faust2jack"]
+    type = "file"
+    variable_name = "faust2jack"
+    [[metadata.products]]
+    paths = ["bin/faust2jackrust"]
+    type = "file"
+    variable_name = "faust2jackrust"
+    [[metadata.products]]
+    paths = ["bin/faust2jackserver"]
+    type = "file"
+    variable_name = "faust2jackserver"
+    [[metadata.products]]
+    paths = ["bin/faust2jaqtchain"]
+    type = "file"
+    variable_name = "faust2jaqtchain"
+    [[metadata.products]]
+    paths = ["bin/faust2jaqt"]
+    type = "file"
+    variable_name = "faust2jaqt"
+    [[metadata.products]]
+    paths = ["bin/faust2juce"]
+    type = "file"
+    variable_name = "faust2juce"
+    [[metadata.products]]
+    paths = ["bin/faust2ladspa"]
+    type = "file"
+    variable_name = "faust2ladspa"
+    [[metadata.products]]
+    paths = ["bin/faust2linuxunity"]
+    type = "file"
+    variable_name = "faust2linuxunity"
+    [[metadata.products]]
+    paths = ["bin/faust2lv2"]
+    type = "file"
+    variable_name = "faust2lv2"
+    [[metadata.products]]
+    paths = ["bin/faust2mathdoc"]
+    type = "file"
+    variable_name = "faust2mathdoc"
+    [[metadata.products]]
+    paths = ["bin/faust2mathviewer"]
+    type = "file"
+    variable_name = "faust2mathviewer"
+    [[metadata.products]]
+    paths = ["bin/faust2max6"]
+    type = "file"
+    variable_name = "faust2max6"
+    [[metadata.products]]
+    paths = ["bin/faust2md"]
+    type = "file"
+    variable_name = "faust2md"
+    [[metadata.products]]
+    paths = ["bin/faust2msp"]
+    type = "file"
+    variable_name = "faust2msp"
+    [[metadata.products]]
+    paths = ["bin/faust2netjackconsole"]
+    type = "file"
+    variable_name = "faust2netjackconsole"
+    [[metadata.products]]
+    paths = ["bin/faust2netjackqt"]
+    type = "file"
+    variable_name = "faust2netjackqt"
+    [[metadata.products]]
+    paths = ["bin/faust2nodejs"]
+    type = "file"
+    variable_name = "faust2nodejs"
+    [[metadata.products]]
+    paths = ["bin/faust2octave"]
+    type = "file"
+    variable_name = "faust2octave"
+    [[metadata.products]]
+    paths = ["bin/faust2osxiosunity"]
+    type = "file"
+    variable_name = "faust2osxiosunity"
+    [[metadata.products]]
+    paths = ["bin/faust2owl"]
+    type = "file"
+    variable_name = "faust2owl"
+    [[metadata.products]]
+    paths = ["bin/faust2paqt"]
+    type = "file"
+    variable_name = "faust2paqt"
+    [[metadata.products]]
+    paths = ["bin/faust2pdf"]
+    type = "file"
+    variable_name = "faust2pdf"
+    [[metadata.products]]
+    paths = ["bin/faust2plot"]
+    type = "file"
+    variable_name = "faust2plot"
+    [[metadata.products]]
+    paths = ["bin/faust2png"]
+    type = "file"
+    variable_name = "faust2png"
+    [[metadata.products]]
+    paths = ["bin/faust2portaudiorust"]
+    type = "file"
+    variable_name = "faust2portaudiorust"
+    [[metadata.products]]
+    paths = ["bin/faust2puredata"]
+    type = "file"
+    variable_name = "faust2puredata"
+    [[metadata.products]]
+    paths = ["bin/faust2pure"]
+    type = "file"
+    variable_name = "faust2pure"
+    [[metadata.products]]
+    paths = ["bin/faust2raqt"]
+    type = "file"
+    variable_name = "faust2raqt"
+    [[metadata.products]]
+    paths = ["bin/faust2ros"]
+    type = "file"
+    variable_name = "faust2ros"
+    [[metadata.products]]
+    paths = ["bin/faust2rosgtk"]
+    type = "file"
+    variable_name = "faust2rosgtk"
+    [[metadata.products]]
+    paths = ["bin/faust2rpialsaconsole"]
+    type = "file"
+    variable_name = "faust2rpialsaconsole"
+    [[metadata.products]]
+    paths = ["bin/faust2rpinetjackconsole"]
+    type = "file"
+    variable_name = "faust2rpinetjackconsole"
+    [[metadata.products]]
+    paths = ["bin/faust2sam"]
+    type = "file"
+    variable_name = "faust2sam"
+    [[metadata.products]]
+    paths = ["bin/faust2sc"]
+    type = "file"
+    variable_name = "faust2sc"
+    [[metadata.products]]
+    paths = ["bin/faust2sig"]
+    type = "file"
+    variable_name = "faust2sig"
+    [[metadata.products]]
+    paths = ["bin/faust2sigviewer"]
+    type = "file"
+    variable_name = "faust2sigviewer"
+    [[metadata.products]]
+    paths = ["bin/faust2smartkeyb"]
+    type = "file"
+    variable_name = "faust2smartkeyb"
+    [[metadata.products]]
+    paths = ["bin/faust2sndfile"]
+    type = "file"
+    variable_name = "faust2sndfile"
+    [[metadata.products]]
+    paths = ["bin/faust2soul"]
+    type = "file"
+    variable_name = "faust2soul"
+    [[metadata.products]]
+    paths = ["bin/faust2supercollider"]
+    type = "file"
+    variable_name = "faust2supercollider"
+    [[metadata.products]]
+    paths = ["bin/faust2svg"]
+    type = "file"
+    variable_name = "faust2svg"
+    [[metadata.products]]
+    paths = ["bin/faust2svgviewer"]
+    type = "file"
+    variable_name = "faust2svgviewer"
+    [[metadata.products]]
+    paths = ["bin/faust2teensy"]
+    type = "file"
+    variable_name = "faust2teensy"
+    [[metadata.products]]
+    paths = ["bin/faust2unity"]
+    type = "file"
+    variable_name = "faust2unity"
+    [[metadata.products]]
+    paths = ["bin/faust2vcvrack"]
+    type = "file"
+    variable_name = "faust2vcvrack"
+    [[metadata.products]]
+    paths = ["bin/faust2vst"]
+    type = "file"
+    variable_name = "faust2vst"
+    [[metadata.products]]
+    paths = ["bin/faust2vsti"]
+    type = "file"
+    variable_name = "faust2vsti"
+    [[metadata.products]]
+    paths = ["bin/faust2w32max6"]
+    type = "file"
+    variable_name = "faust2w32max6"
+    [[metadata.products]]
+    paths = ["bin/faust2w32msp"]
+    type = "file"
+    variable_name = "faust2w32msp"
+    [[metadata.products]]
+    paths = ["bin/faust2w32puredata"]
+    type = "file"
+    variable_name = "faust2w32puredata"
+    [[metadata.products]]
+    paths = ["bin/faust2w32vst"]
+    type = "file"
+    variable_name = "faust2w32vst"
+    [[metadata.products]]
+    paths = ["bin/faust2w64max6"]
+    type = "file"
+    variable_name = "faust2w64max6"
+    [[metadata.products]]
+    paths = ["bin/faust2w64vst"]
+    type = "file"
+    variable_name = "faust2w64vst"
+    [[metadata.products]]
+    paths = ["bin/faust2wasm"]
+    type = "file"
+    variable_name = "faust2wasm"
+    [[metadata.products]]
+    paths = ["bin/faust2webaudiowasm"]
+    type = "file"
+    variable_name = "faust2webaudiowasm"
+    [[metadata.products]]
+    paths = ["bin/faust2webaudiowast"]
+    type = "file"
+    variable_name = "faust2webaudiowast"
+    [[metadata.products]]
+    paths = ["bin/faust2winunity"]
+    type = "file"
+    variable_name = "faust2winunity"
+    [[metadata.products]]
+    paths = ["bin/faustoptflags"]
+    type = "file"
+    variable_name = "faustoptflags"
+    [[metadata.products]]
+    paths = ["bin/usage.sh"]
+    type = "file"
+    variable_name = "usage_sh"
+    [[metadata.products]]
+    paths = ["share/faust/stdfaust.lib"]
+    type = "file"
+    variable_name = "stdfaust_lib"
+
+    [[metadata.sources]]
+    hash = "04bc38cd56ba5f5b10af1c86d0534364f0d5cf62"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/grame-cncm/faust.git"
+    [[metadata.sources]]
+    follow_symlinks = false
+    path = "./bundled"
+    target = ""
+    type = "directory"

@@ -1,0 +1,49 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/d57fb4fec8a0c8404b78bef03ee55d57a6913afc/C/Coin-OR/CoinUtils/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.5.8"
+
+[metadata]
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.9"
+lazy_artifacts = false
+name = "CoinUtils"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir/CoinUtils*\n\n# Remove misleading libtool files\nrm -f ${prefix}/lib/*.la\nupdate_configure_scripts\n\n# Without fixing this configure reports that we can't build shared\n# libraries. We use `elf64lppc` for LE support. This seems to be\n# fixed on master, but using `update_configure_scripts -reconf` breaks.\nsed -i s/elf64ppc/elf64lppc/ configure\n\nmkdir build\ncd build/\n\nexport CPPFLAGS=\"${CPPFLAGS} -I${includedir} -I${includedir}/coin\"\nif [[ ${target} == *mingw* ]]; then\n    export LDFLAGS=\"-L${libdir}\"\nelif [[ ${target} == *linux* ]]; then\n    export LDFLAGS=\"-ldl -lrt\"\nfi\n\n# BLAS and LAPACK\nif [[ \"${target}\" == *mingw* ]]; then\n  LBT=\"-lblastrampoline-5\"\nelse\n  LBT=\"-lblastrampoline\"\nfi\n\n../configure \\\n    --prefix=${prefix} \\\n    --build=${MACHTYPE} \\\n    --host=${target} \\\n    --with-pic \\\n    --disable-pkg-config \\\n    --disable-debug \\\n    --enable-shared \\\n    lt_cv_deplibs_check_method=pass_all \\\n    --with-blas \\\n    --with-blas-lib=\"-L${libdir} ${LBT}\" \\\n    --with-lapack \\\n    --with-lapack-lib=\"-L${libdir} ${LBT}\"\n\nmake -j${nproc}\nmake install\n"""
+version = "v200.1100.1100"
+
+    [[metadata.dependencies]]
+    compat = "5.4.0"
+    name = "libblastrampoline_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    uuid = "8e850b90-86db-534c-a0d3-1478176c7d93"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "CompilerSupportLibraries_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libCoinUtils"]
+    type = "lib"
+    variable_name = "libCoinUtils"
+
+    [[metadata.sources]]
+    hash = "27da344479f38c82112d738501643dcb229e4ee96a5f87d4f406456bdc1b2cb4"
+    type = "archive"
+    unpack_target = ""
+    url = "https://github.com/coin-or/CoinUtils/archive/refs/tags/releases/2.11.11.tar.gz"

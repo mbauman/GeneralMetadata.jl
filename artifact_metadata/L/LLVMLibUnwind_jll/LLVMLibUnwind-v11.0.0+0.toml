@@ -1,0 +1,28 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/f041cedbb983feef000b8eca4d006b6319c06068/L/LLVMLibUnwind/LLVMLibUnwind@11.0.0/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.3.0"
+
+[metadata]
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "LLVMLibUnwind"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "aarch64-apple-darwin", "armv6l-linux-gnueabihf", "armv6l-linux-musleabihf"]
+script = """cd $WORKSPACE/srcdir/libunwind*\n\nCMAKE_FLAGS=()\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=$prefix)\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\nCMAKE_FLAGS+=(-DLIBUNWIND_INCLUDE_DOCS=OFF)\nCMAKE_FLAGS+=(-DLIBUNWIND_ENABLE_PEDANTIC=OFF)\n\nif [[ ${target} == x86_64-w64-mingw32 ]]; then\n    # Support for threading requires Windows Vista.\n    export CXXFLAGS=\"-D_WIN32_WINNT=0x0600\"\nfi\n\nmkdir build && cd build\ncmake \"${CMAKE_FLAGS[@]}\" ..\nmake -j${nprocs}\nmake install\n\n# Move over the DLL. TODO: There may be a CMAKE flag for this.\nif [[ ${target} == *mingw32* ]]; then\n    mkdir -p \"${libdir}\"\n    mv -v lib/libunwind.dll \"${libdir}\"\nfi\n"""
+version = "v11.0.0"
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libunwind"]
+    type = "lib"
+    variable_name = "libunwind"
+
+    [[metadata.sources]]
+    hash = "8455011c33b14abfe57b2fd9803fb610316b16d4c9818bec552287e2ba68922f"
+    type = "archive"
+    unpack_target = ""
+    url = "https://github.com/llvm/llvm-project/releases/download/llvmorg-11.0.0/libunwind-11.0.0.src.tar.xz"

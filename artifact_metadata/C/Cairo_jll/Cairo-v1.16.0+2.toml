@@ -1,0 +1,27 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/a2ddcf4c906fc24e2ad95b1e6ec323ed28a767fa/C/Cairo/build_tarballs.jl"
+metadata_source = "retrospective (by timestamp)"
+system = "Yggdrasil"
+version = "0.2.2"
+
+[metadata]
+dependencies = ["Glib_jll", "Pixman_jll", "libpng_jll", "Fontconfig_jll", "FreeType2_jll", "Bzip2_jll", "Xorg_libXext_jll", "Xorg_libXrender_jll", "LZO_jll", "Zlib_jll"]
+name = "Cairo"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "arm-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "arm-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/cairo-*/\n\n# Because `zlib` doesn't have a proper `.pc` file, configure fails to find.\nexport CPPFLAGS=\"-I${prefix}/include\"\n\nif [[ \"${target}\" == *-apple-* ]]; then\n    BACKEND_OPTIONS=\"--enable-quartz --enable-quartz-image --disable-xcb --disable-xlib\"\nelif [[ \"${target}\" == *-mingw* ]]; then\n    BACKEND_OPTIONS=\"--enable-win32 --disable-xcb --disable-xlib\"\nelif [[ \"${target}\" == *-linux-* ]] || [[ \"${target}\" == *freebsd* ]]; then\n    BACKEND_OPTIONS=\"--enable-xlib --enable-xcb --enable-xlib-xcb\"\nfi\n\n./configure --prefix=${prefix} --host=${target} \\\n    --disable-static \\\n    --enable-ft \\\n    --enable-tee \\\n    --enable-svg \\\n    --enable-ps \\\n    --enable-pdf \\\n    --enable-gobject \\\n    --disable-dependency-tracking \\\n    ${BACKEND_OPTIONS}\nmake -j${nproc}\nmake install\n"""
+version = "v1.16.0"
+
+    [[metadata.products]]
+    dir_paths = []
+    dont_dlopen = false
+    libnames = ["libcairo"]
+    type = "lib"
+    variable_name = "libcairo"
+    [[metadata.products]]
+    dir_paths = []
+    dont_dlopen = false
+    libnames = ["libcairo-gobject"]
+    type = "lib"
+    variable_name = "libcairo_gobject"
+
+    [[metadata.sources]]
+    "https://www.cairographics.org/releases/cairo-1.16.0.tar.xz" = "5e7b29b3f113ef870d1e3ecf8adf21f923396401604bda16d44be45e66052331"

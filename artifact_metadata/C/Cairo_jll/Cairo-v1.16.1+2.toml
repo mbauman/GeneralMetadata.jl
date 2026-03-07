@@ -1,0 +1,156 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/739d281fff0242f28e2793a290c928beb89690ee/C/Cairo/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.5.6"
+
+[metadata]
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Cairo"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/cairo-*/\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    # Link against libssp to fix errors like\n    #     /opt/x86_64-w64-mingw32/bin/../lib/gcc/x86_64-w64-mingw32/8.1.0/../../../../x86_64-w64-mingw32/bin/ld: .libs/cairo-output-stream.o: in function `memcpy':\n    #     /opt/x86_64-w64-mingw32/x86_64-w64-mingw32/sys-root/include/string.h:202: undefined reference to `__memcpy_chk'\n    #     /opt/x86_64-w64-mingw32/bin/../lib/gcc/x86_64-w64-mingw32/8.1.0/../../../../x86_64-w64-mingw32/bin/ld: .libs/cairo-win32-font.o: in function `memcpy':\n    #     /opt/x86_64-w64-mingw32/x86_64-w64-mingw32/sys-root/include/string.h:202: undefined reference to `__memcpy_chk'\n    #     /opt/x86_64-w64-mingw32/bin/../lib/gcc/x86_64-w64-mingw32/8.1.0/../../../../x86_64-w64-mingw32/bin/ld: .libs/cairo-pdf-interchange.o: in function `strcat':\n    #     /opt/x86_64-w64-mingw32/x86_64-w64-mingw32/sys-root/include/string.h:234: undefined reference to `__strcat_chk'\n    atomic_patch -p1 ../patches/mingw-libssp.patch\n    # autoreconf needs gtkdocize, install it\n    apk update\n    apk add gtk-doc\n    autoreconf -fiv\n    # libcairo on Windows will need to link to libssp, but in Julia v1.8.4 this\n    # can't be loaded automatically, see:\n    # * https://discourse.julialang.org/t/glmakie-and-plots-fail-to-precompile-under-julia-1-8-4/92087\n    # * https://github.com/JuliaLang/julia/pull/48012\n    # To temporarily work around this issue, let's bundle a copy of libssp to ensure it can\n    # be found by libcairo.  TODO: remove this line once we drop support for Julia v1.8-.\n    install -Dvm 0755 \"/opt/${target}/${target}/lib/libssp-0.dll\" \"${libdir}/libssp-0.dll\"\nelif [[ \"${target}\" == \"${MACHTYPE}\" ]]; then\n    # Remove system libexpat to avoid confusion\n    rm /usr/lib/libexpat.so*\nfi\n\n# Because `zlib` doesn't have a proper `.pc` file, configure fails to find.\nexport CPPFLAGS=\"-I${includedir}\"\n\n# Delete old misleading libtool files\nrm -f ${prefix}/lib/*.la\n\nif [[ \"${target}\" == *-apple-* ]]; then\n    BACKEND_OPTIONS=\"--enable-quartz --enable-quartz-image --disable-xcb --disable-xlib\"\nelif [[ \"${target}\" == *-mingw* ]]; then\n    BACKEND_OPTIONS=\"--enable-win32 --disable-xcb --disable-xlib\"\nelif [[ \"${target}\" == *-linux-* ]] || [[ \"${target}\" == *freebsd* ]]; then\n    BACKEND_OPTIONS=\"--enable-xlib --enable-xcb --enable-xlib-xcb\"\nfi\n\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \\\n    --disable-static \\\n    --enable-ft \\\n    --enable-tee \\\n    --enable-svg \\\n    --enable-ps \\\n    --enable-pdf \\\n    --enable-gobject \\\n    --disable-dependency-tracking \\\n    ${BACKEND_OPTIONS}\nmake -j${nproc}\nmake install\n"""
+version = "v1.16.1"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Xorg_xorgproto_jll"
+    platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-unknown-freebsd"]
+    top_level = false
+    type = "builddependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Glib_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Pixman_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "libpng_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Fontconfig_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "FreeType2_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "1.0.8"
+    name = "Bzip2_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Xorg_libXext_jll"
+    platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-unknown-freebsd"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Xorg_libXrender_jll"
+    platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-unknown-freebsd"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "LZO_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Zlib_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "CompilerSupportLibraries_jll"
+    platforms = ["i686-w64-mingw32", "x86_64-w64-mingw32"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libcairo-gobject"]
+    type = "lib"
+    variable_name = "libcairo_gobject"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libcairo-script-interpreter"]
+    type = "lib"
+    variable_name = "libcairo_script_interpreter"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libcairo"]
+    type = "lib"
+    variable_name = "libcairo"
+
+    [[metadata.sources]]
+    hash = "5e7b29b3f113ef870d1e3ecf8adf21f923396401604bda16d44be45e66052331"
+    type = "archive"
+    unpack_target = ""
+    url = "https://www.cairographics.org/releases/cairo-1.16.0.tar.xz"
+    [[metadata.sources]]
+    follow_symlinks = false
+    path = "./bundled"
+    target = ""
+    type = "directory"

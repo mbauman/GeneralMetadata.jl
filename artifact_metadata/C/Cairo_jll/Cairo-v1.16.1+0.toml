@@ -1,0 +1,124 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/321f8868b6472078920ac8128fb0b143f313f3a2/C/Cairo/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.3.5"
+
+[metadata]
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Cairo"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "aarch64-apple-darwin"]
+script = """cd $WORKSPACE/srcdir/cairo-*/\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    # Link against libssp to fix errors like\n    #     /opt/x86_64-w64-mingw32/bin/../lib/gcc/x86_64-w64-mingw32/8.1.0/../../../../x86_64-w64-mingw32/bin/ld: .libs/cairo-output-stream.o: in function `memcpy':\n    #     /opt/x86_64-w64-mingw32/x86_64-w64-mingw32/sys-root/include/string.h:202: undefined reference to `__memcpy_chk'\n    #     /opt/x86_64-w64-mingw32/bin/../lib/gcc/x86_64-w64-mingw32/8.1.0/../../../../x86_64-w64-mingw32/bin/ld: .libs/cairo-win32-font.o: in function `memcpy':\n    #     /opt/x86_64-w64-mingw32/x86_64-w64-mingw32/sys-root/include/string.h:202: undefined reference to `__memcpy_chk'\n    #     /opt/x86_64-w64-mingw32/bin/../lib/gcc/x86_64-w64-mingw32/8.1.0/../../../../x86_64-w64-mingw32/bin/ld: .libs/cairo-pdf-interchange.o: in function `strcat':\n    #     /opt/x86_64-w64-mingw32/x86_64-w64-mingw32/sys-root/include/string.h:234: undefined reference to `__strcat_chk'\n    atomic_patch -p1 ../patches/mingw-libssp.patch\n    autoreconf -fiv\nfi\n\n# Because `zlib` doesn't have a proper `.pc` file, configure fails to find.\nexport CPPFLAGS=\"-I${includedir}\"\n\nif [[ \"${target}\" == *-apple-* ]]; then\n    BACKEND_OPTIONS=\"--enable-quartz --enable-quartz-image --disable-xcb --disable-xlib\"\nelif [[ \"${target}\" == *-mingw* ]]; then\n    BACKEND_OPTIONS=\"--enable-win32 --disable-xcb --disable-xlib\"\nelif [[ \"${target}\" == *-linux-* ]] || [[ \"${target}\" == *freebsd* ]]; then\n    BACKEND_OPTIONS=\"--enable-xlib --enable-xcb --enable-xlib-xcb\"\nfi\n\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \\\n    --disable-static \\\n    --enable-ft \\\n    --enable-tee \\\n    --enable-svg \\\n    --enable-ps \\\n    --enable-pdf \\\n    --enable-gobject \\\n    --disable-dependency-tracking \\\n    ${BACKEND_OPTIONS}\nmake -j${nproc}\nmake install\n"""
+version = "v1.16.1"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Xorg_xorgproto_jll"
+    type = "builddependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Glib_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Pixman_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "libpng_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Fontconfig_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "FreeType2_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "1.0.8"
+    name = "Bzip2_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Xorg_libXext_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Xorg_libXrender_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "LZO_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Zlib_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libcairo-gobject"]
+    type = "lib"
+    variable_name = "libcairo_gobject"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libcairo-script-interpreter"]
+    type = "lib"
+    variable_name = "libcairo_script_interpreter"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libcairo"]
+    type = "lib"
+    variable_name = "libcairo"
+
+    [[metadata.sources]]
+    hash = "5e7b29b3f113ef870d1e3ecf8adf21f923396401604bda16d44be45e66052331"
+    type = "archive"
+    unpack_target = ""
+    url = "https://www.cairographics.org/releases/cairo-1.16.0.tar.xz"
+    [[metadata.sources]]
+    follow_symlinks = false
+    path = "./bundled"
+    target = ""
+    type = "directory"
