@@ -1,0 +1,69 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/d02db493eda398b9dc3e279494c2be8ee160af58/L/LLVM/MLIR@15/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.6.6"
+
+[metadata]
+augment_platform_block = """    using Base.BinaryPlatforms\n    function augment_llvm!(platform::Platform)\n    haskey(platform, \"llvm_version\") && return platform\n\n    llvm_version = Base.libllvm_version\n    # does our LLVM build use assertions?\n    llvm_assertions = try\n        cglobal((:_ZN4llvm24DisableABIBreakingChecksE, Base.libllvm_path()), Cvoid)\n        false\n    catch\n        true\n    end\n    platform[\"llvm_version\"] = if llvm_assertions\n        \"$(llvm_version.major).asserts\"\n    else\n        \"$(llvm_version.major)\"\n    end\n    return platform\nend\n\n    augment_platform!(platform::Platform) = augment_llvm!(platform)\n"""
+init_block = ""
+julia_compat = "1.9"
+lazy_artifacts = false
+name = "MLIR"
+platforms = ["i686-linux-gnu-cxx11-llvm_version+15", "x86_64-linux-gnu-cxx11-llvm_version+15", "aarch64-linux-gnu-cxx11-llvm_version+15", "armv6l-linux-gnueabihf-cxx11-llvm_version+15", "armv7l-linux-gnueabihf-cxx11-llvm_version+15", "powerpc64le-linux-gnu-cxx11-llvm_version+15", "x86_64-linux-musl-cxx11-llvm_version+15", "aarch64-linux-musl-cxx11-llvm_version+15", "armv6l-linux-musleabihf-cxx11-llvm_version+15", "armv7l-linux-musleabihf-cxx11-llvm_version+15", "x86_64-apple-darwin-llvm_version+15", "aarch64-apple-darwin-llvm_version+15", "x86_64-unknown-freebsd-llvm_version+15", "i686-w64-mingw32-cxx11-llvm_version+15", "x86_64-w64-mingw32-cxx11-llvm_version+15", "x86_64-linux-gnu-cxx11-sanitize+memory-llvm_version+15", "i686-linux-gnu-cxx11-llvm_version+15.asserts", "x86_64-linux-gnu-cxx11-llvm_version+15.asserts", "aarch64-linux-gnu-cxx11-llvm_version+15.asserts", "armv6l-linux-gnueabihf-cxx11-llvm_version+15.asserts", "armv7l-linux-gnueabihf-cxx11-llvm_version+15.asserts", "powerpc64le-linux-gnu-cxx11-llvm_version+15.asserts", "x86_64-linux-musl-cxx11-llvm_version+15.asserts", "aarch64-linux-musl-cxx11-llvm_version+15.asserts", "armv6l-linux-musleabihf-cxx11-llvm_version+15.asserts", "armv7l-linux-musleabihf-cxx11-llvm_version+15.asserts", "x86_64-apple-darwin-llvm_version+15.asserts", "aarch64-apple-darwin-llvm_version+15.asserts", "x86_64-unknown-freebsd-llvm_version+15.asserts", "i686-w64-mingw32-cxx11-llvm_version+15.asserts", "x86_64-w64-mingw32-cxx11-llvm_version+15.asserts", "x86_64-linux-gnu-cxx11-sanitize+memory-llvm_version+15.asserts"]
+script = """# First, find (true) LLVM library directory in ~/.artifacts somewhere\nLLVM_ARTIFACT_DIR=$(dirname $(dirname $(realpath ${prefix}/tools/opt${exeext})))\n\n# Clear out our `${prefix}`\nrm -rf ${prefix}/*\n\n# Copy over `libMLIR` and `include`, specifically.\nmkdir -p ${prefix}/include ${prefix}/bin ${libdir} ${prefix}/lib ${prefix}/lib/cmake\nmv -v ${LLVM_ARTIFACT_DIR}/include/mlir* ${prefix}/include/\nmv -v ${LLVM_ARTIFACT_DIR}/bin/mlir* ${prefix}/bin/\nmv -v ${LLVM_ARTIFACT_DIR}/$(basename ${libdir})/libMLIR*.${dlext}* ${libdir}/\nmv -v ${LLVM_ARTIFACT_DIR}/$(basename ${libdir})/libmlir*.${dlext}* ${libdir}/\nmv -v ${LLVM_ARTIFACT_DIR}/lib/objects-Release ${prefix}/lib/\nmv -v ${LLVM_ARTIFACT_DIR}/lib/cmake/mlir ${prefix}/lib/cmake/mlir\ninstall_license ${LLVM_ARTIFACT_DIR}/share/licenses/LLVM_full*/*\n"""
+sources = []
+version = "v15.0.7"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Zlib_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "LLVM_full_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "builddependency"
+    uuid = "a3ccf953-465e-511d-b87f-60a6490c289d"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "15.0.7"
+    name = "libLLVM_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "LLVM_full_assert_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "builddependency"
+    uuid = "6ec703ca-3f29-566b-9bb1-b5c9e844abaf"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = true
+    libnames = ["libMLIR"]
+    type = "lib"
+    variable_name = "libMLIR"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = true
+    libnames = ["MLIR-C", "libMLIR-C"]
+    type = "lib"
+    variable_name = "mlir_c"
