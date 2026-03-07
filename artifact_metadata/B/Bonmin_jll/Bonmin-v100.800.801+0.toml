@@ -1,0 +1,100 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/0173b33d73d6580c833f84f972a1fc25d2b1ed25/C/Coin-OR/Bonmin/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.4.4"
+
+[metadata]
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Bonmin"
+platforms = ["i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx11", "aarch64-apple-darwin", "armv6l-linux-gnueabihf-cxx11", "armv6l-linux-musleabihf-cxx11"]
+script = """cd $WORKSPACE/srcdir/Bonmin\n\nif [[ ${target} == *mingw* ]]; then\n    sed -i s/dllimport/dllexport/ \"${includedir}/coin-or/IpoptConfig.h\"\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/fix_dllexport.patch\nfi\n\n# Remove misleading libtool files\nrm -f ${libdir}/*.la\nupdate_configure_scripts\n\n# old and custom autoconf\nsed -i s/elf64ppc/elf64lppc/ configure\n\nexport CPPFLAGS=\"${CPPFLAGS} -I${includedir} -I${includedir}/coin -I${includedir}/coin-or\"\nexport CXXFLAGS=\"${CXXFLAGS} -std=c++11\"\n\nif [[ ${target} == *mingw* ]]; then\n    export LDFLAGS=\"-L${libdir}\"\n    export LT_LDFLAGS=\"-no-undefined\"\nfi\n\n./configure \\\n    --prefix=${prefix} \\\n    --build=${MACHTYPE} \\\n    --host=${target} \\\n    --disable-pkg-config \\\n    --disable-debug \\\n    --enable-shared \\\n    lt_cv_deplibs_check_method=pass_all \\\n    --with-asl-lib=\"-lasl\" \\\n    --with-coindepend-lib=\"-lCbc -lCgl -lOsiClp -lClp -lOsi -lCoinUtils -lipoptamplinterface -lipopt\"\n\nmake -j${nproc}\nmake install\n\n# Prevent IpoptConfig.h from being included in the tarball after editing it above.\nrm \"${includedir}/coin-or/IpoptConfig.h\"\n"""
+version = "v100.800.801"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "ASL_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "200.1000.501"
+    name = "Cbc_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "0.6000.300"
+    name = "Cgl_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "100.1700.601"
+    name = "Clp_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "0.10800.600"
+    name = "Osi_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "200.1100.400"
+    name = "CoinUtils_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "300.1400.400"
+    name = "Ipopt_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "CompilerSupportLibraries_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libbonmin"]
+    type = "lib"
+    variable_name = "libbonmin"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libbonminampl"]
+    type = "lib"
+    variable_name = "libbonminampl"
+    [[metadata.products]]
+    binnames = ["bonmin"]
+    type = "exe"
+    variable_name = "amplexe"
+
+    [[metadata.sources]]
+    hash = "65c56cea1e7c40acd9897a2667c11f91d845bb7b"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/coin-or/Bonmin.git"
+    [[metadata.sources]]
+    follow_symlinks = false
+    path = "./bundled"
+    target = ""
+    type = "directory"

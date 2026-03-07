@@ -1,0 +1,170 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/a1a2a94a3dd249905948b66d235535d2d7944b46/E/Elfutils/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.5.6"
+
+[metadata]
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Elfutils"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf"]
+script = """cd $WORKSPACE/srcdir/elfutils-*/\nif [[ ${target} = *-musl* ]] ; then\n    for patchfile in $WORKSPACE/srcdir/patches/*; do\n        atomic_patch -p1 $patchfile\n    done\n    cp $WORKSPACE/srcdir/error.h src/\n    cp $WORKSPACE/srcdir/error.h lib/\n\n    # install missing headers and `autopoint` \n    apk add bsd-compat-headers gettext-dev \n    # /usr/include isn't in search path of cross-cc, so copy cdefs.h\n    mkdir -p $prefix/include/sys\n    # Skip warning macro at top of file\n    tail -n +2 /usr/include/sys/cdefs.h >$prefix/include/sys/cdefs.h\n    autoreconf -vif\nfi\nexport CC=gcc\nexport CXX=g++\nCFLAGS=\"-Wno-error=unused-result\" CPPFLAGS=\"-I${prefix}/include\" ./configure \\\n    --prefix=${prefix} \\\n    --build=${MACHTYPE} \\\n    --host=${target} \\\n    --disable-debuginfod \\\n    --disable-libdebuginfod\nmake -j${nproc}\nmake install\nrm -f \"${includedir}/sys/cdefs.h\"\ninstall_license COPYING*\n"""
+version = "v0.189.0"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Zlib_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "1.0.8"
+    name = "Bzip2_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "XZ_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "argp_standalone_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "fts_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "~1.2.3"
+    name = "obstack_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libasm"]
+    type = "lib"
+    variable_name = "libasm"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libdw"]
+    type = "lib"
+    variable_name = "libdw"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libelf"]
+    type = "lib"
+    variable_name = "libelf"
+    [[metadata.products]]
+    binnames = ["eu-addr2line"]
+    type = "exe"
+    variable_name = "eu_addr2line"
+    [[metadata.products]]
+    binnames = ["eu-ar"]
+    type = "exe"
+    variable_name = "eu_ar"
+    [[metadata.products]]
+    binnames = ["eu-elfclassify"]
+    type = "exe"
+    variable_name = "eu_elfclassify"
+    [[metadata.products]]
+    binnames = ["eu-elfcmp"]
+    type = "exe"
+    variable_name = "eu_elfcmp"
+    [[metadata.products]]
+    binnames = ["eu-elfcompress"]
+    type = "exe"
+    variable_name = "eu_elfcompress"
+    [[metadata.products]]
+    binnames = ["eu-elflint"]
+    type = "exe"
+    variable_name = "eu_elflint"
+    [[metadata.products]]
+    binnames = ["eu-findtextrel"]
+    type = "exe"
+    variable_name = "eu_findtextrel"
+    [[metadata.products]]
+    binnames = ["eu-make-debug-archive"]
+    type = "exe"
+    variable_name = "eu_make_debug_archive"
+    [[metadata.products]]
+    binnames = ["eu-nm"]
+    type = "exe"
+    variable_name = "eu_nm"
+    [[metadata.products]]
+    binnames = ["eu-objdump"]
+    type = "exe"
+    variable_name = "eu_objdump"
+    [[metadata.products]]
+    binnames = ["eu-ranlib"]
+    type = "exe"
+    variable_name = "eu_ranlib"
+    [[metadata.products]]
+    binnames = ["eu-readelf"]
+    type = "exe"
+    variable_name = "eu_readelf"
+    [[metadata.products]]
+    binnames = ["eu-size"]
+    type = "exe"
+    variable_name = "eu_size"
+    [[metadata.products]]
+    binnames = ["eu-stack"]
+    type = "exe"
+    variable_name = "eu_stack"
+    [[metadata.products]]
+    binnames = ["eu-strings"]
+    type = "exe"
+    variable_name = "eu_strings"
+    [[metadata.products]]
+    binnames = ["eu-strip"]
+    type = "exe"
+    variable_name = "eu_strip"
+    [[metadata.products]]
+    binnames = ["eu-unstrip"]
+    type = "exe"
+    variable_name = "eu_unstrip"
+
+    [[metadata.sources]]
+    hash = "39bd8f1a338e2b7cd4abc3ff11a0eddc6e690f69578a57478d8179b4148708c8"
+    type = "archive"
+    unpack_target = ""
+    url = "https://sourceware.org/elfutils/ftp/0.189/elfutils-0.189.tar.bz2"
+    [[metadata.sources]]
+    follow_symlinks = false
+    path = "./bundled"
+    target = ""
+    type = "directory"
