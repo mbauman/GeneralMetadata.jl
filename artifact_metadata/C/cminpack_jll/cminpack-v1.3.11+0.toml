@@ -1,0 +1,54 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/e1e6f25c1a2893c6b566c6e92f90069c38a0b681/C/cminpack/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.6.4"
+
+[metadata]
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.9"
+lazy_artifacts = false
+name = "cminpack"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """\n# We need a newer version of CMake to support libblastrampoline\napk del cmake\n\ncd $WORKSPACE/srcdir/cminpack\n\noptions=(\n    -DCMAKE_INSTALL_PREFIX=${prefix}\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN}\n    -DCMAKE_BUILD_TYPE=Release\n    -DBUILD_SHARED_LIBS=ON\n    -DBUILD_EXAMPLES=OFF\n    -DBLA_VENDOR=libblastrampoline\n    -DUSE_BLAS=ON\n)\n\nif [[ ${target} == *-apple-* ]]; then\n    # cminpack calls Fortran functions without declaring them\n    options+=(\n        -DCMAKE_C_FLAGS=-Wno-error=implicit-function-declaration\n    )\nfi\n\n# Build single precision library\ncmake -B build_s -DCMINPACK_PRECISION=\"s\" \"${options[@]}\"\ncmake --build build_s --parallel ${nproc}\ncmake --install build_s\n\n# Build double precision library\ncmake -B build_d -DCMINPACK_PRECISION=\"d\" \"${options[@]}\"\ncmake --build build_d --parallel ${nproc}\ncmake --install build_d\n\ninstall_license CopyrightMINPACK.txt\n"""
+version = "v1.3.11"
+
+    [[metadata.dependencies]]
+    compat = "5.4"
+    name = "libblastrampoline_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "CMake_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "hostdependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libcminpack"]
+    type = "lib"
+    variable_name = "libcminpack"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libcminpacks"]
+    type = "lib"
+    variable_name = "libcminpacks"
+
+    [[metadata.sources]]
+    hash = "17dab75c6160d2ee42a3c95ea55e94738d7e559d"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/devernay/cminpack.git"

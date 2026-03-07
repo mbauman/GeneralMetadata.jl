@@ -1,0 +1,34 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/dfc049c36def44af25bf06f95a9cf0581ac98e65/P/PThreadPool/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.5.5"
+
+[metadata]
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "PThreadPool"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """if [[ $target == x86_64-apple-darwin* ]]; then\n    PTHREADPOOL_SYNC_PRIMITIVE=condvar\nelse\n    PTHREADPOOL_SYNC_PRIMITIVE=default\nfi\n\ncd $WORKSPACE/srcdir/pthreadpool\nmkdir build\ncd build\ncmake \\\n    -DCMAKE_INSTALL_PREFIX=$prefix \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DFXDIV_SOURCE_DIR=$WORKSPACE/srcdir/FXdiv \\\n    -DPTHREADPOOL_LIBRARY_TYPE=shared \\\n    -DPTHREADPOOL_BUILD_TESTS=OFF \\\n    -DPTHREADPOOL_BUILD_BENCHMARKS=OFF \\\n    -DPTHREADPOOL_SYNC_PRIMITIVE=$PTHREADPOOL_SYNC_PRIMITIVE \\\n    ..\ncmake --build . -- -j $nproc\nmake install\nif [[ $target == *-w64-mingw32 ]]; then\n    install -Dvm 755 libpthreadpool.dll \"${libdir}/libpthreadpool.dll\"\nfi\ninstall_license ../LICENSE\n"""
+version = "v0.0.20201005"
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libpthreadpool"]
+    type = "lib"
+    variable_name = "libpthreadpool"
+
+    [[metadata.sources]]
+    hash = "fa75e65a58a5c70c09c30d17a1fe1c1dff1093ae"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/Maratyszcza/pthreadpool.git"
+    [[metadata.sources]]
+    hash = "b408327ac2a15ec3e43352421954f5b1967701d1"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/Maratyszcza/FXdiv.git"

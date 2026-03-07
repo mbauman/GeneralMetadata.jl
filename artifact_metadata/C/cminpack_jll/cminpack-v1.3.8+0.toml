@@ -1,0 +1,41 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/a414d081542faa9a068bf6d0c5c0356d83565e87/C/cminpack/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.5.8"
+
+[metadata]
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "cminpack"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/cminpack\n\n# Upstream in master branch: https://github.com/devernay/cminpack/commit/dceef97837ac97eef3921bb22abf4a25851c8c76\natomic_patch -p1 $WORKSPACE/srcdir/patches/01_CMakePath.patch\n\n# Upstream master branch commits that are needed even though FindMKL is getting deleted in patch 4\natomic_patch -p1 $WORKSPACE/srcdir/patches/02_blas_mkl1.patch\natomic_patch -p1 $WORKSPACE/srcdir/patches/03_blas_mkl2.patch\n\n# Upstream in master branch: https://github.com/devernay/cminpack/commit/e086bb29f2191f1d4df484d15bfe1ae4397e48ad\natomic_patch -p1 $WORKSPACE/srcdir/patches/04_blas.patch\n\n# Upstream in master branch: https://github.com/devernay/cminpack/commit/04200d5aa625fc86c2d81ffbf9dd5c70816fe4ce\natomic_patch -p1 $WORKSPACE/srcdir/patches/05_libdir.patch\n\n# Upstream PR https://github.com/devernay/cminpack/pull/62\natomic_patch -p1 $WORKSPACE/srcdir/patches/06_freebsd.patch\n\n\n# Build single precision library\nmkdir build_s\ncmake -B build_s/ -S . \\\n    -DCMAKE_INSTALL_PREFIX=$prefix \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DBUILD_SHARED_LIBS=ON \\\n    -DCMINPACK_PRECISION=\"s\" \\\n    -DBUILD_EXAMPLES=OFF \\\n    -DUSE_BLAS=OFF\ncmake --build build_s/ --parallel ${nproc}\ncmake --install build_s/\n\n# Build double precision library\nmkdir build_d\ncmake -B build_d/ -S . \\\n    -DCMAKE_INSTALL_PREFIX=$prefix \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DBUILD_SHARED_LIBS=ON \\\n    -DCMINPACK_PRECISION=\"d\" \\\n    -DBUILD_EXAMPLES=OFF \\\n    -DUSE_BLAS=OFF\ncmake --build build_d/ --parallel ${nproc}\ncmake --install build_d/\n\ninstall_license CopyrightMINPACK.txt\n"""
+version = "v1.3.8"
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libcminpack"]
+    type = "lib"
+    variable_name = "libcminpack"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libcminpacks"]
+    type = "lib"
+    variable_name = "libcminpacks"
+
+    [[metadata.sources]]
+    hash = "cb7c3f6433ccea7eef58ff57b3a9a4c2563eb375"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/devernay/cminpack.git"
+    [[metadata.sources]]
+    follow_symlinks = false
+    path = "bundled"
+    target = ""
+    type = "directory"

@@ -1,0 +1,34 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/4b356db46aa840d5f427d0bd5bfba8287d2520e9/T/TetGen/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.5.3"
+
+[metadata]
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "TetGen"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """# This will be used for 1.6\n# zipname=tetgen1.6.0\n# cd $WORKSPACE/srcdir/$zipname\n\nmkdir -p ${libdir}\n\ncd $WORKSPACE/srcdir/tetgen\n\n#\n# Patch tetgen.h  with operators delegating new/delete to malloc/free for C/Julia compatibility\n# Made corresponding feature request to upstream, probably available for 1.6.1\n#\n\nmv tetgen.h tmp.h\nsed -e \"s/class tetgenio {/class tetgenio { void * operator new(size_t n) {  return malloc(n);} void operator delete(void* p) noexcept {free(p);} /g\" tmp.h > tetgen.h\n\n#\n# Fix crash of README example (see TetGen.jl#26)\n# There seems to be a one-off error or something like this in the routine writing the result. In 1.6.0 and also in\n# the previous 1.5 version this does not happen.\n# \nmv tetgen.cxx tmp.cxx\nsed -e \"s/tetrahedrons->items \\* 10/(tetrahedrons->items + 100) * 10/g\" tmp.cxx > tetgen.cxx\n\n# Compile and link together with C wrapper\n${CXX} -c -fPIC -std=c++11 -O3 -c -DTETLIBRARY -I. ${WORKSPACE}/srcdir/cwrapper/cwrapper.cxx -o cwrapper.o\n${CXX} -c -fPIC -std=c++11 -O3 -c -DTETLIBRARY tetgen.cxx -o tetgen.o\n${CXX} -c -fPIC -std=c++11 -O3 -c -DTETLIBRARY predicates.cxx -o predicates.o\n${CXX} $LDFLAGS -shared -fPIC tetgen.o predicates.o  cwrapper.o -o ${libdir}/libtet.${dlext}\n\ninstall_license LICENSE\n"""
+version = "v1.5.3"
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libtet"]
+    type = "lib"
+    variable_name = "libtet"
+
+    [[metadata.sources]]
+    hash = "150223d9416b5b75f5c1e50fda1ff7ba6f96871d"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/ufz/tetgen.git"
+    [[metadata.sources]]
+    follow_symlinks = false
+    path = "cwrapper"
+    target = "cwrapper"
+    type = "directory"
