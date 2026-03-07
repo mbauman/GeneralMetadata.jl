@@ -1,0 +1,49 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/9dc0236006bcbd644378d00d2ac751ba445f7c87/Q/Qiskit/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.6.5"
+
+[metadata]
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Qiskit"
+platforms = ["x86_64-linux-gnu", "x86_64-linux-musl"]
+script = """cd $WORKSPACE/srcdir/qiskit\nmkdir -p target\nexport PYTHONHOME=${prefix}\nexport PYO3_PYTHON=/workspace/destdir/bin/python3\nexport RUSTFLAGS=\"-L ${libdir}\"\n\n# avoid 'cannot create cdylib' error on musl targets\n# see https://github.com/rust-lang/cargo/issues/8607\n#     https://github.com/rust-lang/rust/issues/59302\nif [[ \"${target}\" == *-musl* ]]; then\n    export RUSTFLAGS=\"${RUSTFLAGS} -C target-feature=-crt-static\"\nfi\n\nmake C_CARGO_TARGET_DIR=target/${rust_target}/release -j${nproc} c\ninstall -Dvm 755 \"dist/c/lib/libqiskit.${dlext}\" \"${libdir}/libqiskit.${dlext}\"\ncp -vr dist/c/include/* \"${includedir}\"\ninstall_license LICENSE.txt\n"""
+version = "v2.2.3"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "cbindgen_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "builddependency"
+    uuid = "a52b955f-5256-5bb0-8795-313e28591558"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Python_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    uuid = "93d3a430-8e7c-50da-8e8d-3dfcfb3baf05"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libqiskit"]
+    type = "lib"
+    variable_name = "libqiskit"
+
+    [[metadata.sources]]
+    hash = "8f33595f5b9e9c99b7aa81002655d13f48c8ac1b"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/Qiskit/qiskit.git"

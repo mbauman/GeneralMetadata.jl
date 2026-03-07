@@ -1,0 +1,49 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/1c8150152153152510620beca0bc54b063fccd7f/Q/Qiskit/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.6.5"
+
+[metadata]
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Qiskit"
+platforms = ["x86_64-linux-gnu", "x86_64-linux-musl", "aarch64-linux-gnu", "aarch64-linux-musl", "x86_64-apple-darwin", "aarch64-apple-darwin"]
+script = """cd $WORKSPACE/srcdir/qiskit\nexport PYO3_PYTHON=/usr/bin/python3\nexport PYO3_CROSS_LIB_DIR=$WORKSPACE/destdir/lib\nexport RUSTFLAGS=\"-L ${libdir}\"\n\n# avoid 'cannot create cdylib' error on musl targets\n# see https://github.com/rust-lang/cargo/issues/8607\n#     https://github.com/rust-lang/rust/issues/59302\nif [[ \"${target}\" == *-musl* ]]; then\n    export RUSTFLAGS=\"${RUSTFLAGS} -C target-feature=-crt-static\"\nfi\n\n# The current Qiskit C API build instructions say to use a Makefile that is\n# improperly formed and not suitable for cross compilation.  So, instead,\n# we invoke Cargo directly and copy the handful of files that result to their\n# proper location.\ncargo rustc --release --crate-type cdylib -p qiskit-cext\ninstall -Dvm 755 \"target/${rust_target}/release/libqiskit_cext.${dlext}\" \"${libdir}/libqiskit.${dlext}\"\nmkdir -p \"${includedir}/qiskit\"\ncp -v target/qiskit.h \"${includedir}\"\ncp -v crates/cext/include/complex.h \"${includedir}/qiskit\"\ninstall_license LICENSE.txt\n"""
+version = "v2.2.3"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "cbindgen_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "builddependency"
+    uuid = "a52b955f-5256-5bb0-8795-313e28591558"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Python_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    uuid = "93d3a430-8e7c-50da-8e8d-3dfcfb3baf05"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libqiskit"]
+    type = "lib"
+    variable_name = "libqiskit"
+
+    [[metadata.sources]]
+    hash = "8f33595f5b9e9c99b7aa81002655d13f48c8ac1b"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/Qiskit/qiskit.git"
