@@ -1,0 +1,51 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/58225f305aeea5c219e19f6396237445bd9c32cd/G/GMP/GMP@6.2.0/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.6.0"
+
+[metadata]
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "GMP"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11", "x86_64-linux-gnu-cxx11-sanitize+memory"]
+script = """cd $WORKSPACE/srcdir/gmp-*\n\n# Include Julia-carried patches\nfor f in $WORKSPACE/srcdir/patches/*.patch; do\n    echo \"Applying patch ${f}\"\n    atomic_patch -p1 ${f}\ndone\n\nflags=(--enable-cxx --enable-shared --disable-static)\n\n# On x86_64 architectures, build fat binary\nif [[ ${proc_family} == intel ]]; then\n    flags+=(--enable-fat)\nfi\n\nif [[ ${bb_full_target} == *-sanitize+memory* ]]; then\n    # Install msan runtime (for clang)\n    cp -vrL ${libdir}/linux/* /opt/x86_64-linux-musl/lib/clang/*/lib/linux/\nfi\nautoreconf\n./configure --prefix=$prefix --build=${MACHTYPE} --host=${target} ${flags[@]}\n\nmake -j${nproc}\nmake install\n\n# On Windows, we need to make sure that the non-versioned dll names exist too\nif [[ ${target} == *mingw* ]]; then\n    cp -v ${libdir}/libgmp-*.dll \"${libdir}/libgmp.dll\"\n    cp -v ${libdir}/libgmpxx-*.dll \"${libdir}/libgmpxx.dll\"\nfi\n\n# GMP is dual-licensed, install all license files\ninstall_license COPYING*\n"""
+version = "v6.2.0"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "LLVMCompilerRT_jll"
+    platforms = ["x86_64-linux-gnu-cxx11-sanitize+memory"]
+    top_level = false
+    type = "builddependency"
+    uuid = "4e17d02c-6bf5-513e-be62-445f41c75a11"
+    version-major = 13
+    version-minor = 0
+    version-patch = 1
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libgmp"]
+    type = "lib"
+    variable_name = "libgmp"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libgmpxx"]
+    type = "lib"
+    variable_name = "libgmpxx"
+
+    [[metadata.sources]]
+    hash = "f51c99cb114deb21a60075ffb494c1a210eb9d7cb729ed042ddb7de9534451ea"
+    type = "archive"
+    unpack_target = ""
+    url = "https://gmplib.org/download/gmp/gmp-6.2.0.tar.bz2"
+    [[metadata.sources]]
+    follow_symlinks = true
+    path = "./bundled"
+    target = ""
+    type = "directory"

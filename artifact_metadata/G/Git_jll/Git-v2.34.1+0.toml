@@ -1,0 +1,99 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/7cad5ae187a8467ddf96509a49a6ee66b49eebba/G/Git/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.4.8"
+
+[metadata]
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Git"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """install_license ${WORKSPACE}/srcdir/git-*/COPYING\n\nif [[ \"${target}\" == *-ming* ]]; then\n    # Fast path for Windows: just copy the content of the tarball to the prefix\n    cp -r ${WORKSPACE}/srcdir/${target}/mingw${nbits}/* ${prefix}\n    exit\nfi\n\ncd $WORKSPACE/srcdir/git-*/\n\n# We need a native \"tclsh\" to cross-compile\napk add tcl\n\nCACHE_VALUES=()\nif [[ \"${target}\" != *86*-linux-* ]]; then\n    # Cache values of some tests, let's hope to have got them right\n    CACHE_VALUES+=(\n        ac_cv_iconv_omits_bom=no\n        ac_cv_fread_reads_directories=yes\n        ac_cv_snprintf_returns_bogus=no\n    )\nelse\n    # Explain Git that we aren't cross-compiling on these platforms\n    sed -i 's/cross_compiling=yes/cross_compiling=no/' configure\nfi\n\nif [[ \"${target}\" == *-apple-* ]]; then\n    LDFLAGS=\"-lgettextlib\"\nelif [[ ${target} == *-freebsd* ]]; then\n    LDFLAGS=\"-L${prefix}/lib -lcharset\"\nfi\n\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \\\n    --with-curl \\\n    --with-expat \\\n    --with-openssl \\\n    --with-iconv=${prefix} \\\n    --with-libpcre2 \\\n    --with-zlib=${prefix} \\\n    \"${CACHE_VALUES[@]}\" \\\n    CPPFLAGS=\"-I${prefix}/include\" \\\n    LDFLAGS=\"${LDFLAGS}\"\nmake -j${nproc}\nmake install INSTALL_SYMLINKS=\"yes, please\"\n"""
+version = "v2.34.1"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Gettext_jll"
+    platforms = ["any"]
+    type = "hostdependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "LibCURL_jll"
+    platforms = ["any"]
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "2.2.10"
+    name = "Expat_jll"
+    platforms = ["any"]
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "1.1.10"
+    name = "OpenSSL_jll"
+    platforms = ["any"]
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "=0.21.0"
+    name = "Gettext_jll"
+    platforms = ["any"]
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Libiconv_jll"
+    platforms = ["any"]
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "PCRE2_jll"
+    platforms = ["any"]
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Zlib_jll"
+    platforms = ["any"]
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    binnames = ["git"]
+    type = "exe"
+    variable_name = "git"
+
+    [[metadata.sources]]
+    hash = "3a0755dd1cfab71a24dd96df3498c29cd0acd13b04f3d08bf933e81286db802c"
+    type = "archive"
+    unpack_target = ""
+    url = "https://mirrors.edge.kernel.org/pub/software/scm/git/git-2.34.1.tar.xz"
+    [[metadata.sources]]
+    hash = "109d69b92e5383d40765064bcd25183af05b12c64a95597419a703004a7c8521"
+    type = "archive"
+    unpack_target = "i686-w64-mingw32"
+    url = "https://github.com/git-for-windows/git/releases/download/v2.34.1.windows.1/Git-2.34.1-32-bit.tar.bz2"
+    [[metadata.sources]]
+    hash = "0d962f5894b94b93a966a2c12f77330e5f68aacae775059fb30dd61f2c08ef00"
+    type = "archive"
+    unpack_target = "x86_64-w64-mingw32"
+    url = "https://github.com/git-for-windows/git/releases/download/v2.34.1.windows.1/Git-2.34.1-64-bit.tar.bz2"
