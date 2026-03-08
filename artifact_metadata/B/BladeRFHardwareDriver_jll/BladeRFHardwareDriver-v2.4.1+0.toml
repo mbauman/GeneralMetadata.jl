@@ -1,0 +1,52 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/d57fb014377a8f2155d471f401346fbf085bc764/B/BladeRFHardwareDriver/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.5.6"
+
+[metadata]
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "BladeRFHardwareDriver"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd"]
+script = """cd $WORKSPACE/srcdir/bladeRF/host/\n# Hotfix for FreeBSD: https://github.com/Nuand/bladeRF/issues/891\natomic_patch -p2 ../../patches/readline-freebsd.patch\nmkdir build && cd build\nif [[ \"${target}\" == *86*-linux-gnu ]]; then\n    export LDFLAGS=\"-lrt\";\nfi\ncmake -DCMAKE_INSTALL_PREFIX=$prefix\\\n  -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN}\\\n  -DCMAKE_BUILD_TYPE=Release\\\n  -DENABLE_BACKEND_LIBUSB=TRUE ..\nmake -j${nproc}\nmake install\n"""
+version = "v2.4.1"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "libusb_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    uuid = "a877fdc9-fe69-5ed6-b93d-11ecd0dc2d49"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libbladeRF"]
+    type = "lib"
+    variable_name = "libbladerf"
+    [[metadata.products]]
+    binnames = ["bladeRF-fsk"]
+    type = "exe"
+    variable_name = "bladerf_fsk"
+    [[metadata.products]]
+    binnames = ["bladeRF-cli"]
+    type = "exe"
+    variable_name = "bladerf_cli"
+
+    [[metadata.sources]]
+    hash = "0ffb795c450fe814060f95cd37455847c9c536d2"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/Nuand/bladeRF.git"
+    [[metadata.sources]]
+    follow_symlinks = false
+    path = "./bundled"
+    target = ""
+    type = "directory"

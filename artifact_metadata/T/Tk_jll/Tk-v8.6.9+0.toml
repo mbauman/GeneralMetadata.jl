@@ -1,0 +1,23 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/c6ae8ee2e5d713acc381c1fb6b98b94f0c475eb5/T/Tk/build_tarballs.jl"
+metadata_source = "retrospective (by timestamp)"
+system = "Yggdrasil"
+version = "0.2.2"
+
+[metadata]
+dependencies = ["Tcl_jll", "Xorg_libXft_jll"]
+name = "Tk"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "arm-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "arm-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """if [[ \"${target}\" == *-mingw* ]]; then\n    cd $WORKSPACE/srcdir/tk*/win/\nelse\n    cd $WORKSPACE/srcdir/tk*/unix/\nfi\n\nexport CPPFLAGS=\"-I${prefix}/include ${CPPFLAGS}\"\n\nFLAGS=(--enable-threads --disable-rpath)\nif [[ \"${target}\" == x86_64-* ]]; then\n    FLAGS+=(--enable-64bit)\nfi\nif [[ \"${target}\" == *-apple-* ]] || [[ \"${target}\" == -*mingw* ]]; then\n    FLAGS+=(--with-x=no)\nfi\nif [[ \"${target}\" == *-apple-* ]]; then\n    FLAGS+=(--enable-aqua=yes)\n\n    # The following patch replaces the hard-coded path of Cocoa framework\n    # with the actual path on our system.\n    atomic_patch -p1 \"${WORKSPACE}/srcdir/patches/configure.patch\"\nfi\n\n./configure --prefix=${prefix} --host=${target} \"${FLAGS[@]}\"\nmake -j${nproc}\nmake install\nmake install-private-headers\n\n# Install license file\ninstall_license $WORKSPACE/srcdir/tk*/license.terms\n"""
+sources = [{"https://downloads.sourceforge.net/sourceforge/tcl/tk8.6.9.1-src.tar.gz" = "8fcbcd958a8fd727e279f4cac00971eee2ce271dc741650b1fc33375fb74ebb4"}, "./bundled"]
+version = "v8.6.9"
+
+    [[metadata.products]]
+    dir_paths = []
+    dont_dlopen = false
+    libnames = ["libtk8.6", "libtk8", "tk86"]
+    type = "lib"
+    variable_name = "libtk"
+    [[metadata.products]]
+    binnames = ["wish8.6", "wish86"]
+    type = "exe"
+    variable_name = "wish"
