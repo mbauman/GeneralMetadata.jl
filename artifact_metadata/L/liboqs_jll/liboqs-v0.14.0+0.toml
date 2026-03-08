@@ -1,0 +1,29 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/be92935d662569cd1b264c04484975ebd509d269/L/liboqs/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.6.5"
+
+[metadata]
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.10"
+lazy_artifacts = false
+name = "liboqs"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd ${WORKSPACE}/srcdir/liboqs\ninstall_license LICENSE.txt\n\n# The project’s helper CMake files inject -march/-mcpu/-mtune. In cross builds these\n# override the CPU/ABI chosen by the toolchain and can select unsupported ISAs or break\n# assembly. The cross toolchain should be the sole source of ISA/ABI flags, so strip them.\nLC_ALL=C sed -i.bak -E 's/-march=[^\" )]+//g; s/-mcpu=[^\" )]+//g; s/-mtune=[^\" )]+//g' .CMake/*.cmake cmake/*.cmake 2>/dev/null || true\n\nEXTRA_FLAGS=()\nif [[ ${target} == *arm-linux* ]]; then\n  EXTRA_FLAGS+=(-DOQS_PERMIT_UNSUPPORTED_ARCHITECTURE=ON)\nfi\n\nif [[ ${target} == *aarch64-apple* ]]; then\n  # Avoid getting errors like: error: instruction requires: sha3\n  EXTRA_FLAGS+=(-DOQS_DIST_BUILD=OFF)\nfi\n\nif [[ ${target} == *aarch64-linux* ]]; then\n  # Disable AES-NI optimizations to avoid target specific option mismatch\n  EXTRA_FLAGS+=(-DOQS_DIST_BUILD=OFF)\n  EXTRA_FLAGS+=(-DOQS_USE_AES_INSTRUCTIONS=OFF)\nfi\n\ncmake -B build -DCMAKE_INSTALL_PREFIX=${prefix} \\\n  -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n  -DOQS_USE_OPENSSL=OFF \\\n  -DBUILD_SHARED_LIBS=ON \\\n  -DOQS_BUILD_ONLY_LIB=ON \\\n  -DCMAKE_BUILD_TYPE=Release \\\n  \"${EXTRA_FLAGS[@]}\"\n\ncmake --build build --parallel ${nproc}\ncmake --install build\n"""
+version = "v0.14.0"
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["liboqs"]
+    type = "lib"
+    variable_name = "liboqs"
+
+    [[metadata.sources]]
+    hash = "94b421ebb82405c843dba4e9aa521a56ee5a333d"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/open-quantum-safe/liboqs.git"
