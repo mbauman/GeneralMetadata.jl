@@ -1,0 +1,151 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/52cec35492bc9e138b6c420cb5c4a5a0ee7b1b78/G/GStreamer/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.5.5"
+
+[metadata]
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "GStreamer"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/gstreamer-*\nmkdir build\ncd build\nif [[ \"${target}\" == *-mingw* ]]; then\n    # Need to tell we're targeting at least Windows 7 so that `FILE_STANDARD_INFO` is defined\n    sed -ri \"s/^c_args = \\[(.*)\\]/c_args = [\\1, '-DWINVER=_WIN32_WINNT_WIN7', '-D_WIN32_WINNT=_WIN32_WINNT_WIN7']/\" ${MESON_TARGET_TOOLCHAIN}\n    # Install right version of `pthread_time.h` which defines `CLOCK_MONOTONIC` and `TIMER_ABSTIME`\n    cp -v ${WORKSPACE}/srcdir/headers/pthread_time.h \"/opt/${target}/${target}/sys-root/include/pthread_time.h\"\nfi\nmeson .. --cross-file=${MESON_TARGET_TOOLCHAIN}\n\n# Meson beautifully forces thin archives, without checking whether the dynamic linker\n# actually supports them: <https://github.com/mesonbuild/meson/issues/10823>.  Let's remove\n# the (deprecated...) `T` option to `ar`, until they fix it in Meson.\nsed -i.bak 's/csrDT/csrD/' build.ninja\n\nninja -j${nproc}\nninja install\ninstall_license ../COPYING\n"""
+version = "v1.20.3"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Gettext_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "hostdependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "2.68.1"
+    name = "Glib_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    uuid = "7746bdde-850d-59dc-9ae8-88ece973131d"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "LibUnwind_jll"
+    platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-unknown-freebsd"]
+    top_level = false
+    type = "dependency"
+    uuid = "745a5e78-f969-53e9-954f-d19f2f74f4e3"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Elfutils_jll"
+    platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf"]
+    top_level = false
+    type = "dependency"
+    uuid = "ab5a07f8-06af-567f-a878-e8bb879eba5a"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "6.2.0"
+    name = "GMP_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    uuid = "781609d7-10c4-51f6-84f2-b8444358ff6d"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "~2.7.2"
+    name = "GSL_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    uuid = "1b77fbbe-d8ee-58f0-85f9-836ddc23a7a4"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "libcap_jll"
+    platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf"]
+    top_level = false
+    type = "dependency"
+    uuid = "eef66a8b-8d7a-5724-a8d2-7c31ae1e29ed"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libgstbase-1.0", "libgstbase-1"]
+    type = "lib"
+    variable_name = "libgstbase"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libgstcheck-1.0", "libgstcheck-1"]
+    type = "lib"
+    variable_name = "libgstcheck"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libgstcontroller-1.0", "libgstcontroller-1"]
+    type = "lib"
+    variable_name = "libgstcontroller"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libgstnet-1.0", "libgstnet-1"]
+    type = "lib"
+    variable_name = "libgstnet"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libgstreamer-1.0", "libgstreamer-1"]
+    type = "lib"
+    variable_name = "libgstreamer"
+    [[metadata.products]]
+    binnames = ["gst-inspect-1.0"]
+    type = "exe"
+    variable_name = "gst_inspect"
+    [[metadata.products]]
+    binnames = ["gst-launch-1.0"]
+    type = "exe"
+    variable_name = "gst_launch"
+    [[metadata.products]]
+    binnames = ["gst-stats-1.0"]
+    type = "exe"
+    variable_name = "gst_stats"
+    [[metadata.products]]
+    binnames = ["gst-tester-1.0"]
+    type = "exe"
+    variable_name = "gst_tester"
+    [[metadata.products]]
+    binnames = ["gst-typefind-1.0"]
+    type = "exe"
+    variable_name = "gst_typefind"
+
+    [[metadata.sources]]
+    hash = "607daf64bbbd5fb18af9d17e21c0d22c4d702fffe83b23cb22d1b1af2ca23a2a"
+    type = "archive"
+    unpack_target = ""
+    url = "https://gstreamer.freedesktop.org/src/gstreamer/gstreamer-1.20.3.tar.xz"
+    [[metadata.sources]]
+    follow_symlinks = false
+    path = "./bundled"
+    target = ""
+    type = "directory"
