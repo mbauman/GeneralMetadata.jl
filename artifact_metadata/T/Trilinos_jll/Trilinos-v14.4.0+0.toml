@@ -1,0 +1,252 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/838e0a8945c46a5bed59491e300faed4dcbf13a6/T/Trilinos/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.5.6"
+
+[metadata]
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.10"
+lazy_artifacts = false
+name = "Trilinos"
+platforms = ["i686-linux-gnu-libgfortran5-cxx03", "i686-linux-gnu-libgfortran5-cxx11", "x86_64-linux-gnu-libgfortran5-cxx03", "x86_64-linux-gnu-libgfortran5-cxx11", "aarch64-linux-gnu-libgfortran5-cxx03", "aarch64-linux-gnu-libgfortran5-cxx11", "armv6l-linux-gnueabihf-libgfortran5-cxx03", "armv6l-linux-gnueabihf-libgfortran5-cxx11", "armv7l-linux-gnueabihf-libgfortran5-cxx03", "armv7l-linux-gnueabihf-libgfortran5-cxx11", "powerpc64le-linux-gnu-libgfortran5-cxx03", "powerpc64le-linux-gnu-libgfortran5-cxx11", "i686-linux-musl-libgfortran5-cxx03", "i686-linux-musl-libgfortran5-cxx11", "x86_64-linux-musl-libgfortran5-cxx03", "x86_64-linux-musl-libgfortran5-cxx11", "aarch64-linux-musl-libgfortran5-cxx03", "aarch64-linux-musl-libgfortran5-cxx11", "armv6l-linux-musleabihf-libgfortran5-cxx03", "armv6l-linux-musleabihf-libgfortran5-cxx11", "armv7l-linux-musleabihf-libgfortran5-cxx03", "armv7l-linux-musleabihf-libgfortran5-cxx11", "x86_64-apple-darwin-libgfortran5", "aarch64-apple-darwin-libgfortran5", "x86_64-unknown-freebsd-libgfortran5", "i686-w64-mingw32-libgfortran5-cxx03", "i686-w64-mingw32-libgfortran5-cxx11", "x86_64-w64-mingw32-libgfortran5-cxx03", "x86_64-w64-mingw32-libgfortran5-cxx11"]
+script = """cd $WORKSPACE/srcdir\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    BLAS_NAME=libblastrampoline-5\nelse\n    BLAS_NAME=libblastrampoline\nfi\n\n# Use newer cmake from the HostBuildDependency\nrm /usr/bin/cmake\n\ncd Trilinos\natomic_patch -p1 $WORKSPACE/srcdir/patches/kokkostpl.patch\natomic_patch -p1 $WORKSPACE/srcdir/patches/tekoepetraguard.patch\natomic_patch -p1 $WORKSPACE/srcdir/patches/teuchoswinexport.patch\n\nmkdir trilbuild\ncd trilbuild\ninstall_license ${WORKSPACE}/srcdir/Trilinos/LICENSE\nSRCDIR=\"/workspace/srcdir/Trilinos\"\nFLAGS='-O3 -fPIC'\nCMAKE_FLAGS=\"-DCMAKE_INSTALL_PREFIX=$prefix -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN}\"\n# Trilinos package enables\nCMAKE_FLAGS=\"${CMAKE_FLAGS}\n    -DTrilinos_ENABLE_NOX=ON -DNOX_ENABLE_ABSTRACT_IMPLEMENTATION_EPETRA=ON\n    -DNOX_ENABLE_LOCA=ON\n    -DTrilinos_ENABLE_EpetraExt=ON -DEpetraExt_BUILD_BTF=ON -DEpetraExt_BUILD_EXPERIMENTAL=ON -DEpetraExt_BUILD_GRAPH_REORDERINGS=ON\n    -DTrilinos_ENABLE_TrilinosCouplings=ON\n    -DTrilinos_ENABLE_Ifpack=ON\n    -DTrilinos_ENABLE_Isorropia=ON\n    -DTrilinos_ENABLE_AztecOO=ON\n    -DTrilinos_ENABLE_Belos=ON\n    -DTrilinos_ENABLE_Teuchos=ON\n    -DTrilinos_ENABLE_Amesos=ON -DAmesos_ENABLE_KLU=ON\n    -DTrilinos_ENABLE_Sacado=ON\n    \"\n\n# Kokkos-dependent enables\n# Kokkos is not available on all platforms, so only enable Kokkos-dependent things if it is available\nif [ -f \"/workspace/destdir/lib/cmake/Kokkos/KokkosConfig.cmake\" ]; then\n    CMAKE_FLAGS=\"${CMAKE_FLAGS} -DTrilinos_ENABLE_Tpetra=ON -DTrilinos_ENABLE_Teko=ON\"\nelse\n    CMAKE_FLAGS=\"${CMAKE_FLAGS} -DTPL_ENABLE_Kokkos=OFF\"\nfi\n\n# Global Trilinos FLAGS\nCMAKE_FLAGS=\"${CMAKE_FLAGS}\n    -DBUILD_SHARED_LIBS=ON\n    -DTrilinos_ENABLE_ALL_OPTIONAL_PACKAGES=OFF\n    -DTrilinos_ENABLE_CXX11=ON -DCMAKE_BUILD_TYPE=Release\n    -DTrilinos_ENABLE_OpenMP=ON -DTrilinos_ENABLE_COMPLEX_DOUBLE=ON\n    \"\n# SuiteSparse config\nCMAKE_FLAGS=\"${CMAKE_FLAGS} -DTPL_ENABLE_AMD=ON -DAMD_LIBRARY_DIRS=\"/${libdir}\"\n    -DAMD_LIBRARY_NAMES=\"libsuitesparseconfig.${dlext}\\;libamd.${dlext}\\;libklu.${dlext}\\;libcolamd.${dlext}\\;libbtf.${dlext}\"\n    -DAMD_INCLUDE_DIRS=\"${prefix}/include\" -DTPL_ENABLE_UMFPACK=ON -DUMFPACK_LIBRARY_DIRS=\"/${libdir}\"\n    -DAMD_LIBRARY_NAMES=\"libumfpack.${dlext}\" -DTPL_UMFPACK_INCLUDE_DIRS=\"${prefix}/include\"\n    -DTPL_UMFPACK_LIBRARIES=\"$libdir/libumfpack.${dlext}\" -DTPL_AMD_LIBRARIES=\"$libdir/libamd.${dlext}\"\n    \"\n# BLAS/LAPACK config\nCMAKE_FLAGS=\"${CMAKE_FLAGS}\n    -DTPL_ENABLE_BLAS=ON -DTPL_ENABLE_LAPACK=ON -DBLAS_LIBRARY_DIRS=\"${prefix}/lib\" -DBLAS_LIBRARY_NAMES=\"${BLAS_NAME}.${dlext}\"\n    -DLAPACK_LIBRARY_DIRS=\"${prefix}/lib\" -DLAPACK_LIBRARY_NAMES=\"${BLAS_NAME}.${dlext}\"\n    \"\n\n# Trilinos tries to run a bunch of configure tests. Tell it what the output would have been.\nCMAKE_FLAGS=\"${CMAKE_FLAGS}\n    -DHAVE_GCC_ABI_DEMANGLE_EXITCODE=0\n    -DHAVE_TEUCHOS_BLASFLOAT_EXITCODE=0 -DHAVE_TEUCHOS_BLASFLOAT_DOUBLE_RETURN_EXITCODE=0\n    -DCXX_COMPLEX_BLAS_WORKS_EXITCODE=0 -DLAPACK_SLAPY2_WORKS_EXITCODE=0\n    -DHAVE_TEUCHOS_LAPACKLARND_EXITCODE=0 -DKK_BLAS_RESULT_AS_POINTER_ARG_EXITCODE=0\n    -DHAVE_GCC_ABI_DEMANGLE_EXITCODE__TRYRUN_OUTPUT=''\n    -DHAVE_TEUCHOS_BLASFLOAT_EXITCODE__TRYRUN_OUTPUT=''\n    -DLAPACK_SLAPY2_WORKS_EXITCODE__TRYRUN_OUTPUT=''\n    -DCXX_COMPLEX_BLAS_WORKS_EXITCODE__TRYRUN_OUTPUT=''\n    -DHAVE_TEUCHOS_LAPACKLARND_EXITCODE__TRYRUN_OUTPUT=''\n    -DKK_BLAS_RESULT_AS_POINTER_ARG_EXITCODE__TRYRUN_OUTPUT=''\n    \"\n\ncmake -G \"Unix Makefiles\" ${CMAKE_FLAGS} -DCMAKE_CXX_FLAGS=\"${FLAGS}\" -DCMAKE_C_FLAGS=\"${FLAGS}\" -DCMAKE_Fortran_FLAGS=\"${FLAGS}\" $SRCDIR\n\nmake -j${nprocs}\nmake install\n"""
+version = "v14.4.0"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "SuiteSparse_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    uuid = "bea87d4a-7f5b-5778-9afe-8cc45184846c"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "libblastrampoline_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    uuid = "8e850b90-86db-534c-a0d3-1478176c7d93"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "CompilerSupportLibraries_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Kokkos_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    uuid = "c1216c3d-6bb3-5a2b-bbbf-529b35eba709"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "CMake_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "hostdependency"
+    uuid = "3f4e10e2-61f2-5801-8945-23b9d642d0e6"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libaztecoo"]
+    type = "lib"
+    variable_name = "libaztecoo"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["liblocalapack"]
+    type = "lib"
+    variable_name = "liblocalapack"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libifpack"]
+    type = "lib"
+    variable_name = "libifpack"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libloca"]
+    type = "lib"
+    variable_name = "libloca"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libzoltan"]
+    type = "lib"
+    variable_name = "libzoltan"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libisorropia"]
+    type = "lib"
+    variable_name = "libisorropia"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libbelos"]
+    type = "lib"
+    variable_name = "libbelos"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libteuchosparameterlist"]
+    type = "lib"
+    variable_name = "libteuchosparameterlist"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libnoxlapack"]
+    type = "lib"
+    variable_name = "libnoxlapack"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libnox"]
+    type = "lib"
+    variable_name = "libnox"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libteuchoscore"]
+    type = "lib"
+    variable_name = "libteuchoscore"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libsimpi"]
+    type = "lib"
+    variable_name = "libsimpi"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libteuchosremainder"]
+    type = "lib"
+    variable_name = "libteuchosremainder"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["liblocaepetra"]
+    type = "lib"
+    variable_name = "liblocaepetra"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libteuchosnumerics"]
+    type = "lib"
+    variable_name = "libteuchosnumerics"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libteuchoscomm"]
+    type = "lib"
+    variable_name = "libteuchoscomm"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libtrilinoscouplings"]
+    type = "lib"
+    variable_name = "libtrilinoscouplings"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libepetraext"]
+    type = "lib"
+    variable_name = "libepetraext"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libtriutils"]
+    type = "lib"
+    variable_name = "libtriutils"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libbelosepetra"]
+    type = "lib"
+    variable_name = "libbelosepetra"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libepetra"]
+    type = "lib"
+    variable_name = "libepetra"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libtrilinosss"]
+    type = "lib"
+    variable_name = "libtrilinosss"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libnoxepetra"]
+    type = "lib"
+    variable_name = "libnoxepetra"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libsacado"]
+    type = "lib"
+    variable_name = "libsacado"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libamesos"]
+    type = "lib"
+    variable_name = "libamesos"
+
+    [[metadata.sources]]
+    hash = "975307431d60d0859ebaa27c9169cbb1d4287513"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/trilinos/Trilinos.git"
+    [[metadata.sources]]
+    follow_symlinks = false
+    path = "./bundled"
+    target = ""
+    type = "directory"
