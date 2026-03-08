@@ -1,0 +1,69 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/44b1100be96aff01812a8470322655dc2f33eef7/G/GIAC/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.6.6"
+
+[metadata]
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "GIAC"
+platforms = ["i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx11", "riscv64-linux-gnu-cxx11", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir/giac-*\n\n# Update config.sub/config.guess to recognize newer platforms (musl, etc.)\n\nupdate_configure_scripts\nautoreconf -fi\n\nexport CXXFLAGS='-g -Os -fPIC'\n\nif [[ \"${target}\" == *freebsd* ]]; then\n    export CC=gcc\n    export CFLAGS='-g -fPIC'\n    export CXX=g++\n    export CXXFLAGS='-g -fPIC -DGIAC_JULIA'\nelif [[ \"${target}\" == *-apple-* ]]; then\n    export CC=gcc\n    export CFLAGS='-g -fPIC'\n    export CXX=g++\n    export CXXFLAGS='-g -fPIC -DGIAC_JULIA'\nfi\n\nGETTEXT_FLAG=\"--enable-gettext\"\nif [[ \"${target}\" == *freebsd* ]]; then\n    # FreeBSD doesn't have libintl available through Gettext_jll\n    GETTEXT_FLAG=\"--disable-gettext\"\nfi\n\n# Configure with minimal dependencies\n# GMP and MPFR are found automatically in ${prefix}\n./configure --prefix=${prefix} \\\n    --disable-rpath \\\n    --build=${MACHTYPE} \\\n    --host=${target} \\\n    --enable-shared \\\n    --disable-libbf \\\n    --disable-static \\\n    --disable-gui \\\n    --disable-fltk \\\n    --disable-pari \\\n    --disable-ntl \\\n    --disable-ecm \\\n    --disable-cocoa \\\n    --disable-ao \\\n    --disable-micropy \\\n    --disable-quickjs \\\n    --disable-samplerate \\\n    --disable-curl \\\n    --disable-glpk \\\n    --disable-gsl \\\n    --disable-lapack \\\n    --disable-png \\\n    ${GETTEXT_FLAG}\n\nGIAC_CXXFLAGS=\"-g -fPIC -DGIAC_JULIA -U_GLIBCXX_ASSERTIONS -DUSE_OBJET_BIDON -fno-strict-aliasing -DGIAC_GENERIC_CONSTANTS -DTIMEOUT\"\n\nGIAC_OBJS=\"input_lexer.o sym2poly.o gausspol.o threaded.o moyal.o maple.o ti89.o mathml.o misc.o permu.o quater.o desolve.o input_parser.o symbolic.o index.o modpoly.o modfactor.o ezgcd.o derive.o solve.o intg.o intgab.o risch.o lin.o series.o subst.o vecteur.o sparse.o csturm.o tex.o global.o ifactor.o alg_ext.o gauss.o isom.o plot.o plot3d.o rpn.o prog.o pari.o cocoa.o unary.o usual.o identificateur.o gen.o tinymt32.o first.o TmpLESystemSolver.o TmpFGLM.o help.o lpsolve.o optimization.o signalprocessing.o graphe.o graphtheory.o nautywrapper.o markup.o kdisplay.o kadd.o caseval.o cutils.o graphic.o libbf.o libregexp.o libunicode.o qjsgiac.o quickjs.o quickjs-libc.o js.o qrcodegen.o\"\n\nXCAS_OBJS=\"History.o Input.o Xcas1.o Equation.o Print.o Tableur.o Editeur.o Graph.o Graph3d.o Help1.o Cfg.o Flv_CStyle.o Flve_Check_Button.o Flve_Input.o Flv_Style.o Flv_Data_Source.o Flve_Combo.o Flv_List.o Flv_Table.o gl2ps.o Python.o\"\n\nif [[ \"${target}\" == *freebsd* ]]; then\n  cd src\n  make -j${nproc} libgiac.la libxcas.la icas.o xcas.o aide.o\n  cd .libs\n  g++ ${GIAC_CXXFLAGS} -shared -o libgiac.so.0.0.0 ${GIAC_OBJS} -lrt -lpthread -ldl -lm -lmpfr -lgmp\n  g++ ${GIAC_CXXFLAGS} -shared -o libxcas.so.0.0.0 ${XCAS_OBJS} -L. -lgiac -lrt -lpthread -ldl -lm -lmpfr -lgmp\n  cd ..\n  /usr/bin/install -c .libs/libxcas.so.0.0.0 /workspace/destdir/lib/libxcas.so.0.0.0\n  (cd /workspace/destdir/lib && { ln -s -f libxcas.so.0.0.0 libxcas.so.0 || { rm -f libxcas.so.0 && ln -s libxcas.so.0.0.0 libxcas.so.0; }; })\n  /usr/bin/install -c .libs/libxcas.lai /workspace/destdir/lib/libxcas.la\n  g++ ${GIAC_CXXFLAGS} -o icas icas.o -L.libs -lgiac -lxcas -lrt -lpthread -ldl -lm -lmpfr -lgmp\n  g++ ${GIAC_CXXFLAGS} -o xcas xcas.o -L.libs -lgiac -lxcas -lrt -lpthread -ldl -lm -lmpfr -lgmp\n  g++ ${GIAC_CXXFLAGS} -o aide aide.o -L.libs -lgiac -lxcas -lrt -lpthread -ldl -lm -lmpfr -lgmp\n  cd ..\n  # make install fails relinking libxcas (already installed manually above), so ignore errors\n  make -i install\n\n  # Explicitly install aide_cas for FreeBSD\n  mkdir -p ${prefix}/share/giac\n  cp -r doc/aide_cas ${prefix}/share/giac/\n\nelif [[ \"${target}\" == x86_64-apple-* ]]; then\n  cd src\n  make -j${nproc} libgiac.la libxcas.la icas.o xcas.o aide.o\n  cd .libs\n  # GIAC has unguarded LAPACK symbols in vecteur.o; macOS ld is strict about missing symbols.\n  # Use -framework Accelerate to satisfy them (provides BLAS/LAPACK).\n  g++ ${GIAC_CXXFLAGS} -dynamiclib -o libgiac.0.dylib ${GIAC_OBJS} -lintl -lpthread -lm -lmpfr -lgmp -framework Accelerate -install_name ${prefix}/lib/libgiac.0.dylib -current_version 0.0.0 -compatibility_version 0.0.0\n  g++ ${GIAC_CXXFLAGS} -dynamiclib -o libxcas.0.dylib ${XCAS_OBJS} -L. -lgiac -lintl -lpthread -lm -lmpfr -lgmp -install_name ${prefix}/lib/libxcas.0.dylib -current_version 0.0.0 -compatibility_version 0.0.0\n  cd ..\n  /usr/bin/install -c .libs/libxcas.0.dylib /workspace/destdir/lib/libxcas.0.dylib\n  (cd /workspace/destdir/lib && { ln -s -f libxcas.0.dylib libxcas.dylib || { rm -f libxcas.dylib && ln -s libxcas.0.dylib libxcas.dylib; }; })\n  /usr/bin/install -c .libs/libxcas.lai /workspace/destdir/lib/libxcas.la\n  g++ ${GIAC_CXXFLAGS} -o icas icas.o -L.libs -lgiac -lxcas -lintl -lpthread -ldl -lm -lmpfr -lgmp\n  g++ ${GIAC_CXXFLAGS} -o xcas xcas.o -L.libs -lgiac -lxcas -lintl -lpthread -ldl -lm -lmpfr -lgmp\n  g++ ${GIAC_CXXFLAGS} -o aide aide.o -L.libs -lgiac -lxcas -lintl -lpthread -ldl -lm -lmpfr -lgmp\n  cd ..\n  # make install fails relinking libxcas (already installed manually above), so ignore errors\n  make -i install\n\nelif [[ \"${target}\" == aarch64-apple-* ]]; then\n  cd src\n  make -j${nproc} libgiac.la libxcas.la icas.o xcas.o aide.o\n  cd .libs\n  g++ ${GIAC_CXXFLAGS} -dynamiclib -o libgiac.0.dylib ${GIAC_OBJS} -lintl -lpthread -lm -lmpfr -lgmp -framework Accelerate -install_name ${prefix}/lib/libgiac.0.dylib -current_version 0.0.0 -compatibility_version 0.0.0\n  g++ ${GIAC_CXXFLAGS} -dynamiclib -o libxcas.0.dylib ${XCAS_OBJS} -L. -lgiac -lintl -lpthread -lm -lmpfr -lgmp -install_name ${prefix}/lib/libxcas.0.dylib -current_version 0.0.0 -compatibility_version 0.0.0\n  cd ..\n  /usr/bin/install -c .libs/libxcas.0.dylib /workspace/destdir/lib/libxcas.0.dylib\n  (cd /workspace/destdir/lib && { ln -s -f libxcas.0.dylib libxcas.dylib || { rm -f libxcas.dylib && ln -s libxcas.0.dylib libxcas.dylib; }; })\n  /usr/bin/install -c .libs/libxcas.lai /workspace/destdir/lib/libxcas.la\n  g++ ${GIAC_CXXFLAGS} -o icas icas.o -L.libs -lgiac -lxcas -lintl -lpthread -ldl -lm -lmpfr -lgmp\n  g++ ${GIAC_CXXFLAGS} -o xcas xcas.o -L.libs -lgiac -lxcas -lintl -lpthread -ldl -lm -lmpfr -lgmp\n  g++ ${GIAC_CXXFLAGS} -o aide aide.o -L.libs -lgiac -lxcas -lintl -lpthread -ldl -lm -lmpfr -lgmp\n  cd ..\n  # make install fails relinking libxcas (already installed manually above), so ignore errors\n  make -i install\n\nelif [[ \"${target}\" == *mingw* ]]; then\n  # The flag is injected only for make\n  make LDFLAGS=\"-no-undefined ${LDFLAGS}\" -j${nproc}\n  make install\n\nelse\n  make -j${nproc}\n  make install\nfi\n\ninstall_license COPYING\n"""
+version = "v2.0.0"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Gettext_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "hostdependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "GettextRuntime_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "GMP_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "MPFR_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libgiac"]
+    type = "lib"
+    variable_name = "libgiac"
+    [[metadata.products]]
+    paths = ["share/giac/aide_cas"]
+    type = "file"
+    variable_name = "aide_cas"
+
+    [[metadata.sources]]
+    hash = "6abfab95bae0981201498ce0dd6086da65ab0ff45f96ef6dd7d766518f6741f4"
+    type = "archive"
+    unpack_target = ""
+    url = "https://www-fourier.univ-grenoble-alpes.fr/~parisse/giac/giac-2.0.0.tar.gz"
