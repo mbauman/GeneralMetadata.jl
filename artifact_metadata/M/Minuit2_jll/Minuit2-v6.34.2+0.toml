@@ -1,0 +1,36 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/b0ce2c39d20a89733fa2f2a2145812f9f4be8811/M/Minuit2/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.6.3"
+
+[metadata]
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Minuit2"
+platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "riscv64-linux-gnu-cxx03", "riscv64-linux-gnu-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir/root-*/math/minuit2\n\nsed -i '/^add_library(Minuit2$/a SHARED' src/CMakeLists.txt\nsed -i '/^add_library(Minuit2Math$/a SHARED' src/math/CMakeLists.txt\nmkdir build && cd build\ncmake -DCMAKE_INSTALL_PREFIX=$prefix -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} -DCMAKE_BUILD_TYPE=Release -Dminuit2_standalone=ON ..\nmake -j ${nproc}\nmake install\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    # We have to manually build the shared library\n    mkdir -p \"${libdir}\"\n    cd \"${prefix}/lib\"\n    ar x libMinuit2.dll.a\n    cc -shared -o \"${libdir}/libMinuit2.dll\" *.o\n    rm *.o\n    ar x libMinuit2Math.dll.a\n    cc -shared -o \"${libdir}/libMinuit2Math.dll\" *.o\n    rm *.o\nfi\n"""
+version = "v6.34.2"
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libMinuit2"]
+    type = "lib"
+    variable_name = "libMinuit2"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libMinuit2Math"]
+    type = "lib"
+    variable_name = "libMinuit2Math"
+
+    [[metadata.sources]]
+    hash = "166bec562e420e177aaf3133fa3fb09f82ecddabe8a2e1906345bad442513f94"
+    type = "archive"
+    unpack_target = ""
+    url = "https://root.cern/download/root_v6.34.02.source.tar.gz"

@@ -1,0 +1,37 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/b3621ecea5035ef3405d8f6f1843cca1bd9fb427/P/pigz/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.5.1"
+
+[metadata]
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "pigz"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd ${WORKSPACE}/srcdir/pigz-*\n\nexport CPPFLAGS=\"-I${includedir}\"\nif [[ \"${target}\" == *-freebsd* ]]; then\n    # Without this, `__XSI_VISIBLE`, `S_IFMT`, `S_IFREG`, `S_IFMT`,\n    # `S_IFREG`, `S_IFIFO`, and `S_IFDIR` are all undefined\n    CPPFLAGS=\"${CPPFLAGS} -D_XOPEN_SOURCE=700\"\nfi\nmake -j${nproc} CC=${CC}\n\n# Install\nmkdir -p ${bindir}\nfor bin in pigz unpigz; do\n    cp \"${bin}\" \"${bindir}/${bin}${exeext}\"\ndone\n\n# License is embedded at the end of the README\ninstall_license README\n"""
+version = "v2.7.0"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Zlib_jll"
+    platforms = ["any"]
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    binnames = ["pigz"]
+    type = "exe"
+    variable_name = "pigz"
+    [[metadata.products]]
+    binnames = ["unpigz"]
+    type = "exe"
+    variable_name = "unpigz"
+
+    [[metadata.sources]]
+    hash = "b4c9e60344a08d5db37ca7ad00a5b2c76ccb9556354b722d56d55ca7e8b1c707"
+    type = "archive"
+    unpack_target = ""
+    url = "https://zlib.net/pigz/pigz-2.7.tar.gz"
