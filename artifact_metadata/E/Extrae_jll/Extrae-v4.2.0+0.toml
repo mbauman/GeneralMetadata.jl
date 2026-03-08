@@ -1,0 +1,320 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/eacec492ce28538e855147fbe1a5ad29d7de4f41/E/Extrae/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.5.8"
+
+[metadata]
+augment_platform_block = """using Base.BinaryPlatforms\nmodule __CUDA\n    using Base.BinaryPlatforms\n\ntry\n    using CUDA_Runtime_jll\ncatch\n    # during initial package installation, CUDA_Runtime_jll may not be available.\n    # in that case, we just won't select an artifact.\nend\n\n# can't use Preferences for the same reason\nconst CUDA_Runtime_jll_uuid = Base.UUID(\"76a88914-d11a-5bdc-97e0-2f5a05c973a2\")\nconst preferences = Base.get_preferences(CUDA_Runtime_jll_uuid)\nBase.record_compiletime_preference(CUDA_Runtime_jll_uuid, \"version\")\nBase.record_compiletime_preference(CUDA_Runtime_jll_uuid, \"local\")\nconst local_toolkit = something(tryparse(Bool, get(preferences, \"local\", \"false\")), false)\n\nfunction cuda_comparison_strategy(_a::String, _b::String, a_requested::Bool, b_requested::Bool)\n    # if we're using a local toolkit, we can't use artifacts\n    if local_toolkit\n        return false\n    end\n\n    # if either isn't a version number (e.g. \"none\"), perform a simple equality check\n    a = tryparse(VersionNumber, _a)\n    b = tryparse(VersionNumber, _b)\n    if a === nothing || b === nothing\n        return _a == _b\n    end\n\n    # if both b and a requested, then we fall back to equality\n    if a_requested && b_requested\n        return Base.thisminor(a) == Base.thisminor(b)\n    end\n\n    # otherwise, do the comparison between the the single version cap and the single version:\n    function is_compatible(artifact::VersionNumber, host::VersionNumber)\n        if host >= v\"11.0\"\n            # enhanced compatibility, semver-style\n            artifact.major == host.major &&\n            Base.thisminor(artifact) <= Base.thisminor(host)\n        else\n            Base.thisminor(artifact) == Base.thisminor(host)\n        end\n    end\n    if a_requested\n        is_compatible(b, a)\n    else\n        is_compatible(a, b)\n    end\nend\n\nfunction augment_platform!(platform::Platform)\n    if !@isdefined(CUDA_Runtime_jll)\n        # don't set to nothing or Pkg will download any artifact\n        platform[\"cuda\"] = \"none\"\n    end\n\n    if !haskey(platform, \"cuda\")\n        CUDA_Runtime_jll.augment_platform!(platform)\n    end\n    BinaryPlatforms.set_compare_strategy!(platform, \"cuda\", cuda_comparison_strategy)\n\n    return platform\nend\nend\n\n# Can't use Preferences since we might be running this very early with a non-existing Manifest\nMPIPreferences_UUID = Base.UUID(\"3da0fdf6-3ccc-4f1b-acd9-58baa6c99267\")\nconst preferences = Base.get_preferences(MPIPreferences_UUID)\n\n# Keep logic in sync with MPIPreferences.jl\nfunction augment_mpi!(platform)\n    # Doesn't need to be `const` since we depend on MPIPreferences so we\n    # invalidate the cache when it changes.\n    # Note: MPIPreferences uses `Sys.iswindows()` without the `platform` argument.\n    binary = get(preferences, \"binary\", Sys.iswindows(platform) ? \"MicrosoftMPI_jll\" : \"MPICH_jll\")\n\n    abi = if binary == \"system\"\n        let abi = get(preferences, \"abi\", nothing)\n            if abi === nothing\n                error(\"MPIPreferences: Inconsistent state detected, binary set to system, but no ABI set.\")\n            else\n                abi\n            end\n        end\n    elseif binary == \"MicrosoftMPI_jll\"\n        \"MicrosoftMPI\"\n    elseif binary == \"MPICH_jll\"\n        \"MPICH\"\n    elseif binary == \"OpenMPI_jll\"\n        \"OpenMPI\"\n    elseif binary == \"MPItrampoline_jll\"\n        \"MPItrampoline\"\n    else\n        error(\"Unknown binary: $binary\")\n    end\n\n    if !haskey(platform, \"mpi\")\n        platform[\"mpi\"] = abi\n    end\n    return platform\nend\n\n\nfunction augment_platform!(platform::Platform)\n    augment_mpi!(platform)\n    __CUDA.augment_platform!(platform)\nend\n"""
+init_block = """ENV[\"EXTRAE_SKIP_AUTO_LIBRARY_INITIALIZE\"] = \"1\"\n"""
+julia_compat = "1.6"
+lazy_artifacts = true
+name = "Extrae"
+platforms = ["x86_64-linux-gnu-cxx03-cuda+none-mpi+none", "x86_64-linux-gnu-cxx11-cuda+none-mpi+none", "aarch64-linux-gnu-cxx03-cuda+none-mpi+none", "aarch64-linux-gnu-cxx11-cuda+none-mpi+none", "powerpc64le-linux-gnu-cxx03-cuda+none-mpi+none", "powerpc64le-linux-gnu-cxx11-cuda+none-mpi+none", "x86_64-linux-gnu-cxx03-mpi+none-cuda+11.4", "x86_64-linux-gnu-cxx11-mpi+none-cuda+11.4", "aarch64-linux-gnu-cxx03-mpi+none-cuda_platform+sbsa-cuda+11.4", "aarch64-linux-gnu-cxx11-mpi+none-cuda_platform+sbsa-cuda+11.4", "x86_64-linux-gnu-cxx03-mpi+none-cuda+11.5", "x86_64-linux-gnu-cxx11-mpi+none-cuda+11.5", "aarch64-linux-gnu-cxx03-mpi+none-cuda_platform+sbsa-cuda+11.5", "aarch64-linux-gnu-cxx11-mpi+none-cuda_platform+sbsa-cuda+11.5", "x86_64-linux-gnu-cxx03-mpi+none-cuda+11.6", "x86_64-linux-gnu-cxx11-mpi+none-cuda+11.6", "aarch64-linux-gnu-cxx03-mpi+none-cuda_platform+sbsa-cuda+11.6", "aarch64-linux-gnu-cxx11-mpi+none-cuda_platform+sbsa-cuda+11.6", "x86_64-linux-gnu-cxx03-mpi+none-cuda+11.7", "x86_64-linux-gnu-cxx11-mpi+none-cuda+11.7", "aarch64-linux-gnu-cxx03-mpi+none-cuda_platform+sbsa-cuda+11.7", "aarch64-linux-gnu-cxx11-mpi+none-cuda_platform+sbsa-cuda+11.7", "x86_64-linux-gnu-cxx03-mpi+none-cuda+11.8", "x86_64-linux-gnu-cxx11-mpi+none-cuda+11.8", "aarch64-linux-gnu-cxx03-mpi+none-cuda_platform+jetson-cuda+11.8", "aarch64-linux-gnu-cxx11-mpi+none-cuda_platform+jetson-cuda+11.8", "aarch64-linux-gnu-cxx03-mpi+none-cuda_platform+sbsa-cuda+11.8", "aarch64-linux-gnu-cxx11-mpi+none-cuda_platform+sbsa-cuda+11.8", "x86_64-linux-gnu-cxx03-mpi+none-cuda+12.0", "x86_64-linux-gnu-cxx11-mpi+none-cuda+12.0", "aarch64-linux-gnu-cxx03-mpi+none-cuda_platform+jetson-cuda+12.0", "aarch64-linux-gnu-cxx11-mpi+none-cuda_platform+jetson-cuda+12.0", "aarch64-linux-gnu-cxx03-mpi+none-cuda_platform+sbsa-cuda+12.0", "aarch64-linux-gnu-cxx11-mpi+none-cuda_platform+sbsa-cuda+12.0", "x86_64-linux-gnu-cxx03-mpi+none-cuda+12.1", "x86_64-linux-gnu-cxx11-mpi+none-cuda+12.1", "aarch64-linux-gnu-cxx03-mpi+none-cuda_platform+jetson-cuda+12.1", "aarch64-linux-gnu-cxx11-mpi+none-cuda_platform+jetson-cuda+12.1", "aarch64-linux-gnu-cxx03-mpi+none-cuda_platform+sbsa-cuda+12.1", "aarch64-linux-gnu-cxx11-mpi+none-cuda_platform+sbsa-cuda+12.1", "x86_64-linux-gnu-cxx03-mpi+none-cuda+12.2", "x86_64-linux-gnu-cxx11-mpi+none-cuda+12.2", "aarch64-linux-gnu-cxx03-mpi+none-cuda_platform+jetson-cuda+12.2", "aarch64-linux-gnu-cxx11-mpi+none-cuda_platform+jetson-cuda+12.2", "aarch64-linux-gnu-cxx03-mpi+none-cuda_platform+sbsa-cuda+12.2", "aarch64-linux-gnu-cxx11-mpi+none-cuda_platform+sbsa-cuda+12.2", "x86_64-linux-gnu-cxx03-mpi+none-cuda+12.3", "x86_64-linux-gnu-cxx11-mpi+none-cuda+12.3", "aarch64-linux-gnu-cxx03-mpi+none-cuda_platform+sbsa-cuda+12.3", "aarch64-linux-gnu-cxx11-mpi+none-cuda_platform+sbsa-cuda+12.3", "x86_64-linux-gnu-cxx03-cuda+none-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+none-mpi+mpich", "aarch64-linux-gnu-cxx03-cuda+none-mpi+mpich", "aarch64-linux-gnu-cxx11-cuda+none-mpi+mpich", "powerpc64le-linux-gnu-cxx03-cuda+none-mpi+mpich", "powerpc64le-linux-gnu-cxx11-cuda+none-mpi+mpich", "x86_64-linux-gnu-cxx03-cuda+none-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+none-mpi+openmpi", "aarch64-linux-gnu-cxx03-cuda+none-mpi+openmpi", "aarch64-linux-gnu-cxx11-cuda+none-mpi+openmpi", "powerpc64le-linux-gnu-cxx03-cuda+none-mpi+openmpi", "powerpc64le-linux-gnu-cxx11-cuda+none-mpi+openmpi", "x86_64-linux-gnu-cxx03-cuda+11.4-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+11.4-mpi+mpich", "aarch64-linux-gnu-cxx03-cuda+11.4-mpi+mpich-cuda_platform+sbsa", "aarch64-linux-gnu-cxx11-cuda+11.4-mpi+mpich-cuda_platform+sbsa", "x86_64-linux-gnu-cxx03-cuda+11.5-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+11.5-mpi+mpich", "aarch64-linux-gnu-cxx03-cuda+11.5-mpi+mpich-cuda_platform+sbsa", "aarch64-linux-gnu-cxx11-cuda+11.5-mpi+mpich-cuda_platform+sbsa", "x86_64-linux-gnu-cxx03-cuda+11.6-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+11.6-mpi+mpich", "aarch64-linux-gnu-cxx03-cuda+11.6-mpi+mpich-cuda_platform+sbsa", "aarch64-linux-gnu-cxx11-cuda+11.6-mpi+mpich-cuda_platform+sbsa", "x86_64-linux-gnu-cxx03-cuda+11.7-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+11.7-mpi+mpich", "aarch64-linux-gnu-cxx03-cuda+11.7-mpi+mpich-cuda_platform+sbsa", "aarch64-linux-gnu-cxx11-cuda+11.7-mpi+mpich-cuda_platform+sbsa", "x86_64-linux-gnu-cxx03-cuda+11.8-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+11.8-mpi+mpich", "aarch64-linux-gnu-cxx03-cuda+11.8-mpi+mpich-cuda_platform+jetson", "aarch64-linux-gnu-cxx11-cuda+11.8-mpi+mpich-cuda_platform+jetson", "aarch64-linux-gnu-cxx03-cuda+11.8-mpi+mpich-cuda_platform+sbsa", "aarch64-linux-gnu-cxx11-cuda+11.8-mpi+mpich-cuda_platform+sbsa", "x86_64-linux-gnu-cxx03-cuda+12.0-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+12.0-mpi+mpich", "aarch64-linux-gnu-cxx03-cuda+12.0-mpi+mpich-cuda_platform+jetson", "aarch64-linux-gnu-cxx11-cuda+12.0-mpi+mpich-cuda_platform+jetson", "aarch64-linux-gnu-cxx03-cuda+12.0-mpi+mpich-cuda_platform+sbsa", "aarch64-linux-gnu-cxx11-cuda+12.0-mpi+mpich-cuda_platform+sbsa", "x86_64-linux-gnu-cxx03-cuda+12.1-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+12.1-mpi+mpich", "aarch64-linux-gnu-cxx03-cuda+12.1-mpi+mpich-cuda_platform+jetson", "aarch64-linux-gnu-cxx11-cuda+12.1-mpi+mpich-cuda_platform+jetson", "aarch64-linux-gnu-cxx03-cuda+12.1-mpi+mpich-cuda_platform+sbsa", "aarch64-linux-gnu-cxx11-cuda+12.1-mpi+mpich-cuda_platform+sbsa", "x86_64-linux-gnu-cxx03-cuda+12.2-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+12.2-mpi+mpich", "aarch64-linux-gnu-cxx03-cuda+12.2-mpi+mpich-cuda_platform+jetson", "aarch64-linux-gnu-cxx11-cuda+12.2-mpi+mpich-cuda_platform+jetson", "aarch64-linux-gnu-cxx03-cuda+12.2-mpi+mpich-cuda_platform+sbsa", "aarch64-linux-gnu-cxx11-cuda+12.2-mpi+mpich-cuda_platform+sbsa", "x86_64-linux-gnu-cxx03-cuda+12.3-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+12.3-mpi+mpich", "aarch64-linux-gnu-cxx03-cuda+12.3-mpi+mpich-cuda_platform+sbsa", "aarch64-linux-gnu-cxx11-cuda+12.3-mpi+mpich-cuda_platform+sbsa", "x86_64-linux-gnu-cxx03-cuda+11.4-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+11.4-mpi+openmpi", "aarch64-linux-gnu-cxx03-cuda+11.4-mpi+openmpi-cuda_platform+sbsa", "aarch64-linux-gnu-cxx11-cuda+11.4-mpi+openmpi-cuda_platform+sbsa", "x86_64-linux-gnu-cxx03-cuda+11.5-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+11.5-mpi+openmpi", "aarch64-linux-gnu-cxx03-cuda+11.5-mpi+openmpi-cuda_platform+sbsa", "aarch64-linux-gnu-cxx11-cuda+11.5-mpi+openmpi-cuda_platform+sbsa", "x86_64-linux-gnu-cxx03-cuda+11.6-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+11.6-mpi+openmpi", "aarch64-linux-gnu-cxx03-cuda+11.6-mpi+openmpi-cuda_platform+sbsa", "aarch64-linux-gnu-cxx11-cuda+11.6-mpi+openmpi-cuda_platform+sbsa", "x86_64-linux-gnu-cxx03-cuda+11.7-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+11.7-mpi+openmpi", "aarch64-linux-gnu-cxx03-cuda+11.7-mpi+openmpi-cuda_platform+sbsa", "aarch64-linux-gnu-cxx11-cuda+11.7-mpi+openmpi-cuda_platform+sbsa", "x86_64-linux-gnu-cxx03-cuda+11.8-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+11.8-mpi+openmpi", "aarch64-linux-gnu-cxx03-cuda+11.8-mpi+openmpi-cuda_platform+jetson", "aarch64-linux-gnu-cxx11-cuda+11.8-mpi+openmpi-cuda_platform+jetson", "aarch64-linux-gnu-cxx03-cuda+11.8-mpi+openmpi-cuda_platform+sbsa", "aarch64-linux-gnu-cxx11-cuda+11.8-mpi+openmpi-cuda_platform+sbsa", "x86_64-linux-gnu-cxx03-cuda+12.0-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+12.0-mpi+openmpi", "aarch64-linux-gnu-cxx03-cuda+12.0-mpi+openmpi-cuda_platform+jetson", "aarch64-linux-gnu-cxx11-cuda+12.0-mpi+openmpi-cuda_platform+jetson", "aarch64-linux-gnu-cxx03-cuda+12.0-mpi+openmpi-cuda_platform+sbsa", "aarch64-linux-gnu-cxx11-cuda+12.0-mpi+openmpi-cuda_platform+sbsa", "x86_64-linux-gnu-cxx03-cuda+12.1-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+12.1-mpi+openmpi", "aarch64-linux-gnu-cxx03-cuda+12.1-mpi+openmpi-cuda_platform+jetson", "aarch64-linux-gnu-cxx11-cuda+12.1-mpi+openmpi-cuda_platform+jetson", "aarch64-linux-gnu-cxx03-cuda+12.1-mpi+openmpi-cuda_platform+sbsa", "aarch64-linux-gnu-cxx11-cuda+12.1-mpi+openmpi-cuda_platform+sbsa", "x86_64-linux-gnu-cxx03-cuda+12.2-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+12.2-mpi+openmpi", "aarch64-linux-gnu-cxx03-cuda+12.2-mpi+openmpi-cuda_platform+jetson", "aarch64-linux-gnu-cxx11-cuda+12.2-mpi+openmpi-cuda_platform+jetson", "aarch64-linux-gnu-cxx03-cuda+12.2-mpi+openmpi-cuda_platform+sbsa", "aarch64-linux-gnu-cxx11-cuda+12.2-mpi+openmpi-cuda_platform+sbsa", "x86_64-linux-gnu-cxx03-cuda+12.3-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+12.3-mpi+openmpi", "aarch64-linux-gnu-cxx03-cuda+12.3-mpi+openmpi-cuda_platform+sbsa", "aarch64-linux-gnu-cxx11-cuda+12.3-mpi+openmpi-cuda_platform+sbsa"]
+script = """cd ${WORKSPACE}/srcdir/extrae-*\n\n# check if we need to use a more recent glibc\nif [[ -f \"${prefix}/usr/include/bits/mman-linux.h\" ]]; then\n    GLIBC_ARTIFACT_DIR=$(dirname $(dirname $(dirname $(dirname $(realpath \"${prefix}/usr/include/bits/mman-linux.h\")))))\n    rsync --archive ${GLIBC_ARTIFACT_DIR}/ /opt/${target}/${target}/sys-root/\nfi\n\n# Work around https://github.com/bsc-performance-tools/extrae/issues/103\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/0001-Add-missing-XML2_CFLAGS.patch\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/0002-Add-missing-lxml2.patch\n\nif [[ $bb_target = aarch64* ]]; then\n    export ENABLE_ARM64=1\nfi\n\nif [[ $bb_target = powerpc64le* ]]; then\n    export ENABLE_POWERPC64LE=1\nfi\n\nif [[ $bb_full_target = *cuda\\+[0-9]* ]]; then\n    export FLAGS_CUDA=\"--with-cuda=$prefix/cuda --with-cupti=$prefix/cuda\"\nfi\n\nif [[ $bb_full_target = *mpi* ]] && [[ $bb_full_target != *mpi\\+none* ]]; then\n    export FLAGS_MPI=\"--with-mpi=$prefix --with-mpi-binaries=${bindir} --with-mpi-headers=${includedir} --with-mpi-libs=${libdir}\"\nfi\n\nautoreconf -fvi\n./configure \\\n    --prefix=${prefix} \\\n    --build=${MACHTYPE} \\\n    --host=${target} \\\n    ${ENABLE_ARM64:+--enable-arm64} \\\n    ${ENABLE_POWERPC64LE:+--enable-powerpc64le} \\\n    --without-dyninst \\\n    --disable-openmp \\\n    --disable-nanos \\\n    --disable-smpss \\\n    ${FLAGS_MPI:---without-mpi} \\\n    ${FLAGS_CUDA:---without-cuda} \\\n    --with-binutils=$prefix \\\n    --with-unwind=$prefix \\\n    --with-xml=$prefix \\\n    --with-papi=$prefix\n\nmake -j${nproc}\nmake install\n"""
+version = "v4.2.0"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Glibc_jll"
+    platforms = ["x86_64-linux-gnu-cxx03-cuda+none-mpi+none", "x86_64-linux-gnu-cxx11-cuda+none-mpi+none", "powerpc64le-linux-gnu-cxx03-cuda+none-mpi+none", "powerpc64le-linux-gnu-cxx11-cuda+none-mpi+none", "x86_64-linux-gnu-cxx03-mpi+none-cuda+11.4", "x86_64-linux-gnu-cxx11-mpi+none-cuda+11.4", "x86_64-linux-gnu-cxx03-mpi+none-cuda+11.5", "x86_64-linux-gnu-cxx11-mpi+none-cuda+11.5", "x86_64-linux-gnu-cxx03-mpi+none-cuda+11.6", "x86_64-linux-gnu-cxx11-mpi+none-cuda+11.6", "x86_64-linux-gnu-cxx03-mpi+none-cuda+11.7", "x86_64-linux-gnu-cxx11-mpi+none-cuda+11.7", "x86_64-linux-gnu-cxx03-mpi+none-cuda+11.8", "x86_64-linux-gnu-cxx11-mpi+none-cuda+11.8", "x86_64-linux-gnu-cxx03-mpi+none-cuda+12.0", "x86_64-linux-gnu-cxx11-mpi+none-cuda+12.0", "x86_64-linux-gnu-cxx03-mpi+none-cuda+12.1", "x86_64-linux-gnu-cxx11-mpi+none-cuda+12.1", "x86_64-linux-gnu-cxx03-mpi+none-cuda+12.2", "x86_64-linux-gnu-cxx11-mpi+none-cuda+12.2", "x86_64-linux-gnu-cxx03-mpi+none-cuda+12.3", "x86_64-linux-gnu-cxx11-mpi+none-cuda+12.3", "x86_64-linux-gnu-cxx03-cuda+none-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+none-mpi+mpich", "powerpc64le-linux-gnu-cxx03-cuda+none-mpi+mpich", "powerpc64le-linux-gnu-cxx11-cuda+none-mpi+mpich", "x86_64-linux-gnu-cxx03-cuda+none-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+none-mpi+openmpi", "powerpc64le-linux-gnu-cxx03-cuda+none-mpi+openmpi", "powerpc64le-linux-gnu-cxx11-cuda+none-mpi+openmpi", "x86_64-linux-gnu-cxx03-cuda+11.4-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+11.4-mpi+mpich", "x86_64-linux-gnu-cxx03-cuda+11.5-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+11.5-mpi+mpich", "x86_64-linux-gnu-cxx03-cuda+11.6-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+11.6-mpi+mpich", "x86_64-linux-gnu-cxx03-cuda+11.7-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+11.7-mpi+mpich", "x86_64-linux-gnu-cxx03-cuda+11.8-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+11.8-mpi+mpich", "x86_64-linux-gnu-cxx03-cuda+12.0-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+12.0-mpi+mpich", "x86_64-linux-gnu-cxx03-cuda+12.1-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+12.1-mpi+mpich", "x86_64-linux-gnu-cxx03-cuda+12.2-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+12.2-mpi+mpich", "x86_64-linux-gnu-cxx03-cuda+12.3-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+12.3-mpi+mpich", "x86_64-linux-gnu-cxx03-cuda+11.4-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+11.4-mpi+openmpi", "x86_64-linux-gnu-cxx03-cuda+11.5-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+11.5-mpi+openmpi", "x86_64-linux-gnu-cxx03-cuda+11.6-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+11.6-mpi+openmpi", "x86_64-linux-gnu-cxx03-cuda+11.7-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+11.7-mpi+openmpi", "x86_64-linux-gnu-cxx03-cuda+11.8-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+11.8-mpi+openmpi", "x86_64-linux-gnu-cxx03-cuda+12.0-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+12.0-mpi+openmpi", "x86_64-linux-gnu-cxx03-cuda+12.1-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+12.1-mpi+openmpi", "x86_64-linux-gnu-cxx03-cuda+12.2-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+12.2-mpi+openmpi", "x86_64-linux-gnu-cxx03-cuda+12.3-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+12.3-mpi+openmpi"]
+    top_level = false
+    type = "builddependency"
+    version-major = 2
+    version-minor = 19
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "~2.41"
+    name = "Binutils_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "LibUnwind_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "~7.1"
+    name = "PAPI_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "2.12.0"
+    name = "XML2_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "CUDA_Runtime_jll"
+    platforms = ["x86_64-linux-gnu-cxx03-mpi+none-cuda+11.4", "x86_64-linux-gnu-cxx11-mpi+none-cuda+11.4", "aarch64-linux-gnu-cxx03-mpi+none-cuda_platform+sbsa-cuda+11.4", "aarch64-linux-gnu-cxx11-mpi+none-cuda_platform+sbsa-cuda+11.4", "x86_64-linux-gnu-cxx03-mpi+none-cuda+11.5", "x86_64-linux-gnu-cxx11-mpi+none-cuda+11.5", "aarch64-linux-gnu-cxx03-mpi+none-cuda_platform+sbsa-cuda+11.5", "aarch64-linux-gnu-cxx11-mpi+none-cuda_platform+sbsa-cuda+11.5", "x86_64-linux-gnu-cxx03-mpi+none-cuda+11.6", "x86_64-linux-gnu-cxx11-mpi+none-cuda+11.6", "aarch64-linux-gnu-cxx03-mpi+none-cuda_platform+sbsa-cuda+11.6", "aarch64-linux-gnu-cxx11-mpi+none-cuda_platform+sbsa-cuda+11.6", "x86_64-linux-gnu-cxx03-mpi+none-cuda+11.7", "x86_64-linux-gnu-cxx11-mpi+none-cuda+11.7", "aarch64-linux-gnu-cxx03-mpi+none-cuda_platform+sbsa-cuda+11.7", "aarch64-linux-gnu-cxx11-mpi+none-cuda_platform+sbsa-cuda+11.7", "x86_64-linux-gnu-cxx03-mpi+none-cuda+11.8", "x86_64-linux-gnu-cxx11-mpi+none-cuda+11.8", "aarch64-linux-gnu-cxx03-mpi+none-cuda_platform+jetson-cuda+11.8", "aarch64-linux-gnu-cxx11-mpi+none-cuda_platform+jetson-cuda+11.8", "aarch64-linux-gnu-cxx03-mpi+none-cuda_platform+sbsa-cuda+11.8", "aarch64-linux-gnu-cxx11-mpi+none-cuda_platform+sbsa-cuda+11.8", "x86_64-linux-gnu-cxx03-mpi+none-cuda+12.0", "x86_64-linux-gnu-cxx11-mpi+none-cuda+12.0", "aarch64-linux-gnu-cxx03-mpi+none-cuda_platform+jetson-cuda+12.0", "aarch64-linux-gnu-cxx11-mpi+none-cuda_platform+jetson-cuda+12.0", "aarch64-linux-gnu-cxx03-mpi+none-cuda_platform+sbsa-cuda+12.0", "aarch64-linux-gnu-cxx11-mpi+none-cuda_platform+sbsa-cuda+12.0", "x86_64-linux-gnu-cxx03-mpi+none-cuda+12.1", "x86_64-linux-gnu-cxx11-mpi+none-cuda+12.1", "aarch64-linux-gnu-cxx03-mpi+none-cuda_platform+jetson-cuda+12.1", "aarch64-linux-gnu-cxx11-mpi+none-cuda_platform+jetson-cuda+12.1", "aarch64-linux-gnu-cxx03-mpi+none-cuda_platform+sbsa-cuda+12.1", "aarch64-linux-gnu-cxx11-mpi+none-cuda_platform+sbsa-cuda+12.1", "x86_64-linux-gnu-cxx03-mpi+none-cuda+12.2", "x86_64-linux-gnu-cxx11-mpi+none-cuda+12.2", "aarch64-linux-gnu-cxx03-mpi+none-cuda_platform+jetson-cuda+12.2", "aarch64-linux-gnu-cxx11-mpi+none-cuda_platform+jetson-cuda+12.2", "aarch64-linux-gnu-cxx03-mpi+none-cuda_platform+sbsa-cuda+12.2", "aarch64-linux-gnu-cxx11-mpi+none-cuda_platform+sbsa-cuda+12.2", "x86_64-linux-gnu-cxx03-mpi+none-cuda+12.3", "x86_64-linux-gnu-cxx11-mpi+none-cuda+12.3", "aarch64-linux-gnu-cxx03-mpi+none-cuda_platform+sbsa-cuda+12.3", "aarch64-linux-gnu-cxx11-mpi+none-cuda_platform+sbsa-cuda+12.3"]
+    top_level = false
+    type = "runtimedependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "CUDA_SDK_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "builddependency"
+    version-major = 11
+    version-minor = 4
+    version-patch = 4
+    [[metadata.dependencies]]
+    compat = ""
+    name = "CUDA_Runtime_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "runtimedependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "CUDA_SDK_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "builddependency"
+    version-major = 11
+    version-minor = 5
+    version-patch = 2
+    [[metadata.dependencies]]
+    compat = ""
+    name = "CUDA_SDK_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "builddependency"
+    version-major = 11
+    version-minor = 6
+    version-patch = 2
+    [[metadata.dependencies]]
+    compat = ""
+    name = "CUDA_SDK_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "builddependency"
+    version-major = 11
+    version-minor = 7
+    version-patch = 1
+    [[metadata.dependencies]]
+    compat = ""
+    name = "CUDA_SDK_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "builddependency"
+    version-major = 11
+    version-minor = 8
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "CUDA_SDK_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "builddependency"
+    version-major = 12
+    version-minor = 0
+    version-patch = 1
+    [[metadata.dependencies]]
+    compat = ""
+    name = "CUDA_SDK_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "builddependency"
+    version-major = 12
+    version-minor = 1
+    version-patch = 1
+    [[metadata.dependencies]]
+    compat = ""
+    name = "CUDA_SDK_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "builddependency"
+    version-major = 12
+    version-minor = 2
+    version-patch = 2
+    [[metadata.dependencies]]
+    compat = ""
+    name = "CUDA_SDK_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "builddependency"
+    version-major = 12
+    version-minor = 3
+    version-patch = 2
+    [[metadata.dependencies]]
+    compat = ""
+    name = "MPICH_jll"
+    platforms = ["x86_64-linux-gnu-cxx03-cuda+none-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+none-mpi+mpich", "aarch64-linux-gnu-cxx03-cuda+none-mpi+mpich", "aarch64-linux-gnu-cxx11-cuda+none-mpi+mpich", "powerpc64le-linux-gnu-cxx03-cuda+none-mpi+mpich", "powerpc64le-linux-gnu-cxx11-cuda+none-mpi+mpich"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "OpenMPI_jll"
+    platforms = ["x86_64-linux-gnu-cxx03-cuda+none-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+none-mpi+openmpi", "aarch64-linux-gnu-cxx03-cuda+none-mpi+openmpi", "aarch64-linux-gnu-cxx11-cuda+none-mpi+openmpi", "powerpc64le-linux-gnu-cxx03-cuda+none-mpi+openmpi", "powerpc64le-linux-gnu-cxx11-cuda+none-mpi+openmpi"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "MicrosoftMPI_jll"
+    platforms = []
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "5.0.1 - 5"
+    name = "MPItrampoline_jll"
+    platforms = ["x86_64-linux-gnu-cxx03-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-mpi+mpitrampoline", "aarch64-linux-gnu-cxx03-mpi+mpitrampoline", "aarch64-linux-gnu-cxx11-mpi+mpitrampoline", "powerpc64le-linux-gnu-cxx03-mpi+mpitrampoline", "powerpc64le-linux-gnu-cxx11-mpi+mpitrampoline"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "0.1"
+    name = "MPIPreferences"
+    platforms = ["any"]
+    top_level = true
+    type = "dependency"
+    uuid = "3da0fdf6-3ccc-4f1b-acd9-58baa6c99267"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "MPICH_jll"
+    platforms = ["x86_64-linux-gnu-cxx03-cuda+11.4-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+11.4-mpi+mpich", "aarch64-linux-gnu-cxx03-cuda+11.4-mpi+mpich-cuda_platform+sbsa", "aarch64-linux-gnu-cxx11-cuda+11.4-mpi+mpich-cuda_platform+sbsa", "x86_64-linux-gnu-cxx03-cuda+11.5-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+11.5-mpi+mpich", "aarch64-linux-gnu-cxx03-cuda+11.5-mpi+mpich-cuda_platform+sbsa", "aarch64-linux-gnu-cxx11-cuda+11.5-mpi+mpich-cuda_platform+sbsa", "x86_64-linux-gnu-cxx03-cuda+11.6-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+11.6-mpi+mpich", "aarch64-linux-gnu-cxx03-cuda+11.6-mpi+mpich-cuda_platform+sbsa", "aarch64-linux-gnu-cxx11-cuda+11.6-mpi+mpich-cuda_platform+sbsa", "x86_64-linux-gnu-cxx03-cuda+11.7-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+11.7-mpi+mpich", "aarch64-linux-gnu-cxx03-cuda+11.7-mpi+mpich-cuda_platform+sbsa", "aarch64-linux-gnu-cxx11-cuda+11.7-mpi+mpich-cuda_platform+sbsa", "x86_64-linux-gnu-cxx03-cuda+11.8-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+11.8-mpi+mpich", "aarch64-linux-gnu-cxx03-cuda+11.8-mpi+mpich-cuda_platform+jetson", "aarch64-linux-gnu-cxx11-cuda+11.8-mpi+mpich-cuda_platform+jetson", "aarch64-linux-gnu-cxx03-cuda+11.8-mpi+mpich-cuda_platform+sbsa", "aarch64-linux-gnu-cxx11-cuda+11.8-mpi+mpich-cuda_platform+sbsa", "x86_64-linux-gnu-cxx03-cuda+12.0-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+12.0-mpi+mpich", "aarch64-linux-gnu-cxx03-cuda+12.0-mpi+mpich-cuda_platform+jetson", "aarch64-linux-gnu-cxx11-cuda+12.0-mpi+mpich-cuda_platform+jetson", "aarch64-linux-gnu-cxx03-cuda+12.0-mpi+mpich-cuda_platform+sbsa", "aarch64-linux-gnu-cxx11-cuda+12.0-mpi+mpich-cuda_platform+sbsa", "x86_64-linux-gnu-cxx03-cuda+12.1-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+12.1-mpi+mpich", "aarch64-linux-gnu-cxx03-cuda+12.1-mpi+mpich-cuda_platform+jetson", "aarch64-linux-gnu-cxx11-cuda+12.1-mpi+mpich-cuda_platform+jetson", "aarch64-linux-gnu-cxx03-cuda+12.1-mpi+mpich-cuda_platform+sbsa", "aarch64-linux-gnu-cxx11-cuda+12.1-mpi+mpich-cuda_platform+sbsa", "x86_64-linux-gnu-cxx03-cuda+12.2-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+12.2-mpi+mpich", "aarch64-linux-gnu-cxx03-cuda+12.2-mpi+mpich-cuda_platform+jetson", "aarch64-linux-gnu-cxx11-cuda+12.2-mpi+mpich-cuda_platform+jetson", "aarch64-linux-gnu-cxx03-cuda+12.2-mpi+mpich-cuda_platform+sbsa", "aarch64-linux-gnu-cxx11-cuda+12.2-mpi+mpich-cuda_platform+sbsa", "x86_64-linux-gnu-cxx03-cuda+12.3-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+12.3-mpi+mpich", "aarch64-linux-gnu-cxx03-cuda+12.3-mpi+mpich-cuda_platform+sbsa", "aarch64-linux-gnu-cxx11-cuda+12.3-mpi+mpich-cuda_platform+sbsa"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "OpenMPI_jll"
+    platforms = ["x86_64-linux-gnu-cxx03-cuda+11.4-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+11.4-mpi+openmpi", "aarch64-linux-gnu-cxx03-cuda+11.4-mpi+openmpi-cuda_platform+sbsa", "aarch64-linux-gnu-cxx11-cuda+11.4-mpi+openmpi-cuda_platform+sbsa", "x86_64-linux-gnu-cxx03-cuda+11.5-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+11.5-mpi+openmpi", "aarch64-linux-gnu-cxx03-cuda+11.5-mpi+openmpi-cuda_platform+sbsa", "aarch64-linux-gnu-cxx11-cuda+11.5-mpi+openmpi-cuda_platform+sbsa", "x86_64-linux-gnu-cxx03-cuda+11.6-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+11.6-mpi+openmpi", "aarch64-linux-gnu-cxx03-cuda+11.6-mpi+openmpi-cuda_platform+sbsa", "aarch64-linux-gnu-cxx11-cuda+11.6-mpi+openmpi-cuda_platform+sbsa", "x86_64-linux-gnu-cxx03-cuda+11.7-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+11.7-mpi+openmpi", "aarch64-linux-gnu-cxx03-cuda+11.7-mpi+openmpi-cuda_platform+sbsa", "aarch64-linux-gnu-cxx11-cuda+11.7-mpi+openmpi-cuda_platform+sbsa", "x86_64-linux-gnu-cxx03-cuda+11.8-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+11.8-mpi+openmpi", "aarch64-linux-gnu-cxx03-cuda+11.8-mpi+openmpi-cuda_platform+jetson", "aarch64-linux-gnu-cxx11-cuda+11.8-mpi+openmpi-cuda_platform+jetson", "aarch64-linux-gnu-cxx03-cuda+11.8-mpi+openmpi-cuda_platform+sbsa", "aarch64-linux-gnu-cxx11-cuda+11.8-mpi+openmpi-cuda_platform+sbsa", "x86_64-linux-gnu-cxx03-cuda+12.0-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+12.0-mpi+openmpi", "aarch64-linux-gnu-cxx03-cuda+12.0-mpi+openmpi-cuda_platform+jetson", "aarch64-linux-gnu-cxx11-cuda+12.0-mpi+openmpi-cuda_platform+jetson", "aarch64-linux-gnu-cxx03-cuda+12.0-mpi+openmpi-cuda_platform+sbsa", "aarch64-linux-gnu-cxx11-cuda+12.0-mpi+openmpi-cuda_platform+sbsa", "x86_64-linux-gnu-cxx03-cuda+12.1-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+12.1-mpi+openmpi", "aarch64-linux-gnu-cxx03-cuda+12.1-mpi+openmpi-cuda_platform+jetson", "aarch64-linux-gnu-cxx11-cuda+12.1-mpi+openmpi-cuda_platform+jetson", "aarch64-linux-gnu-cxx03-cuda+12.1-mpi+openmpi-cuda_platform+sbsa", "aarch64-linux-gnu-cxx11-cuda+12.1-mpi+openmpi-cuda_platform+sbsa", "x86_64-linux-gnu-cxx03-cuda+12.2-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+12.2-mpi+openmpi", "aarch64-linux-gnu-cxx03-cuda+12.2-mpi+openmpi-cuda_platform+jetson", "aarch64-linux-gnu-cxx11-cuda+12.2-mpi+openmpi-cuda_platform+jetson", "aarch64-linux-gnu-cxx03-cuda+12.2-mpi+openmpi-cuda_platform+sbsa", "aarch64-linux-gnu-cxx11-cuda+12.2-mpi+openmpi-cuda_platform+sbsa", "x86_64-linux-gnu-cxx03-cuda+12.3-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+12.3-mpi+openmpi", "aarch64-linux-gnu-cxx03-cuda+12.3-mpi+openmpi-cuda_platform+sbsa", "aarch64-linux-gnu-cxx11-cuda+12.3-mpi+openmpi-cuda_platform+sbsa"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "5.0.1 - 5"
+    name = "MPItrampoline_jll"
+    platforms = ["x86_64-linux-gnu-cxx03-cuda+11.4-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+11.4-mpi+mpitrampoline", "aarch64-linux-gnu-cxx03-cuda+11.4-mpi+mpitrampoline-cuda_platform+sbsa", "aarch64-linux-gnu-cxx11-cuda+11.4-mpi+mpitrampoline-cuda_platform+sbsa", "x86_64-linux-gnu-cxx03-cuda+11.5-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+11.5-mpi+mpitrampoline", "aarch64-linux-gnu-cxx03-cuda+11.5-mpi+mpitrampoline-cuda_platform+sbsa", "aarch64-linux-gnu-cxx11-cuda+11.5-mpi+mpitrampoline-cuda_platform+sbsa", "x86_64-linux-gnu-cxx03-cuda+11.6-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+11.6-mpi+mpitrampoline", "aarch64-linux-gnu-cxx03-cuda+11.6-mpi+mpitrampoline-cuda_platform+sbsa", "aarch64-linux-gnu-cxx11-cuda+11.6-mpi+mpitrampoline-cuda_platform+sbsa", "x86_64-linux-gnu-cxx03-cuda+11.7-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+11.7-mpi+mpitrampoline", "aarch64-linux-gnu-cxx03-cuda+11.7-mpi+mpitrampoline-cuda_platform+sbsa", "aarch64-linux-gnu-cxx11-cuda+11.7-mpi+mpitrampoline-cuda_platform+sbsa", "x86_64-linux-gnu-cxx03-cuda+11.8-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+11.8-mpi+mpitrampoline", "aarch64-linux-gnu-cxx03-cuda+11.8-mpi+mpitrampoline-cuda_platform+jetson", "aarch64-linux-gnu-cxx11-cuda+11.8-mpi+mpitrampoline-cuda_platform+jetson", "aarch64-linux-gnu-cxx03-cuda+11.8-mpi+mpitrampoline-cuda_platform+sbsa", "aarch64-linux-gnu-cxx11-cuda+11.8-mpi+mpitrampoline-cuda_platform+sbsa", "x86_64-linux-gnu-cxx03-cuda+12.0-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+12.0-mpi+mpitrampoline", "aarch64-linux-gnu-cxx03-cuda+12.0-mpi+mpitrampoline-cuda_platform+jetson", "aarch64-linux-gnu-cxx11-cuda+12.0-mpi+mpitrampoline-cuda_platform+jetson", "aarch64-linux-gnu-cxx03-cuda+12.0-mpi+mpitrampoline-cuda_platform+sbsa", "aarch64-linux-gnu-cxx11-cuda+12.0-mpi+mpitrampoline-cuda_platform+sbsa", "x86_64-linux-gnu-cxx03-cuda+12.1-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+12.1-mpi+mpitrampoline", "aarch64-linux-gnu-cxx03-cuda+12.1-mpi+mpitrampoline-cuda_platform+jetson", "aarch64-linux-gnu-cxx11-cuda+12.1-mpi+mpitrampoline-cuda_platform+jetson", "aarch64-linux-gnu-cxx03-cuda+12.1-mpi+mpitrampoline-cuda_platform+sbsa", "aarch64-linux-gnu-cxx11-cuda+12.1-mpi+mpitrampoline-cuda_platform+sbsa", "x86_64-linux-gnu-cxx03-cuda+12.2-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+12.2-mpi+mpitrampoline", "aarch64-linux-gnu-cxx03-cuda+12.2-mpi+mpitrampoline-cuda_platform+jetson", "aarch64-linux-gnu-cxx11-cuda+12.2-mpi+mpitrampoline-cuda_platform+jetson", "aarch64-linux-gnu-cxx03-cuda+12.2-mpi+mpitrampoline-cuda_platform+sbsa", "aarch64-linux-gnu-cxx11-cuda+12.2-mpi+mpitrampoline-cuda_platform+sbsa", "x86_64-linux-gnu-cxx03-cuda+12.3-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+12.3-mpi+mpitrampoline", "aarch64-linux-gnu-cxx03-cuda+12.3-mpi+mpitrampoline-cuda_platform+sbsa", "aarch64-linux-gnu-cxx11-cuda+12.3-mpi+mpitrampoline-cuda_platform+sbsa"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = true
+    libnames = ["libseqtrace"]
+    type = "lib"
+    variable_name = "libseqtrace"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = true
+    libnames = ["libpttrace"]
+    type = "lib"
+    variable_name = "libpttrace"
+    [[metadata.products]]
+    binnames = ["extrae-cmd"]
+    type = "exe"
+    variable_name = "extrae_cmd"
+    [[metadata.products]]
+    binnames = ["extrae-header"]
+    type = "exe"
+    variable_name = "extrae_header"
+    [[metadata.products]]
+    binnames = ["extrae-loader"]
+    type = "exe"
+    variable_name = "extrae_loader"
+    [[metadata.products]]
+    binnames = ["mpi2prv"]
+    type = "exe"
+    variable_name = "mpi2prv"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = true
+    libnames = ["libcudatrace"]
+    type = "lib"
+    variable_name = "libcudatrace"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = true
+    libnames = ["libptcudatrace"]
+    type = "lib"
+    variable_name = "libptcudatrace"
+    [[metadata.products]]
+    binnames = ["mpimpi2prv"]
+    type = "exe"
+    variable_name = "mpimpi2prv"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = true
+    libnames = ["libmpitrace"]
+    type = "lib"
+    variable_name = "libmpitrace"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = true
+    libnames = ["libptmpitrace"]
+    type = "lib"
+    variable_name = "libptmpitrace"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = true
+    libnames = ["libcudampitrace"]
+    type = "lib"
+    variable_name = "libcudampitrace"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = true
+    libnames = ["libptcudampitrace"]
+    type = "lib"
+    variable_name = "libptcudampitrace"
+
+    [[metadata.sources]]
+    hash = "7b83a1ed008440bbc1bda88297d2d0e9256780db1cf8401b3c12718451f8919a"
+    type = "archive"
+    unpack_target = ""
+    url = "https://ftp.tools.bsc.es/extrae/extrae-4.2.0-src.tar.bz2"
+    [[metadata.sources]]
+    follow_symlinks = false
+    path = "/tmp/jl_b2Sqoe/E/Extrae/bundled"
+    target = ""
+    type = "directory"

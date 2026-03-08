@@ -1,0 +1,59 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/5b821c18bdfda13a55031dcc91ff5a8ec56b28fd/L/lrslib/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.3.1"
+
+[metadata]
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "lrslib"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/lrslib*\nextraargs=\"\"\ncflags=\"-fPIC -O3 -Wall\"\n\n# 32bit linux, arm and windows:\nif [[ $target == i686* ]] || [[ $target == arm* ]]; then\n  # no 128 bit ... patch makefile\n  atomic_patch -p1 ../patches/no128bit.patch\nfi\n\nif [[ $target == *apple* ]]; then\n  export CC=gcc\n  sed -i -e 's#-Wl,-soname=#-install_name #' makefile\n  extraargs=\"SONAME=liblrs.0.dylib SHLINK=liblrs.dylib SHLIB=liblrs.0.0.0.dylib\"\nelif [[ $target == *freebsd* ]]; then\n  export CC=\"gcc\"\nelif [[ $target == *mingw* ]]; then\n  extraargs=\"SONAME=liblrs-0.dll SHLINK=liblrs.dll SHLIB=liblrs-0-0-0.dll\"\n  cflags=\"$cflags -DSIGNALS -DTIMES\"\nfi\n\nmake prefix=$prefix INCLUDEDIR=$prefix/include LIBDIR=${libdir} CFLAGS=\"$cflags\" $extraargs -j ${nproc} install\nif [[ $target == *mingw* ]]; then\n  # rename binaries and move libraries\n  for file in ${bindir}/{lrs,lrsnash,redund}; do mv $file $file.exe; done\n  mv ${prefix}/lib/*lrs*.dll ${libdir}/\nfi\n\n${CC} -shared ${cflags} -o \"${libdir}/liblrsnash.${dlext}\" lrsnashlib.c -L${libdir} -llrs -lgmp -Wl,-rpath,${libdir} -DMA -DGMP -DLRS_QUIET -I${includedir}\n"""
+version = "v0.2.0"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "GMP_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    binnames = ["lrs"]
+    type = "exe"
+    variable_name = "lrs"
+    [[metadata.products]]
+    binnames = ["lrsnash"]
+    type = "exe"
+    variable_name = "lrsnash"
+    [[metadata.products]]
+    binnames = ["redund"]
+    type = "exe"
+    variable_name = "redund"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["liblrs"]
+    type = "lib"
+    variable_name = "liblrs"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["liblrsnash"]
+    type = "lib"
+    variable_name = "liblrsnash"
+
+    [[metadata.sources]]
+    hash = "d8b723a2c315614979a8354f9e768d273d14a215"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/JuliaPolyhedra/lrslib.git"
+    [[metadata.sources]]
+    follow_symlinks = false
+    path = "./bundled"
+    target = ""
+    type = "directory"
