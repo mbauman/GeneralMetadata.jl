@@ -1,0 +1,42 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/01c194bff96e3e111d5f7251942c6c9d8c2080b6/./C/Coin-OR/CSDP/build_tarballs.jl"
+metadata_source = "retrospective (by timestamp)"
+system = "Yggdrasil"
+version = "0.2.4"
+
+[metadata]
+lazy_artifacts = false
+name = "CSDP"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/Csdp*\n\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/blegat.patch\n\nCFLAGS=\"-O2 -fPIC -ansi -Wall -DUSEGETTIME -I../include\"\nif [[ \"${target}\" != *mingw* ]]; then\n    CFLAGS+=\" -fopenmp -DUSEOPENMP -DSETNUMTHREADS\"\nfi\nLIBS=\"-L../lib -lsdp -lopenblas -lm\"\n\nif [[ \"${nbits}\" == 64 ]] && [[ \"${target}\" != *aarch64* ]]; then\n    CFLAGS=\"$CFLAGS -m64 -DBIT64\"\nfi\n\nif [[ \"${target}\" == *-freebsd* ]] || [[ \"${target}\" == *-apple-* ]]; then\n    CC=gcc\nfi\n\nmake CFLAGS=\"$CFLAGS\" LIBS=\"$LIBS\" CC=\"$CC\"\nmake install\n\ncd lib\n\nall_load=\"--whole-archive\"\nnoall_load=\"--no-whole-archive\"\nif [[ \"${target}\" == *-apple-* ]]; then\n  all_load=\"-all_load\"\n  noall_load=\"-noall_load\"\nfi\n\nmkdir -p ${libdir}\nif [[ \"${target}\" != *mingw* ]]; then\n   ${CC} -fopenmp -fPIC -shared -Wl,${all_load} libsdp.a -Wl,${noall_load} -o ${libdir}/libcsdp.${dlext} -lgomp -lopenblas -lm\nelse\n   ${CC} -fPIC -shared -Wl,${all_load} libsdp.a -Wl,${noall_load} -o ${libdir}/libcsdp.${dlext} -lopenblas -lm\nfi\n"""
+version = "v6.2.0"
+
+    [[metadata.dependencies]]
+    name = "OpenBLAS32_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    name = "CompilerSupportLibraries_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libcsdp"]
+    type = "lib"
+    variable_name = "libcsdp"
+
+    [[metadata.sources]]
+    hash = "0dcf187a159c365b6d4e4e0ed5849f7b706da408"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/coin-or/Csdp.git"
+    [[metadata.sources]]
+    path = "./bundled"
+    target = ""
+    type = "directory"

@@ -1,0 +1,46 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/8cd226c8749be8a40b0d19db706b11be05e77ff7/./C/Coin-OR/CSDP/build_tarballs.jl"
+metadata_source = "retrospective (by timestamp)"
+system = "Yggdrasil"
+version = "0.2.4"
+
+[metadata]
+lazy_artifacts = false
+name = "CSDP"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/Csdp*\n\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/blegat.patch\"\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/makefile.patch\"\n\nif [[ ${nbits} == 32 ]] || [[ \"${target}\" == arm* ]] || [[ \"${target}\" == aarch* ]]; then\n    atomic_patch -p1 \"${WORKSPACE}/srcdir/patches/32bits_aarch_arm.patch\"\nfi\n\nif [[ \"${target}\" == *-freebsd* ]] || [[ \"${target}\" == *-apple-* ]]; then\n    atomic_patch -p1 \"${WORKSPACE}/srcdir/patches/mac_freebsd.patch\"\nfi\n\nmake\nmake install\nmkdir -p ${bindir}\ncp /usr/local/bin/csdp ${bindir}/csdp\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    mv \"${bindir}/csdp\" \"${bindir}/csdp${exeext}\"\nfi\n\nmkdir -p ${libdir}\n\ncd lib\nar x libsdp.a\n${CC} -shared -o \"${libdir}/libcsdp.${dlext}\" libsdp.a\nrm *.o\n"""
+version = "v6.2.0"
+
+    [[metadata.dependencies]]
+    name = "OpenBLAS32_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    name = "CompilerSupportLibraries_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    binnames = ["csdp"]
+    type = "exe"
+    variable_name = "csdp"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libcsdp"]
+    type = "lib"
+    variable_name = "libcsdp"
+
+    [[metadata.sources]]
+    hash = "0dcf187a159c365b6d4e4e0ed5849f7b706da408"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/coin-or/Csdp.git"
+    [[metadata.sources]]
+    path = "./bundled"
+    target = ""
+    type = "directory"
