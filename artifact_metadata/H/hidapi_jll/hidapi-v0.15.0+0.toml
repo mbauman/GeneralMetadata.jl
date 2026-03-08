@@ -1,0 +1,38 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/7d27ed0c0ad369e973a15be755fa496657bf5d76/H/hidapi/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.6.4"
+
+[metadata]
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "hidapi"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/\nmkdir build\ncd build\n\nif [[ ${target} == *-linux-* ]]; then\n    # We need this only to trick `configure` into thinking that udev is available,\n    # but we aren't going to actually use it\n    apk add eudev-dev\n    linuxflags=\"-DHIDAPI_WITH_HIDRAW=false\"\nfi\n\ncmake  \\\n    ../hidapi \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DBUILD_SHARED_LIBS=ON \\\n    ${linuxflags} \\\n    ..\n\ncmake --build . --parallel ${nproc} --target install\ninstall_license ../hidapi/LICENSE*.txt\n"""
+version = "v0.15.0"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "libusb_jll"
+    platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libhidapi", "libhidapi-libusb"]
+    type = "lib"
+    variable_name = "hidapi"
+
+    [[metadata.sources]]
+    hash = "d6b2a974608dec3b76fb1e36c189f22b9cf3650c"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/libusb/hidapi.git"

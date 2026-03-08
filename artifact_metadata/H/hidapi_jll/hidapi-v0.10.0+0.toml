@@ -1,0 +1,34 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/2a0a6866d83faaecfc923626c52f843ac2c0a7da/H/hidapi/build_tarballs.jl"
+metadata_source = "retrospective (by timestamp)"
+system = "Yggdrasil"
+version = "0.3.0"
+
+[metadata]
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "hidapi"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/hidapi/\n\nif [[ ${target} == *-linux-* ]]; then\n    # We need this only to trick `configure` into thinking that udev is available,\n    # but we aren't going to actually use it\n    apk add eudev-dev\nfi\n\n./bootstrap\n./configure --prefix=${prefix} --host=${target} --build=${MACHTYPE}\n# Install all license files\ninstall_license LICENSE*.txt\n\nif [[ ${target} == *-mingw* ]]; then\n    cd windows\nelif [[ ${target} == *-apple-* ]]; then\n    cd mac\nelse\n    cd libusb\nfi\n\nmake -j${nproc}\nmake install\n"""
+version = "v0.10.0"
+
+    [[metadata.dependencies]]
+    name = "libusb_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libhidapi", "libhidapi-libusb"]
+    type = "lib"
+    variable_name = "hidapi"
+
+    [[metadata.sources]]
+    hash = "302d1f24018d5a4a480f92a72307616f88d97651"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/libusb/hidapi.git"
