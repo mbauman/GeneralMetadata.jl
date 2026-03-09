@@ -1,0 +1,48 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/3172f049ac3c5ff68436589e90ebdd20b7a77ea6/M/MbedTLS/MbedTLS@2.26.0/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.5.5"
+
+[metadata]
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.7"
+lazy_artifacts = false
+name = "MbedTLS"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """shopt -s nullglob\ncd $WORKSPACE/srcdir/mbedtls\n\n# llvm-ranlib gets confused, use the binutils one\nif [[ \"${target}\" == *apple* ]]; then\n    ln -sf /opt/${target}/bin/${target}-ranlib /opt/bin/ranlib\n    ln -sf /opt/${target}/bin/${target}-ranlib /opt/bin/${target}-ranlib\n    atomic_patch -p1 \"${WORKSPACE}/srcdir/patches/conditional/0001-Remove-flags-not-supported-by-ranlib.patch\"\nfi\n\n# Apply patches that differ depending on the version of MbedTLS that we're building\nfor f in ${WORKSPACE}/srcdir/patches/*.patch; do\n    atomic_patch -p1 \"${f}\"\ndone\n\n# enable MD4\nsed \"s|//#define MBEDTLS_MD4_C|#define MBEDTLS_MD4_C|\" -i include/mbedtls/config.h\n\nmkdir build && cd build\ncmake -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=\"${CMAKE_TARGET_TOOLCHAIN}\" \\\n    -DCMAKE_C_STANDARD=99 \\\n    -DUSE_SHARED_MBEDTLS_LIBRARY=On \\\n    -DMBEDTLS_FATAL_WARNINGS=OFF \\\n    -DENABLE_TESTING=OFF \\\n    ..\nmake -j${nproc}\nmake install\n\nif [[ \"${target}\" == *mingw* ]]; then\n    # For some reason, the build system doesn't set the `.dll` files as\n    # executable, which prevents them from being loaded.  Also, we need\n    # to explicitly use `${prefix}/lib` here because the build system\n    # is a simple one, and blindly uses `/lib`, even on Windows.\n    chmod +x ${prefix}/lib/*.dll\nfi\n"""
+version = "v2.26.0"
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libmbedcrypto"]
+    type = "lib"
+    variable_name = "libmbedcrypto"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libmbedx509"]
+    type = "lib"
+    variable_name = "libmbedx509"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libmbedtls"]
+    type = "lib"
+    variable_name = "libmbedtls"
+
+    [[metadata.sources]]
+    hash = "e483a77c85e1f9c1dd2eb1c5a8f552d2617fe400"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/ARMmbed/mbedtls.git"
+    [[metadata.sources]]
+    follow_symlinks = true
+    path = "./bundled"
+    target = ""
+    type = "directory"
