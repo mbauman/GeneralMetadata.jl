@@ -1,0 +1,73 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/eeec17a95c001fd9d8ddf9a04dab90958c84a7b1/Q/Qt6ShaderTools/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.6.3"
+
+[metadata]
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Qt6ShaderTools"
+platforms = ["x86_64-apple-darwin", "aarch64-apple-darwin", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11", "i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-unknown-freebsd"]
+script = """cd $WORKSPACE/srcdir\n\nmkdir build\ncd build/\nqtsrcdir=`ls -d ../qtshadertools-*`\n\nif [[ \"${target}\" == *apple-darwin* ]]; then\n    apple_sdk_root=$WORKSPACE/srcdir/MacOSX14.0.sdk\n    sed -i \"s!/opt/$target/$target/sys-root!$apple_sdk_root!\" $CMAKE_TARGET_TOOLCHAIN\n    sed -i \"s!/opt/$target/$target/sys-root!$apple_sdk_root!\" /opt/bin/$bb_full_target/$target-clang++\n    export MACOSX_DEPLOYMENT_TARGET=12\nfi\n\ncase \"$bb_full_target\" in\n\n    x86_64-linux-musl-libgfortran5-cxx11)\n        cmake -DCMAKE_INSTALL_PREFIX=${prefix} -DCMAKE_FIND_ROOT_PATH=$prefix -DCMAKE_BUILD_TYPE=Release $qtsrcdir\n    ;;\n\n    *mingw*)        \n        cd $WORKSPACE/srcdir/mingw*/mingw-w64-headers\n        ./configure --prefix=/opt/$target/$target/sys-root --enable-sdk=all --host=$target\n        make install\n        \n        cd ../mingw-w64-crt/\n        if [ ${target} == \"i686-w64-mingw32\" ]; then\n            _crt_configure_args=\"--disable-lib64 --enable-lib32\"\n        elif [ ${target} == \"x86_64-w64-mingw32\" ]; then\n            _crt_configure_args=\"--disable-lib32 --enable-lib64\"\n        fi\n        ./configure --prefix=/opt/$target/$target/sys-root --enable-sdk=all --host=$target --enable-wildcard ${_crt_configure_args}\n        make -j${nproc}\n        make install\n        \n        cd ../mingw-w64-libraries/winpthreads\n        ./configure --prefix=/opt/$target/$target/sys-root --host=$target --enable-static --enable-shared\n        make -j${nproc}\n        make install\n\n        cd $WORKSPACE/srcdir/build\n        cmake -DQT_HOST_PATH=$host_prefix -DCMAKE_INSTALL_PREFIX=${prefix} -DCMAKE_FIND_ROOT_PATH=$prefix -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} -DCMAKE_BUILD_TYPE=Release $qtsrcdir\n    ;;\n\n    *)\n        cmake -G Ninja -DQT_HOST_PATH=$host_prefix -DCMAKE_INSTALL_PREFIX=${prefix} -DCMAKE_FIND_ROOT_PATH=$prefix -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} -DQT_NO_APPLE_SDK_AND_XCODE_CHECK=ON -DCMAKE_BUILD_TYPE=Release $qtsrcdir\n    ;;\n\nesac\n\ncmake --build . --parallel ${nproc}\ncmake --install .\ninstall_license $WORKSPACE/srcdir/qt*-src-*/LICENSES/LGPL-3.0-only.txt\n"""
+version = "v6.8.2"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Qt6Base_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "hostdependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "=6.8.2"
+    name = "Qt6Base_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Qt6ShaderTools_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "hostdependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["QtShaderTools"]
+    type = "framework"
+    variable_name = "libqt6shadertools"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["Qt6ShaderTools", "libQt6ShaderTools", "QtShaderTools"]
+    type = "lib"
+    variable_name = "libqt6shadertools"
+
+    [[metadata.sources]]
+    hash = "d1d5f90e8885fc70d63ac55a4ce4d9a2688562033a000bc4aff9320f5f551871"
+    type = "archive"
+    unpack_target = ""
+    url = "https://download.qt.io/official_releases/qt/6.8/6.8.2/submodules/qtshadertools-everywhere-src-6.8.2.tar.xz"
+    [[metadata.sources]]
+    hash = "3f66bce069ee8bed7439a1a13da7cb91a5e67ea6170f21317ac7f5794625ee10"
+    type = "archive"
+    unpack_target = ""
+    url = "https://sourceforge.net/projects/mingw-w64/files/mingw-w64/mingw-w64-release/mingw-w64-v11.0.1.tar.bz2"
+    [[metadata.sources]]
+    hash = "4a31565fd2644d1aec23da3829977f83632a20985561a2038e198681e7e7bf49"
+    type = "archive"
+    unpack_target = ""
+    url = "https://github.com/roblabla/MacOSX-SDKs/releases/download/macosx14.0/MacOSX14.0.sdk.tar.xz"
