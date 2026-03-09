@@ -1,0 +1,122 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/d414e77c073a44484d410d22029cc297c3edc2d7/G/Ghostscript/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.5.0"
+
+[metadata]
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Ghostscript"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/ghostscript*\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    # Patches adapted from\n    # https://github.com/msys2/MINGW-packages/tree/d87e68ae356d773901e5c477854312e5de0548cf/mingw-w64-ghostscript\n    # (we don't need to patch configure.ac)\n    atomic_patch -p1 ../patches/001-mingw-build.patch\n    atomic_patch -p1 ../patches/003-libspectre.patch\nfi\n\n# Specify the native compiler for the programs that need to be run on the host\nexport CCAUX=${CC_BUILD}\n\n# configure the Makefiles.  Note we disable Tesseract because we don't need it\n# at the moment, it requires a C++17 compiler, and configure for Windows fails\n# because it doesn't find \"threading\".\n./configure --prefix=${prefix} \\\n    --build=${MACHTYPE} \\\n    --host=${target} \\\n    --without-x \\\n    --disable-contrib \\\n    --disable-cups \\\n    --without-tesseract\n\n# create the binaries\nmake -j${nproc}\n\n# install to prefixes\nmake install\n"""
+version = "v9.55.0"
+
+    [[metadata.products]]
+    binnames = ["gs"]
+    type = "exe"
+    variable_name = "gs"
+    [[metadata.products]]
+    paths = ["bin/dvipdf"]
+    type = "file"
+    variable_name = "dvipdf"
+    [[metadata.products]]
+    paths = ["bin/eps2eps"]
+    type = "file"
+    variable_name = "eps2eps"
+    [[metadata.products]]
+    paths = ["bin/gsbj"]
+    type = "file"
+    variable_name = "gsbj"
+    [[metadata.products]]
+    paths = ["bin/gsdj"]
+    type = "file"
+    variable_name = "gsdj"
+    [[metadata.products]]
+    paths = ["bin/gsdj500"]
+    type = "file"
+    variable_name = "gsdj500"
+    [[metadata.products]]
+    paths = ["bin/gslj"]
+    type = "file"
+    variable_name = "gslj"
+    [[metadata.products]]
+    paths = ["bin/gslp"]
+    type = "file"
+    variable_name = "gslp"
+    [[metadata.products]]
+    paths = ["bin/gsnd"]
+    type = "file"
+    variable_name = "gsnd"
+    [[metadata.products]]
+    paths = ["bin/pdf2dsc"]
+    type = "file"
+    variable_name = "pdf2dsc"
+    [[metadata.products]]
+    paths = ["bin/pdf2ps"]
+    type = "file"
+    variable_name = "pdf2ps"
+    [[metadata.products]]
+    paths = ["bin/pf2afm"]
+    type = "file"
+    variable_name = "pf2afm"
+    [[metadata.products]]
+    paths = ["bin/pfbtopfa"]
+    type = "file"
+    variable_name = "pfbtopfa"
+    [[metadata.products]]
+    paths = ["bin/pphs"]
+    type = "file"
+    variable_name = "pphs"
+    [[metadata.products]]
+    paths = ["bin/printafm"]
+    type = "file"
+    variable_name = "printafm"
+    [[metadata.products]]
+    paths = ["bin/ps2ascii"]
+    type = "file"
+    variable_name = "ps2ascii"
+    [[metadata.products]]
+    paths = ["bin/ps2epsi"]
+    type = "file"
+    variable_name = "ps2epsi"
+    [[metadata.products]]
+    paths = ["bin/ps2pdf"]
+    type = "file"
+    variable_name = "ps2pdf"
+    [[metadata.products]]
+    paths = ["bin/ps2pdf12"]
+    type = "file"
+    variable_name = "ps2pdf12"
+    [[metadata.products]]
+    paths = ["bin/ps2pdf13"]
+    type = "file"
+    variable_name = "ps2pdf13"
+    [[metadata.products]]
+    paths = ["bin/ps2pdf14"]
+    type = "file"
+    variable_name = "ps2pdf14"
+    [[metadata.products]]
+    paths = ["bin/ps2pdfwr"]
+    type = "file"
+    variable_name = "ps2pdfwr"
+    [[metadata.products]]
+    paths = ["bin/ps2ps"]
+    type = "file"
+    variable_name = "ps2ps"
+    [[metadata.products]]
+    paths = ["bin/ps2ps2"]
+    type = "file"
+    variable_name = "ps2ps2"
+
+    [[metadata.sources]]
+    hash = "31e2064be67e15b478a8da007d96d6cd4d2bee253e5be220703a225f7f79a70b"
+    type = "archive"
+    unpack_target = ""
+    url = "https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs9550/ghostscript-9.55.0.tar.gz"
+    [[metadata.sources]]
+    follow_symlinks = false
+    path = "./bundled"
+    target = ""
+    type = "directory"

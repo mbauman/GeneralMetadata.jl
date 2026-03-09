@@ -1,0 +1,56 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/b8cf9dbe8cd45816a34087c862744c5528834e38/T/TDLib/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.6.4"
+
+[metadata]
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "TDLib"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11"]
+script = """cd td/\ninstall_license LICENSE_1_0.txt\nsed -i 's|TD_HAS_MMSG 1|TD_HAS_MMSG 0|' tdutils/td/utils/port/config.h  # otherwise not compatible with old glibc\nmkdir build\ncd build\ncmake -DCMAKE_BUILD_TYPE=Release -DZLIB_LIBRARY=$libdir -DZLIB_INCLUDE_DIR=$includedir ..\nfor f in $(grep -l $(find . -name link.txt) -e 'opt/bin\\S*/c++')\ndo\n    # without this flag it cannot find libz\n    sed -i ' 1 s/$/ -lz/' $f\ndone\ncmake --build . -j${nproc}\ncp libtdjson.${dlext} $libdir/libtdjson.${dlext}\n"""
+version = "v1.8.46"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "gperf_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "hostdependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "1.1.10"
+    name = "OpenSSL_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Zlib_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libtdjson"]
+    type = "lib"
+    variable_name = "libtdjson"
+
+    [[metadata.sources]]
+    hash = "207f3be7b58b2a2b9f0a066b5b6ef18782b8b517"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/tdlib/td.git"

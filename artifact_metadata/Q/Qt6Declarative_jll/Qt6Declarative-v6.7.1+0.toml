@@ -1,0 +1,245 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/f290fdf622d7f25b2fa046935c1e10c150801431/Q/Qt6Declarative/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.5.8"
+
+[metadata]
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Qt6Declarative"
+platforms = ["x86_64-linux-musl-cxx11"]
+script = """cd $WORKSPACE/srcdir\n\nmkdir build\ncd build/\nqtsrcdir=`ls -d ../qtdeclarative-*`\n\ncase \"$bb_full_target\" in\n\n    x86_64-linux-musl-libgfortran5-cxx11)\n        cmake -DCMAKE_INSTALL_PREFIX=${prefix} -DCMAKE_FIND_ROOT_PATH=$prefix -DCMAKE_BUILD_TYPE=Release $qtsrcdir\n    ;;\n\n    *mingw*)        \n        cd $WORKSPACE/srcdir/mingw*/mingw-w64-headers\n        ./configure --prefix=/opt/$target/$target/sys-root --enable-sdk=all --host=$target\n        make install\n        \n        cd ../mingw-w64-crt/\n        if [ ${target} == \"i686-w64-mingw32\" ]; then\n            _crt_configure_args=\"--disable-lib64 --enable-lib32\"\n        elif [ ${target} == \"x86_64-w64-mingw32\" ]; then\n            _crt_configure_args=\"--disable-lib32 --enable-lib64\"\n        fi\n        ./configure --prefix=/opt/$target/$target/sys-root --enable-sdk=all --host=$target --enable-wildcard ${_crt_configure_args}\n        make -j${nproc}\n        make install\n        \n        cd ../mingw-w64-libraries/winpthreads\n        ./configure --prefix=/opt/$target/$target/sys-root --host=$target --enable-static --enable-shared\n        make -j${nproc}\n        make install\n\n        cd $WORKSPACE/srcdir/build\n        cmake -DQT_HOST_PATH=$host_prefix \\\n            -DPython_ROOT_DIR=/usr \\\n            -DCMAKE_INSTALL_PREFIX=${prefix} \\\n            -DCMAKE_PREFIX_PATH=$host_prefix \\\n            -DCMAKE_FIND_ROOT_PATH=$prefix \\\n            -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n            -DCMAKE_BUILD_TYPE=Release \\\n        $qtsrcdir\n    ;;\n\n    *apple-darwin*)\n        apple_sdk_root=$WORKSPACE/srcdir/MacOSX13.3.sdk\n        sed -i \"s!/opt/x86_64-apple-darwin14/x86_64-apple-darwin14/sys-root!$apple_sdk_root!\" $CMAKE_TARGET_TOOLCHAIN\n        cmake -DQT_HOST_PATH=$host_prefix \\\n        -DPython_ROOT_DIR=/usr \\\n        -DCMAKE_INSTALL_PREFIX=${prefix} \\\n        -DCMAKE_PREFIX_PATH=$host_prefix \\\n        -DCMAKE_FIND_ROOT_PATH=$prefix \\\n        -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n        -DCMAKE_SYSROOT=$apple_sdk_root -DCMAKE_FRAMEWORK_PATH=$apple_sdk_root/System/Library/Frameworks -DCMAKE_OSX_DEPLOYMENT_TARGET=11 \\\n        -DCMAKE_BUILD_TYPE=Release \\\n        $qtsrcdir\n    ;;\n\n    *)\n        cmake -DQT_HOST_PATH=$host_prefix \\\n        -DPython_ROOT_DIR=/usr \\\n        -DCMAKE_INSTALL_PREFIX=${prefix} \\\n        -DCMAKE_PREFIX_PATH=$host_prefix \\\n        -DCMAKE_FIND_ROOT_PATH=$prefix \\\n        -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n        -DCMAKE_BUILD_TYPE=Release \\\n        $qtsrcdir\n    ;;\n\nesac\n\ncmake --build . --parallel ${nproc}\ncmake --install .\ninstall_license $WORKSPACE/srcdir/qt*-src-*/LICENSES/LGPL-3.0-only.txt\n"""
+version = "v6.7.1"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Qt6Base_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "hostdependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Qt6ShaderTools_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "hostdependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "=6.7.1"
+    name = "Qt6Base_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "=6.7.1"
+    name = "Qt6ShaderTools_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Vulkan_Headers_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "builddependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["Qt6Qml", "libQt6Qml", "QtQml"]
+    type = "lib"
+    variable_name = "libqt6qml"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["Qt6QmlModels", "libQt6QmlModels", "QtQmlModels"]
+    type = "lib"
+    variable_name = "libqt6qmlmodels"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["Qt6QmlCore", "libQt6QmlCore", "QtQmlCore"]
+    type = "lib"
+    variable_name = "libqt6qmlcore"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["Qt6QmlWorkerScript", "libQt6QmlWorkerScript", "QtQmlWorkerScript"]
+    type = "lib"
+    variable_name = "libqt6qmlworkerscript"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["Qt6QmlLocalStorage", "libQt6QmlLocalStorage", "QtQmlLocalStorage"]
+    type = "lib"
+    variable_name = "libqt6qmllocalstorage"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["Qt6QmlXmlListModel", "libQt6QmlXmlListModel", "QtQmlXmlListModel"]
+    type = "lib"
+    variable_name = "libqt6qmlxmllistmodel"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["Qt6Quick", "libQt6Quick", "QtQuick"]
+    type = "lib"
+    variable_name = "libqt6quick"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["Qt6QuickLayouts", "libQt6QuickLayouts", "QtQuickLayouts"]
+    type = "lib"
+    variable_name = "libqt6quicklayouts"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["Qt6QuickTest", "libQt6QuickTest", "QtQuickTest"]
+    type = "lib"
+    variable_name = "libqt6quicktest"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["Qt6QuickParticles", "libQt6QuickParticles", "QtQuickParticles"]
+    type = "lib"
+    variable_name = "libqt6quickparticles"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["Qt6QuickShapes", "libQt6QuickShapes", "QtQuickShapes"]
+    type = "lib"
+    variable_name = "libqt6quickshapes"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["Qt6QuickWidgets", "libQt6QuickWidgets", "QtQuickWidgets"]
+    type = "lib"
+    variable_name = "libqt6quickwidgets"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["Qt6QuickTemplates2", "libQt6QuickTemplates2", "QtQuickTemplates2"]
+    type = "lib"
+    variable_name = "libqt6quicktemplates2"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["Qt6QuickControls2Impl", "libQt6QuickControls2Impl", "QtQuickControls2Impl"]
+    type = "lib"
+    variable_name = "libqt6quickcontrols2impl"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["Qt6QuickControls2", "libQt6QuickControls2", "QtQuickControls2"]
+    type = "lib"
+    variable_name = "libqt6quickcontrols2"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["Qt6QuickDialogs2Utils", "libQt6QuickDialogs2Utils", "QtQuickDialogs2Utils"]
+    type = "lib"
+    variable_name = "libqt6quickdialogs2utils"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["Qt6QuickDialogs2QuickImpl", "libQt6QuickDialogs2QuickImpl", "QtQuickDialogs2QuickImpl"]
+    type = "lib"
+    variable_name = "libqt6quickdialogs2quickimpl"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["Qt6QuickDialogs2", "libQt6QuickDialogs2", "QtQuickDialogs2"]
+    type = "lib"
+    variable_name = "libqt6quickdialogs2"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["Qt6LabsSettings", "libQt6LabsSettings", "QtLabsSettings"]
+    type = "lib"
+    variable_name = "libqt6labssettings"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["Qt6LabsQmlModels", "libQt6LabsQmlModels", "QtLabsQmlModels"]
+    type = "lib"
+    variable_name = "libqt6labsqmlmodels"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["Qt6LabsFolderListModel", "libQt6LabsFolderListModel", "QtLabsFolderListModel"]
+    type = "lib"
+    variable_name = "libqt6labsfolderlistmodel"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["Qt6LabsAnimation", "libQt6LabsAnimation", "QtLabsAnimation"]
+    type = "lib"
+    variable_name = "libqt6labsanimation"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["Qt6LabsWavefrontMesh", "libQt6LabsWavefrontMesh", "QtLabsWavefrontMesh"]
+    type = "lib"
+    variable_name = "libqt6labswavefrontmesh"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["Qt6LabsSharedImage", "libQt6LabsSharedImage", "QtLabsSharedImage"]
+    type = "lib"
+    variable_name = "libqt6labssharedimage"
+
+    [[metadata.sources]]
+    hash = "81135c96ed2f599385b8a68c57f4f438dad193c62f946f5b200a321558fd9f1c"
+    type = "archive"
+    unpack_target = ""
+    url = "https://download.qt.io/official_releases/qt/6.7/6.7.1/submodules/qtdeclarative-everywhere-src-6.7.1.tar.xz"
+    [[metadata.sources]]
+    hash = "e5d0f958a079106234b3a840f93653308a76d3dcea02d3aa8f2841f8df33050c"
+    type = "archive"
+    unpack_target = ""
+    url = "https://github.com/roblabla/MacOSX-SDKs/releases/download/13.3/MacOSX13.3.sdk.tar.xz"
+    [[metadata.sources]]
+    hash = "ba6b430aed72c63a3768531f6a3ffc2b0fde2c57a3b251450dcf489a894f0894"
+    type = "archive"
+    unpack_target = ""
+    url = "https://sourceforge.net/projects/mingw-w64/files/mingw-w64/mingw-w64-release/mingw-w64-v10.0.0.tar.bz2"
