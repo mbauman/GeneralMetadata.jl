@@ -223,7 +223,7 @@ function metadata_for_jll_release(org, repo, release)
         # Now find the version of BinaryBuilder/Julia to run
         if isfile(".ci/Manifest.toml")
             manifest = TOML.parsefile(".ci/Manifest.toml")
-            proj = ".ci"
+            proj = abspath(".ci")
             if haskey(manifest, "julia_version")
                 julia_version = majorminor(VersionNumber(manifest["julia_version"])) # ignore patch versions for these
             elseif isfile(".ci/azp_agent/install_agents.sh")
@@ -270,7 +270,9 @@ function metadata_for_jll_release(org, repo, release)
                 @warn "got error during Pkg.instantiate() for $proj at $commit, output was:\n\n$output"
             end
             @info "julia +$julia_version --project=$proj $buildscript --meta-json=...'"
-            run(`julia +$julia_version --project=$proj $buildscript --meta-json=$path`)
+            cd(dirname(buildscript)) do
+                run(`julia +$julia_version --project=$proj $(basename(buildscript)) --meta-json=$path`)
+            end
             drop_nothings(merge_json_objects(JSON.parse(io, jsonlines=true)))
         end
         bb_version = begin
