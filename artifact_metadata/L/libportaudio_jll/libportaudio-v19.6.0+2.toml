@@ -1,0 +1,35 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/74959feb52e7917dd206ccfde5cf0c00acb191bd/L/libportaudio/build_tarballs.jl"
+metadata_source = "retrospective (by timestamp)"
+system = "Yggdrasil"
+version = "0.2.3"
+
+[metadata]
+lazy_artifacts = false
+name = "libportaudio"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir\n\n# move the ASIO SDK to where CMake can find it\nif [ -d \"asiosdk2.3.1\" ]; then\n    mv \"asiosdk2.3.1 svnrev312937/ASIOSDK2.3.1\" asiosdk2.3.1\nfi\n\n# apply the patch\npatch -dportaudio -p1 < portaudio_alsa_epipe_v3.diff\n\n# First, build libportaudio\nmkdir build\ncd build\ncmake -DCMAKE_INSTALL_PREFIX=$prefix \\\n    -DCMAKE_TOOLCHAIN_FILE=\"${CMAKE_TARGET_TOOLCHAIN}\" \\\n    -DCMAKE_DISABLE_FIND_PACKAGE_PkgConfig=ON \\\n    -DCMAKE_FIND_ROOT_PATH=$prefix \\\n    ../portaudio/\nmake\nmake install\ninstall_license \"${WORKSPACE}/srcdir/portaudio/LICENSE.txt\"\n"""
+version = "v19.6.0"
+
+    [[metadata.dependencies]]
+    name = "alsa_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dont_dlopen = false
+    libnames = ["libportaudio"]
+    type = "lib"
+    variable_name = "libportaudio"
+
+    [[metadata.sources]]
+    hash = "f5a21d7dcd6ee84397446fa1fa1a0675bb2e8a4a6dceb4305a8404698d8d1513"
+    type = "archive"
+    unpack_target = ""
+    url = "http://portaudio.com/archives/pa_stable_v190600_20161030.tgz"
+    [[metadata.sources]]
+    path = "./bundled"
+    target = ""
+    type = "directory"

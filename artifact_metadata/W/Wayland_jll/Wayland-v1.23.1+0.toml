@@ -1,0 +1,126 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/6165cef0429758b2a984822e70d2f7a90a7d4bed/W/Wayland/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.6.4"
+
+[metadata]
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Wayland"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd"]
+script = """cd $WORKSPACE/srcdir/wayland-*/\n\nmkdir build-host\ncd build-host\n\n# Hack to make the pkgconfig paths work on the host build\nln -s /workspace /workspace/destdir\n# Avoid parasitic linking on freebsd, somehow $prefix/lib ends up in /opt/x86_64-linux-musl/x86_64-linux-musl/sys-root/usr/local/lib\nmv $prefix/lib $prefix/lib_\n\nmeson .. \\\n    --native-file=\"${MESON_HOST_TOOLCHAIN}\" \\\n    --prefix ${host_prefix} --pkg-config-path ${host_prefix}/lib/pkgconfig \\\n    -Ddocumentation=false\nninja -j${nproc}\nninja install\nrm /workspace/destdir/workspace\ncd ..\n\nmv $prefix/lib_ $prefix/lib\n\nmkdir build-wayland\n\ncd build-wayland\nCMAKE=/usr/bin/cmake meson .. \\\n    --cross-file=\"${MESON_TARGET_TOOLCHAIN}\" \\\n    -Ddocumentation=false\nninja -j${nproc}\nninja install\n"""
+version = "v1.23.1"
+
+    [[metadata.dependencies]]
+    compat = "2.6.5"
+    name = "Expat_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "~3.4.7"
+    name = "Libffi_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "XML2_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "EpollShim_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Expat_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "hostdependency"
+    version-major = 2
+    version-minor = 6
+    version-patch = 5
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Libffi_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "hostdependency"
+    version-major = 3
+    version-minor = 4
+    version-patch = 7
+    [[metadata.dependencies]]
+    compat = ""
+    name = "XML2_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "hostdependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "EpollShim_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "hostdependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    binnames = ["wayland-scanner"]
+    type = "exe"
+    variable_name = "wayland_scanner"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libwayland-client"]
+    type = "lib"
+    variable_name = "libwayland_client"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libwayland-cursor"]
+    type = "lib"
+    variable_name = "libwayland_cursor"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libwayland-egl"]
+    type = "lib"
+    variable_name = "libwayland_egl"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libwayland-server"]
+    type = "lib"
+    variable_name = "libwayland_server"
+
+    [[metadata.sources]]
+    hash = "864fb2a8399e2d0ec39d56e9d9b753c093775beadc6022ce81f441929a81e5ed"
+    type = "archive"
+    unpack_target = ""
+    url = "https://gitlab.freedesktop.org/wayland/wayland/-/releases/1.23.1/downloads/wayland-1.23.1.tar.xz"

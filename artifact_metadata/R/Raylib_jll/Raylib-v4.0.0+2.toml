@@ -1,0 +1,115 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/72595c48697a68838d404bdf3c22c6312bd8a841/R/Raylib/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.5.3"
+
+[metadata]
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Raylib"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/raylib/src/\n\natomic_patch -p1 ../../patches/add-missing-header.patch\natomic_patch -p1 ../../patches/make-install-everywhere.patch\natomic_patch -p2 ../../patches/make-ldflags-windows.patch\n\nexport CFLAGS=\"-D_POSIX_C_SOURCE=200112L\"\nif [[ \"${target}\" == *-freebsd* ]]; then\n    # Allow definition of `u_char`, `u_short`, `u_int`, and `u_long` in sys/types.h\n    CFLAGS=\"${CFLAGS} -D__BSD_VISIBLE\"\nfi\nCFLAGS=\"${CFLAGS} -DSUPPORT_EVENTS_AUTOMATION -DSUPPORT_FILEFORMAT_BMP -DSUPPORT_FILEFORMAT_JPG\"\n\nFLAGS=()\nif [[ \"${target}\" == *-mingw* ]]; then\n    # raylib.rc.data is broken for x64, remove it from compilation\n    sed -i 's+$(RAYLIB_RES_FILE)+ +g' Makefile\n    # we need to specify the OS in the flags to make for Windows\n    FLAGS+=(OS=Windows_NT)\nfi\nmake -j${nproc} USE_EXTERNAL_GLFW=TRUE PLATFORM=PLATFORM_DESKTOP RAYLIB_LIBTYPE=SHARED RAYLIB_MODULE_RAYGUI=TRUE RAYLIB_MODULE_PHYSAC=TRUE \"${FLAGS[@]}\"\nmake install RAYLIB_LIBTYPE=SHARED DESTDIR=\"${prefix}\" RAYLIB_INSTALL_PATH=\"${libdir}\"\n"""
+version = "v4.0.0"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "alsa_jll"
+    platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf"]
+    type = "dependency"
+    uuid = "45378030-f8ea-5b20-a7c7-1a9d95efb90e"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Mesa_jll"
+    platforms = ["i686-w64-mingw32", "x86_64-w64-mingw32"]
+    type = "dependency"
+    uuid = "78dcde23-ec64-5e07-a917-6fe22bbc0f45"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Xorg_libX11_jll"
+    platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-unknown-freebsd"]
+    type = "dependency"
+    uuid = "4f6342f7-b3d2-589e-9d20-edeb45f2b2bc"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Xorg_libXrandr_jll"
+    platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-unknown-freebsd"]
+    type = "dependency"
+    uuid = "ec84b674-ba8e-5d96-8ba1-2a689ba10484"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Xorg_libXi_jll"
+    platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-unknown-freebsd"]
+    type = "dependency"
+    uuid = "a51aa0fd-4e3c-5386-b890-e753decda492"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Xorg_libXcursor_jll"
+    platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-unknown-freebsd"]
+    type = "dependency"
+    uuid = "935fb764-8cf2-53bf-bb30-45bb1f8bf724"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Xorg_libXinerama_jll"
+    platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-unknown-freebsd"]
+    type = "dependency"
+    uuid = "d1454406-59df-5ea1-beac-c340f2130bc3"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Xorg_xorgproto_jll"
+    platforms = ["any"]
+    type = "builddependency"
+    uuid = "c4d99508-4286-5418-9131-c86396af500b"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "GLFW_jll"
+    platforms = ["any"]
+    type = "dependency"
+    uuid = "0656b61e-2033-5cc2-a64a-77c0f6c09b89"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libraylib", "raylib"]
+    type = "lib"
+    variable_name = "libraylib"
+
+    [[metadata.sources]]
+    hash = "0851960397f02a477d80eda2239f90fae14dec64"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/raysan5/raylib.git"
+    [[metadata.sources]]
+    follow_symlinks = false
+    path = "./bundled"
+    target = ""
+    type = "directory"

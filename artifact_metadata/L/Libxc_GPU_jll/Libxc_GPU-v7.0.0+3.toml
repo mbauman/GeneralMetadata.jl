@@ -1,0 +1,233 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/957561cde53d7d86d028b85af639af4e2d1d4f1a/L/Libxc/Libxc_GPU/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.6.5"
+
+[metadata]
+augment_platform_block = """using Base.BinaryPlatforms\n\ntry\n    using CUDA_Runtime_jll\ncatch\n    # during initial package installation, CUDA_Runtime_jll may not be available.\n    # in that case, we just won't select an artifact.\nend\n\n# can't use Preferences for the same reason\nconst CUDA_Runtime_jll_uuid = Base.UUID(\"76a88914-d11a-5bdc-97e0-2f5a05c973a2\")\nconst preferences = Base.get_preferences(CUDA_Runtime_jll_uuid)\nBase.record_compiletime_preference(CUDA_Runtime_jll_uuid, \"version\")\nBase.record_compiletime_preference(CUDA_Runtime_jll_uuid, \"local\")\nconst local_toolkit = something(tryparse(Bool, get(preferences, \"local\", \"false\")), false)\n\nfunction cuda_comparison_strategy(_a::String, _b::String, a_requested::Bool, b_requested::Bool)\n    # if we're using a local toolkit, we can't use artifacts\n    if local_toolkit\n        return false\n    end\n\n    # if either isn't a version number (e.g. \"none\"), perform a simple equality check\n    a = tryparse(VersionNumber, _a)\n    b = tryparse(VersionNumber, _b)\n    if a === nothing || b === nothing\n        return _a == _b\n    end\n\n    # if both b and a requested, then we fall back to equality\n    if a_requested && b_requested\n        return Base.thisminor(a) == Base.thisminor(b)\n    end\n\n    # otherwise, do the comparison between the the single version cap and the single version:\n    function is_compatible(artifact::VersionNumber, host::VersionNumber)\n        if host >= v\"11.0\"\n            # enhanced compatibility, semver-style\n            artifact.major == host.major &&\n            Base.thisminor(artifact) <= Base.thisminor(host)\n        else\n            Base.thisminor(artifact) == Base.thisminor(host)\n        end\n    end\n    if a_requested\n        is_compatible(b, a)\n    else\n        is_compatible(a, b)\n    end\nend\n\nfunction augment_platform!(platform::Platform)\n    if !@isdefined(CUDA_Runtime_jll)\n        # don't set to nothing or Pkg will download any artifact\n        platform[\"cuda\"] = \"none\"\n    end\n\n    if !haskey(platform, \"cuda\")\n        CUDA_Runtime_jll.augment_platform!(platform)\n    end\n    BinaryPlatforms.set_compare_strategy!(platform, \"cuda\", cuda_comparison_strategy)\n\n    return platform\nend"""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = true
+name = "Libxc_GPU"
+platforms = ["x86_64-linux-gnu-libgfortran5-cuda+11.8", "aarch64-linux-gnu-libgfortran5-cuda_platform+jetson-cuda+11.8", "aarch64-linux-gnu-libgfortran5-cuda_platform+sbsa-cuda+11.8", "x86_64-linux-gnu-libgfortran5-cuda+12.0", "aarch64-linux-gnu-libgfortran5-cuda_platform+jetson-cuda+12.0", "aarch64-linux-gnu-libgfortran5-cuda_platform+sbsa-cuda+12.0", "x86_64-linux-gnu-libgfortran5-cuda+12.1", "aarch64-linux-gnu-libgfortran5-cuda_platform+jetson-cuda+12.1", "aarch64-linux-gnu-libgfortran5-cuda_platform+sbsa-cuda+12.1", "x86_64-linux-gnu-libgfortran5-cuda+12.2", "aarch64-linux-gnu-libgfortran5-cuda_platform+jetson-cuda+12.2", "aarch64-linux-gnu-libgfortran5-cuda_platform+sbsa-cuda+12.2", "x86_64-linux-gnu-libgfortran5-cuda+12.3", "aarch64-linux-gnu-libgfortran5-cuda_platform+sbsa-cuda+12.3", "x86_64-linux-gnu-libgfortran5-cuda+12.4", "aarch64-linux-gnu-libgfortran5-cuda_platform+jetson-cuda+12.4", "aarch64-linux-gnu-libgfortran5-cuda_platform+sbsa-cuda+12.4", "x86_64-linux-gnu-libgfortran5-cuda+12.5", "aarch64-linux-gnu-libgfortran5-cuda_platform+jetson-cuda+12.5", "aarch64-linux-gnu-libgfortran5-cuda_platform+sbsa-cuda+12.5", "x86_64-linux-gnu-libgfortran5-cuda+12.6", "aarch64-linux-gnu-libgfortran5-cuda_platform+jetson-cuda+12.6", "aarch64-linux-gnu-libgfortran5-cuda_platform+sbsa-cuda+12.6", "x86_64-linux-gnu-libgfortran5-cuda+12.8", "aarch64-linux-gnu-libgfortran5-cuda_platform+jetson-cuda+12.8", "aarch64-linux-gnu-libgfortran5-cuda_platform+sbsa-cuda+12.8", "x86_64-linux-gnu-libgfortran5-cuda+12.9", "aarch64-linux-gnu-libgfortran5-cuda_platform+jetson-cuda+12.9", "aarch64-linux-gnu-libgfortran5-cuda_platform+sbsa-cuda+12.9", "x86_64-linux-gnu-libgfortran5-cuda+13.0", "aarch64-linux-gnu-libgfortran5-cuda_platform+jetson-cuda+13.0", "aarch64-linux-gnu-libgfortran5-cuda_platform+sbsa-cuda+13.0", "x86_64-linux-gnu-libgfortran5-cuda+13.1", "aarch64-linux-gnu-libgfortran5-cuda_platform+jetson-cuda+13.1", "aarch64-linux-gnu-libgfortran5-cuda_platform+sbsa-cuda+13.1"]
+script = """cd $WORKSPACE/srcdir/libxc-*/\n\n# CMake looks for CUDA libraries in lib64\nln -s $prefix/cuda/lib $prefix/cuda/lib64\n\n# Necessary operations to cross compile CUDA from x86_64 to aarch64\nif [[ \"${target}\" == aarch64-linux-* ]]; then\n\n   # Add /usr/lib/csl-musl-x86_64 to LD_LIBRARY_PATH to be able to use host nvcc\n   export LD_LIBRARY_PATH=\"/usr/lib/csl-musl-x86_64:/usr/lib/csl-glibc-x86_64:${LD_LIBRARY_PATH}\"\n   \n   # Make sure we use host CUDA executable by copying from the x86_64 CUDA redist\n   NVCC_DIR=(/workspace/srcdir/cuda_nvcc-*-archive)\n   rm -rf ${prefix}/cuda/bin\n   cp -r ${NVCC_DIR}/bin ${prefix}/cuda/bin\n\n   # From CUDA v13 on, nvvm is not distributed in the NVCC redist anymore\n   if [[ \"${bb_full_target}\" == *cuda+13* ]]; then\n       NVVM_DIR=(/workspace/srcdir/libnvvm-*-archive)\n   else\n       NVVM_DIR=${NVCC_DIR}\n   fi\n   rm -rf ${prefix}/cuda/nvvm\n   cp -r ${NVVM_DIR}/nvvm ${prefix}/cuda/nvvm\nfi\n\nmkdir libxc_build\ncd libxc_build\n\ncmake -DCMAKE_INSTALL_PREFIX=$prefix \\\n      -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n      -DCMAKE_BUILD_TYPE=Release \\\n      -DCMAKE_CUDA_COMPILER=${prefix}/cuda/bin/nvcc \\\n      -DCMAKE_CUDA_FLAGS=\"--cudart shared\" `#Use shared CUDA runtime` \\\n      -DBUILD_SHARED_LIBS=ON \\\n      -DBUILD_TESTING=OFF \\\n      -DENABLE_CUDA=ON \\\n      -DENABLE_XHOST=OFF \\\n      -DENABLE_FORTRAN=ON \\\n      -DDISABLE_KXC=ON ..\ncmake --build . --parallel $nproc\ncmake --install .\n\nunlink $prefix/cuda/lib64\n\ninstall_license ../COPYING\n\nif [[ \"${target}\" == aarch64-linux-* ]]; then\n   # ensure products directory is clean\n   rm -rf ${prefix}/cuda\nfi\n"""
+version = "v7.0.0"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "CompilerSupportLibraries_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "CUDA_SDK_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "builddependency"
+    version-major = 11
+    version-minor = 8
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "CUDA_Runtime_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "runtimedependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "CUDA_SDK_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "builddependency"
+    version-major = 12
+    version-minor = 0
+    version-patch = 1
+    [[metadata.dependencies]]
+    compat = ""
+    name = "CUDA_SDK_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "builddependency"
+    version-major = 12
+    version-minor = 1
+    version-patch = 1
+    [[metadata.dependencies]]
+    compat = ""
+    name = "CUDA_SDK_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "builddependency"
+    version-major = 12
+    version-minor = 2
+    version-patch = 2
+    [[metadata.dependencies]]
+    compat = ""
+    name = "CUDA_SDK_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "builddependency"
+    version-major = 12
+    version-minor = 3
+    version-patch = 2
+    [[metadata.dependencies]]
+    compat = ""
+    name = "CUDA_SDK_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "builddependency"
+    version-major = 12
+    version-minor = 4
+    version-patch = 1
+    [[metadata.dependencies]]
+    compat = ""
+    name = "CUDA_SDK_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "builddependency"
+    version-major = 12
+    version-minor = 5
+    version-patch = 1
+    [[metadata.dependencies]]
+    compat = ""
+    name = "CUDA_SDK_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "builddependency"
+    version-major = 12
+    version-minor = 6
+    version-patch = 3
+    [[metadata.dependencies]]
+    compat = ""
+    name = "CUDA_SDK_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "builddependency"
+    version-major = 12
+    version-minor = 8
+    version-patch = 1
+    [[metadata.dependencies]]
+    compat = ""
+    name = "CUDA_SDK_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "builddependency"
+    version-major = 12
+    version-minor = 9
+    version-patch = 1
+    [[metadata.dependencies]]
+    compat = ""
+    name = "CUDA_SDK_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "builddependency"
+    version-major = 13
+    version-minor = 0
+    version-patch = 2
+    [[metadata.dependencies]]
+    compat = ""
+    name = "CUDA_SDK_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "builddependency"
+    version-major = 13
+    version-minor = 1
+    version-patch = 1
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libxc"]
+    type = "lib"
+    variable_name = "libxc"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libxcf03"]
+    type = "lib"
+    variable_name = "libxcf03"
+
+    [[metadata.sources]]
+    hash = "8d4e343041c9cd869833822f57744872076ae709a613c118d70605539fb13a77"
+    type = "archive"
+    unpack_target = ""
+    url = "https://gitlab.com/libxc/libxc/-/archive/7.0.0/libxc-7.0.0.tar.gz"
+    [[metadata.sources]]
+    hash = "7ee8450dbcc16e9fe5d2a7b567d6dec220c5894a94ac6640459e06231e3b39a5"
+    type = "archive"
+    unpack_target = ""
+    url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/linux-x86_64/cuda_nvcc-linux-x86_64-11.8.89-archive.tar.xz"
+    [[metadata.sources]]
+    hash = "906b894dffd853acefe6ab3d2a6cd74a0aa99b34bb8ca1e848174bddf55bfa3b"
+    type = "archive"
+    unpack_target = ""
+    url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/linux-x86_64/cuda_nvcc-linux-x86_64-12.0.140-archive.tar.xz"
+    [[metadata.sources]]
+    hash = "0b85f7eee17788abbd170b0b493c74ce2e9fd5a9604461b99c2c378165e1083b"
+    type = "archive"
+    unpack_target = ""
+    url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/linux-x86_64/cuda_nvcc-linux-x86_64-12.1.105-archive.tar.xz"
+    [[metadata.sources]]
+    hash = "3feaab191e1ae3fded02c02b0f24453069ada96b2e3a750251293b36079dc2f1"
+    type = "archive"
+    unpack_target = ""
+    url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/linux-x86_64/cuda_nvcc-linux-x86_64-12.2.140-archive.tar.xz"
+    [[metadata.sources]]
+    hash = "65dba017ed1dbbe819a6ccc1841a4add4dfbc652603aa89be773888e82a5629e"
+    type = "archive"
+    unpack_target = ""
+    url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/linux-x86_64/cuda_nvcc-linux-x86_64-12.3.107-archive.tar.xz"
+    [[metadata.sources]]
+    hash = "7ffba1ada0e4b8c17e451ac7a60d386aa2642ecd08d71202a0b100c98bd74681"
+    type = "archive"
+    unpack_target = ""
+    url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/linux-x86_64/cuda_nvcc-linux-x86_64-12.4.131-archive.tar.xz"
+    [[metadata.sources]]
+    hash = "ded05fe3c8d075c6c1bf892005d3c50bde3eceaa049b879fcdff6158e068e3be"
+    type = "archive"
+    unpack_target = ""
+    url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/linux-x86_64/cuda_nvcc-linux-x86_64-12.5.82-archive.tar.xz"
+    [[metadata.sources]]
+    hash = "840deff234d9bef20d6856439c49881cb4f29423b214f9ecd2fa59b7ac323817"
+    type = "archive"
+    unpack_target = ""
+    url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/linux-x86_64/cuda_nvcc-linux-x86_64-12.6.85-archive.tar.xz"
+    [[metadata.sources]]
+    hash = "9961b3484b6b71314063709a4f9529654f96782ad39e72bf1e00f070db8210d3"
+    type = "archive"
+    unpack_target = ""
+    url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/linux-x86_64/cuda_nvcc-linux-x86_64-12.8.93-archive.tar.xz"
+    [[metadata.sources]]
+    hash = "7a1a5b652e5ef85c82b721d10672fc9a2dbaab44e9bd3c65a69517bf53998c35"
+    type = "archive"
+    unpack_target = ""
+    url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/linux-x86_64/cuda_nvcc-linux-x86_64-12.9.86-archive.tar.xz"
+    [[metadata.sources]]
+    hash = "48e35be3cfbf4b4fbc16828eaec8a7048ee789403049dc409f7b643d6259cf7a"
+    type = "archive"
+    unpack_target = ""
+    url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/linux-x86_64/cuda_nvcc-linux-x86_64-13.0.88-archive.tar.xz"
+    [[metadata.sources]]
+    hash = "17ef1665b63670887eeba7d908da5669fa8c66bb73b5b4c1367f49929c086353"
+    type = "archive"
+    unpack_target = ""
+    url = "https://developer.download.nvidia.com/compute/cuda/redist/libnvvm/linux-x86_64/libnvvm-linux-x86_64-13.0.88-archive.tar.xz"
+    [[metadata.sources]]
+    hash = "858a74e6caa36fc9b4fa1ec5e8d38f568ab8046ef93dca9ba8b3f01dee09f30d"
+    type = "archive"
+    unpack_target = ""
+    url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/linux-x86_64/cuda_nvcc-linux-x86_64-13.1.115-archive.tar.xz"
+    [[metadata.sources]]
+    hash = "9038a2bf1237d9decdf99d90c4b43639536c9dbe4b3a40d1e6add5413a02096f"
+    type = "archive"
+    unpack_target = ""
+    url = "https://developer.download.nvidia.com/compute/cuda/redist/libnvvm/linux-x86_64/libnvvm-linux-x86_64-13.1.115-archive.tar.xz"

@@ -1,0 +1,74 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/06c3999c99cb76f678703507d2b8c0bbb8c78447/A/Aeron/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.6.5"
+
+[metadata]
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Aeron"
+platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin"]
+script = """apk update && apk upgrade && apk add openjdk17 && apk del cmake\n\ncd $WORKSPACE/srcdir/aeron\n\nCMAKE_FLAGS=(\n-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN}\n-DCMAKE_BUILD_TYPE=Release\n# -DC_WARNINGS_AS_ERRORS=ON\n# -DCXX_WARNINGS_AS_ERRORS=ON\n-DAERON_HIDE_DEPRECATION_MESSAGE=ON\n-DBUILD_AERON_DRIVER=ON\n-DBUILD_AERON_ARCHIVE_API=ON\n-DAERON_TESTS=OFF\n-DAERON_SYSTEM_TESTS=OFF\n-DAERON_BUILD_SAMPLES=OFF\n-DAERON_BUILD_DOCUMENTATION=OFF\n-DAERON_INSTALL_TARGETS=ON\n-DCMAKE_INSTALL_PREFIX=$prefix\n)\n\nexport GRADLE_USER_HOME=$WORKSPACE/gradle\n\ncmake -B build \"${CMAKE_FLAGS[@]}\"\ncmake --build build --parallel ${nproc} --clean-first\ncmake --install build\ninstall_license $WORKSPACE/srcdir/aeron/LICENSE\n"""
+version = "v1.48.6"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "CompilerSupportLibraries_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Libuuid_jll"
+    platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "CMake_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "hostdependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libaeron"]
+    type = "lib"
+    variable_name = "libaeron"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libaeron_archive_c_client"]
+    type = "lib"
+    variable_name = "libaeron_archive_c_client"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libaeron_driver"]
+    type = "lib"
+    variable_name = "libaeron_driver"
+    [[metadata.products]]
+    binnames = ["aeronmd_s"]
+    type = "exe"
+    variable_name = "aeronmd"
+
+    [[metadata.sources]]
+    hash = "b6bb4a0f46afa8aeec06590481f6e3418db32e3e"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/aeron-io/aeron.git"

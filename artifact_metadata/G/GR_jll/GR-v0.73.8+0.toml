@@ -1,0 +1,203 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/92649cab492a80e422013a40c4b86c34bfccae12/G/GR/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.6.0"
+
+[metadata]
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "GR"
+platforms = ["armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd"]
+script = """cd $WORKSPACE/srcdir/gr\n\nupdate_configure_scripts\n\nmake -C 3rdparty/qhull -j${nproc}\n\nif [[ $target == *\"mingw\"* ]]; then\n    winflags=-DCMAKE_C_FLAGS=\"-D_WIN32_WINNT=0x0f00\"\n    tifflags=-DTIFF_LIBRARY=${libdir}/libtiff-6.dll\nelse\n    tifflags=-DTIFF_LIBRARY=${libdir}/libtiff.${dlext}\nfi\n\nif [[ \"${target}\" == x86_64-apple-darwin* ]]; then\n    apple_sdk_root=$WORKSPACE/srcdir/MacOSX10.14.sdk\n    sed -i \"s!/opt/x86_64-apple-darwin14/x86_64-apple-darwin14/sys-root!$apple_sdk_root!\" $CMAKE_TARGET_TOOLCHAIN\n    export MACOSX_DEPLOYMENT_TARGET=10.14\nfi\n\nif [[ \"${target}\" == *apple* ]]; then\n    make -C 3rdparty/zeromq ZEROMQ_EXTRA_CONFIGURE_FLAGS=\"--host=${target}\"\nfi\n\nif [[ \"${target}\" == arm-* ]]; then\n    export CXXFLAGS=\"-Wl,-rpath-link,/opt/${target}/${target}/lib\"\nfi\n\nmkdir build\ncd build\ncmake $winflags -DCMAKE_INSTALL_PREFIX=$prefix -DCMAKE_FIND_ROOT_PATH=$prefix -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} -DGR_USE_BUNDLED_LIBRARIES=ON $tifflags -DCMAKE_BUILD_TYPE=Release ..\n\nVERBOSE=ON cmake --build . --config Release --target install -- -j${nproc}\ncp ../../gr.js ${libdir}/\n\ninstall_license $WORKSPACE/srcdir/gr/LICENSE.md\n\nif [[ $target == *\"apple-darwin\"* ]]; then\n    cd ${bindir}\n    ln -s ../Applications/gksqt.app/Contents/MacOS/gksqt ./\n    ln -s ../Applications/grplot.app/Contents/MacOS/grplot ./\n    ln -s ../Applications/GKSTerm.app/Contents/MacOS/GKSTerm ./\nfi\n"""
+version = "v0.73.8"
+
+    [[metadata.dependencies]]
+    compat = "1.0.8"
+    name = "Bzip2_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "1.16.1"
+    name = "Cairo_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "FFMPEG_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Fontconfig_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "2.10.4"
+    name = "FreeType2_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "GLFW_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "JpegTurbo_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "libpng_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "4.7.0"
+    name = "Libtiff_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Pixman_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Qt6Base_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "hostdependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "~6.7.1"
+    name = "Qt6Base_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Xorg_libX11_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "builddependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Xorg_xproto_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "builddependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Zlib_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = true
+    libnames = ["libGR"]
+    type = "lib"
+    variable_name = "libGR"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = true
+    libnames = ["libGR3"]
+    type = "lib"
+    variable_name = "libGR3"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = true
+    libnames = ["libGRM"]
+    type = "lib"
+    variable_name = "libGRM"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = true
+    libnames = ["libGKS"]
+    type = "lib"
+    variable_name = "libGKS"
+    [[metadata.products]]
+    binnames = ["gksqt"]
+    type = "exe"
+    variable_name = "gksqt"
+    [[metadata.products]]
+    binnames = ["grplot"]
+    type = "exe"
+    variable_name = "grplot"
+
+    [[metadata.sources]]
+    hash = "23937754fa7c8e943cda49ff493f464dfa98f976"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/sciapp/gr.git"
+    [[metadata.sources]]
+    filename = "gr.js"
+    hash = "55c2bad5787304548a819de220cb32eeffed69466d3f3b1be69cb0ef35c4b6a5"
+    type = "file"
+    url = "https://github.com/sciapp/gr/releases/download/v0.73.8/gr-0.73.8.js"
+    [[metadata.sources]]
+    hash = "0f03869f72df8705b832910517b47dd5b79eb4e160512602f593ed243b28715f"
+    type = "archive"
+    unpack_target = ""
+    url = "https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.14.sdk.tar.xz"
