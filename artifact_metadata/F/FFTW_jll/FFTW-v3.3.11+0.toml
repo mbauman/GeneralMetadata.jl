@@ -1,0 +1,36 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/49606ac08cc65762b312155561532990cfc4beba/F/FFTW/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.6.4"
+
+[metadata]
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "FFTW"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/fftw*\n\n# Base configure flags\nFLAGS=(\n    --prefix=\"$prefix\"\n    --build=${MACHTYPE}\n    --host=\"${target}\"\n    --enable-shared\n    --disable-static\n    --disable-mpi\n    --disable-doc\n    --enable-threads\n    --with-combined-threads\n)\n\n# On intel processors, enable SSE2 and AVX2\nif [[ \"${target}\" == x86_64-*  ]] || [[ \"${target}\" == i686-* ]]; then\n    FLAGS+=( --enable-sse2 --enable-avx2 )\nfi\n\n# On x86_64, enable AVX512, once this is no longer marked \"experimental\" in the FFTW release notes.\n# if [[ \"${target}\" == x86_64-* ]]; then\n#    FLAGS+=( --enable-avx512 );\n# fi\n\n# Enable NEON on Aarch64\nif [[ \"${target}\" == aarch64-* ]]; then FLAGS+=( --enable-neon ); fi\n\n# On windows, we use our own malloc\nif [[ \"${target}\" == *-w64-* ]]; then FLAGS+=( --with-our-malloc ); fi\nif [[ \"${target}\" == i686-w64-* ]]; then FLAGS+=( --with-incoming-stack-boundary=2 ); fi\n\n# On ppc64le, enable VSX\nif [[ \"${target}\" == powerpc64le-*  ]]; then FLAGS+=( --enable-vsx ); fi\n\n# We need to do this a couple times, so functionalize it\nbuild_fftw()\n{\n    mkdir \"${WORKSPACE}/srcdir/build_${1}\"\n    cd \"${WORKSPACE}/srcdir/build_${1}\"\n\n    ${WORKSPACE}/srcdir/fftw*/configure \"${FLAGS[@]}\" $2\n    perl -pi -e \"s/tools m4/m4/\" Makefile # work around FFTW/fftw3#146\n    make -j${nproc}\n    make install\n}\n\n# Build the double-precision version, then the single-precision version\nbuild_fftw double\n\nbuild_fftw single --enable-single\n\n# Install both COPYING and COPYRIGHT in the license directory\ncd ${WORKSPACE}/srcdir/fftw*\ninstall_license COPYING COPYRIGHT\n"""
+version = "v3.3.11"
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libfftw3"]
+    type = "lib"
+    variable_name = "libfftw3"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libfftw3f"]
+    type = "lib"
+    variable_name = "libfftw3f"
+
+    [[metadata.sources]]
+    hash = "56c932549852cddcfafdab3820b0200c7742675be92179e59e6215b340e26467"
+    type = "archive"
+    unpack_target = ""
+    url = "http://fftw.org/fftw-3.3.10.tar.gz"
