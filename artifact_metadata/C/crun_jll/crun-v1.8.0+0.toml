@@ -1,0 +1,71 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/979ec02bcfa4735722a4e5356d83c9771e30944c/C/crun/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.5.6"
+
+[metadata]
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "crun"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu"]
+script = """# check if we need to use a more recent glibc\nif [[ -f \"$prefix/usr/include/sched.h\" ]]; then\n    GLIBC_ARTIFACT_DIR=$(dirname $(dirname $(dirname $(realpath $prefix/usr/include/sched.h))))\n    rsync --archive ${GLIBC_ARTIFACT_DIR}/ /opt/${target}/${target}/sys-root/\nfi\n\ncd crun\ninstall_license COPYING\n\n# replace certain glibc includes by direct linux kernel includes.\n# this is to support newer features, like CLONE_NEWCGROUP, without bumping glibc further.\n# we could do this for O_PATH too, but systemd_jll uses glibc 2.19 already, so don't bother.\nfind . -name '*.c' -exec sed -i 's/#include <sched.h>/#include <linux\\/sched.h>/g' {} \\;\n\n./autogen.sh\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \\\n            --disable-criu # missing JLL\nmake -j${nproc}\nmake install\n"""
+version = "v1.8.0"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "YAJL_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "libcap_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "systemd_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "libseccomp_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Glibc_jll"
+    platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "powerpc64le-linux-gnu"]
+    top_level = false
+    type = "builddependency"
+    version-major = 2
+    version-minor = 17
+    version-patch = 0
+
+    [[metadata.products]]
+    binnames = ["crun"]
+    type = "exe"
+    variable_name = "crun"
+
+    [[metadata.sources]]
+    hash = "cfec5ce7b928f31a4a339c603245ed62b1da2bcd"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/containers/crun"
