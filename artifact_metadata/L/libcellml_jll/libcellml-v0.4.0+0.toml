@@ -1,0 +1,52 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/bb7c7b4733db489e0db599766118d35fb111091b/L/libcellml/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.5.6"
+
+[metadata]
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "libcellml"
+platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """# This requires macOS 10.14\nif [[ \"${target}\" == x86_64-apple-darwin* ]]; then\n    pushd $WORKSPACE/srcdir/MacOSX10.*.sdk\n    rm -rf /opt/${target}/${target}/sys-root/System\n    cp -ra usr/* \"/opt/${target}/${target}/sys-root/usr/.\"\n    cp -ra System \"/opt/${target}/${target}/sys-root/.\"\n    export MACOSX_DEPLOYMENT_TARGET=10.14\n    popd\nfi\n\ncd libcellml\nmkdir build && cd build\ncmake -DINSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DBUILD_TYPE=Release \\\n    -DTWAE=OFF \\\n    -DCOVERAGE=OFF \\\n    -DLLVM_COVERAGE=OFF \\\n    -DUNIT_TESTS=OFF \\\n    ..\nmake -j${nproc}\nmake install\ninstall_license ../LICENSE\n"""
+version = "v0.4.0"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "XML2_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Zlib_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libcellml"]
+    type = "lib"
+    variable_name = "libcellml"
+
+    [[metadata.sources]]
+    hash = "697e0b2d07e5e68d147a42c63305d7f72ce26c78"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/cellml/libcellml"
+    [[metadata.sources]]
+    hash = "0f03869f72df8705b832910517b47dd5b79eb4e160512602f593ed243b28715f"
+    type = "archive"
+    unpack_target = ""
+    url = "https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.14.sdk.tar.xz"
