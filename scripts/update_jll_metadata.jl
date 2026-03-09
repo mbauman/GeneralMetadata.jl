@@ -189,10 +189,15 @@ function merge_json_objects(objs::Vector)
     return merged
 end
 
-function metadata_for_jll_release(org, repo, release)
+function metadata_for_jll_release(org, repo, release, available_versions)
     jllname = chopsuffix(chopsuffix(chopsuffix(repo, ".git"), ".jl"), "_jll")
     tree_sha = tree_sha_from_tagname(org, repo, release["tag_name"])
-    version = VersionNumber(split(release["tag_name"], "-", limit=2)[2])
+    matched_versions = filter(((ver,info),)->string(info.git_tree_sha1) == tree_sha, available_versions)
+    if isempty(matched_versions)
+        # TODO: this logic would probably make more sense at the level of the loop over releases
+        error("tag $(release["tag_name"]) for $org/$repo has tree sha $tree_sha, which is not registered")
+    end
+    version = only(matched_versions)[1]
     commit_from_readme, path_from_readme = commit_and_path_from_readme(get_readme(org, repo, tree_sha))
     release_published_at = release.published_at
     return cd(yggy) do
@@ -301,6 +306,7 @@ function update_metadata(; force = false, max_releases=100)
     metadata = GeneralMetadata.metadata()
     artifact_metadata = GeneralMetadata.artifact_metadata()
     count = 0
+    failures = String[]
     for (uuid, pkgentry) in jlls()
         jllinfo = Registry.registry_info(pkgentry)
         pkgname = pkgentry.name
@@ -321,7 +327,7 @@ function update_metadata(; force = false, max_releases=100)
             end
             @info "fetching metadata for $jllname at $tag_name"
             try
-                release_meta = metadata_for_jll_release(org, repo, release)
+                release_meta = metadata_for_jll_release(org, repo, release, GeneralMetadata.registered_package_versions(uuid))
                 !haskey(artifact_metadata, pkgname) && (artifact_metadata[pkgname] = Dict{String,Any}())
                 artifact_metadata[pkgname][tag_name] = release_meta
                 # Also update metadata for the package itself
@@ -334,7 +340,8 @@ function update_metadata(; force = false, max_releases=100)
                     end
                 end
             catch ex
-                @error "error getting metadata for $pkgname at $tag_name" ex
+                @error "error getting metadata for $pkgname@$tag_name" ex
+                push!(failures, "$pkgname@$tag_name: $ex")
                 ex isa HTTP.Exceptions.StatusError && ex.status == 403 && (count = max_releases; break)
             end
             count += 1
@@ -344,6 +351,10 @@ function update_metadata(; force = false, max_releases=100)
             @info "reached max release limit of $max_releases, stopping here"
             break
         end
+    end
+    if length(failures) > 0
+        @warn "encountered $(length(failures)) failures:"
+        println(join(replace.(failures, ('\n'=>" ",)), "\n"))
     end
     GeneralMetadata.save_artifact_metadata!(artifact_metadata)
     GeneralMetadata.save_metadata!(metadata)
