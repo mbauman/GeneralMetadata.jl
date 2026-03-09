@@ -1,0 +1,75 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/d8ac4042b5b2bbb23686133e46d8ebd4bc06758c/G/Git/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.2.4"
+
+[metadata]
+lazy_artifacts = false
+name = "Git"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """install_license ${WORKSPACE}/srcdir/git-*/COPYING\n\nif [[ \"${target}\" == *-ming* ]]; then\n    # Fast path for Windows: just copy the content of the tarball to the prefix\n    cp -r ${WORKSPACE}/srcdir/${target}/mingw${nbits}/* ${prefix}\n    exit\nfi\n\ncd $WORKSPACE/srcdir/git-*/\n\n# We need a native \"msgfmt\" to cross-compile\napk add tcl gettext\n\n# Git doesn't want to be cross-compiled, but we swear that we're not going to\n# cross-compile\nsed -i 's/cross_compiling=yes/cross_compiling=no/' configure\n\nif [[ \"${target}\" == *-apple-* ]]; then\n    LDFLAGS=\"-lgettextlib\"\nelif [[ ${target} == *-freebsd* ]]; then\n    LDFLAGS=\"-L${prefix}/lib -lcharset\"\nfi\n\n./configure --prefix=$prefix --host=$target \\\n    --with-curl \\\n    --with-expat \\\n    --with-openssl \\\n    --with-iconv=${prefix} \\\n    --with-libpcre2 \\\n    --with-zlib=${prefix} \\\n    CPPFLAGS=\"-I${prefix}/include\" \\\n    LDFLAGS=\"${LDFLAGS}\"\nmake -j${nproc}\nmake install INSTALL_SYMLINKS=\"yes, please\"\n"""
+version = "v2.27.0"
+
+    [[metadata.dependencies]]
+    name = "LibCURL_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    name = "Expat_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    name = "OpenSSL_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    name = "Gettext_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    name = "Libiconv_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    name = "PCRE2_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    name = "Zlib_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    binnames = ["git"]
+    type = "exe"
+    variable_name = "git"
+
+    [[metadata.sources]]
+    hash = "73ca9774d7fa226e1d87c1909401623f96dca6a044e583b9a762e84d7d1a73f9"
+    type = "archive"
+    unpack_target = ""
+    url = "https://mirrors.edge.kernel.org/pub/software/scm/git/git-2.27.0.tar.xz"
+    [[metadata.sources]]
+    hash = "96bcfb93c7fbb34bbd4c5c9ba14a2a6ae8f58b299688278e38db1dacad180df2"
+    type = "archive"
+    unpack_target = "i686-w64-mingw32"
+    url = "https://github.com/git-for-windows/git/releases/download/v2.27.0.windows.1/Git-2.27.0-32-bit.tar.bz2"
+    [[metadata.sources]]
+    hash = "a653c41999e4c80eebde8de046dd92a5a9e38a77f60466120daab2f31d3d0935"
+    type = "archive"
+    unpack_target = "x86_64-w64-mingw32"
+    url = "https://github.com/git-for-windows/git/releases/download/v2.27.0.windows.1/Git-2.27.0-64-bit.tar.bz2"
