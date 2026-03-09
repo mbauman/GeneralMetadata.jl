@@ -1,0 +1,65 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/e54e2cf440c3cab6c07f4d230d8ff916fe1d8ab0/Q/Qt6ShaderTools/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.5.3"
+
+[metadata]
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Qt6ShaderTools"
+platforms = ["x86_64-apple-darwin", "aarch64-apple-darwin", "i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir\n\nmkdir build\ncd build/\nqtsrcdir=`ls -d ../qtshadertools-*`\n\ncase \"$target\" in\n\n    x86_64-linux-musl*)\n        cmake -DCMAKE_INSTALL_PREFIX=${prefix} -DCMAKE_FIND_ROOT_PATH=$prefix -DCMAKE_BUILD_TYPE=Release $qtsrcdir\n    ;;\n\n    *mingw*)        \n        cd $WORKSPACE/srcdir/mingw*/mingw-w64-headers\n        ./configure --prefix=/opt/$target/$target/sys-root --enable-sdk=all --host=$target\n        make install\n        \n        cd ../mingw-w64-crt/\n        if [ ${target} == \"i686-w64-mingw32\" ]; then\n            _crt_configure_args=\"--disable-lib64 --enable-lib32\"\n        elif [ ${target} == \"x86_64-w64-mingw32\" ]; then\n            _crt_configure_args=\"--disable-lib32 --enable-lib64\"\n        fi\n        ./configure --prefix=/opt/$target/$target/sys-root --enable-sdk=all --host=$target --enable-wildcard ${_crt_configure_args}\n        make -j${nproc}\n        make install\n        \n        cd ../mingw-w64-libraries/winpthreads\n        ./configure --prefix=/opt/$target/$target/sys-root --host=$target --enable-static --enable-shared\n        make -j${nproc}\n        make install\n\n        cd $WORKSPACE/srcdir/build\n        cmake -DQT_HOST_PATH=$host_prefix -DCMAKE_INSTALL_PREFIX=${prefix} -DCMAKE_FIND_ROOT_PATH=$prefix -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} -DCMAKE_BUILD_TYPE=Release $qtsrcdir\n    ;;\n\n    *)\n        cmake -DQT_HOST_PATH=$host_prefix -DCMAKE_INSTALL_PREFIX=${prefix} -DCMAKE_FIND_ROOT_PATH=$prefix -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} -DCMAKE_BUILD_TYPE=Release $qtsrcdir\n    ;;\n\nesac\n\ncmake --build . --parallel ${nproc}\ncmake --install .\ninstall_license $WORKSPACE/srcdir/qt*-src-*/LICENSE.LGPL3\n"""
+version = "v6.3.0"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Qt6Base_jll"
+    platforms = ["any"]
+    type = "hostdependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Qt6Base_jll"
+    platforms = ["any"]
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Qt6ShaderTools_jll"
+    platforms = ["any"]
+    type = "hostdependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["QtShaderTools"]
+    type = "framework"
+    variable_name = "libqt6shadertools"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["Qt6ShaderTools", "libQt6ShaderTools", "QtShaderTools"]
+    type = "lib"
+    variable_name = "libqt6shadertools"
+
+    [[metadata.sources]]
+    hash = "5498959b9d37c254bd126ab1320cf86aeb8a31b3ea7e51db666a8f9698afbd6c"
+    type = "archive"
+    unpack_target = ""
+    url = "https://download.qt.io/official_releases/qt/6.3/6.3.0/submodules/qtshadertools-everywhere-src-6.3.0.tar.xz"
+    [[metadata.sources]]
+    hash = "ba6b430aed72c63a3768531f6a3ffc2b0fde2c57a3b251450dcf489a894f0894"
+    type = "archive"
+    unpack_target = ""
+    url = "https://sourceforge.net/projects/mingw-w64/files/mingw-w64/mingw-w64-release/mingw-w64-v10.0.0.tar.bz2"

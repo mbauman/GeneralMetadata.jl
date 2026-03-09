@@ -1,0 +1,33 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/394e9aa5ec538dde07bbd4f7e6d23661f5c573ea/W/WCS/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.3.7"
+
+[metadata]
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "WCS"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "aarch64-apple-darwin", "armv6l-linux-gnueabihf", "armv6l-linux-musleabihf"]
+script = """cd $WORKSPACE/srcdir/wcslib-*/\nif [[ \"${target}\" == *mingw* ]]; then\n    atomic_patch -p1 \"${WORKSPACE}/srcdir/patches/configure-mingw.patch\"\n    autoconf\n    export CFLAGS=\"${CFLAGS} -DNO_OLDNAMES\"\nfi\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} --disable-fortran --without-cfitsio --without-pgplot --disable-utils\nmake -j${nproc}\nmake install\n\n# Remove static library\nrm \"${prefix}/lib/\"libwcs*.a\n\n# Install all license files\ninstall_license COPYING*\n"""
+version = "v7.5.0"
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libwcs"]
+    type = "lib"
+    variable_name = "libwcs"
+
+    [[metadata.sources]]
+    hash = "bc01dfd6659dcbd17992cac1fda1f479877a8946d2acdc939dec9a7a597d6694"
+    type = "archive"
+    unpack_target = ""
+    url = "https://cache.julialang.org/ftp://ftp.atnf.csiro.au/pub/software/wcslib/wcslib-7.5.tar.bz2"
+    [[metadata.sources]]
+    follow_symlinks = false
+    path = "./bundled"
+    target = ""
+    type = "directory"
