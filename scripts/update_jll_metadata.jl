@@ -4,6 +4,7 @@ using JSON: JSON
 using Pkg: Pkg, Registry, PackageSpec
 using Base64: base64decode
 using GeneralMetadata: GeneralMetadata
+using Random: shuffle!
 
 # Copied from SecurityAdvisories just to make life a little easier, since this runs v1.7
 function get_registry(reg=Registry.RegistrySpec(name="General", uuid = "23338594-aafe-5451-b93e-139f81909106"); depot=Pkg.depots1())
@@ -307,7 +308,7 @@ function update_metadata(; force = false, max_releases=100)
     artifact_metadata = GeneralMetadata.artifact_metadata()
     count = 0
     failures = String[]
-    for (uuid, pkgentry) in jlls()
+    for (uuid, pkgentry) in shuffle!(collect(jlls()))
         jllinfo = Registry.registry_info(pkgentry)
         pkgname = pkgentry.name
         jllname = chopsuffix(pkgname, "_jll")
@@ -325,7 +326,8 @@ function update_metadata(; force = false, max_releases=100)
             if haskey(artifact_metadata, pkgentry.name) && haskey(artifact_metadata[pkgentry.name], tag_name) && !force
                 continue
             end
-            @info "$(count+=1)/$max_releases: fetching metadata for $jllname at $tag_name"
+            count += 1
+            @info "$count/$max_releases: fetching metadata for $jllname at $tag_name"
             try
                 release_meta = metadata_for_jll_release(org, repo, release, GeneralMetadata.registered_package_versions(uuid))
                 !haskey(artifact_metadata, pkgname) && (artifact_metadata[pkgname] = Dict{String,Any}())
