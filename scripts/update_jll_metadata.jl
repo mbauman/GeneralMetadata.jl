@@ -325,7 +325,7 @@ function update_metadata(; force = false, max_releases=100)
             if haskey(artifact_metadata, pkgentry.name) && haskey(artifact_metadata[pkgentry.name], tag_name) && !force
                 continue
             end
-            @info "fetching metadata for $jllname at $tag_name"
+            @info "$(count+=1)/$max_releases: fetching metadata for $jllname at $tag_name"
             try
                 release_meta = metadata_for_jll_release(org, repo, release, GeneralMetadata.registered_package_versions(uuid))
                 !haskey(artifact_metadata, pkgname) && (artifact_metadata[pkgname] = Dict{String,Any}())
@@ -344,11 +344,9 @@ function update_metadata(; force = false, max_releases=100)
                 push!(failures, "$pkgname@$tag_name: $ex")
                 ex isa HTTP.Exceptions.StatusError && ex.status == 403 && (count = max_releases; break)
             end
-            count += 1
-            count >= max_releases && break
         end
         if count >= max_releases
-            @info "reached max release limit of $max_releases, stopping here"
+            @info "tried $count releases, stopping here"
             break
         end
     end
