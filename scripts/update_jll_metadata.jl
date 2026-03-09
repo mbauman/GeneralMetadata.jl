@@ -43,8 +43,12 @@ function commit_from_tagname(owner, repo, tag_name)
     end
     tagsinfo = JSON.parse(response.body)
     if haskey(tagsinfo, "object") && tagsinfo["object"]["type"] == "tag"
-        # This is an annotated tag, so we need to dereference it to get the commit (and thus tree) SHA
-        error("I don't yet know how to handle annotated tags for $owner/$repo@$tag_name, got tag info: $tagsinfo") # TODO
+        # This is an annotated tag, so we need to dereference it to get the commit SHA
+        lightweight_response = HTTP.get(string(GITHUB_API_BASE, "/repos/", owner, "/", repo, "/git/tags/", tagsinfo["object"]["sha"]), build_headers())
+        if lightweight_response.status != 200
+            error("Failed to fetch lightweight tag info for $tag_name: HTTP $(lightweight_response.status)")
+        end
+        tagsinfo = JSON.parse(lightweight_response.body)
     end
     # This is a lightweight tag, so the object is the commit
     @assert tagsinfo["object"]["type"] == "commit"
