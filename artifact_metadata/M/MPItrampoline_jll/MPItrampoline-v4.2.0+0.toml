@@ -1,0 +1,102 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/86388263a4ebaba9491882c115cc1b7cc52bc998/M/MPItrampoline/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.5.5"
+
+[metadata]
+augment_platform_block = """    using Base.BinaryPlatforms\n        # Can't use Preferences since we might be running this very early with a non-existing Manifest\n    MPIPreferences_UUID = Base.UUID(\"3da0fdf6-3ccc-4f1b-acd9-58baa6c99267\")\n    const preferences = Base.get_preferences(MPIPreferences_UUID)\n\n    # Keep logic in sync with MPIPreferences.jl\n    function augment_mpi!(platform)\n        # Doesn't need to be `const` since we depend on MPIPreferences so we\n        # invalidate the cache when it changes.\n        binary = get(preferences, \"binary\", Sys.iswindows() ? \"MicrosoftMPI_jll\" : \"MPICH_jll\")\n\n        abi = if binary == \"system\"\n            let abi = get(preferences, \"abi\", nothing)\n                if abi === nothing\n                    error(\"MPIPreferences: Inconsistent state detected, binary set to system, but no ABI set.\")\n                else\n                    abi\n                end\n            end\n        elseif binary == \"MicrosoftMPI_jll\"\n            \"MicrosoftMPI\"\n        elseif binary == \"MPICH_jll\"\n            \"MPICH\"\n        elseif binary == \"OpenMPI_jll\"\n            \"OpenMPI\"\n        elseif binary == \"MPItrampoline_jll\"\n            \"MPItrampoline\"\n        else\n            error(\"Unknown binary: $binary\")\n        end\n\n        if !haskey(platform, \"mpi\")\n            platform[\"mpi\"] = abi\n        end\n        return platform\n    end\n\n    augment_platform!(platform::Platform) = augment_mpi!(platform)\n"""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = true
+name = "MPItrampoline"
+platforms = ["i686-linux-gnu-libgfortran3-mpi+mpitrampoline", "i686-linux-gnu-libgfortran4-mpi+mpitrampoline", "i686-linux-gnu-libgfortran5-mpi+mpitrampoline", "x86_64-linux-gnu-libgfortran3-mpi+mpitrampoline", "x86_64-linux-gnu-libgfortran4-mpi+mpitrampoline", "x86_64-linux-gnu-libgfortran5-mpi+mpitrampoline", "aarch64-linux-gnu-libgfortran3-mpi+mpitrampoline", "aarch64-linux-gnu-libgfortran4-mpi+mpitrampoline", "aarch64-linux-gnu-libgfortran5-mpi+mpitrampoline", "armv6l-linux-gnueabihf-libgfortran3-mpi+mpitrampoline", "armv6l-linux-gnueabihf-libgfortran4-mpi+mpitrampoline", "armv6l-linux-gnueabihf-libgfortran5-mpi+mpitrampoline", "armv7l-linux-gnueabihf-libgfortran3-mpi+mpitrampoline", "armv7l-linux-gnueabihf-libgfortran4-mpi+mpitrampoline", "armv7l-linux-gnueabihf-libgfortran5-mpi+mpitrampoline", "powerpc64le-linux-gnu-libgfortran3-mpi+mpitrampoline", "powerpc64le-linux-gnu-libgfortran4-mpi+mpitrampoline", "powerpc64le-linux-gnu-libgfortran5-mpi+mpitrampoline", "x86_64-apple-darwin-libgfortran3-mpi+mpitrampoline", "x86_64-apple-darwin-libgfortran4-mpi+mpitrampoline", "x86_64-apple-darwin-libgfortran5-mpi+mpitrampoline", "aarch64-apple-darwin-libgfortran5-mpi+mpitrampoline"]
+script = """################################################################################\n# MPItrampoline\n################################################################################\n\ncd $WORKSPACE/srcdir/MPItrampoline-*\nmkdir build\ncd build\ncmake \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_FIND_ROOT_PATH=$prefix \\\n    -DCMAKE_INSTALL_PREFIX=$prefix \\\n    -DBUILD_SHARED_LIBS=ON \\\n    -DMPITRAMPOLINE_DEFAULT_LIB=\"@MPITRAMPOLINE_DIR@/lib/libmpiwrapper.so\" \\\n    -DMPITRAMPOLINE_DEFAULT_MPIEXEC=\"@MPITRAMPOLINE_DIR@/bin/mpiwrapperexec\" \\\n    ..\ncmake --build . --config RelWithDebInfo --parallel $nproc\ncmake --build . --config RelWithDebInfo --parallel $nproc --target install\n\n################################################################################\n# Install MPIconstants\n################################################################################\n\ncd ${WORKSPACE}/srcdir/MPIconstants*\nmkdir build\ncd build\ncmake \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_FIND_ROOT_PATH=${prefix} \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DBUILD_SHARED_LIBS=ON \\\n    ..\ncmake --build . --config RelWithDebInfo --parallel $nproc\ncmake --build . --config RelWithDebInfo --parallel $nproc --target install\n\n################################################################################\n# Install MPICH\n################################################################################\n\ncd ${WORKSPACE}/srcdir/mpich*\n\nEXTRA_FLAGS=()\n# Define some obscure undocumented variables needed for cross compilation of\n# the Fortran bindings.  See for example\n# * https://stackoverflow.com/q/56759636/2442087\n# * https://github.com/pmodels/mpich/blob/d10400d7a8238dc3c8464184238202ecacfb53c7/doc/installguide/cfile\nexport CROSS_F77_SIZEOF_INTEGER=4\nexport CROSS_F77_SIZEOF_REAL=4\nexport CROSS_F77_SIZEOF_DOUBLE_PRECISION=8\nexport CROSS_F77_FALSE_VALUE=0\nexport CROSS_F77_TRUE_VALUE=1\n\nif [[ ${nbits} == 32 ]]; then\n    export CROSS_F90_ADDRESS_KIND=4\nelse\n    export CROSS_F90_ADDRESS_KIND=8\nfi\nexport CROSS_F90_OFFSET_KIND=8\nexport CROSS_F90_INTEGER_KIND=4\nexport CROSS_F90_INTEGER_MODEL=9\nexport CROSS_F90_REAL_MODEL=6,37\nexport CROSS_F90_DOUBLE_MODEL=15,307\nexport CROSS_F90_ALL_INTEGER_MODELS=2,1,4,2,9,4,18,8,\nexport CROSS_F90_INTEGER_MODEL_MAP={2,1,1},{4,2,2},{9,4,4},{18,8,8},\n\nif [[ \"${target}\" == i686-linux-musl ]]; then\n    # Our `i686-linux-musl` platform is a bit rotten: it can run C programs,\n    # but not C++ or Fortran.  `configure` runs a C program to determine\n    # whether it's cross-compiling or not, but when it comes to running\n    # Fortran programs, it fails.  In addition, `configure` ignores the\n    # above exported variables if it believes it's doing a native build.\n    # Small hack: edit `configure` script to force `cross_compiling` to be\n    # always \"yes\".\n    sed -i 's/cross_compiling=no/cross_compiling=yes/g' configure\n    EXTRA_FLAGS+=(ac_cv_sizeof_bool=\"1\")\nfi\n\n# Building with an external hwloc leads to problems loading the\n# resulting libraries and executable via MPIwrapper, because this\n# happens outside of Julia's control.\n\n# Produce static libraries since these are easier to handle\n# downstream. (MPIwrapper doesn't need to find its dependencies.) Also\n# make sure that these static libraries can be linked into shared\n# libraries.\n\n# Disable OpenCL since it requires the option `-framework OpenCL` on\n# macOS, and cmake does not handle this option well. cmake assumes\n# that this is one option and one file name and splits them up.\n\nexport CFLAGS='-fPIC -DPIC'\nexport CXXFLAGS='-fPIC -DPIC'\nexport FFLAGS='-fPIC -DPIC'\nexport FCFLAGS='-fPIC -DPIC'\n\nif [[ \"${target}\" == aarch64-apple-* ]]; then\n    export FFLAGS=\"$FFLAGS -fallow-argument-mismatch\"\nfi\n\nif [[ \"${target}\" == *-apple-* ]]; then\n    # MPICH uses the link options `-flat_namespace` on Darwin. This\n    # conflicts with MPItrampoline, which requires the option\n    # `-twolevel_namespace`.\n    EXTRA_FLAGS+=(--enable-two-level-namespace)\nfi\n\nif [[ \"${target}\" == aarch64-apple-* ]]; then\n    EXTRA_FLAGS+=(\n        FFLAGS=-fallow-argument-mismatch\n        FCFLAGS=-fallow-argument-mismatch\n    )\nfi\n\n./configure \\\n    --build=${MACHTYPE} \\\n    --host=${target} \\\n    --disable-dependency-tracking \\\n    --docdir=/tmp \\\n    --enable-shared=no \\\n    --enable-static=yes \\\n    --enable-threads=multiple \\\n    --enable-opencl=no \\\n    --with-device=ch3 \\\n    --prefix=${prefix}/lib/mpich \\\n    \"${EXTRA_FLAGS[@]}\"\n\n# Remove empty `-l` flags from libtool\n# (Why are they there? They should not be.)\n# Run the command several times to handle multiple (overlapping) occurrences.\nsed -i 's/\"-l /\"/g;s/ -l / /g;s/-l\"/\"/g' libtool\nsed -i 's/\"-l /\"/g;s/ -l / /g;s/-l\"/\"/g' libtool\nsed -i 's/\"-l /\"/g;s/ -l / /g;s/-l\"/\"/g' libtool\n\nmake -j${nproc}\nmake -j${nproc} install\n\n# Delete duplicate file\nif ar t $prefix/lib/mpich/lib/libpmpi.a | grep -q setbotf.o; then\n    ar d $prefix/lib/mpich/lib/libmpifort.a setbotf.o\nfi\n\n################################################################################\n# Install MPIwrapper\n################################################################################\n\ncd $WORKSPACE/srcdir/MPIwrapper-*\nmkdir build\ncd build\n# Yes, this is tedious. No, without being this explicit, cmake will\n# not properly auto-detect the MPI libraries on Darwin.\nif [[ \"${target}\" == *-apple-* ]]; then\n    ext='a'\n    cmake \\\n        -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n        -DCMAKE_FIND_ROOT_PATH=\"${prefix}/lib/mpich;${prefix}\" \\\n        -DCMAKE_INSTALL_PREFIX=${prefix} \\\n        -DBUILD_SHARED_LIBS=ON \\\n        -DMPI_C_COMPILER=cc \\\n        -DMPI_CXX_COMPILER=c++ \\\n        -DMPI_Fortran_COMPILER=gfortran \\\n        -DMPI_C_LIB_NAMES='mpi;pmpi' \\\n        -DMPI_CXX_LIB_NAMES='mpicxx;mpi;pmpi' \\\n        -DMPI_Fortran_LIB_NAMES='mpifort;mpi;pmpi' \\\n        -DMPI_pmpi_LIBRARY=${prefix}/lib/mpich/lib/libpmpi.${ext} \\\n        -DMPI_mpi_LIBRARY=${prefix}/lib/mpich/lib/libmpi.${ext} \\\n        -DMPI_mpicxx_LIBRARY=${prefix}/lib/mpich/lib/libmpicxx.${ext} \\\n        -DMPI_mpifort_LIBRARY=${prefix}/lib/mpich/lib/libmpifort.${ext} \\\n        -DMPIEXEC_EXECUTABLE=${prefix}/lib/mpich/bin/mpiexec \\\n        ..\nelse\n    cmake \\\n        -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n        -DCMAKE_FIND_ROOT_PATH=\"${prefix}/lib/mpich;${prefix}\" \\\n        -DMPIEXEC_EXECUTABLE=${prefix}/lib/mpich/bin/mpiexec \\\n        -DBUILD_SHARED_LIBS=ON \\\n        -DCMAKE_INSTALL_PREFIX=${prefix} \\\n        ..\nfi\n\ncmake --build . --config RelWithDebInfo --parallel $nproc\ncmake --build . --config RelWithDebInfo --parallel $nproc --target install\n\n################################################################################\n# Install licenses\n################################################################################\n\ninstall_license $WORKSPACE/srcdir/MPItrampoline-*/LICENSE.md $WORKSPACE/srcdir/mpich*/COPYRIGHT\n"""
+version = "v4.2.0"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "CompilerSupportLibraries_jll"
+    platforms = ["any"]
+    type = "dependency"
+    uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "0.1"
+    name = "MPIPreferences"
+    platforms = ["any"]
+    type = "dependency"
+    uuid = "3da0fdf6-3ccc-4f1b-acd9-58baa6c99267"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    binnames = ["mpicc"]
+    type = "exe"
+    variable_name = "mpicc"
+    [[metadata.products]]
+    binnames = ["mpicxx"]
+    type = "exe"
+    variable_name = "mpicxx"
+    [[metadata.products]]
+    binnames = ["mpifc"]
+    type = "exe"
+    variable_name = "mpifc"
+    [[metadata.products]]
+    binnames = ["mpifort"]
+    type = "exe"
+    variable_name = "mpifort"
+    [[metadata.products]]
+    binnames = ["mpiexec"]
+    type = "exe"
+    variable_name = "mpiexec"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libmpitrampoline"]
+    type = "lib"
+    variable_name = "libmpi"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libload_time_mpi_constants"]
+    type = "lib"
+    variable_name = "libload_time_mpi_constants"
+    [[metadata.products]]
+    binnames = ["generate_compile_time_mpi_constants"]
+    type = "exe"
+    variable_name = "generate_compile_time_mpi_constants"
+    [[metadata.products]]
+    binnames = ["mpiexec"]
+    dir_path = "lib/mpich/bin"
+    type = "exe"
+    variable_name = "mpich_mpiexec"
+    [[metadata.products]]
+    binnames = ["mpiwrapperexec"]
+    type = "exe"
+    variable_name = "mpiwrapperexec"
+
+    [[metadata.sources]]
+    hash = "92eaa864fb364752a89752d6962f2d20e248bdf69e433d76417a25cac9b8244b"
+    type = "archive"
+    unpack_target = ""
+    url = "https://github.com/eschnett/MPItrampoline/archive/refs/tags/v4.2.0.tar.gz"
+    [[metadata.sources]]
+    hash = "eee6ae92bb746d3c50ea231aa58607fc5bac373680ff5c45c8ebc10e0b6496b4"
+    type = "archive"
+    unpack_target = ""
+    url = "https://github.com/eschnett/MPIconstants/archive/refs/tags/v1.5.0.tar.gz"
+    [[metadata.sources]]
+    hash = "5a42f1a889d4a2d996c26e48cbf9c595cbf4316c6814f7c181e3320d21dedd42"
+    type = "archive"
+    unpack_target = ""
+    url = "https://www.mpich.org/static/downloads/4.0.2/mpich-4.0.2.tar.gz"
+    [[metadata.sources]]
+    hash = "e6fc1c08ad778675e5b58b91b4658b12e3f985c6d4c5c2c3e9ed35986146780e"
+    type = "archive"
+    unpack_target = ""
+    url = "https://github.com/eschnett/MPIwrapper/archive/refs/tags/v2.8.1.tar.gz"

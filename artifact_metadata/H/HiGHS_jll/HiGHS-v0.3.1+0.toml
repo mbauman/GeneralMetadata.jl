@@ -1,0 +1,41 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/75bd14046a473d94cc677caf377994aa0288bda8/H/HiGHS/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.3.7"
+
+[metadata]
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "HiGHS"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir\nif [[ \"${target}\" == *86*-linux-musl* ]]; then\n    pushd /opt/${target}/lib/gcc/${target}/*/include\n    # Fix bug in Musl C library, see\n    # https://github.com/JuliaPackaging/BinaryBuilder.jl/issues/387\n    atomic_patch -p0 $WORKSPACE/srcdir/patches/mm_malloc.patch\n    popd\nfi\nmkdir -p HiGHS/build\ncd HiGHS/build\napk add --upgrade cmake\ncmake -DCMAKE_INSTALL_PREFIX=$prefix \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DBUILD_SHARED_LIBS=ON \\\n    -DFAST_BUILD=ON \\\n    -DJULIA=ON \\\n    -DIPX=ON ..\nif [[ \"${target}\" == *-linux-* ]]; then\n        make -j $nproc\nelse\n    if [[ \"${target}\" == *-mingw* ]]; then\n        cmake --build . --config Release\n    else\n        cmake --build . --config Release --parallel\n    fi\nfi\nmake install\n"""
+version = "v0.3.1"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "CompilerSupportLibraries_jll"
+    type = "dependency"
+    uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libhighs"]
+    type = "lib"
+    variable_name = "libhighs"
+
+    [[metadata.sources]]
+    hash = "40fa96a10554d76b1413bf33cc79a2153aa1db13"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/ERGO-Code/HiGHS.git"
+    [[metadata.sources]]
+    follow_symlinks = false
+    path = "./bundled"
+    target = ""
+    type = "directory"

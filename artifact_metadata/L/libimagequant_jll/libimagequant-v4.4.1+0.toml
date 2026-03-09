@@ -1,0 +1,34 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/da00f8af58353248d417a7b728ba2801f9d37c51/L/libimagequant/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.6.5"
+
+[metadata]
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "libimagequant"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/libimagequant/\n\n# patch to create a dynamic library\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/cdylib.patch\n\ncd $WORKSPACE/srcdir/libimagequant/imagequant-sys\n\n# avoid 'cannot create cdylib' error on musl targets\n# see https://github.com/rust-lang/cargo/issues/8607\n#     https://github.com/rust-lang/rust/issues/59302\nif [[ \"${target}\" == *-musl* ]]; then\n    export RUSTFLAGS=\"-C target-feature=-crt-static\"\nfi\n\ncargo build --release\ninstall_license COPYRIGHT\n\n# Install under a consistent name\ninstall -Dvm 755 ../target/${rust_target}/release/*imagequant_sys.${dlext} \"${libdir}/libimagequant.${dlext}\"\n\n# Install the C header\ninstall -Dvm 644 libimagequant.h ${includedir}/libimagequant.h\n"""
+version = "v4.4.1"
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libimagequant"]
+    type = "lib"
+    variable_name = "libimagequant"
+
+    [[metadata.sources]]
+    hash = "24e2956a37cd7ad1f4b81c0e20318e3239eb71dc"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/ImageOptim/libimagequant.git"
+    [[metadata.sources]]
+    follow_symlinks = false
+    path = "./bundled"
+    target = ""
+    type = "directory"

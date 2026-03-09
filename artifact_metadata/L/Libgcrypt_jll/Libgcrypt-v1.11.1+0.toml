@@ -1,0 +1,38 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/45b63e5a4d5ffd6f88f01d9fb91b7dac8e70d4bc/L/Libgcrypt/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.6.4"
+
+[metadata]
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Libgcrypt"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/libgcrypt-*\n\nBUILD_FLAGS=(--disable-padlock-support --disable-asm)\n\nif [[ \"${target}\" == *linux* ]]; then\n    # on our old glibc, we don't have getentropy\n    BUILD_FLAGS+=(--enable-random=linux)\nfi\n\nif [[ \"${target}\" == *mingw* ]]; then\n    # Work around JuliaPackaging/Yggdrasil#9687\n    sed -i 's/CLOCK_REALTIME/0/g' random/jitterentropy-base-user.h\nfi\n\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \"${BUILD_FLAGS[@]}\"\n\nmake -j${nproc}\nmake install\n"""
+version = "v1.11.1"
+
+    [[metadata.dependencies]]
+    compat = "1.51.1"
+    name = "Libgpg_error_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libgcrypt"]
+    type = "lib"
+    variable_name = "libgcrypt"
+
+    [[metadata.sources]]
+    hash = "09120c9867ce7f2081d6aaa1775386b98c2f2f246135761aae47d81f58685b9c"
+    type = "archive"
+    unpack_target = ""
+    url = "https://gnupg.org/ftp/gcrypt/libgcrypt/libgcrypt-1.11.0.tar.bz2"

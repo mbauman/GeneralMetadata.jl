@@ -1,0 +1,154 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/bfa86162194cfd03b686f1162358aa8987e2f409/T/TauDEM/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.4.0"
+
+[metadata]
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "TauDEM"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir/TauDEM-*\n\n#this has been added on master, so can probably get rid of next version release\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/add-cxx-standard.patch\n# Explicitly cast initial values of `float` array to `float` values\natomic_patch -p1 ../patches/float-list-init.patch\n# Fix linking to MPI libraries\natomic_patch -p1 ../patches/cmake-link-mpi.patch\n\ncd src\nmkdir build && cd build\n\n# Adapted from Erik Schnetter's build for AMReX\nARGS=()\nif [[ \"$target\" == *-apple-* ]]; then\n    # MPICH's pkgconfig file \"mpich.pc\" lists these options:\n    #     Libs:     -framework OpenCL -Wl,-flat_namespace -Wl,-commons,use_dylibs -L${libdir} -lmpi -lpmpi -lm    -lpthread\n    #     Cflags:   -I${includedir}\n    # cmake doesn't know how to handle the \"-framework OpenCL\" option\n    # and wants to use \"-framework\" as a stand-alone option. This fails,\n    # and cmake concludes that MPI is not available.\n    for lang in C CXX; do\n        ARGS+=(\n            -DMPI_${lang}_ADDITIONAL_INCLUDE_DIRS=''\n            -DMPI_${lang}_LIBRARIES='-Wl,-flat_namespace;-Wl,-commons,use_dylibs;-lmpi;-lpmpi'\n        )\n    done\nelif [[ \"$target\" == x86_64-w64-mingw32 ]]; then\n    ARGS+=(\n        -DMPI_HOME=${prefix}\n        -DMPI_GUESS_LIBRARY_NAME=MSMPI\n    )\n    if [[ \"${target}\" == x86_64-* ]]; then\n        for lang in C CXX; do\n            ARGS+=(-DMPI_${lang}_LIBRARIES=msmpi64)\n        done\n    fi\nfi\n\ncmake .. \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    \"${ARGS[@]}\"\n\nmake -j${nproc}\nmake install\n"""
+version = "v5.3.7"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "GDAL_jll"
+    type = "dependency"
+    uuid = "a7073274-a066-55f0-b90d-d619367d196c"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "MPICH_jll"
+    type = "dependency"
+    uuid = "7cb0a576-ebde-5e09-9194-50597f1243b4"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "MicrosoftMPI_jll"
+    type = "dependency"
+    uuid = "9237b28f-5490-5468-be7b-bb81f5f5e6cf"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    binnames = ["d8hdisttostrm"]
+    type = "exe"
+    variable_name = "d8hdisttostrm"
+    [[metadata.products]]
+    binnames = ["gagewatershed"]
+    type = "exe"
+    variable_name = "gagewatershed"
+    [[metadata.products]]
+    binnames = ["peukerdouglas"]
+    type = "exe"
+    variable_name = "peukerdouglas"
+    [[metadata.products]]
+    binnames = ["dinfrevaccum"]
+    type = "exe"
+    variable_name = "dinfrevaccum"
+    [[metadata.products]]
+    binnames = ["slopeavedown"]
+    type = "exe"
+    variable_name = "slopeavedown"
+    [[metadata.products]]
+    binnames = ["dinfdecayaccum"]
+    type = "exe"
+    variable_name = "dinfdecayaccum"
+    [[metadata.products]]
+    binnames = ["gridnet"]
+    type = "exe"
+    variable_name = "gridnet"
+    [[metadata.products]]
+    binnames = ["aread8"]
+    type = "exe"
+    variable_name = "aread8"
+    [[metadata.products]]
+    binnames = ["moveoutletstostrm"]
+    type = "exe"
+    variable_name = "moveoutletstostrm"
+    [[metadata.products]]
+    binnames = ["slopearea"]
+    type = "exe"
+    variable_name = "slopearea"
+    [[metadata.products]]
+    binnames = ["slopearearatio"]
+    type = "exe"
+    variable_name = "slopearearatio"
+    [[metadata.products]]
+    binnames = ["dinfavalanche"]
+    type = "exe"
+    variable_name = "dinfavalanche"
+    [[metadata.products]]
+    binnames = ["dinfflowdir"]
+    type = "exe"
+    variable_name = "dinfflowdir"
+    [[metadata.products]]
+    binnames = ["dinfdistdown"]
+    type = "exe"
+    variable_name = "dinfdistdown"
+    [[metadata.products]]
+    binnames = ["dinfupdependence"]
+    type = "exe"
+    variable_name = "dinfupdependence"
+    [[metadata.products]]
+    binnames = ["d8flowdir"]
+    type = "exe"
+    variable_name = "d8flowdir"
+    [[metadata.products]]
+    binnames = ["dinfconclimaccum"]
+    type = "exe"
+    variable_name = "dinfconclimaccum"
+    [[metadata.products]]
+    binnames = ["streamnet"]
+    type = "exe"
+    variable_name = "streamnet"
+    [[metadata.products]]
+    binnames = ["d8flowpathextremeup"]
+    type = "exe"
+    variable_name = "d8flowpathextremeup"
+    [[metadata.products]]
+    binnames = ["dinftranslimaccum"]
+    type = "exe"
+    variable_name = "dinftranslimaccum"
+    [[metadata.products]]
+    binnames = ["dropanalysis"]
+    type = "exe"
+    variable_name = "dropanalysis"
+    [[metadata.products]]
+    binnames = ["areadinf"]
+    type = "exe"
+    variable_name = "areadinf"
+    [[metadata.products]]
+    binnames = ["dinfdistup"]
+    type = "exe"
+    variable_name = "dinfdistup"
+    [[metadata.products]]
+    binnames = ["lengtharea"]
+    type = "exe"
+    variable_name = "lengtharea"
+    [[metadata.products]]
+    binnames = ["pitremove"]
+    type = "exe"
+    variable_name = "pitremove"
+    [[metadata.products]]
+    binnames = ["threshold"]
+    type = "exe"
+    variable_name = "threshold"
+
+    [[metadata.sources]]
+    hash = "2ba4659cdb6e6ef06194cfeb3947ed228d318778f75a176fa030978e2570058d"
+    type = "archive"
+    unpack_target = ""
+    url = "https://github.com/dtarb/TauDEM/archive/refs/tags/v5.3.7.tar.gz"
+    [[metadata.sources]]
+    follow_symlinks = false
+    path = "./bundled"
+    target = ""
+    type = "directory"

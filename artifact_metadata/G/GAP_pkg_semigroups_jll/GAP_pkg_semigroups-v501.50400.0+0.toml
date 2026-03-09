@@ -1,0 +1,35 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/cdfb75c06511f99269beaacc3ff0253f94946844/G/GAP_pkg/GAP_pkg_semigroups/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.6.5"
+
+[metadata]
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.10"
+lazy_artifacts = false
+name = "GAP_pkg_semigroups"
+platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "riscv64-linux-gnu-cxx03", "riscv64-linux-gnu-cxx11"]
+script = """cd semigroups*\n\nEXTRA_FLAGS=()\nif [[ \"${target}\" == *apple-darwin* ]]; then\n    # lld does support the single_module flag\n    # but the detection is broken due to a warning\n    # see https://savannah.gnu.org/support/?110937\n    EXTRA_FLAGS+=(lt_cv_apple_cc_single_mod=yes)\nelif [[ \"${target}\" == *-freebsd* ]]; then\n    # backward-cpp doesn't support freebsd\n    EXTRA_FLAGS+=(--disable-backward)\nfi\n\n# not enough space in /tmp on buildkite\nexport TMPDIR=$WORKSPACE/tmp\nmkdir $TMPDIR\n\n./configure \\\n    --build=${MACHTYPE} \\\n    --host=${target} \\\n    --with-gaproot=${prefix}/lib/gap \\\n    --disable-hpcombi \\\n    \"${EXTRA_FLAGS[@]}\"\nmake -j${nproc}\n\n# copy the loadable module\nmkdir -p ${prefix}/lib/gap\ncp bin/*/*.so ${prefix}/lib/gap/\ncp bin/lib/*.* ${prefix}/lib/gap/\n\ninstall_license LICENSE\n"""
+version = "v501.50400.0"
+
+    [[metadata.dependencies]]
+    compat = "~400.1500.0"
+    name = "GAP_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    paths = ["lib/gap/semigroups.so"]
+    type = "file"
+    variable_name = "semigroups"
+
+    [[metadata.sources]]
+    hash = "df0488b14af106338009c0ae7dc8b7def9052fb3619a6ba53c31f60cc0731353"
+    type = "archive"
+    unpack_target = ""
+    url = "https://github.com/semigroups/Semigroups/releases/download/v5.5.4/semigroups-5.5.4.tar.gz"
