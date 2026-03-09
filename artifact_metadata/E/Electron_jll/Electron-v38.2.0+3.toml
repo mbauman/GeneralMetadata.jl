@@ -1,0 +1,233 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/475e96a659a322ff2edbf23b931dfde8250b781b/E/Electron/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.6.5"
+
+[metadata]
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.10"
+lazy_artifacts = false
+name = "Electron"
+platforms = ["x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-w64-mingw32", "i686-w64-mingw32"]
+script = """cd ${WORKSPACE}/srcdir/${target}\n\n# Function to copy license files\ncopy_licenses() {\n    if [[ -f \"LICENSE\" ]]; then\n        install_license LICENSE\n    elif [[ -f \"LICENSES.chromium.html\" ]]; then\n        install_license LICENSES.chromium.html\n    fi\n}\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    # Windows structure - preserve Electron's directory layout\n    # Electron expects resources to be in the same directory as the executable\n    # All resource files must be co-located with electron.exe:\n    # - locales/ directory with .pak files for internationalization\n    # - resources/ directory with default_app.asar\n    # - icudtl.dat for ICU (International Components for Unicode)\n    # - v8_context_snapshot.bin and snapshot_blob.bin for V8 engine\n    # - *.pak files for UI resources\n    # - vk_swiftshader_icd.json for Vulkan software rendering\n    # - All DLL files\n\n    # Install everything to bindir to keep electron.exe with its resources\n    mkdir -p \"${bindir}\"\n\n    # Copy all files to bindir, preserving directory structure\n    cp -r * \"${bindir}/\"\n\n    # Ensure electron.exe is executable\n    chmod +x \"${bindir}/electron.exe\"\n\n    copy_licenses\n    if [[ -f \"version\" ]]; then\n        cp \"version\" \"${prefix}/version\"\n    fi\nelif [[ \"${target}\" == *-apple-* ]]; then\n    # macOS structure - Electron.app bundle\n    # Note: All resource files (icudtl.dat, v8_context_snapshot.bin, snapshot_blob.bin, *.pak)\n    # are already included in the .app bundle at\n    # Electron.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Resources/\n    if [[ -d \"Electron.app\" ]]; then\n        cp -r Electron.app \"${prefix}/Electron.app\"\n        # Create a wrapper script\n        mkdir -p \"${bindir}\"\n        cat > \"${bindir}/electron\" <<'EOF'\n#!/bin/bash\nDIR=\"$(cd \"$(dirname \"${BASH_SOURCE[0]}\")/..\" && pwd)\"\nexec \"$DIR/Electron.app/Contents/MacOS/Electron\" \"$@\"\nEOF\n        chmod +x \"${bindir}/electron\"\n    fi\n\n    copy_licenses\nelse\n    # Linux structure - preserve Electron's directory layout\n    # Electron expects resources to be in the same directory as the executable\n    mkdir -p \"${prefix}/lib/electron\"\n\n    # Copy all files preserving structure\n    cp -r * \"${prefix}/lib/electron/\"\n    chmod +x \"${prefix}/lib/electron/electron\"\n\n    # Create wrapper script in bin/ that sets up environment\n    mkdir -p \"${bindir}\"\n    cat > \"${bindir}/electron\" <<'EOF'\n#!/bin/bash\nELECTRON_DIR=\"$(cd \"$(dirname \"$0\")/../lib/electron\" && pwd)\"\nexport LD_LIBRARY_PATH=\"${ELECTRON_DIR}:${LD_LIBRARY_PATH}\"\nexec \"${ELECTRON_DIR}/electron\" \"$@\"\nEOF\n    chmod +x \"${bindir}/electron\"\n\n    # Also symlink shared libraries to libdir for other packages that might need them\n    for so in \"${prefix}/lib/electron\"/*.so*; do\n        if [[ -f \"$so\" ]]; then\n            ln -sf \"$so\" \"${libdir}/$(basename \"$so\")\"\n        fi\n    done\n\n    copy_licenses\n    if [[ -f \"version\" ]]; then\n        cp \"version\" \"${prefix}/version\"\n    fi\nfi\n"""
+version = "v38.2.0"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Xorg_libX11_jll"
+    platforms = ["x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx11"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Xorg_libXext_jll"
+    platforms = ["x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx11"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Xorg_libXfixes_jll"
+    platforms = ["x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx11"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Xorg_libXdamage_jll"
+    platforms = ["x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx11"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Xorg_libXrandr_jll"
+    platforms = ["x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx11"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Xorg_libXcomposite_jll"
+    platforms = ["x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx11"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Xorg_libxcb_jll"
+    platforms = ["x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx11"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "GTK3_jll"
+    platforms = ["x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx11"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Glib_jll"
+    platforms = ["x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx11"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Pango_jll"
+    platforms = ["x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx11"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Cairo_jll"
+    platforms = ["x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx11"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "at_spi2_atk_jll"
+    platforms = ["x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx11"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "at_spi2_core_jll"
+    platforms = ["x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx11"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "ATK_jll"
+    platforms = ["x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx11"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "alsa_jll"
+    platforms = ["x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx11"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Dbus_jll"
+    platforms = ["x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx11"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Expat_jll"
+    platforms = ["x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx11"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "xkbcommon_jll"
+    platforms = ["x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx11"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    binnames = ["electron"]
+    type = "exe"
+    variable_name = "electron"
+
+    [[metadata.sources]]
+    hash = "f0028975282a6f2946797175ac406a95096f29c5dcda98048148668dfa36eff8"
+    type = "archive"
+    unpack_target = "x86_64-linux-gnu"
+    url = "https://github.com/electron/electron/releases/download/v38.2.0/electron-v38.2.0-linux-x64.zip"
+    [[metadata.sources]]
+    hash = "76116429b368c883f93eb98cbdb053f98d811c35943133fe3cf9b408018ebe2f"
+    type = "archive"
+    unpack_target = "aarch64-linux-gnu"
+    url = "https://github.com/electron/electron/releases/download/v38.2.0/electron-v38.2.0-linux-arm64.zip"
+    [[metadata.sources]]
+    hash = "a4345bb87504b6b2bef29c0dc53b99770b203a7052fd2c5d38fd3e16177d3e68"
+    type = "archive"
+    unpack_target = "arm-linux-gnueabihf"
+    url = "https://github.com/electron/electron/releases/download/v38.2.0/electron-v38.2.0-linux-armv7l.zip"
+    [[metadata.sources]]
+    hash = "f0028975282a6f2946797175ac406a95096f29c5dcda98048148668dfa36eff8"
+    type = "archive"
+    unpack_target = "x86_64-linux-musl"
+    url = "https://github.com/electron/electron/releases/download/v38.2.0/electron-v38.2.0-linux-x64.zip"
+    [[metadata.sources]]
+    hash = "76116429b368c883f93eb98cbdb053f98d811c35943133fe3cf9b408018ebe2f"
+    type = "archive"
+    unpack_target = "aarch64-linux-musl"
+    url = "https://github.com/electron/electron/releases/download/v38.2.0/electron-v38.2.0-linux-arm64.zip"
+    [[metadata.sources]]
+    hash = "a4345bb87504b6b2bef29c0dc53b99770b203a7052fd2c5d38fd3e16177d3e68"
+    type = "archive"
+    unpack_target = "arm-linux-musleabihf"
+    url = "https://github.com/electron/electron/releases/download/v38.2.0/electron-v38.2.0-linux-armv7l.zip"
+    [[metadata.sources]]
+    hash = "232a83cb11b37f67dc0683402463ef30ac0309afb8e96f3bc1ea53e72fafa789"
+    type = "archive"
+    unpack_target = "x86_64-apple-darwin14"
+    url = "https://github.com/electron/electron/releases/download/v38.2.0/electron-v38.2.0-darwin-x64.zip"
+    [[metadata.sources]]
+    hash = "cff178e2cb9ae0d957d43009ef46d249d5594bc107d7704130bc0ce2e234bbd1"
+    type = "archive"
+    unpack_target = "aarch64-apple-darwin20"
+    url = "https://github.com/electron/electron/releases/download/v38.2.0/electron-v38.2.0-darwin-arm64.zip"
+    [[metadata.sources]]
+    hash = "4382b317dbbbc0bbf8a301304749324b88207218aac240b670f1c1247c2a02b0"
+    type = "archive"
+    unpack_target = "x86_64-w64-mingw32"
+    url = "https://github.com/electron/electron/releases/download/v38.2.0/electron-v38.2.0-win32-x64.zip"
+    [[metadata.sources]]
+    hash = "b3bd0de05613ab5312013133de1587c35fdfa22e11e1f76fcaf6ea0248128f0c"
+    type = "archive"
+    unpack_target = "i686-w64-mingw32"
+    url = "https://github.com/electron/electron/releases/download/v38.2.0/electron-v38.2.0-win32-ia32.zip"

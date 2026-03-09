@@ -1,0 +1,38 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/8cbf8afc1c8d59a44518712a1f5a89ba787e85de/T/Tcl/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.5.8"
+
+[metadata]
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Tcl"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """if [[ \"${target}\" == *-mingw* ]]; then\n    cd $WORKSPACE/srcdir/tcl*/win/\n    # `make install` calls `tclsh` on Windows\n    apk add tcl\nelse\n    cd $WORKSPACE/srcdir/tcl*/unix/\nfi\n\nFLAGS=()\nif [[ \"${target}\" == x86_64-* ]]; then\n    FLAGS+=(--enable-64bit)\nfi\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \"${FLAGS[@]}\"\nmake -j${nproc}\nmake install\n# Tk needs private headers\nmake install-private-headers\n\n# Install license file\ninstall_license $WORKSPACE/srcdir/tcl*/license.terms\n"""
+version = "v8.6.14"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Zlib_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libtcl8.6", "libtcl8", "tcl86"]
+    type = "lib"
+    variable_name = "libtcl"
+
+    [[metadata.sources]]
+    hash = "5880225babf7954c58d4fb0f5cf6279104ce1cd6aa9b71e9a6322540e1c4de66"
+    type = "archive"
+    unpack_target = ""
+    url = "https://downloads.sourceforge.net/sourceforge/tcl/tcl8.6.14-src.tar.gz"

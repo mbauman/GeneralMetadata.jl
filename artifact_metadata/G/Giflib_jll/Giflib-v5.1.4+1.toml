@@ -1,0 +1,31 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/2bec855df8e9bd8e9d9765d889c6ed1358b90698/G/Giflib/build_tarballs.jl"
+metadata_source = "retrospective (by timestamp)"
+system = "Yggdrasil"
+version = "0.2.4"
+
+[metadata]
+dependencies = []
+lazy_artifacts = false
+name = "Giflib"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/giflib-*/\natomic_patch -p1 ../debian/patches/CVE-2016-3977.patch\n\n# We need to massage configure script to convince it to build the shared library\n# for PowerPC.\nif [[ \"${target}\" == powerpc64le-* ]]; then\n    autoreconf -vi\nfi\n\nupdate_configure_scripts\n./configure --prefix=${prefix} --host=${target}\nmake -j${nproc}\nmake install\ninstall_license COPYING\n"""
+version = "v5.1.4"
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libgif"]
+    type = "lib"
+    variable_name = "libgif"
+
+    [[metadata.sources]]
+    hash = "df27ec3ff24671f80b29e6ab1c4971059c14ac3db95406884fc26574631ba8d5"
+    type = "archive"
+    unpack_target = ""
+    url = "https://downloads.sourceforge.net/project/giflib/giflib-5.1.4.tar.bz2"
+    [[metadata.sources]]
+    hash = "767ea03c1948fa203626107ead3d8b08687a3478d6fbe4690986d545fb1d60bf"
+    type = "archive"
+    unpack_target = ""
+    url = "https://deb.debian.org/debian/pool/main/g/giflib/giflib_5.1.4-3.debian.tar.xz"
