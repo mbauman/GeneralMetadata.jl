@@ -1,0 +1,65 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/cb5fda6620e2f5ac0c69220fc34a511523306cd6/I/ICU/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.2.4"
+
+[metadata]
+dependencies = []
+lazy_artifacts = false
+name = "ICU"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin14-cxx03", "x86_64-apple-darwin14-cxx11", "x86_64-unknown-freebsd11.1-cxx03", "x86_64-unknown-freebsd11.1-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir/icu/\n\n# Do the native build\n(\n    cp -r source/ native_build/\n    cd native_build\n    CC=\"${CC_BUILD}\"\n    CXX=\"${CXX_BUILD}\"\n    AR=\"${AR_BUILD}\"\n    LD=\"${LD_BUILD}\"\n    RANLIB=\"${RANLIB_BUILD}\"\n\n    # See https://git.alpinelinux.org/aports/tree/main/icu/APKBUILD?id=334ebffde9dec34becdd628ad56007699e98ea81\n    update_configure_scripts\n    sed -i -e 's,DU_HAVE_STRTOD_L=1,DU_HAVE_STRTOD_L=0,' configure.ac\n    sed -i -e 's,DU_HAVE_STRTOD_L=1,DU_HAVE_STRTOD_L=0,' configure\n    for x in ARFLAGS CFLAGS CPPFLAGS CXXFLAGS FFLAGS LDFLAGS; do\n        sed -i -e \"/^${x} =.*/s:@${x}@::\" \"config/Makefile.inc.in\"\n    done\n\n    ./configure --prefix=$prefix --build=${MACHTYPE} \\\n        ac_cv_prog_ac_ct_AR=${AR} \\\n        ac_cv_prog_ac_ct_RANLIB=${RANLIB}\n    make -j${nproc}\n)\n\n# Do the cross build\ncd source/\n\nif [[ \"${target}\" == *-apple-* ]]; then\n    # Do not append `-c` flag to ar, which isn't supported by LLVM's ar\n    atomic_patch -p1 $WORKSPACE/srcdir/patches/argflags-no--c.patch\nfi\n\nupdate_configure_scripts\n./configure --prefix=$prefix --host=$target \\\n    --with-cross-build=\"/workspace/srcdir/icu/native_build\"\nmake -j${nproc}\nmake install\n"""
+version = "v65.1.0"
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libicudata", "icudt"]
+    type = "lib"
+    variable_name = "libicudata"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libicui18n", "icuin"]
+    type = "lib"
+    variable_name = "libicui18n"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libicuio", "icuio"]
+    type = "lib"
+    variable_name = "libicuio"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libicutest", "icutest"]
+    type = "lib"
+    variable_name = "libicutest"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libicutu", "icutu"]
+    type = "lib"
+    variable_name = "libicutu"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libicuuc", "icuuc"]
+    type = "lib"
+    variable_name = "libicuuc"
+
+    [[metadata.sources]]
+    hash = "53e37466b3d6d6d01ead029e3567d873a43a5d1c668ed2278e253b683136d948"
+    type = "archive"
+    unpack_target = ""
+    url = "https://github.com/unicode-org/icu/releases/download/release-65-1/icu4c-65_1-src.tgz"
+    [[metadata.sources]]
+    path = "./bundled"
+    target = ""
+    type = "directory"

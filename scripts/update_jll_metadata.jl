@@ -4,6 +4,7 @@ using JSON: JSON
 using Pkg: Pkg, Registry, PackageSpec
 using Base64: base64decode
 using GeneralMetadata: GeneralMetadata
+using Random: shuffle!
 
 # Copied from SecurityAdvisories just to make life a little easier, since this runs v1.7
 function get_registry(reg=Registry.RegistrySpec(name="General", uuid = "23338594-aafe-5451-b93e-139f81909106"); depot=Pkg.depots1())
@@ -43,8 +44,12 @@ function commit_from_tagname(owner, repo, tag_name)
     end
     tagsinfo = JSON.parse(response.body)
     if haskey(tagsinfo, "object") && tagsinfo["object"]["type"] == "tag"
-        # This is an annotated tag, so we need to dereference it to get the commit (and thus tree) SHA
-        error("I don't yet know how to handle annotated tags for $owner/$repo@$tag_name, got tag info: $tagsinfo") # TODO
+        # This is an annotated tag, so we need to dereference it to get the commit SHA
+        lightweight_response = HTTP.get(string(GITHUB_API_BASE, "/repos/", owner, "/", repo, "/git/tags/", tagsinfo["object"]["sha"]), build_headers())
+        if lightweight_response.status != 200
+            error("Failed to fetch lightweight tag info for $tag_name: HTTP $(lightweight_response.status)")
+        end
+        tagsinfo = JSON.parse(lightweight_response.body)
     end
     # This is a lightweight tag, so the object is the commit
     @assert tagsinfo["object"]["type"] == "commit"
@@ -185,10 +190,15 @@ function merge_json_objects(objs::Vector)
     return merged
 end
 
-function metadata_for_jll_release(org, repo, release)
+function metadata_for_jll_release(org, repo, release, available_versions)
     jllname = chopsuffix(chopsuffix(chopsuffix(repo, ".git"), ".jl"), "_jll")
     tree_sha = tree_sha_from_tagname(org, repo, release["tag_name"])
-    version = VersionNumber(split(release["tag_name"], "-", limit=2)[2])
+    matched_versions = filter(((ver,info),)->string(info.git_tree_sha1) == tree_sha, available_versions)
+    if isempty(matched_versions)
+        # TODO: this logic would probably make more sense at the level of the loop over releases
+        error("tag $(release["tag_name"]) for $org/$repo has tree sha $tree_sha, which is not registered")
+    end
+    version = only(matched_versions)[1]
     commit_from_readme, path_from_readme = commit_and_path_from_readme(get_readme(org, repo, tree_sha))
     release_published_at = release.published_at
     return cd(yggy) do
@@ -223,7 +233,7 @@ function metadata_for_jll_release(org, repo, release)
         # Now find the version of BinaryBuilder/Julia to run
         if isfile(".ci/Manifest.toml")
             manifest = TOML.parsefile(".ci/Manifest.toml")
-            proj = ".ci"
+            proj = abspath(".ci")
             if haskey(manifest, "julia_version")
                 julia_version = majorminor(VersionNumber(manifest["julia_version"])) # ignore patch versions for these
             elseif isfile(".ci/azp_agent/install_agents.sh")
@@ -270,7 +280,9 @@ function metadata_for_jll_release(org, repo, release)
                 @warn "got error during Pkg.instantiate() for $proj at $commit, output was:\n\n$output"
             end
             @info "julia +$julia_version --project=$proj $buildscript --meta-json=...'"
-            run(`julia +$julia_version --project=$proj $buildscript --meta-json=$path`)
+            cd(dirname(buildscript)) do
+                run(`julia +$julia_version --project=$proj $(basename(buildscript)) --meta-json=$path`)
+            end
             drop_nothings(merge_json_objects(JSON.parse(io, jsonlines=true)))
         end
         bb_version = begin
@@ -295,7 +307,8 @@ function update_metadata(; force = false, max_releases=100)
     metadata = GeneralMetadata.metadata()
     artifact_metadata = GeneralMetadata.artifact_metadata()
     count = 0
-    for (uuid, pkgentry) in jlls()
+    failures = String[]
+    for (uuid, pkgentry) in shuffle!(collect(jlls()))
         jllinfo = Registry.registry_info(pkgentry)
         pkgname = pkgentry.name
         jllname = chopsuffix(pkgname, "_jll")
@@ -313,9 +326,10 @@ function update_metadata(; force = false, max_releases=100)
             if haskey(artifact_metadata, pkgentry.name) && haskey(artifact_metadata[pkgentry.name], tag_name) && !force
                 continue
             end
-            @info "fetching metadata for $jllname at $tag_name"
+            count += 1
+            @info "$count/$max_releases: fetching metadata for $jllname at $tag_name"
             try
-                release_meta = metadata_for_jll_release(org, repo, release)
+                release_meta = metadata_for_jll_release(org, repo, release, GeneralMetadata.registered_package_versions(uuid))
                 !haskey(artifact_metadata, pkgname) && (artifact_metadata[pkgname] = Dict{String,Any}())
                 artifact_metadata[pkgname][tag_name] = release_meta
                 # Also update metadata for the package itself
@@ -328,16 +342,19 @@ function update_metadata(; force = false, max_releases=100)
                     end
                 end
             catch ex
-                @error "error getting metadata for $pkgname at $tag_name" ex
+                @error "error getting metadata for $pkgname@$tag_name" ex
+                push!(failures, "$pkgname@$tag_name: $ex")
                 ex isa HTTP.Exceptions.StatusError && ex.status == 403 && (count = max_releases; break)
             end
-            count += 1
-            count >= max_releases && break
         end
         if count >= max_releases
-            @info "reached max release limit of $max_releases, stopping here"
+            @info "tried $count releases, stopping here"
             break
         end
+    end
+    if length(failures) > 0
+        @warn "encountered $(length(failures)) failures:"
+        println(join(replace.(failures, ('\n'=>" ",)), "\n"))
     end
     GeneralMetadata.save_artifact_metadata!(artifact_metadata)
     GeneralMetadata.save_metadata!(metadata)

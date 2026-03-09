@@ -1,0 +1,40 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/04c2db86da4b7bb5d14a5fe449f2f6463cbd74cc/P/PCRE2/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.2.4"
+
+[metadata]
+dependencies = []
+lazy_artifacts = false
+name = "PCRE2"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/pcre2-*/\n\n# Update configure scripts\nupdate_configure_scripts\n\n# Force optimization\nexport CFLAGS=\"${CFLAGS} -O3\"\n\n./configure --prefix=${prefix} --host=${target} \\\n    --disable-static \\\n    --enable-jit \\\n    --enable-pcre2-16 \\\n    --enable-pcre2-32\n\nmake -j${nproc}\nmake install\n\n# On windows we need libcpre2-8.dll as well\nif [[ ${target} == *mingw* ]]; then\n    ln -s libpcre2-8-0.dll  ${libdir}/libpcre2-8.dll\n    ln -s libpcre2-16-0.dll ${libdir}/libpcre2-16.dll\n    ln -s libpcre2-32-0.dll ${libdir}/libpcre2-32.dll\nfi\n"""
+version = "v10.34.0"
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libpcre2-8"]
+    type = "lib"
+    variable_name = "libpcre2_8"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libpcre2-16"]
+    type = "lib"
+    variable_name = "libpcre2_16"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libpcre2-32"]
+    type = "lib"
+    variable_name = "libpcre2_32"
+
+    [[metadata.sources]]
+    hash = "da6aba7ba2509e918e41f4f744a59fa41a2425c59a298a232e7fe85691e00379"
+    type = "archive"
+    unpack_target = ""
+    url = "https://ftp.pcre.org/pub/pcre/pcre2-10.34.tar.gz"
