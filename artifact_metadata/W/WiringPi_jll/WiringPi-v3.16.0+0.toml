@@ -1,0 +1,34 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/4cb88116c60e302857baa5b22fb17b48694e5bf3/W/WiringPi/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+metadata_type = "BinaryBuilder --meta-json"
+metadata_version = "0.6.5"
+
+[metadata]
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "WiringPi"
+platforms = ["aarch64-linux-gnu"]
+script = """cd $WORKSPACE/srcdir\nfor f in ${WORKSPACE}/srcdir/patches/*.patch; do\n    atomic_patch -p1 ${f}\ndone\n\ncd WiringPi/wiringPi\n\n\nmake -j${nproc}\n# Override the installation location, and don't let it run ldconfig (it doesn't work for us)\nmake DESTDIR=${prefix} PREFIX=\"\" LDCONFIG=\"\" V=1 install\n\n\ninstall_license COPYING.LESSER\n\n"""
+version = "v3.16.0"
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libwiringPi"]
+    type = "lib"
+    variable_name = "wiringPi"
+
+    [[metadata.sources]]
+    hash = "b2af17eea92238fa99dae5bf174b3cdf81b78656"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/WiringPi/WiringPi.git"
+    [[metadata.sources]]
+    follow_symlinks = false
+    path = "./bundled"
+    target = ""
+    type = "directory"

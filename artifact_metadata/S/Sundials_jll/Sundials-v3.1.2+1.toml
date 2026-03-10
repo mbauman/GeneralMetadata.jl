@@ -1,0 +1,161 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/e815560925ceeb11f0c450d3d26babf07ae483a6/./S/Sundials@3/build_tarballs.jl"
+metadata_source = "retrospective (by timestamp)"
+metadata_type = "BinaryBuilder --meta-json"
+metadata_version = "0.2.4"
+
+[metadata]
+lazy_artifacts = false
+name = "Sundials"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/sundials*\natomic_patch -p0 $WORKSPACE/srcdir/patches/Sundials_windows.patch\n\nCMAKE_FLAGS=(-DCMAKE_INSTALL_PREFIX=${prefix} -DCMAKE_TOOLCHAIN_FILE=\"${CMAKE_TARGET_TOOLCHAIN}\")\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release -DEXAMPLES_ENABLE_C=OFF)\nCMAKE_FLAGS+=(-DKLU_ENABLE=ON -DKLU_INCLUDE_DIR=\"$prefix/include\" -DKLU_LIBRARY_DIR=\"$libdir\")\n\n### Disable BLAS and LAPACK because sundials 3.1 cannot use 64-bit ints with these libraries\n#CMAKE_FLAGS+=(-DBLAS_ENABLE=ON -DLAPACK_ENABLE=ON)\n#if [[ ${nbits} == 64 ]] && [[ ${target} != aarch64* ]]; then\n#    patch -p0 < $WORKSPACE/srcdir/patches/Sundials_ilp64.patch\n#    CMAKE_FLAGS+=(-DBLAS_LIBRARIES=\"-L${libdir} -lopenblas64_\" -DLAPACK_LIBRARIES=\"-L${libdir} -lopenblas64_\")\n#else\n#    CMAKE_FLAGS+=(-DBLAS_LIBRARIES=\"-L${libdir} -lopenblas\" -DLAPACK_LIBRARIES=\"-L${libdir} -lopenblas\")\n#fi\n\nif [[ ${target} != *darwin* ]]; then\n    # Needed to find libgfortran for OpenBLAS.\n    export CFLAGS=\"-Wl,-rpath-link,/opt/${target}/${target}/lib -Wl,-rpath-link,/opt/${target}/${target}/lib64\"\nfi\n\nmkdir build\ncd build\ncmake \"${CMAKE_FLAGS[@]}\" ..\nmake -j${nproc}\nmake install\n\n# Move libraries to ${libdir} on Windows\nif [[ \"${target}\" == *-mingw* ]]; then\n    mv ${prefix}/lib/libsundials_*.${dlext} \"${libdir}\"\nfi\n"""
+version = "v3.1.2"
+
+    [[metadata.dependencies]]
+    name = "OpenBLAS_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    name = "SuiteSparse_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libsundials_arkode"]
+    type = "lib"
+    variable_name = "libsundials_arkode"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libsundials_cvode"]
+    type = "lib"
+    variable_name = "libsundials_cvode"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libsundials_cvodes"]
+    type = "lib"
+    variable_name = "libsundials_cvodes"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libsundials_ida"]
+    type = "lib"
+    variable_name = "libsundials_ida"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libsundials_idas"]
+    type = "lib"
+    variable_name = "libsundials_idas"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libsundials_kinsol"]
+    type = "lib"
+    variable_name = "libsundials_kinsol"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libsundials_nvecserial"]
+    type = "lib"
+    variable_name = "libsundials_nvecserial"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libsundials_sunlinsolband"]
+    type = "lib"
+    variable_name = "libsundials_sunlinsolband"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libsundials_sunlinsoldense"]
+    type = "lib"
+    variable_name = "libsundials_sunlinsoldense"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libsundials_sunlinsolklu"]
+    type = "lib"
+    variable_name = "libsundials_sunlinsolklu"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libsundials_sunlinsolpcg"]
+    type = "lib"
+    variable_name = "libsundials_sunlinsolpcg"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libsundials_sunlinsolspbcgs"]
+    type = "lib"
+    variable_name = "libsundials_sunlinsolspbcgs"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libsundials_sunlinsolspfgmr"]
+    type = "lib"
+    variable_name = "libsundials_sunlinsolspfgmr"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libsundials_sunlinsolspgmr"]
+    type = "lib"
+    variable_name = "libsundials_sunlinsolspgmr"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libsundials_sunlinsolsptfqmr"]
+    type = "lib"
+    variable_name = "libsundials_sunlinsolsptfqmr"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libsundials_sunmatrixband"]
+    type = "lib"
+    variable_name = "libsundials_sunmatrixband"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libsundials_sunmatrixdense"]
+    type = "lib"
+    variable_name = "libsundials_sunmatrixdense"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libsundials_sunmatrixsparse"]
+    type = "lib"
+    variable_name = "libsundials_sunmatrixsparse"
+
+    [[metadata.sources]]
+    hash = "3bea69fccb5d5dc35ad030a1c05f27f316461530"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/LLNL/sundials.git"
+    [[metadata.sources]]
+    path = "./bundled"
+    target = ""
+    type = "directory"
