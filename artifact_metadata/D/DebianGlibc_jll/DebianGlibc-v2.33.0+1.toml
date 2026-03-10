@@ -1,0 +1,32 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/6d9aeb26403c42a28e8bacff3a66d2bfbba70c65/G/Glibc/DebianGlibc@2.33/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.5.3"
+
+[metadata]
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "DebianGlibc"
+platforms = ["aarch64-linux-gnu"]
+products = []
+script = """cd $WORKSPACE/srcdir/glibc-*/\n\n# Install licenses first thing\ninstall_license COPYING* LICENSES\n\n# Update configure scripts to work well with `musl`\nupdate_configure_scripts\n\nfor p in ${WORKSPACE}/srcdir/patches/glibc-*.patch; do\n    atomic_patch -p1 ${p}\ndone\n\n# Various configure overrides\nGLIBC_CONFIGURE_OVERRIDES=( libc_cv_forced_unwind=yes libc_cv_c_cleanup=yes )\n\nmkdir -p $WORKSPACE/srcdir/glibc_build\n\nif [[ -d ../debian ]]; then\n    echo \"https://dl-cdn.alpinelinux.org/alpine/edge/testing/\" >> /etc/apk/repositories\n    apk update\n    apk add quilt\n    QUILT_PATCHES=$PWD/../debian/patches quilt push\n    echo \"libdir = /usr/lib/${target}\" >> $WORKSPACE/srcdir/glibc_build/configparms\n    echo \"slibdir = /lib/${target}\" >> $WORKSPACE/srcdir/glibc_build/configparms\n    echo \"rtlddir = /lib\" >> $WORKSPACE/srcdir/glibc_build/configparms\n    if [[ ${target} == aarch64-linux-gnu ]]; then\n        # At the moment -moutline-atomics (as used in the official debian binaries)\n        # intermittently causes binaries that are incompatible with rr. Forcing ARM\n        # 8.3 will result in inlined LSE atomics, working around the issue.\n        GLIBC_CONFIGURE_OVERRIDES+=( CFLAGS=\"-march=armv8.3-a -mno-outline-atomics -O2\")\n    fi\nfi\n\n# We have problems with libssp on ppc64le\nif [[ ${COMPILER_TARGET} == powerpc64le-* ]]; then\n    GLIBC_CONFIGURE_OVERRIDES+=( libc_cv_ssp=no libc_cv_ssp_strong=no )\nfi\n\ncd $WORKSPACE/srcdir/glibc_build\n$WORKSPACE/srcdir/glibc-*/configure \\\n    --prefix=/usr \\\n    --build=${MACHTYPE} \\\n    --host=${target} \\\n    --disable-multilib \\\n    --disable-werror \\\n    \"${GLIBC_CONFIGURE_OVERRIDES[@]}\"\n\nmake -j${nproc}\n\n# Install to the main prefix and also to the sysroot.\nmake install install_root=${prefix}\n"""
+version = "v2.33.0"
+
+    [[metadata.sources]]
+    hash = "2e2556000e105dbd57f0b6b2a32ff2cf173bde4f0d85dffccfd8b7e51a0677ff"
+    type = "archive"
+    unpack_target = ""
+    url = "https://mirrors.kernel.org/gnu/glibc/glibc-2.33.tar.xz"
+    [[metadata.sources]]
+    follow_symlinks = true
+    path = "./bundled"
+    target = ""
+    type = "directory"
+    [[metadata.sources]]
+    hash = "c4dd741a08918861796cf62a8d3209a56d41d807344a7db481b73a4d17f726bc"
+    type = "archive"
+    unpack_target = ""
+    url = "http://deb.debian.org/debian/pool/main/g/glibc/glibc_2.33-7.debian.tar.xz"

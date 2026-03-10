@@ -1,0 +1,54 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/cbaf27290b0a5ae5dc224ab820bec53359e2bdcc/M/MicrosoftMPI/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.6.0"
+
+[metadata]
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "MicrosoftMPI"
+platforms = ["i686-w64-mingw32-libgfortran3", "i686-w64-mingw32-libgfortran4", "i686-w64-mingw32-libgfortran5", "x86_64-w64-mingw32-libgfortran3", "x86_64-w64-mingw32-libgfortran4", "x86_64-w64-mingw32-libgfortran5"]
+script = """apk add p7zip\n\ncd ${WORKSPACE}/srcdir/\n7z x -t# msmpisetup.exe -otmp\nif [[ ${target} == i686-w64-* ]]; then\n    # 32-bit files\n    7z x tmp/2.msi -o$prefix\nelse\n    # 64-bit files\n    7z x tmp/4.msi -o$prefix\n    mv -f $prefix/msmpi64.dll $prefix/msmpi.dll\n    mv -f $prefix/msmpires64.dll $prefix/msmpires.dll\nfi\n\n7z x msmpisdk.msi -o$prefix\ncd ${prefix}\nchmod +x *.exe\nmkdir -p bin\nmv *.exe *.dll bin\nmkdir -p lib\nmv *.lib lib\nmkdir -p include\n# Move to includedir only the mpifptr.h for current architecture\nmv \"mpifptr${nbits}.h\" \"include/mpifptr.h\"\nrm mpifptr*.h\nmv *.h *.man include\nmkdir -p src\nmv *.f90 src\nmkdir -p share/licenses/MicrosoftMPI\nmv *.txt *.rtf share/licenses/MicrosoftMPI\n\n# Generate \"mpi.mod\", \"mpi_base.mod\", \"mpi_sizeofs.mod\" and \"mpi_constants.mod\"\ncd $includedir\ngfortran -I. ../src/mpi.f90 -fsyntax-only -fno-range-check\n\n# Replace an unknown character in mpif.h by a space\nsed -i '/Copyright Notice/!b;n;c!    + 2002 University of Chicago' mpif.h\n\n################################################################################\n# Install MPIconstants\n################################################################################\n\ncd ${WORKSPACE}/srcdir/MPIconstants*\nmkdir build\ncd build\n\nif [[ \"$target\" == x86_64-w64-mingw32 ]]; then\n    cmake \\\n        -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n        -DCMAKE_FIND_ROOT_PATH=${prefix} \\\n        -DCMAKE_INSTALL_PREFIX=${prefix} \\\n        -DBUILD_SHARED_LIBS=ON \\\n        -DMPI_HOME=$prefix \\\n        -DMPI_GUESS_LIBRARY_NAME=MSMPI \\\n        -DMPI_C_LIBRARIES=msmpi64 \\\n        -DMPI_CXX_LIBRARIES=msmpi64 \\\n        ..\nelif [[ \"$target\" == *-mingw* ]]; then\n    cmake \\\n        -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n        -DCMAKE_FIND_ROOT_PATH=${prefix} \\\n        -DCMAKE_INSTALL_PREFIX=${prefix} \\\n        -DBUILD_SHARED_LIBS=ON \\\n        -DMPI_HOME=$prefix \\\n        -DMPI_GUESS_LIBRARY_NAME=MSMPI \\\n        ..\nelse\n    exit 1\nfi\n\ncmake --build . --config RelWithDebInfo --parallel $nproc\ncmake --build . --config RelWithDebInfo --parallel $nproc --target install\n\nif [[ ${target} == i686-w64-* ]]; then\n    # Remove 64-bit import libraries\n    rm $prefix/lib/*64.lib\nelse\n    # Rename 64-bit import libraries\n    mv -f $prefix/lib/msmpifmc64.lib $prefix/lib/msmpifmc.lib\n    mv -f $prefix/lib/msmpifec64.lib $prefix/lib/msmpifec.lib\n    mv -f $prefix/lib/msmpi64.lib $prefix/lib/msmpi.lib\nfi\n\ninstall_license $WORKSPACE/destdir/share/licenses/MicrosoftMPI/* $WORKSPACE/srcdir/MPIconstants*/LICENSE.md\n"""
+version = "v10.1.4"
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["msmpi"]
+    type = "lib"
+    variable_name = "libmpi"
+    [[metadata.products]]
+    binnames = ["mpiexec"]
+    type = "exe"
+    variable_name = "mpiexec"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libload_time_mpi_constants"]
+    type = "lib"
+    variable_name = "libload_time_mpi_constants"
+    [[metadata.products]]
+    binnames = ["generate_compile_time_mpi_constants"]
+    type = "exe"
+    variable_name = "generate_compile_time_mpi_constants"
+
+    [[metadata.sources]]
+    filename = "msmpisetup.exe"
+    hash = "47443829114d8d8670f77af98939fe876d33eceb35d0ce4e0e85efeec4d87213"
+    type = "file"
+    url = "https://download.microsoft.com/download/7/2/7/72731ebb-b63c-4170-ade7-836966263a8f/msmpisetup.exe"
+    [[metadata.sources]]
+    filename = "msmpisdk.msi"
+    hash = "8ccbc77a0cfe1e30f7495a759886b4d99b2c494b9b9ad414dcda1da84c00d3fa"
+    type = "file"
+    url = "https://download.microsoft.com/download/7/2/7/72731ebb-b63c-4170-ade7-836966263a8f/msmpisdk.msi"
+    [[metadata.sources]]
+    hash = "d2763908c4d69c03f77f5f9ccc546fe635d068cb"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/eschnett/MPIconstants"
