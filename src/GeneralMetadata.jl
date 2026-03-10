@@ -35,52 +35,15 @@ end
 
 ## The main entry point:
 function metadata()
-    if isdir(joinpath(@__DIR__, "..", "metadata"))
-        meta = Dict{String,Any}()
-        for (root, _, files) in walkdir(joinpath(@__DIR__, "..", "metadata")), file in files
-             path = joinpath(root, file)
-             if endswith(path, ".toml")
-                pkg = splitext(basename(path))[1]
-                meta[pkg] = TOML.parsefile(path)
-            end
+    meta = Dict{String,Any}()
+    for (root, _, files) in walkdir(joinpath(@__DIR__, "..", "metadata")), file in files
+            path = joinpath(root, file)
+            if endswith(path, ".toml")
+            pkg = splitext(basename(path))[1]
+            meta[pkg] = TOML.parsefile(path)
         end
-        return meta
-    else
-        meta = Dict{String,Any}()
-        dates = TOML.parsefile(joinpath(@__DIR__, "..", "registration_dates.toml"))
-        artifacts = TOML.parsefile(joinpath(@__DIR__, "..", "artifact_urls.toml"))
-
-        all_registered_names = registered_package_names()
-        for package in union(keys(dates), keys(artifacts))
-            if !(package in all_registered_names)
-                # Remove deleted packages from the metadata (typically a cappened one)
-                continue
-            end
-            reg_info = registered_package_versions(package)
-            pkg_dates = get(dates, package, Dict{String,Any}())
-            pkg_artifacts = get(artifacts, package, Dict{String,Any}())
-            pkg_meta = Dict{String,Any}()
-            last_artifacts = nothing
-            for version in sort(collect(union(keys(pkg_dates), keys(pkg_artifacts))), by=VersionNumber, rev=true)
-                if !(VersionNumber(version) in keys(reg_info))
-                    # Remove deleted versions from the metadata (typically a cappened one), but some mistakes, too
-                    continue
-                end
-                pkg_meta[version] = Dict{String,Any}()
-                if haskey(pkg_dates, version)
-                    pkg_meta[version] = pkg_dates[version]
-                end
-                if haskey(pkg_artifacts, version)
-                    pkg_meta[version]["artifact_urls"] = pkg_artifacts[version]
-                    last_artifacts = pkg_artifacts[version]
-                elseif !isnothing(last_artifacts)
-                    pkg_meta[version]["artifact_urls"] = last_artifacts
-                end
-            end
-            meta[package] = pkg_meta
-        end
-        return meta
     end
+    return meta
 end
 
 function save_metadata!(meta)

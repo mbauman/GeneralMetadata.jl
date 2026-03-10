@@ -1,0 +1,56 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/a230e5a6246b6e892087143bd56217daf6fc25dd/E/Exodus/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+metadata_type = "BinaryBuilder --meta-json"
+metadata_version = "0.5.2"
+
+[metadata]
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Exodus"
+platforms = ["x86_64-linux-gnu", "aarch64-linux-gnu", "x86_64-apple-darwin", "aarch64-apple-darwin"]
+script = """cd $WORKSPACE/srcdir/seacas\n\nmkdir build\ncd build\n\n### The SEACAS code will install in ${INSTALL_PATH}/bin, ${INSTALL_PATH}/lib, and ${INSTALL_PATH}/include.\nINSTALL_PATH=${prefix}\n\nFORTRAN=NO\nNETCDF_PATH=${prefix}\nPNETCDF_PATH=${prefix}\nHDF5_PATH=${prefix}\n\n### Set to ON for parallel compile; otherwise OFF for serial (default)\nif [ \"${MPI}\" = \"\" ]; then\n  netcdf_parallel=$($NETCDF_PATH/bin/nc-config --has-parallel)\n  if [ \"${netcdf_parallel}\" == \"yes\" ]; then\n    MPI=YES\n  else\n    MPI=NO\n  fi\nfi\n\nCFLAGS=\"-Wall -Wunused -pedantic -std=c11\"\nCXXFLAGS=\"-Wall -Wunused -pedantic\"\n\nGENERATOR=\"Unix Makefiles\"\nSHARED=\"YES\"\nBUILD_TYPE=\"RELEASE\"\n\n### Set to YES to enable the building of a thread-safe version of the Exodus and IOSS libraries.\nTHREADSAFE=${THREADSAFE:-NO}\n\nif [ \"$THREADSAFE\" == \"YES\" ] ; then\n  THREAD_SAFE_OPT=\"-DSEACASProj_EXTRA_LINK_FLAGS=-lpthread\"\nfi\n\nfunction check_enable()\n{\n  local path=$1\n  if [ -e \"${path}\" ]\n  then\n    echo \"YES\"\n  else\n    echo \"NO\"\n  fi\n}\n\nHAVE_NETCDF=$(check_enable \"${NETCDF_PATH}/include/netcdf.h\")\n\n### Define to NO to *enable* exodus deprecated functions\nOMIT_DEPRECATED=${OMIT_DEPRECATED:-NO}\n\nNUMPROCS=${NUMPROCS:-4}\n\n# BUG needs to work with cray too.\nif [ \"${MPI}\" == \"YES\" ]; then\n  if [ \"${USE_SRUN}\" == \"YES\" ]\n  then\n    MPI_EXEC=$(which srun)\n    MPI_SYMBOLS=\"-D MPI_EXEC=${MPI_EXEC} -D MPI_EXEC_NUMPROCS_FLAG=-N  -DMPI_EXEC_DEFAULT_NUMPROCS:STRING=${NUMPROCS} -DMPI_EXEC_MAX_NUMPROCS:STRING=${NUMPROCS}\"\n    MPI_BIN=$(dirname \"${MPI_EXEC}\")\n  else\n    MPI_EXEC=$(which mpiexec)\n    MPI_SYMBOLS=\"-D MPI_EXEC=${MPI_EXEC}  -DMPI_EXEC_DEFAULT_NUMPROCS:STRING=${NUMPROCS} -DMPI_EXEC_MAX_NUMPROCS:STRING=${NUMPROCS}\"\n    MPI_BIN=$(dirname \"${MPI_EXEC}\")\n  fi\n  CXX=mpicxx\n  CC=mpicc\n  FC=mpif77\nfi\n\n### You can add these below if you want more verbosity...\n#-D CMAKE_VERBOSE_MAKEFILE:BOOL=ON \\\n#-D SEACASProj_VERBOSE_CONFIGURE=ON \\\n\n### You can add these below to regenerate the flex and bison files for\n### aprepro and aprepro_lib May have to touch aprepro.l aprepro.y\n### aprepro.ll and aprepro.yy to have them regenerate\n#-D GENERATE_FLEX_FILES=ON \\\n#-D GENERATE_BISON_FILES=ON \\\n\n###------------------------------------------------------------------------\ncmake -G \"${GENERATOR}\" \\\n    -D CMAKE_INSTALL_PREFIX:PATH=${prefix} \\\n    -D CMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -D CMAKE_CXX_COMPILER:FILEPATH=${CXX} \\\n    -D CMAKE_C_COMPILER:FILEPATH=${CC} \\\n    -D CMAKE_Fortran_COMPILER:FILEPATH=${FC} \\\n    -D CMAKE_CXX_FLAGS=\"${CXXFLAGS} ${CXX_WARNING_FLAGS}\" \\\n    -D CMAKE_C_FLAGS=\"${CFLAGS} ${C_WARNING_FLAGS}\" \\\n    -D CMAKE_Fortran_FLAGS=\"${FFLAGS} ${F77_WARNING_FLAGS}\" \\\n    -D CMAKE_INSTALL_RPATH:PATH=${INSTALL_PATH}/lib \\\n    -D BUILD_SHARED_LIBS:BOOL=${SHARED} \\\n    -D CMAKE_BUILD_TYPE=${BUILD_TYPE} \\\n    -D SEACASProj_ENABLE_SEACASExodus=YES \\\n    -D SEACASProj_ENABLE_SEACASExodus_for=${FORTRAN} \\\n    -D SEACASProj_ENABLE_SEACASExoIIv2for32=${FORTRAN} \\\n    -D SEACASProj_ENABLE_TESTS=YES \\\n    -D SEACASExodus_ENABLE_STATIC:BOOL=${STATIC} \\\n    -D SEACASProj_SKIP_FORTRANCINTERFACE_VERIFY_TEST:BOOL=YES \\\n    -D SEACASProj_HIDE_DEPRECATED_CODE:BOOL=${OMIT_DEPRECATED_CODE} \\\n    -D SEACASProj_ENABLE_Fortran=${FORTRAN} \\\n    \\\n    -D TPL_ENABLE_Netcdf:BOOL=${HAVE_NETCDF} \\\n    -D TPL_ENABLE_MPI:BOOL=${MPI} \\\n    -D TPL_ENABLE_Pthread:BOOL=${THREADSAFE} \\\n    ${THREAD_SAFE_OPT} \\\n    -D SEACASExodus_ENABLE_THREADSAFE:BOOL=${THREADSAFE} \\\n    \\\n    ${MPI_SYMBOLS} \\\n    \\\n    -D MPI_BIN_DIR:PATH=${MPI_BIN} \\\n    -D NetCDF_ROOT:PATH=${NETCDF_PATH} \\\n    -D HDF5_ROOT:PATH=${HDF5_PATH} \\\n    -D HDF5_NO_SYSTEM_PATHS=YES \\\n    -D PNetCDF_ROOT:PATH=${PNETCDF_PATH} \\\n    \\\n    ..\n\necho \"\"\necho \"INSTALL_PATH: ${INSTALL_PATH}\"\necho \"  \"\necho \"          CC: ${CC}\"\necho \"         CXX: ${CXX}\"\necho \"          FC: ${FC}\"\necho \"         MPI: ${MPI}\"\necho \"      SHARED: ${SHARED}\"\necho \"  BUILD_TYPE: ${BUILD_TYPE}\"\necho \"  THREADSAFE: ${THREADSAFE}\"\necho \"  \"\necho \" HAVE_NETCDF: ${HAVE_NETCDF}\"\necho \"\"\n\nmake -j${nproc}\nmake install\n"""
+version = "v0.1.0"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Zlib_jll"
+    platforms = ["any"]
+    type = "dependency"
+    uuid = "83775a58-1f1d-513f-b197-d71354ab007a"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "NetCDF_jll"
+    platforms = ["any"]
+    type = "dependency"
+    uuid = "7243133f-43d8-5620-bbf4-c2c921802cf3"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "HDF5_jll"
+    platforms = ["any"]
+    type = "dependency"
+    uuid = "0234f1f7-429e-5d53-9886-15a909be8d59"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libexodus"]
+    type = "lib"
+    variable_name = "libexodus"
+
+    [[metadata.sources]]
+    hash = "1452c325ab5d507d000397c713a5b0c4dc57bf81"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/gsjaardema/seacas.git"

@@ -1,7 +1,7 @@
 buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/b615d8a25fe48d45990f3aa21d35f71734a26dd7/M/MPItrampoline/build_tarballs.jl"
 metadata_source = "retrospective (by README link)"
-system = "Yggdrasil"
-version = "0.5.5"
+metadata_type = "BinaryBuilder --meta-json"
+metadata_version = "0.5.5"
 
 [metadata]
 augment_platform_block = """    using Base.BinaryPlatforms\n        # Can't use Preferences since we might be running this very early with a non-existing Manifest\n    MPIPreferences_UUID = Base.UUID(\"3da0fdf6-3ccc-4f1b-acd9-58baa6c99267\")\n    const preferences = Base.get_preferences(MPIPreferences_UUID)\n\n    # Keep logic in sync with MPIPreferences.jl\n    function augment_mpi!(platform)\n        # Doesn't need to be `const` since we depend on MPIPreferences so we\n        # invalidate the cache when it changes.\n        binary = get(preferences, \"binary\", Sys.iswindows() ? \"MicrosoftMPI_jll\" : \"MPICH_jll\")\n\n        abi = if binary == \"system\"\n            let abi = get(preferences, \"abi\", nothing)\n                if abi === nothing\n                    error(\"MPIPreferences: Inconsistent state detected, binary set to system, but no ABI set.\")\n                else\n                    abi\n                end\n            end\n        elseif binary == \"MicrosoftMPI_jll\"\n            \"MicrosoftMPI\"\n        elseif binary == \"MPICH_jll\"\n            \"MPICH\"\n        elseif binary == \"OpenMPI_jll\"\n            \"OpenMPI\"\n        elseif binary == \"MPItrampoline_jll\"\n            \"MPItrampoline\"\n        else\n            error(\"Unknown binary: $binary\")\n        end\n\n        if !haskey(platform, \"mpi\")\n            platform[\"mpi\"] = abi\n        end\n        return platform\n    end\n\n    augment_platform!(platform::Platform) = augment_mpi!(platform)\n"""
