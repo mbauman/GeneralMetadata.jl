@@ -1,0 +1,98 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/c9fe97940ce4cd790353c527c5eeb054cbaed58a/T/TracyProfiler/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.4.6"
+
+[metadata]
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "TracyProfiler"
+platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "x86_64-apple-darwin"]
+script = """mkdir -vp $bindir\nmkdir -vp $libdir\n\ncd ${WORKSPACE}/srcdir/tracy*\n\n# Apply patches to disable forcing -march\natomic_patch -p1 ../patches/unix_library_release.patch\natomic_patch -p1 ../patches/unix_common_make.patch\natomic_patch -p1 ../patches/library_extension.patch\n\n# Need full c++17 support so upgrade min osx version and install newer SDK\nif [[ \"${target}\" == x86_64-apple-darwin* ]]; then\n    echo \"Installing newer MacOS 10.15 SDK\"\n\n    pushd $WORKSPACE/srcdir/MacOSX10.*.sdk\n    rm -rf /opt/${target}/${target}/sys-root/System\n    cp -ra usr/* \"/opt/${target}/${target}/sys-root/usr/.\"\n    cp -ra System \"/opt/${target}/${target}/sys-root/.\"\n    popd\n\n    # append flag to mkfile for macos target min version\n    echo \"CFLAGS += -mmacosx-version-min=10.15\" >> common/unix-release.mk\n    # Disable link-time optimization, we have some mess in our macOS toolchain.\n    sed -i 's/ -flto//' {profiler,update,capture,csvexport,import-chrome}/build/unix/release.mk\nfi\n\n# Build / install the library\nmake -j${nproc} -C library/unix release\ncp -v \"./library/unix/libtracy-release.${dlext}\" ${libdir}\n\n# Build / install the profiler GUI\nmake -j${nproc} -C profiler/build/unix release\ncp -v ./profiler/build/unix/Tracy-release* $bindir\n\n# Build / install update utility\nmake -j${nproc} -C update/build/unix release\ncp -v ./update/build/unix/update-release* $bindir\n\n# Build / install capture utility\nmake -j${nproc} -C capture/build/unix release\ncp -v ./capture/build/unix/capture-release* $bindir\n\n# Build / install csvexport utility\nmake -j${nproc} -C csvexport/build/unix release\ncp -v ./csvexport/build/unix/csvexport-release* $bindir\n\n# Build / install import-chrome utility\nmake -j${nproc} -C import-chrome/build/unix release\ncp -v ./import-chrome/build/unix/import-chrome-release* $bindir\n\ninstall_license LICENSE\n"""
+version = "v0.7.8"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "GLFW_jll"
+    platforms = ["any"]
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "FreeType2_jll"
+    platforms = ["any"]
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Capstone_jll"
+    platforms = ["any"]
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "GTK3_jll"
+    platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11"]
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Xorg_xorgproto_jll"
+    platforms = ["any"]
+    type = "builddependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libtracy-release"]
+    type = "lib"
+    variable_name = "libtracy"
+    [[metadata.products]]
+    binnames = ["Tracy-release"]
+    type = "exe"
+    variable_name = "tracy_profiler_exe"
+    [[metadata.products]]
+    binnames = ["update-release"]
+    type = "exe"
+    variable_name = "tracy_update_exe"
+    [[metadata.products]]
+    binnames = ["capture-release"]
+    type = "exe"
+    variable_name = "tracy_capture_exe"
+    [[metadata.products]]
+    binnames = ["csvexport-release"]
+    type = "exe"
+    variable_name = "tracy_csvexport_exe"
+    [[metadata.products]]
+    binnames = ["import-chrome-release"]
+    type = "exe"
+    variable_name = "tracy_import_chrome_exe"
+
+    [[metadata.sources]]
+    hash = "4021940a2620570ac767eee84e58d572a3faf1570edfaf5309c609752146e950"
+    type = "archive"
+    unpack_target = ""
+    url = "https://github.com/wolfpld/tracy/archive/refs/tags/v0.7.8.tar.gz"
+    [[metadata.sources]]
+    hash = "2408d07df7f324d3beea818585a6d990ba99587c218a3969f924dfcc4de93b62"
+    type = "archive"
+    unpack_target = ""
+    url = "https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.15.sdk.tar.xz"
+    [[metadata.sources]]
+    follow_symlinks = false
+    path = "./bundled"
+    target = ""
+    type = "directory"

@@ -1,0 +1,37 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/2a0eff9bc0499d88151ed97bc6f5e113d352674b/C/CUDA/libNVVM/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.5.6"
+
+[metadata]
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "libNVVM"
+platforms = ["x86_64-linux-gnu", "powerpc64le-linux-gnu", "aarch64-linux-gnu", "x86_64-w64-mingw32"]
+script = """# First, find (true) CUDA toolkit directory in ~/.artifacts somewhere\nCUDA_ARTIFACT_DIR=$(dirname $(dirname $(realpath $prefix/cuda/bin/ptxas${exeext})))\ncd ${CUDA_ARTIFACT_DIR}\n\n# Clear out our prefix\nrm -rf ${prefix}/*\n\n# license\ninstall_license EULA.txt\n\nmkdir -p ${bindir} ${libdir} ${prefix}/include ${prefix}/share\nif [[ ${target} == *-linux-gnu ]]; then\n    mv nvvm/lib64/libnvvm.so* ${libdir}\nelif [[ ${target} == x86_64-w64-mingw32 ]]; then\n    mv nvvm/bin/nvvm64_*.dll ${bindir}\n    chmod +x ${bindir}/*.dll\nfi\nmv nvvm/include/* ${prefix}/include/\nmv nvvm/libdevice ${prefix}/share/\n"""
+sources = []
+version = "v4.0.0"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "CUDA_full_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "builddependency"
+    version-major = 12
+    version-minor = 1
+    version-patch = 1
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libnvvm", "nvvm64_40_0"]
+    type = "lib"
+    variable_name = "libnvvm"
+    [[metadata.products]]
+    paths = ["share/libdevice/libdevice.10.bc"]
+    type = "file"
+    variable_name = "libdevice"

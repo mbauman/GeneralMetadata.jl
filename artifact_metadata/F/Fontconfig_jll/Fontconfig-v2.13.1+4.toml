@@ -1,0 +1,19 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/c8f7eef23a8a21f07127d950eeac36e128589cfd/F/Fontconfig/build_tarballs.jl"
+metadata_source = "retrospective (by timestamp)"
+system = "Yggdrasil"
+version = "0.2.2"
+
+[metadata]
+dependencies = ["FreeType2_jll", "Bzip2_jll", "Zlib_jll", "Libuuid_jll", "Expat_jll"]
+name = "Fontconfig"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "arm-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "arm-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1"]
+script = """cd $WORKSPACE/srcdir/fontconfig-*/\n\napk add gperf\n\n# Ensure that `${prefix}/include` is..... included\nexport CPPFLAGS=\"-I${prefix}/include\"\n\nif [[ \"${target}\" == *-linux-* ]] || [[ \"${target}\" == *-freebsd* ]]; then\n    FONTS_DIR=\"/usr/local/share/fonts\"\nelif [[ \"${target}\" == *-apple-* ]]; then\n    FONTS_DIR=\"/System/Library/Fonts,/Library/Fonts,~/Library/Fonts,/System/Library/Assets/com_apple_MobileAsset_Font4,/System/Library/Assets/com_apple_MobileAsset_Font5\"\nfi\n\natomic_patch -p1 ../patches/configure_freetype2_version.patch\nautoreconf\n./configure --prefix=$prefix --host=$target --disable-docs --with-add-fonts=\"${FONTS_DIR}\"\n\nmake -j${nproc}\nmake install\n"""
+sources = [{"https://www.freedesktop.org/software/fontconfig/release/fontconfig-2.13.1.tar.bz2" = "f655dd2a986d7aa97e052261b36aa67b0a64989496361eca8d604e6414006741"}, "./bundled"]
+version = "v2.13.1"
+
+    [[metadata.products]]
+    dir_paths = []
+    dont_dlopen = false
+    libnames = ["libfontconfig"]
+    type = "lib"
+    variable_name = "libfontconfig"

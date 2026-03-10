@@ -1,0 +1,106 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/1ff87c8a2bcaed639ef6f99e77d3425b9618c75d/T/TracyProfiler/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.5.6"
+
+[metadata]
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "TracyProfiler"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """mkdir -vp $bindir\n\ncd $WORKSPACE/srcdir/tracy*/\n\nexport TRACY_NO_ISA_EXTENSIONS=1\nexport DEFINES=\"-D__STDC_FORMAT_MACROS -DNO_PARALLEL_SORT\"\nif [[ \"${target}\" == *-mingw* ]]; then\n    export TRACY_NO_LTO=1\n    export DEFINES=\"-DWINVER=0x0601 -D_WIN32_WINNT=0x0601 -DNO_PARALLEL_SORT\"\n    atomic_patch -p1 ../patches/TracyProfiler-mingw32-win.patch\nelif [[ \"${target}\" == *-apple-darwin* ]]; then\n    export TRACY_NO_LTO=1\n    export MACOSX_DEPLOYMENT_TARGET=11.0\nfi\n\nif [[ \"${target}\" == x86_64-apple-darwin* ]]; then\n    echo \"Installing newer MacOS 11.0 SDK\"\n\n    pushd $WORKSPACE/srcdir/MacOSX11.*.sdk\n    rm -rf /opt/${target}/${target}/sys-root/System\n    rm -rf /opt/${target}/${target}/sys-root/usr/include/libxml2/libxml\n    cp -ra usr/* \"/opt/${target}/${target}/sys-root/usr/.\"\n    cp -ra System \"/opt/${target}/${target}/sys-root/.\"\n    popd\nfi\n\natomic_patch -p1 ../patches/TracyProfiler-nfd-extended-1.0.2.patch\natomic_patch -p1 ../patches/TracyProfiler-filter-user-text.patch\n\n# Build / install the profiler GUI\nmake -e -j${nproc} -C profiler/build/unix LEGACY=1 IMAGE=tracy release\ncp -v ./profiler/build/unix/tracy* $bindir\n\n# Build / install the update utility\nmake -e -j${nproc} -C update/build/unix IMAGE=tracy-update release\ncp -v ./update/build/unix/tracy* $bindir\n\n# Build / install the capture utility\nmake -e -j${nproc} -C capture/build/unix IMAGE=tracy-capture release\ncp -v ./capture/build/unix/tracy* $bindir\n\n# Build / install the csvexport utility\nmake -e -j${nproc} -C csvexport/build/unix IMAGE=tracy-csvexport release\ncp -v ./csvexport/build/unix/tracy* $bindir\n\n# Build / install the import-chrome utility\nmake -e -j${nproc} -C import-chrome/build/unix IMAGE=tracy-import-chrome release\ncp -v ./import-chrome/build/unix/tracy* $bindir\n\ninstall_license LICENSE\n"""
+version = "v0.9.1"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Capstone_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "FreeType2_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Dbus_jll"
+    platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "GLFW_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Xorg_xproto_jll"
+    platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Xorg_kbproto_jll"
+    platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    binnames = ["tracy"]
+    type = "exe"
+    variable_name = "tracy"
+    [[metadata.products]]
+    binnames = ["tracy-capture"]
+    type = "exe"
+    variable_name = "capture"
+    [[metadata.products]]
+    binnames = ["tracy-csvexport"]
+    type = "exe"
+    variable_name = "csvexport"
+    [[metadata.products]]
+    binnames = ["tracy-update"]
+    type = "exe"
+    variable_name = "update"
+    [[metadata.products]]
+    binnames = ["tracy-import-chrome"]
+    type = "exe"
+    variable_name = "import_chrome"
+
+    [[metadata.sources]]
+    hash = "897aec5b062664d2485f4f9a213715d2e527e0ca"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/wolfpld/tracy.git"
+    [[metadata.sources]]
+    hash = "d3feee3ef9c6016b526e1901013f264467bb927865a03422a9cb925991cc9783"
+    type = "archive"
+    unpack_target = ""
+    url = "https://github.com/phracker/MacOSX-SDKs/releases/download/11.3/MacOSX11.0.sdk.tar.xz"
+    [[metadata.sources]]
+    follow_symlinks = false
+    path = "./bundled"
+    target = ""
+    type = "directory"

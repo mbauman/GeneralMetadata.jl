@@ -1,0 +1,47 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/dff058f3048815b8deb61e336ff656151a5e8618/O/ocl_icd/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.5.9"
+
+[metadata]
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "ocl_icd"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "x86_64-w64-mingw32"]
+script = """apk add ruby\n\ncd ${WORKSPACE}/srcdir/ocl-icd\ninstall_license COPYING\n\n# Fix build for Windows based on\n# https://cygwin.com/cgit/cygwin-packages/ocl-icd/tree/ocl-icd-2.3.2-1.src.patch\nif [[ \"${target}\" == *-w64-* ]]; then\n    atomic_patch -p2 ../patches/ocl-icd-2.3.2-1.src.patch\nfi\n\n./bootstrap\n\n# Fix rpl_malloc for musl\nif [[ \"${target}\" == *-musl* ]] || [[ \"${target}\" == *-apple-* ]]; then\n    sed -i '/AC_FUNC_MALLOC/d' ./configure.ac\n    sed -i '/AC_FUNC_REALLOC/d' ./configure.ac\nfi\n\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target}\n\nmake -j${nproc} all\nmake install\n"""
+version = "v2.3.2"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "dlfcn_win32_jll"
+    platforms = ["x86_64-w64-mingw32"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libOpenCL", "OpenCL"]
+    type = "lib"
+    variable_name = "libocl_icd"
+    [[metadata.products]]
+    paths = ["include/ocl_icd.h"]
+    type = "file"
+    variable_name = "ocl_icd_h"
+
+    [[metadata.sources]]
+    hash = "fdde6677b21329432db8b481e2637cd10f7d3cb2"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/OCL-dev/ocl-icd.git"
+    [[metadata.sources]]
+    follow_symlinks = false
+    path = "./bundled"
+    target = ""
+    type = "directory"
