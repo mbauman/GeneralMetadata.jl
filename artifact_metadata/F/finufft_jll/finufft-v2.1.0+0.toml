@@ -1,0 +1,56 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/a02a64df070393aaf16f2b18aeeade2d8ecfe257/F/finufft/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.5.5"
+
+[metadata]
+augment_platform_block = """using Base.BinaryPlatforms: arch, arch_march_isa_mapping, CPUID, HostPlatform, Platform\n\nfunction augment_microarchitecture!(platform::Platform)\n    haskey(platform, \"march\") && return platform\n\n    host_arch = arch(HostPlatform())\n    host_isas = arch_march_isa_mapping[host_arch]\n    idx = findlast(((name, isa),) -> isa <= CPUID.cpu_isa(), host_isas)\n    platform[\"march\"] = first(host_isas[idx])\n    return platform\nend\n\n\nfunction augment_platform!(platform::Platform)\n    # We augment only x86_64\n    @static if Sys.ARCH === :x86_64\n        augment_microarchitecture!(platform)\n    else\n        platform\n    end\nend\n"""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = true
+name = "finufft"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu-march+x86_64", "x86_64-linux-gnu-march+avx", "x86_64-linux-gnu-march+avx2", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl-march+x86_64", "x86_64-linux-musl-march+avx", "x86_64-linux-musl-march+avx2", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin-march+x86_64", "x86_64-apple-darwin-march+avx", "x86_64-apple-darwin-march+avx2", "aarch64-apple-darwin", "x86_64-unknown-freebsd-march+x86_64", "x86_64-unknown-freebsd-march+avx", "x86_64-unknown-freebsd-march+avx2", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03-march+x86_64", "x86_64-w64-mingw32-cxx11-march+x86_64", "x86_64-w64-mingw32-cxx03-march+avx", "x86_64-w64-mingw32-cxx11-march+avx", "x86_64-w64-mingw32-cxx03-march+avx2", "x86_64-w64-mingw32-cxx11-march+avx2"]
+script = """cd $WORKSPACE/srcdir/finufft*/\n\nCFLAGS=\"-fopenmp -fPIC -O3 -funroll-loops -Iinclude\"\nif [[ \"${target}\" != *-freebsd* ]] && [[ \"${target}\" != *-apple-* ]]; then\n    CFLAGS=\"${CFLAGS} -fcx-limited-range\"\nfi\n\n# Overwrite LIBSFFT such that we do not require fftw3_threads or fftw3_omp for OMP support. Since the libraries in FFTW_jll already provide for threading, we do not loose anything.\n# Make use of the -DFFTW_PLAN_SAFE flag to allow for multiple threads using finufft at the same time.\nmake lib \\\n    CC=${CC} \\\n    CXX=${CXX} \\\n    CFLAGS=\"${CFLAGS}\" \\\n    CXXFLAGS=\"${CFLAGS} -std=c++14 -DFFTW_PLAN_SAFE\" \\\n    LIBSFFT=\"-lfftw3 -lfftw3f -lm\" \\\n    DYNLIB=\"lib/libfinufft.${dlext}\"\ninstall -Dvm 0755 \"lib/libfinufft.${dlext}\" \"${libdir}/libfinufft.${dlext}\"\n"""
+version = "v2.1.0"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "FFTW_jll"
+    platforms = ["any"]
+    type = "dependency"
+    uuid = "f5851436-0d7a-5f13-b9de-f02708fd171a"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "CompilerSupportLibraries_jll"
+    platforms = ["i686-linux-gnu", "x86_64-linux-gnu-march+x86_64", "x86_64-linux-gnu-march+avx", "x86_64-linux-gnu-march+avx2", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl-march+x86_64", "x86_64-linux-musl-march+avx", "x86_64-linux-musl-march+avx2", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03-march+x86_64", "x86_64-w64-mingw32-cxx11-march+x86_64", "x86_64-w64-mingw32-cxx03-march+avx", "x86_64-w64-mingw32-cxx11-march+avx", "x86_64-w64-mingw32-cxx03-march+avx2", "x86_64-w64-mingw32-cxx11-march+avx2"]
+    type = "dependency"
+    uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "LLVMOpenMP_jll"
+    platforms = ["x86_64-apple-darwin-march+x86_64", "x86_64-apple-darwin-march+avx", "x86_64-apple-darwin-march+avx2", "aarch64-apple-darwin", "x86_64-unknown-freebsd-march+x86_64", "x86_64-unknown-freebsd-march+avx", "x86_64-unknown-freebsd-march+avx2"]
+    type = "dependency"
+    uuid = "1d63c593-3942-5779-bab2-d838dc0a180e"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libfinufft"]
+    type = "lib"
+    variable_name = "libfinufft"
+
+    [[metadata.sources]]
+    hash = "042a96cab8a3c17a544125b7890616b1dd5eacd1b50ce0464617903b01bddd54"
+    type = "archive"
+    unpack_target = ""
+    url = "https://github.com/flatironinstitute/finufft/archive/v2.1.0.zip"
