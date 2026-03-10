@@ -1,7 +1,7 @@
 buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/d21c752d7dd11eed94906b0a3c756ab79f612fa4/N/NEO/build_tarballs.jl"
 metadata_source = "retrospective (by README link)"
-system = "Yggdrasil"
-version = "0.5.7"
+metadata_type = "BinaryBuilder --meta-json"
+metadata_version = "0.5.7"
 
 [metadata]
 augment_platform_block = """using Base.BinaryPlatforms\n\n# Can't use Preferences since we might be running this very early with a non-existing Manifest\nNEO_jll_uuid = Base.UUID(\"700fe977-ac61-5f37-bbc8-c6c4b2b6a9fd\")\nconst preferences = Base.get_preferences(NEO_jll_uuid)\nBase.record_compiletime_preference(NEO_jll_uuid, \"debug\")\nconst debug_preference = if haskey(preferences, \"debug\")\n    if isa(preferences[\"debug\"], Bool)\n        preferences[\"debug\"]\n    elseif isa(preferences[\"debug\"], String)\n        parsed = tryparse(Bool, preferences[\"debug\"])\n        if parsed === nothing\n            @error \"Debug preference is not valid; expected a boolean, but got '$(preferences[\"debug\"])'\"\n            nothing\n        else\n            parsed\n        end\n    else\n        @error \"Debug preference is not valid; expected a boolean, but got '$(preferences[\"debug\"])'\"\n        nothing\n    end\nelse\n    nothing\nend\n\nfunction augment_platform!(platform::Platform)\n    platform[\"debug\"] = string(something(debug_preference, false))\n    return platform\nend"""

@@ -1,7 +1,7 @@
 buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/44f70d4507a40b9c7ef5449def742db11fd265a6/E/Enzyme/build_tarballs.jl"
 metadata_source = "retrospective (by README link)"
-system = "Yggdrasil"
-version = "0.6.5"
+metadata_type = "BinaryBuilder --meta-json"
+metadata_version = "0.6.5"
 
 [metadata]
 augment_platform_block = """using Base.BinaryPlatforms\nfunction augment_llvm!(platform::Platform)\n    haskey(platform, \"llvm_version\") && return platform\n\n    llvm_version = Base.libllvm_version\n    # does our LLVM build use assertions?\n    llvm_assertions = try\n        cglobal((:_ZN4llvm24DisableABIBreakingChecksE, Base.libllvm_path()), Cvoid)\n        false\n    catch\n        true\n    end\n    platform[\"llvm_version\"] = if llvm_assertions\n        \"$(llvm_version.major).asserts\"\n    else\n        \"$(llvm_version.major)\"\n    end\n    return platform\nend\n\naugment_platform!(platform::Platform) = augment_llvm!(platform)\n"""
