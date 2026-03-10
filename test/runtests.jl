@@ -69,7 +69,8 @@ end
                     @test all(v->isa(v, String), values(verinfo["artifact_metadata"]))
                     @test isempty(symdiff(keys(verinfo["artifact_metadata"]), Set(verinfo["artifact_urls"])))
                 end
-                for (apkg, aname) in split.(values(verinfo["artifact_metadata"]), "/", limit=2)
+                vv = verinfo["artifact_metadata"] isa String ? [verinfo["artifact_metadata"]] : values(verinfo["artifact_metadata"])
+                for (apkg, aname) in split.(vv, "/", limit=2)
                     @test haskey(ameta, apkg) && haskey(ameta[apkg], aname)
                 end
             end
@@ -106,4 +107,3 @@ end
         end
     end
 end
-
