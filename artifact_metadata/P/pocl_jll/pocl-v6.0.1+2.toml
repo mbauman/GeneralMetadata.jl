@@ -1,0 +1,200 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/583fddb63ec5becfca16bdbfda6fd764bfb5abbe/P/pocl/pocl@6/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+metadata_type = "BinaryBuilder --meta-json"
+metadata_version = "0.6.4"
+
+[metadata]
+augment_platform_block = """using Base.BinaryPlatforms\n\nfunction augment_llvm!(platform::Platform)\n    haskey(platform, \"llvm_version\") && return platform\n\n    llvm_version = Base.libllvm_version\n    # does our LLVM build use assertions?\n    llvm_assertions = try\n        cglobal((:_ZN4llvm24DisableABIBreakingChecksE, Base.libllvm_path()), Cvoid)\n        false\n    catch\n        true\n    end\n    platform[\"llvm_version\"] = if llvm_assertions\n        \"$(llvm_version.major).asserts\"\n    else\n        \"$(llvm_version.major)\"\n    end\n    return platform\nend\n\n\nfunction augment_platform!(platform::Platform)\n    augment_llvm!(platform)\nend"""
+init_block = """    # Register this driver with OpenCL_jll\n    if OpenCL_jll.is_available()\n        push!(OpenCL_jll.drivers, libpocl)\n\n        # XXX: Clang_jll does not have a functional clang binary on macOS,\n        #      as it's configured without a default sdkroot (see #9221)\n        if Sys.isapple()\n            ENV[\"SDKROOT\"] = \"/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk\"\n        end\n    end\n\n    # expose JLL binaries to the library\n    # XXX: Scratch.jl is unusably slow with JLLWrapper-emitted @compiler_options\n    #bindir = @get_scratch!(\"bin\")\n    bindir = abspath(first(Base.DEPOT_PATH), \"scratchspaces\", string(Base.PkgId(@__MODULE__).uuid), \"bin\")\n    mkpath(bindir)\n    function generate_wrapper_script(name, path, LIBPATH, PATH)\n        if Sys.iswindows()\n            LIBPATH_env = \"PATH\"\n            LIBPATH_default = \"\"\n            pathsep = ';'\n        elseif Sys.isapple()\n            LIBPATH_env = \"DYLD_FALLBACK_LIBRARY_PATH\"\n            LIBPATH_default = \"~/lib:/usr/local/lib:/lib:/usr/lib\"\n            pathsep = ':'\n        else\n            LIBPATH_env = \"LD_LIBRARY_PATH\"\n            LIBPATH_default = \"\"\n            pathsep = ':'\n        end\n\n        # XXX: cache, but invalidate when deps change\n\n        # write to temporary script\n        temp_script, io = mktemp(bindir; cleanup=false)\n        if Sys.isunix()\n            println(io, \"#!/bin/bash\")\n\n            LIBPATH_base = get(ENV, LIBPATH_env, expanduser(LIBPATH_default))\n            LIBPATH_value = if !isempty(LIBPATH_base)\n                string(LIBPATH, pathsep, LIBPATH_base)\n            else\n                LIBPATH\n            end\n            println(io, \"export $LIBPATH_env=\\\"$LIBPATH_value\\\"\")\n\n            if LIBPATH_env != \"PATH\"\n                PATH_base = get(ENV, \"PATH\", \"\")\n                PATH_value = if !isempty(PATH_base)\n                    string(PATH, pathsep, ENV[\"PATH\"])\n                else\n                    PATH\n                end\n                println(io, \"export PATH=\\\"$PATH_value\\\"\")\n            end\n\n            println(io, \"exec \\\"$path\\\" \\\"\\$@\\\"\")\n            close(io)\n            chmod(temp_script, 0o755)\n        else\n            error(\"Unsupported platform\")\n        end\n\n        # atomically move to the final location\n        script = joinpath(bindir, name)\n        @static if VERSION >= v\"1.12.0-DEV.1023\"\n            mv(temp_script, script; force=true)\n        else\n            Base.rename(temp_script, script, force=true)\n        end\n\n        return script\n    end\n    ENV[\"POCL_PATH_SPIRV_LINK\"] =\n        generate_wrapper_script(\"spirv_link\", SPIRV_Tools_jll.spirv_link_path,\n                                SPIRV_Tools_jll.LIBPATH[], SPIRV_Tools_jll.PATH[])\n    ENV[\"POCL_PATH_CLANG\"] =\n        generate_wrapper_script(\"clang\", Clang_unified_jll.clang_path,\n                                Clang_unified_jll.LIBPATH[], Clang_unified_jll.PATH[])\n    ENV[\"POCL_PATH_LLVM_SPIRV\"] =\n        generate_wrapper_script(\"llvm-spirv\",\n                                SPIRV_LLVM_Translator_unified_jll.llvm_spirv_path,\n                                SPIRV_LLVM_Translator_unified_jll.LIBPATH[],\n                                SPIRV_LLVM_Translator_unified_jll.PATH[])\n    ld_path = if Sys.islinux()\n            LLD_unified_jll.ld_lld_path\n        elseif Sys.isapple()\n            LLD_unified_jll.ld64_lld_path\n        elseif Sys.iswindows()\n            LLD_unified_jll.lld_link_path\n        else\n            error(\"Unsupported platform\")\n        end\n    ld_wrapper = generate_wrapper_script(\"lld\", ld_path,\n                                         LLD_unified_jll.LIBPATH[],\n                                         LLD_unified_jll.PATH[])\n\n    # expose libc to Clang, even if the system doesn't have development symlinks\n    libdir = abspath(first(Base.DEPOT_PATH), \"scratchspaces\", string(Base.PkgId(@__MODULE__).uuid), \"lib\")\n    mkpath(libdir)\n    for lib in Libdl.dllist()\n        startswith(basename(lib), \"libc.so.6\") || continue\n        link = joinpath(libdir, \"libc.so\")\n        try\n            symlink(lib, link)\n        catch\n            # can't safely check first, because multiple processes may be running\n            islink(link) || rethrow()\n        end\n    end\n    ENV[\"POCL_ARGS_CLANG\"] = join([\n            \"-fuse-ld=lld\", \"--ld-path=$ld_wrapper\",\n            \"-L\", joinpath(artifact_dir, \"share\", \"lib\"),\n            \"-L\", libdir\n        ], \";\")\n"""
+julia_compat = "1.6"
+lazy_artifacts = true
+name = "pocl"
+platforms = ["i686-linux-gnu-cxx03-llvm_version+15", "i686-linux-gnu-cxx11-llvm_version+15", "x86_64-linux-gnu-cxx03-llvm_version+15", "x86_64-linux-gnu-cxx11-llvm_version+15", "aarch64-linux-gnu-cxx03-llvm_version+15", "aarch64-linux-gnu-cxx11-llvm_version+15", "armv6l-linux-gnueabihf-cxx03-llvm_version+15", "armv6l-linux-gnueabihf-cxx11-llvm_version+15", "armv7l-linux-gnueabihf-cxx03-llvm_version+15", "armv7l-linux-gnueabihf-cxx11-llvm_version+15", "powerpc64le-linux-gnu-cxx03-llvm_version+15", "powerpc64le-linux-gnu-cxx11-llvm_version+15", "x86_64-linux-musl-cxx03-llvm_version+15", "x86_64-linux-musl-cxx11-llvm_version+15", "aarch64-linux-musl-cxx03-llvm_version+15", "aarch64-linux-musl-cxx11-llvm_version+15", "armv6l-linux-musleabihf-cxx03-llvm_version+15", "armv6l-linux-musleabihf-cxx11-llvm_version+15", "armv7l-linux-musleabihf-cxx03-llvm_version+15", "armv7l-linux-musleabihf-cxx11-llvm_version+15", "x86_64-apple-darwin-llvm_version+15", "aarch64-apple-darwin-llvm_version+15", "x86_64-unknown-freebsd-llvm_version+15", "i686-linux-gnu-cxx03-llvm_version+15.asserts", "i686-linux-gnu-cxx11-llvm_version+15.asserts", "x86_64-linux-gnu-cxx03-llvm_version+15.asserts", "x86_64-linux-gnu-cxx11-llvm_version+15.asserts", "aarch64-linux-gnu-cxx03-llvm_version+15.asserts", "aarch64-linux-gnu-cxx11-llvm_version+15.asserts", "armv6l-linux-gnueabihf-cxx03-llvm_version+15.asserts", "armv6l-linux-gnueabihf-cxx11-llvm_version+15.asserts", "armv7l-linux-gnueabihf-cxx03-llvm_version+15.asserts", "armv7l-linux-gnueabihf-cxx11-llvm_version+15.asserts", "powerpc64le-linux-gnu-cxx03-llvm_version+15.asserts", "powerpc64le-linux-gnu-cxx11-llvm_version+15.asserts", "x86_64-linux-musl-cxx03-llvm_version+15.asserts", "x86_64-linux-musl-cxx11-llvm_version+15.asserts", "aarch64-linux-musl-cxx03-llvm_version+15.asserts", "aarch64-linux-musl-cxx11-llvm_version+15.asserts", "armv6l-linux-musleabihf-cxx03-llvm_version+15.asserts", "armv6l-linux-musleabihf-cxx11-llvm_version+15.asserts", "armv7l-linux-musleabihf-cxx03-llvm_version+15.asserts", "armv7l-linux-musleabihf-cxx11-llvm_version+15.asserts", "x86_64-apple-darwin-llvm_version+15.asserts", "aarch64-apple-darwin-llvm_version+15.asserts", "x86_64-unknown-freebsd-llvm_version+15.asserts", "i686-linux-gnu-cxx03-llvm_version+16", "i686-linux-gnu-cxx11-llvm_version+16", "x86_64-linux-gnu-cxx03-llvm_version+16", "x86_64-linux-gnu-cxx11-llvm_version+16", "aarch64-linux-gnu-cxx03-llvm_version+16", "aarch64-linux-gnu-cxx11-llvm_version+16", "armv6l-linux-gnueabihf-cxx03-llvm_version+16", "armv6l-linux-gnueabihf-cxx11-llvm_version+16", "armv7l-linux-gnueabihf-cxx03-llvm_version+16", "armv7l-linux-gnueabihf-cxx11-llvm_version+16", "powerpc64le-linux-gnu-cxx03-llvm_version+16", "powerpc64le-linux-gnu-cxx11-llvm_version+16", "x86_64-linux-musl-cxx03-llvm_version+16", "x86_64-linux-musl-cxx11-llvm_version+16", "aarch64-linux-musl-cxx03-llvm_version+16", "aarch64-linux-musl-cxx11-llvm_version+16", "armv6l-linux-musleabihf-cxx03-llvm_version+16", "armv6l-linux-musleabihf-cxx11-llvm_version+16", "armv7l-linux-musleabihf-cxx03-llvm_version+16", "armv7l-linux-musleabihf-cxx11-llvm_version+16", "x86_64-apple-darwin-llvm_version+16", "aarch64-apple-darwin-llvm_version+16", "x86_64-unknown-freebsd-llvm_version+16", "i686-linux-gnu-cxx03-llvm_version+16.asserts", "i686-linux-gnu-cxx11-llvm_version+16.asserts", "x86_64-linux-gnu-cxx03-llvm_version+16.asserts", "x86_64-linux-gnu-cxx11-llvm_version+16.asserts", "aarch64-linux-gnu-cxx03-llvm_version+16.asserts", "aarch64-linux-gnu-cxx11-llvm_version+16.asserts", "armv6l-linux-gnueabihf-cxx03-llvm_version+16.asserts", "armv6l-linux-gnueabihf-cxx11-llvm_version+16.asserts", "armv7l-linux-gnueabihf-cxx03-llvm_version+16.asserts", "armv7l-linux-gnueabihf-cxx11-llvm_version+16.asserts", "powerpc64le-linux-gnu-cxx03-llvm_version+16.asserts", "powerpc64le-linux-gnu-cxx11-llvm_version+16.asserts", "x86_64-linux-musl-cxx03-llvm_version+16.asserts", "x86_64-linux-musl-cxx11-llvm_version+16.asserts", "aarch64-linux-musl-cxx03-llvm_version+16.asserts", "aarch64-linux-musl-cxx11-llvm_version+16.asserts", "armv6l-linux-musleabihf-cxx03-llvm_version+16.asserts", "armv6l-linux-musleabihf-cxx11-llvm_version+16.asserts", "armv7l-linux-musleabihf-cxx03-llvm_version+16.asserts", "armv7l-linux-musleabihf-cxx11-llvm_version+16.asserts", "x86_64-apple-darwin-llvm_version+16.asserts", "aarch64-apple-darwin-llvm_version+16.asserts", "x86_64-unknown-freebsd-llvm_version+16.asserts", "i686-linux-gnu-cxx03-llvm_version+18", "i686-linux-gnu-cxx11-llvm_version+18", "x86_64-linux-gnu-cxx03-llvm_version+18", "x86_64-linux-gnu-cxx11-llvm_version+18", "aarch64-linux-gnu-cxx03-llvm_version+18", "aarch64-linux-gnu-cxx11-llvm_version+18", "armv6l-linux-gnueabihf-cxx03-llvm_version+18", "armv6l-linux-gnueabihf-cxx11-llvm_version+18", "armv7l-linux-gnueabihf-cxx03-llvm_version+18", "armv7l-linux-gnueabihf-cxx11-llvm_version+18", "powerpc64le-linux-gnu-cxx03-llvm_version+18", "powerpc64le-linux-gnu-cxx11-llvm_version+18", "x86_64-linux-musl-cxx03-llvm_version+18", "x86_64-linux-musl-cxx11-llvm_version+18", "aarch64-linux-musl-cxx03-llvm_version+18", "aarch64-linux-musl-cxx11-llvm_version+18", "armv6l-linux-musleabihf-cxx03-llvm_version+18", "armv6l-linux-musleabihf-cxx11-llvm_version+18", "armv7l-linux-musleabihf-cxx03-llvm_version+18", "armv7l-linux-musleabihf-cxx11-llvm_version+18", "x86_64-apple-darwin-llvm_version+18", "aarch64-apple-darwin-llvm_version+18", "x86_64-unknown-freebsd-llvm_version+18", "i686-linux-gnu-cxx03-llvm_version+18.asserts", "i686-linux-gnu-cxx11-llvm_version+18.asserts", "x86_64-linux-gnu-cxx03-llvm_version+18.asserts", "x86_64-linux-gnu-cxx11-llvm_version+18.asserts", "aarch64-linux-gnu-cxx03-llvm_version+18.asserts", "aarch64-linux-gnu-cxx11-llvm_version+18.asserts", "armv6l-linux-gnueabihf-cxx03-llvm_version+18.asserts", "armv6l-linux-gnueabihf-cxx11-llvm_version+18.asserts", "armv7l-linux-gnueabihf-cxx03-llvm_version+18.asserts", "armv7l-linux-gnueabihf-cxx11-llvm_version+18.asserts", "powerpc64le-linux-gnu-cxx03-llvm_version+18.asserts", "powerpc64le-linux-gnu-cxx11-llvm_version+18.asserts", "x86_64-linux-musl-cxx03-llvm_version+18.asserts", "x86_64-linux-musl-cxx11-llvm_version+18.asserts", "aarch64-linux-musl-cxx03-llvm_version+18.asserts", "aarch64-linux-musl-cxx11-llvm_version+18.asserts", "armv6l-linux-musleabihf-cxx03-llvm_version+18.asserts", "armv6l-linux-musleabihf-cxx11-llvm_version+18.asserts", "armv7l-linux-musleabihf-cxx03-llvm_version+18.asserts", "armv7l-linux-musleabihf-cxx11-llvm_version+18.asserts", "x86_64-apple-darwin-llvm_version+18.asserts", "aarch64-apple-darwin-llvm_version+18.asserts", "x86_64-unknown-freebsd-llvm_version+18.asserts"]
+script = """cd $WORKSPACE/srcdir/pocl/\ninstall_license LICENSE\n\natomic_patch -p1 $WORKSPACE/srcdir/patches/freebsd.patch\natomic_patch -p1 $WORKSPACE/srcdir/patches/distro-generic.patch\natomic_patch -p1 $WORKSPACE/srcdir/patches/env-override.patch\natomic_patch -p1 $WORKSPACE/srcdir/patches/env-override-ld.patch\natomic_patch -p1 $WORKSPACE/srcdir/patches/env-override-args.patch\n\n# POCL wants a target sysroot for compiling the host kernellib (for `math.h` etc)\nsysroot=/opt/${target}/${target}/sys-root\nif [[ \"${target}\" == *apple* ]]; then\n    # XXX: including the sysroot like this doesn't work on Apple, missing definitions like\n    #      TARGET_OS_IPHONE. it seems like these headers should be included using -isysroot,\n    #      but (a) that doesn't seem to work, and (b) isn't that already done by the cmake\n    #      toolchain file? work around the issue by inserting an include for the missing\n    #      definitions at the top of the headers included from POCL's kernel library.\n    sed -i '1s/^/#include <TargetConditionals.h>\\n/' $sysroot/usr/include/stdio.h\nfi\nsed -i \"s|COMMENT \\\"Building C to LLVM bitcode \\${BC_FILE}\\\"|\\\"-I$sysroot/usr/include\\\"|\" \\\n       cmake/bitcode_rules.cmake\n\nCMAKE_FLAGS=()\n# Release build for best performance\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\n# Enable optional debug messages for debuggability\nCMAKE_FLAGS+=(-DPOCL_DEBUG_MESSAGES:Bool=ON)\n# Install things into $prefix\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix})\n# Explicitly use our cmake toolchain file and tell CMake we're cross-compiling\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING:BOOL=ON)\n# Point to relevant LLVM tools (see above)\n## HostDependency: llvm-config, but spoofed to return Dependency's paths\nCMAKE_FLAGS+=(-DWITH_LLVM_CONFIG=$WORKSPACE/srcdir/llvm-config)\n## Native toolchain: for LLVM tools to ensure they can target the right architecture\nCMAKE_FLAGS+=(-DLLVM_BINDIR=/opt/$MACHTYPE/bin)\n# Override the target and triple, which POCL takes from `llvm-config --host-target`\ntriple=$(clang -print-target-triple)\nCMAKE_FLAGS+=(-DLLVM_HOST_TARGET=$triple)\nCMAKE_FLAGS+=(-DLLC_TRIPLE=$triple)\n# Override the auto-detected target CPU (which POCL takes from `llc --version`)\nCPU=$(clang --print-supported-cpus 2>&1 | grep -P '\\t' | head -n 1 | sed 's/\\s//g')\nCMAKE_FLAGS+=(-DLLC_HOST_CPU_AUTO=$CPU)\n# Generate a portable build\nCMAKE_FLAGS+=(-DKERNELLIB_HOST_CPU_VARIANTS=distro)\n# Build POCL as an dynamic library loaded by the OpenCL runtime\nCMAKE_FLAGS+=(-DENABLE_ICD:BOOL=ON)\n# XXX: work around pocl#1528, disabling FP16 support in i686\nif [[ ${target} == i686-* ]]; then\n    CMAKE_FLAGS+=(-DHOST_CPU_SUPPORTS_FLOAT16:BOOL=OFF)\nfi\n\ncmake -B build -S . -GNinja ${CMAKE_FLAGS[@]}\nninja -C build -j ${nproc} install\n\n# PoCL uses Clang, which relies on certain system libraries Clang_jll.jl doesn't provide\nmkdir -p $prefix/share/lib\nif [[ ${target} == *-linux-gnu ]]; then\n    if [[ \"${nbits}\" == 64 ]]; then\n        cp -a $sysroot/lib64/libc{.,-}* $prefix/share/lib\n        cp -a $sysroot/usr/lib64/libm.* $prefix/share/lib\n        ln -sf libm.so.6 $prefix/share/lib/libm.so\n        cp -a $sysroot/lib64/libm{.,-}* $prefix/share/lib\n        cp -a /opt/${target}/${target}/lib64/libgcc_s.* $prefix/share/lib\n        cp -a /opt/$target/lib/gcc/$target/*/*.{o,a} $prefix/share/lib\n    else\n        cp -a $sysroot/lib/libc{.,-}* $prefix/share/lib\n        cp -a $sysroot/usr/lib/libm.* $prefix/share/lib\n        ln -sf libm.so.6 $prefix/share/lib/libm.so\n        cp -a $sysroot/lib/libm{.,-}* $prefix/share/lib\n        cp -a /opt/${target}/${target}/lib/libgcc_s.* $prefix/share/lib\n        cp -a /opt/$target/lib/gcc/$target/*/*.{o,a} $prefix/share/lib\n    fi\nelif [[ ${target} == *-linux-musl ]]; then\n    cp -a $sysroot/usr/lib/*.{o,a} $prefix/share/lib\n    cp -a /opt/$target/lib/gcc/$target/*/*.{o,a} $prefix/share/lib\nfi\n"""
+version = "v6.0.1"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "LLVM_full_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "hostdependency"
+    version-major = 15
+    version-minor = 0
+    version-patch = 7
+    [[metadata.dependencies]]
+    compat = ""
+    name = "LLVM_full_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "builddependency"
+    version-major = 15
+    version-minor = 0
+    version-patch = 7
+    [[metadata.dependencies]]
+    compat = ""
+    name = "OpenCL_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Hwloc_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "SPIRV_LLVM_Translator_unified_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "SPIRV_Tools_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Clang_unified_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "LLD_unified_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "LLVM_full_assert_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "hostdependency"
+    version-major = 15
+    version-minor = 0
+    version-patch = 7
+    [[metadata.dependencies]]
+    compat = ""
+    name = "LLVM_full_assert_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "builddependency"
+    version-major = 15
+    version-minor = 0
+    version-patch = 7
+    [[metadata.dependencies]]
+    compat = ""
+    name = "LLVM_full_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "hostdependency"
+    version-major = 16
+    version-minor = 0
+    version-patch = 6
+    [[metadata.dependencies]]
+    compat = ""
+    name = "LLVM_full_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "builddependency"
+    version-major = 16
+    version-minor = 0
+    version-patch = 6
+    [[metadata.dependencies]]
+    compat = ""
+    name = "LLVM_full_assert_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "hostdependency"
+    version-major = 16
+    version-minor = 0
+    version-patch = 6
+    [[metadata.dependencies]]
+    compat = ""
+    name = "LLVM_full_assert_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "builddependency"
+    version-major = 16
+    version-minor = 0
+    version-patch = 6
+    [[metadata.dependencies]]
+    compat = ""
+    name = "LLVM_full_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "hostdependency"
+    version-major = 18
+    version-minor = 1
+    version-patch = 7
+    [[metadata.dependencies]]
+    compat = ""
+    name = "LLVM_full_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "builddependency"
+    version-major = 18
+    version-minor = 1
+    version-patch = 7
+    [[metadata.dependencies]]
+    compat = ""
+    name = "LLVM_full_assert_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "hostdependency"
+    version-major = 18
+    version-minor = 1
+    version-patch = 7
+    [[metadata.dependencies]]
+    compat = ""
+    name = "LLVM_full_assert_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "builddependency"
+    version-major = 18
+    version-minor = 1
+    version-patch = 7
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libpocl"]
+    type = "lib"
+    variable_name = "libpocl"
+    [[metadata.products]]
+    binnames = ["poclcc"]
+    type = "exe"
+    variable_name = "poclcc"
+
+    [[metadata.sources]]
+    follow_symlinks = false
+    path = "./bundled"
+    target = ""
+    type = "directory"
+    [[metadata.sources]]
+    hash = "952bc559f790e5deb5ae48692c4a19619b53fcdc"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/pocl/pocl"

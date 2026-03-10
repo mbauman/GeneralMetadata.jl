@@ -1,0 +1,53 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/f87e7a50cc8bea630fb1557b849e7df3f6758c54/D/DynarePreprocessor/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+metadata_type = "BinaryBuilder --meta-json"
+metadata_version = "0.5.6"
+
+[metadata]
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "DynarePreprocessor"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd ${WORKSPACE}/srcdir/preprocessor\n\n# remove -lstdc++fs in Makefile.am\nsed s/-lstdc++fs// -i src/Makefile.am\n\n# Remove flex from RootFS to let use our flex from `flex_jll`\nrm -f /usr/bin/flex\n\nautoreconf -si\n\nupdate_configure_scripts\n./configure --prefix=$prefix  --build=${MACHTYPE} --host=${target} --disable-doc\nmake -j${nproc}\nmake install\nmkdir -p \"${bindir}\"\nstrip \"src/dynare-preprocessor${exeext}\"\ncp \"src/dynare-preprocessor${exeext}\" \"${bindir}\"\ninstall_license COPYING\n"""
+version = "v6.0.2"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "boost_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "builddependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Bison_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "hostdependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "flex_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "hostdependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    binnames = ["dynare-preprocessor"]
+    type = "exe"
+    variable_name = "dynare_preprocessor"
+
+    [[metadata.sources]]
+    hash = "00fd9dadb6dde5929c224c74e0a43715554a2c05"
+    type = "git"
+    unpack_target = ""
+    url = "https://git.dynare.org/Dynare/preprocessor.git"
