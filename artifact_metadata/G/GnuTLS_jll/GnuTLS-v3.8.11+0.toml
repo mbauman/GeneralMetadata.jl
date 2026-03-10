@@ -1,0 +1,70 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/cdc1e5b67c5961d02a311f235a220dab588bc9f5/G/GnuTLS/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.6.5"
+
+[metadata]
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "GnuTLS"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd"]
+script = """cd $WORKSPACE/srcdir/gnutls-*/\n\nif [[ ${target} == *darwin* ]]; then\n    # Fix undefined reference to \"_c_isdigit\"\n    # See https://gitlab.com/gnutls/gnutls/-/issues/1033\n    atomic_patch -p1 ../patches/03-undo-libtasn1-cisdigit.patch\n\n    # We need to explicitly request a higher `-mmacosx-version-min` here, so that it doesn't\n    # complain about: `Symbol not found: ___isOSVersionAtLeast`\n    if [[ \"${target}\" == x86_64* ]]; then\n        export CFLAGS=\"-mmacosx-version-min=10.11\"\n    fi\nfi\n\nif [[ ${target} == ${MACHTYPE} ]]; then\n    # Remove libffi from the system to avoid confusion.\n    rm /usr/lib/libffi.so*\nfi\n\n# Checks from macros `AC_FUNC_MALLOC` and `AC_FUNC_REALLOC` may fail when cross-compiling,\n# which can cause configure to remap `malloc` and `realloc` to replacement functions\n# `rpl_malloc` and `rpl_realloc`, which will cause a linking error.  For more information,\n# see https://stackoverflow.com/q/70725646/2442087\nFLAGS=(ac_cv_func_malloc_0_nonnull=yes ac_cv_func_realloc_0_nonnull=yes)\n\nexport GMP_CFLAGS=\"-I${includedir}\"\n./configure \\\n    --prefix=${prefix} \\\n    --build=${MACHTYPE} \\\n    --host=${target} \\\n    --with-included-libtasn1 \\\n    --with-included-unistring \\\n    \"${FLAGS[@]}\"\n\nmake -j${nproc}\nmake install\n"""
+version = "v3.8.11"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Zlib_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "GMP_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "3.10.1"
+    name = "Nettle_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "0.25.10"
+    name = "P11Kit_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libgnutls"]
+    type = "lib"
+    variable_name = "libgnutls"
+
+    [[metadata.sources]]
+    hash = "91bd23c4a86ebc6152e81303d20cf6ceaeb97bc8f84266d0faec6e29f17baa20"
+    type = "archive"
+    unpack_target = ""
+    url = "https://www.gnupg.org/ftp/gcrypt/gnutls/v3.8/gnutls-3.8.11.tar.xz"
+    [[metadata.sources]]
+    follow_symlinks = false
+    path = "./bundled"
+    target = ""
+    type = "directory"

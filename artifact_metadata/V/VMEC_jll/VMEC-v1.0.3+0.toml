@@ -1,0 +1,99 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/6fe1743b7662750d603398db41301454d95beba4/V/VMEC/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.4.8"
+
+[metadata]
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "VMEC"
+platforms = ["x86_64-linux-gnu-libgfortran4", "x86_64-linux-gnu-libgfortran5", "x86_64-apple-darwin-libgfortran4", "x86_64-apple-darwin-libgfortran5", "x86_64-w64-mingw32-libgfortran4", "x86_64-w64-mingw32-libgfortran5"]
+script = """cd ${WORKSPACE}/srcdir/VMEC*\nif [[ ${target} == *mingw* ]]; then\n  sed \"s/LT_INIT/LT_INIT(win32-dll)/\" configure.ac | cat > configure.ac.2\n  mv configure.ac.2 configure.ac\n  ./autogen.sh\n  ./configure CC=gcc FC=gfortran F77=gfortran --build=${MACHTYPE} --with-mkl --host=${target} --target=${target} --prefix=${prefix}\n  # Deal with the issue that gcc doesn't accept -no-undefined at configure step\n  sed \"s/AM_LDFLAGS =/AM_LDFLAGS =-no-undefined/\" Makefile | cat > Makefile.2\n  mv Makefile.2 Makefile\n  make && make install && make clean\n\n  ./configure CC=gcc FC=gfortran F77=gfortran --build=${MACHTYPE} --host=${target} --target=${target} --prefix=${prefix}\n  # Deal with the issue that gcc doesn't accept -no-undefined at configure step\n  sed \"s/AM_LDFLAGS =/AM_LDFLAGS =-no-undefined/\" Makefile | cat > Makefile.2\n  mv Makefile.2 Makefile\n  make && make install && make clean\n\nelse\n  # Configure with MKL provided ScaLAPACK\n  ./autogen.sh\n  ./configure CC=mpicc FC=mpifort F77=mpifort FFLAGS=-O3 FCFLAGS=-O3 --with-mkl --build=${MACHTYPE} --host=${target} --target=${target} --prefix=${prefix}\n  make && make install && make clean\n\n  # Configure with OpenBLAS and ScaLAPACK from SCALAPACK_jll\n  ./configure CC=mpicc FC=mpifort F77=mpifort FFLAGS=-O3 FCFLAGS=-O3 --build=${MACHTYPE}  --host=${target} --target=${target} --prefix=${prefix}\n  make && make install && make clean\nfi\n"""
+version = "v1.0.3"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "MbedTLS_jll"
+    platforms = ["any"]
+    type = "builddependency"
+    version-major = 2
+    version-minor = 24
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "MPICH_jll"
+    platforms = ["x86_64-linux-gnu-libgfortran4", "x86_64-linux-gnu-libgfortran5", "x86_64-apple-darwin-libgfortran4", "x86_64-apple-darwin-libgfortran5"]
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "OpenBLAS_jll"
+    platforms = ["any"]
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "SCALAPACK_jll"
+    platforms = ["x86_64-linux-gnu-libgfortran4", "x86_64-linux-gnu-libgfortran5", "x86_64-apple-darwin-libgfortran4", "x86_64-apple-darwin-libgfortran5"]
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "MKL_jll"
+    platforms = ["any"]
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "NetCDF_jll"
+    platforms = ["any"]
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "NetCDFF_jll"
+    platforms = ["any"]
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "CompilerSupportLibraries_jll"
+    platforms = ["any"]
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = true
+    libnames = ["libvmec_mkl"]
+    type = "lib"
+    variable_name = "libvmec_mkl"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = true
+    libnames = ["libvmec_openblas"]
+    type = "lib"
+    variable_name = "libvmec_openblas"
+
+    [[metadata.sources]]
+    hash = "cee46dfeb452d2dd79811f8b66fdb6e1a38975d276e71b5531474b03024a5a8f"
+    type = "archive"
+    unpack_target = ""
+    url = "https://gitlab.com/wistell/VMEC2000/-/archive/v1.0.3.tar"

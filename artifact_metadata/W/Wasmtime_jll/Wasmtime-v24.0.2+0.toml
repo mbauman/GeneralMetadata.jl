@@ -1,0 +1,33 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/e25e7c601e9c3cba7afb59861818ac9fa0313d8b/W/Wasmtime/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.6.3"
+
+[metadata]
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Wasmtime"
+platforms = ["x86_64-linux-gnu", "aarch64-linux-gnu", "x86_64-linux-musl", "aarch64-linux-musl", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "x86_64-w64-mingw32"]
+script = """cd ${WORKSPACE}/srcdir/wasmtime/\n\nexport CARGO_PROFILE_RELEASE_STRIP=debuginfo\nexport CARGO_PROFILE_RELEASE_PANIC=abort\n\nif [[ \"${target}\" == armv* ]] || [[ \"${target}\" == aarch64-linux* ]]; then\n    # The `ring` crate in the dependency tree requires this be set on ARM targets\n    export CFLAGS=\"-D__ARM_ARCH\"\nfi\n\nif [[ \"${target}\" == *-musl* ]]; then\n    export RUSTFLAGS=\"-C target-feature=-crt-static\"\nfi\n\ncargo build \\\n    --release \\\n    --target ${rust_target} \\\n    -p wasmtime-cli \\\n    --features all-arch,component-model \\\n    --features run\ninstall -Dvm 0755 \\\n    \"target/${rust_target}/release/wasmtime${exeext}\" \\\n    \"${bindir}/wasmtime${exeext}\"\n\nmkdir -p target/c-api-build\ncd target/c-api-build\ncmake ../../crates/c-api \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DWASMTIME_TARGET=${rust_target} \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_INSTALL_LIBDIR=${libdir}\ncmake --build . --target install\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    mv \"${libdir}/wasmtime.dll\" \"${libdir}/libwasmtime.dll\"\nfi\n"""
+version = "v24.0.2"
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libwasmtime"]
+    type = "lib"
+    variable_name = "libwasmtime"
+    [[metadata.products]]
+    binnames = ["wasmtime"]
+    type = "exe"
+    variable_name = "wasmtime"
+
+    [[metadata.sources]]
+    hash = "c29a9bb9e23b48a95b0a03f3b90f885ab1252a93"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/bytecodealliance/wasmtime.git"

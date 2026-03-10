@@ -1,0 +1,88 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/b2d73c8c68f795db61077e484c3209bd964278cb/N/NetCDF/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.5.6"
+
+[metadata]
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "NetCDF"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/netcdf-c*\n\nexport CPPFLAGS=\"-I${includedir}\"\nexport LDFLAGS=\"-L${libdir}\"\nexport LDFLAGS_MAKE=\"${LDFLAGS}\"\nCONFIGURE_OPTIONS=\"\"\n\n# Apply patch https://github.com/Unidata/netcdf-c/pull/2690\natomic_patch -p1 ../patches/0001-curl-cainfo.patch\n\nif [[ ${target} == *-mingw* ]]; then\n    # we should determine the dll version (?) automatically\n    export LIBS=\"-lhdf5-310 -lhdf5_hl-310 -lcurl-4 -lz\"\n    # linking fails with: \"libtool:   error: can't build x86_64-w64-mingw32 shared library unless -no-undefined is specified\"\n    # unless -no-undefined is added to LDFLAGS\n    LDFLAGS_MAKE=\"${LDFLAGS} ${LIBS} -no-undefined -Wl,--export-all-symbols\"\n\n    # additional configure options from\n    # https://github.com/Unidata/netcdf-c/blob/5df5539576c5b2aa8f31d4b50c4f8258925589dd/.github/workflows/run_tests_win_mingw.yml#L38\n    CONFIGURE_OPTIONS=\"--disable-byterange\"\nfi\n\nif [[ ${target} -ne x86_64-linux-gnu ]]; then\n    # utilities are necessary to run the tests\n    CONFIGURE_OPTIONS=\"$CONFIGURE_OPTIONS --disable-utilities\"\nfi\n\n# https://github.com/JuliaPackaging/Yggdrasil/issues/5031#issuecomment-1155000045\nrm /workspace/destdir/lib/*.la\n\n./configure --prefix=${prefix} \\\n    --build=${MACHTYPE} \\\n    --host=${target} \\\n    --enable-shared \\\n    --disable-static \\\n    --disable-dap-remote-tests \\\n    --disable-plugins \\\n    $CONFIGURE_OPTIONS\n\nmake LDFLAGS=\"${LDFLAGS_MAKE}\" -j${nproc}\n\nif [[ ${target} == x86_64-linux-gnu ]]; then\n   make check\nfi\n\nmake install\n\nnc-config --all\n"""
+version = "v400.902.208"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Bzip2_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "~1.14"
+    name = "HDF5_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "7.73.0"
+    name = "LibCURL_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "XML2_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Zlib_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Zstd_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libnetcdf"]
+    type = "lib"
+    variable_name = "libnetcdf"
+
+    [[metadata.sources]]
+    hash = "cf11babbbdb9963f09f55079e0b019f6d0371f52f8e1264a5ba8e9fdab1a6c48"
+    type = "archive"
+    unpack_target = ""
+    url = "https://downloads.unidata.ucar.edu/netcdf-c/4.9.2/netcdf-c-4.9.2.tar.gz"
+    [[metadata.sources]]
+    follow_symlinks = false
+    path = "bundled"
+    target = ""
+    type = "directory"
