@@ -1,0 +1,38 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/b85e8f7025385a9258b1950cde9b6a5d91ee761e/L/LoopTools/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.2.5"
+
+[metadata]
+init_block = ""
+lazy_artifacts = false
+name = "LoopTools"
+platforms = ["i686-linux-gnu-libgfortran3", "i686-linux-gnu-libgfortran4", "i686-linux-gnu-libgfortran5", "x86_64-linux-gnu-libgfortran3", "x86_64-linux-gnu-libgfortran4", "x86_64-linux-gnu-libgfortran5", "aarch64-linux-gnu-libgfortran3", "aarch64-linux-gnu-libgfortran4", "aarch64-linux-gnu-libgfortran5", "armv7l-linux-gnueabihf-libgfortran3", "armv7l-linux-gnueabihf-libgfortran4", "armv7l-linux-gnueabihf-libgfortran5", "powerpc64le-linux-gnu-libgfortran3", "powerpc64le-linux-gnu-libgfortran4", "powerpc64le-linux-gnu-libgfortran5", "i686-linux-musl-libgfortran3", "i686-linux-musl-libgfortran4", "i686-linux-musl-libgfortran5", "x86_64-linux-musl-libgfortran3", "x86_64-linux-musl-libgfortran4", "x86_64-linux-musl-libgfortran5", "aarch64-linux-musl-libgfortran3", "aarch64-linux-musl-libgfortran4", "aarch64-linux-musl-libgfortran5", "armv7l-linux-musleabihf-libgfortran3", "armv7l-linux-musleabihf-libgfortran4", "armv7l-linux-musleabihf-libgfortran5", "x86_64-apple-darwin14-libgfortran3", "x86_64-apple-darwin14-libgfortran4", "x86_64-apple-darwin14-libgfortran5", "x86_64-unknown-freebsd11.1-libgfortran3", "x86_64-unknown-freebsd11.1-libgfortran4", "x86_64-unknown-freebsd11.1-libgfortran5", "i686-w64-mingw32-libgfortran3", "i686-w64-mingw32-libgfortran4", "i686-w64-mingw32-libgfortran5", "x86_64-w64-mingw32-libgfortran3", "x86_64-w64-mingw32-libgfortran4", "x86_64-w64-mingw32-libgfortran5"]
+script = """cd ${WORKSPACE}/srcdir/LoopTools-*\natomic_patch -p1 ../patches/simplify-configure.patch\nexport AR=ar\nexport RANLIB=ranlib\n./configure --prefix=$prefix --host=${target}\nmake -j${nproc}\nmake install EXE=\"${exeext}\"\n# Now let's build the shared library\ncd \"${prefix}/lib\"\nif [[ \"${target}\" == *-apple-* ]]; then\n    whole_archive=\"-all_load\"\n    no_whole_archive=\"-noall_load\"\nelse\n    whole_archive=\"--whole-archive\"\n    no_whole_archive=\"--no-whole-archive\"\nfi\nmkdir -p \"${libdir}\"\ngfortran -fPIC -shared -Wl,${whole_archive} libooptools.a -Wl,${no_whole_archive} -o \"${libdir}/libooptools.${dlext}\"\nrm  libooptools.a\n"""
+version = "v2.15.0"
+
+    [[metadata.dependencies]]
+    name = "CompilerSupportLibraries_jll"
+    type = "dependency"
+    uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libooptools"]
+    type = "lib"
+    variable_name = "libooptools"
+
+    [[metadata.sources]]
+    hash = "a065ffdc4fe6882aa3bb926134ba8ec875d6c0a633c3d4aa5f70db26542713f2"
+    type = "archive"
+    unpack_target = ""
+    url = "http://www.feynarts.de/looptools/LoopTools-2.15.tar.gz"
+    [[metadata.sources]]
+    path = "./bundled"
+    target = ""
+    type = "directory"

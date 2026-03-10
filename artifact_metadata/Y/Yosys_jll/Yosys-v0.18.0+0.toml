@@ -1,0 +1,85 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/1e90709083b43e77947bce16118afa5176cca2d4/Y/Yosys/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.5.3"
+
+[metadata]
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Yosys"
+platforms = ["i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx11"]
+script = """cd yosys\n\nif [[ \"${target}\" == *-apple-* ]]; then\n    CONFIG=clang\n    OS=Darwin\nelif [[ \"${target}\" == *-freebsd* ]]; then\n    CONFIG=clang\n    OS=FreeBSD\nelif [[ \"${target}\" == *x86_64-w64-mingw32* ]]; then\n    CONFIG=msys2-64\n    OS=Windows\nelif [[ \"${target}\" == *i686-w64-mingw32* ]]; then\n    CONFIG=msys2-32\n    OS=Windows\nelse\n    CONFIG=gcc\n    OS=Linux\nfi\n\n# TODO: ABC does not build on windows\nif [[ \"${target}\" == *x86_64-w64-mingw32* ]] || [[ \"${target}\" == *i686-w64-mingw32* ]]; then\n    make install ENABLE_LIBYOSYS=1 ENABLE_ABC=0 ENABLE_TCL=0 OS=${OS} CONFIG=${CONFIG} PREFIX=${prefix} TCL_INCLUDE=${libdir} TCL_VERSION=tcl86 LIBDIR=${libdir} -j${nproc}\nelse\n    make install ENABLE_LIBYOSYS=1 OS=${OS} CONFIG=${CONFIG} PREFIX=${prefix} TCL_INCLUDE=${libdir} LIBDIR=${libdir} -j${nproc}\nfi\n\n# everything is a .so even if it is not... so fixup\nmv ${libdir}/libyosys.so  ${libdir}/libyosys.${dlext}\n"""
+version = "v0.18.0"
+
+    [[metadata.dependencies]]
+    compat = "=1.76.0"
+    name = "boost_jll"
+    platforms = ["any"]
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "8.1.1"
+    name = "Readline_jll"
+    platforms = ["any"]
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "8.6.11"
+    name = "Tcl_jll"
+    platforms = ["any"]
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "1.2.11"
+    name = "Zlib_jll"
+    platforms = ["any"]
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "~3.2.2"
+    name = "Libffi_jll"
+    platforms = ["any"]
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "1.3.1"
+    name = "dlfcn_win32_jll"
+    platforms = ["i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx11"]
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    binnames = ["yosys"]
+    type = "exe"
+    variable_name = "yosys"
+    [[metadata.products]]
+    binnames = ["yosys-filterlib"]
+    type = "exe"
+    variable_name = "yosys_filterlib"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libyosys"]
+    type = "lib"
+    variable_name = "libyosys"
+
+    [[metadata.sources]]
+    hash = "19ce3b45d6a877e96af3883e3f8df3acfd224ea6"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/YosysHQ/yosys.git"

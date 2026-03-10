@@ -1,0 +1,32 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/029618aa8a3b7abc36ef91a5ca84ca9499896503/G/gmsh/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.3.0"
+
+[metadata]
+dependencies = []
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "gmsh"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd ${WORKSPACE}/srcdir/gmsh-4.8.1-source\ninstall_license LICENSE.txt\nmkdir build\ncd build\ncmake -DCMAKE_INSTALL_PREFIX=${prefix} \\\n      -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n      -DCMAKE_BUILD_TYPE=Release \\\n      -DENABLE_BUILD_DYNAMIC=1 \\\n      ..\nmake -j${nproc}\nmake install\nmv ${prefix}/lib/gmsh.jl ${prefix}/lib/gmsh.jl.bak\nsed ${prefix}/lib/gmsh.jl.bak \\\n  -e 's/^\\(import Libdl\\)/#\\1/g' \\\n  -e 's/^\\(const lib.*\\)/#\\1/g' \\\n  -e 's/^\\(module gmsh\\)$/\\1\\nusing gmsh_jll: libgmsh\\nconst lib = libgmsh/g' \\\n  > ${prefix}/lib/gmsh.jl\n"""
+version = "v4.8.1"
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libgmsh", "gmsh"]
+    type = "lib"
+    variable_name = "libgmsh"
+    [[metadata.products]]
+    paths = ["lib/gmsh.jl"]
+    type = "file"
+    variable_name = "gmsh_api"
+
+    [[metadata.sources]]
+    hash = "d5038f5f25ae85973536fb05cc886feb1bd7d67e2605a9d8789bcc2528fa8b35"
+    type = "archive"
+    unpack_target = ""
+    url = "https://gmsh.info/src/gmsh-4.8.1-source.tgz"
