@@ -1,0 +1,48 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/8543df54a751c694214d7eac15a52ce005f5a862/O/oneTBB/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.5.8"
+
+[metadata]
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "oneTBB"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir/oneTBB*\n\nif [[ ${target} == *mingw* ]]; then\n    atomic_patch -p1 \"${WORKSPACE}/srcdir/patches/mingw.patch\"\n\n    # `CreateSemaphoreEx` requires at least Windows Vista/Server 2008:\n    # https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-createsemaphoreexa\n    export CXXFLAGS=\"-D_WIN32_WINNT=0x0600\"\nfi\n\nif [[ ${target} == i686-linux-musl* ]]; then\n    # Disable strong stack protection. Our musl version doesn't\n    # provide the symbol `__stack_chk_fail_local` in the way GCC expects.\n    atomic_patch -p1 \"${WORKSPACE}/srcdir/patches/i686-musl.patch\"\nfi\n\ncmake -B build -G Ninja \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DTBB_STRICT=OFF \\\n    -DTBB_TEST=OFF \\\n    -DTBB_EXAMPLES=OFF\ncmake --build build --parallel ${nproc}\ncmake --install build\n"""
+version = "v2021.12.0"
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libtbbmalloc"]
+    type = "lib"
+    variable_name = "libtbbmalloc"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libtbbmalloc_proxy"]
+    type = "lib"
+    variable_name = "libtbbmalloc_proxy"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libtbb", "libtbb12"]
+    type = "lib"
+    variable_name = "libtbb"
+
+    [[metadata.sources]]
+    hash = "9afd759b72c0c233cd5ea3c3c06b0894c9da9c54"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/oneapi-src/oneTBB.git"
+    [[metadata.sources]]
+    follow_symlinks = false
+    path = "./bundled"
+    target = ""
+    type = "directory"
