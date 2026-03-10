@@ -294,11 +294,11 @@ function metadata_for_jll_release(org, repo, release, available_versions)
             error("metadata mismatch: got $(bb_meta["name"])@$(bb_meta["version"]), expected $jllname@$version")
         end
         return Dict{String,Any}(
-            "system" => "Yggdrasil",
             "buildscript" => "https://github.com/JuliaPackaging/Yggdrasil/tree/$(commit)$(chopprefix(buildscript,yggy))",
-            "version" => bb_version,
+            "metadata_type" => "BinaryBuilder --meta-json",
+            "metadata_source" => "retrospective (by $method)",
+            "metadata_version" => bb_version,
             "metadata" => bb_meta,
-            "metadata_source" => "retrospective (by $method)"
         )
     end
 end
@@ -335,9 +335,8 @@ function update_metadata(; force = false, max_releases=100)
                 # Also update metadata for the package itself
                 if haskey(metadata, pkgname)
                     for (version, verinfo) in metadata[pkgname]
-                        if all(startswith("https://github.com/$org/$repo/releases/download/$tag_name/"), get(verinfo, "artifact_urls", []))
-                            # TODO: don't hardcode this URL pattern
-                            verinfo["artifact_metadata"] = "artifact_metadata/$(first(pkgname))/$(pkgname)/$(tag_name).toml"
+                        if all(startswith("https://github.com/$org/$repo/releases/download/$tag_name/"), get(verinfo, "artifact_urls", ["false"]))
+                            verinfo["artifact_metadata"] = "$(pkgname)/$(tag_name)"
                         end
                     end
                 end
