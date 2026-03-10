@@ -1,0 +1,148 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/a7648fd2d2532527808d99e9a956f4423d6be936/G/GRQt5/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.5.6"
+
+[metadata]
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "GRQt5"
+platforms = ["armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd"]
+script = """cd $WORKSPACE/srcdir/gr\n\nif test -f \"$prefix/lib/cmake/Qt5Gui/Qt5GuiConfigExtras.cmake\"; then\n    sed -i 's/_qt5gui_find_extra_libs.*AGL.framework.*//' $prefix/lib/cmake/Qt5Gui/Qt5GuiConfigExtras.cmake\nfi\n\nupdate_configure_scripts\n\nmake -C 3rdparty/qhull -j${nproc}\n\nif [[ $target == *\"mingw\"* ]]; then\n    winflags=-DCMAKE_C_FLAGS=\"-D_WIN32_WINNT=0x0f00\"\n    tifflags=-DTIFF_LIBRARY=${libdir}/libtiff-5.dll\nelse\n    tifflags=-DTIFF_LIBRARY=${libdir}/libtiff.${dlext}\nfi\n\nif [[ \"${target}\" == x86_64-apple-darwin* ]]; then\n    apple_sdk_root=$WORKSPACE/srcdir/MacOSX10.14.sdk\n    sed -i \"s!/opt/x86_64-apple-darwin14/x86_64-apple-darwin14/sys-root!$apple_sdk_root!\" $CMAKE_TARGET_TOOLCHAIN\n    export MACOSX_DEPLOYMENT_TARGET=10.14\nfi\n\nif [[ \"${target}\" == *apple* ]]; then\n    make -C 3rdparty/zeromq ZEROMQ_EXTRA_CONFIGURE_FLAGS=\"--host=${target}\"\nfi\n\nif [[ \"${target}\" == arm-* ]]; then\n    export CXXFLAGS=\"-Wl,-rpath-link,/opt/${target}/${target}/lib\"\nfi\n\nstagingprefix=$WORKSPACE/srcdir/staging\nmkdir $stagingprefix\nmkdir build\n\ncd build\ncmake $winflags -DCMAKE_INSTALL_PREFIX=$stagingprefix -DCMAKE_FIND_ROOT_PATH=$prefix -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} -DGR_USE_BUNDLED_LIBRARIES=ON $tifflags -DCMAKE_BUILD_TYPE=Release ..\n\nVERBOSE=ON cmake --build . --config Release --target install -- -j${nproc}\ncp -a $stagingprefix/lib/*qt5* $prefix/lib\n\ninstall_license $WORKSPACE/srcdir/gr/LICENSE.md\n\nif [[ $target == *\"apple-darwin\"* ]]; then\n    rm -rf $stagingprefix/Applications/GKSTerm.app\n    cp -a $stagingprefix/Applications $prefix\n    cd ${bindir}\n    ln -s ../Applications/gksqt.app/Contents/MacOS/gksqt ./\n    ln -s ../Applications/grplot.app/Contents/MacOS/grplot ./\nelse\n    cp -a $stagingprefix/bin/gksqt* $bindir\n    cp -a $stagingprefix/bin/grplot* $bindir\nfi\n\nif [[ $target == *\"mingw32\"* ]]; then\n    cp -a $stagingprefix/bin/*qt5* $bindir\nfi\n"""
+version = "v0.72.7"
+
+    [[metadata.dependencies]]
+    compat = "1.0.8"
+    name = "Bzip2_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "1.16.1"
+    name = "Cairo_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "FFMPEG_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Fontconfig_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "JpegTurbo_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "libpng_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "4.3.0"
+    name = "Libtiff_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Pixman_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Qt5Base_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Xorg_libX11_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "builddependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Xorg_xproto_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "builddependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Zlib_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    binnames = ["gksqt"]
+    type = "exe"
+    variable_name = "gksqt"
+    [[metadata.products]]
+    binnames = ["grplot"]
+    type = "exe"
+    variable_name = "grplot"
+
+    [[metadata.sources]]
+    hash = "d0758e25475bcbe3da796ef0290be9e2a942e87c"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/sciapp/gr.git"
+    [[metadata.sources]]
+    filename = "gr.js"
+    hash = "203269cc2dbce49536e54e7f0ece3542a8bd5bec4931b0937846a1e260e00312"
+    type = "file"
+    url = "https://github.com/sciapp/gr/releases/download/v0.72.7/gr-0.72.7.js"
+    [[metadata.sources]]
+    hash = "0f03869f72df8705b832910517b47dd5b79eb4e160512602f593ed243b28715f"
+    type = "archive"
+    unpack_target = ""
+    url = "https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.14.sdk.tar.xz"
