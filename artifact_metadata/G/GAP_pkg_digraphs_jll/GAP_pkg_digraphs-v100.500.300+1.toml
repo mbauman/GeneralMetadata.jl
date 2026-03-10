@@ -1,0 +1,44 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/e55133c378f8b73d7f1eb9af56d01595bd13074e/G/GAP_pkg/GAP_pkg_digraphs/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.5.5"
+
+[metadata]
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "GAP_pkg_digraphs"
+platforms = ["x86_64-linux-gnu", "aarch64-linux-gnu", "powerpc64le-linux-gnu", "x86_64-linux-musl", "aarch64-linux-musl", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd"]
+script = """# HACK WORKAROUND GAP_jll deficiencies\n# must add -lgap to the linker flags used by gac\nperl -pi -e 's/c_addlibs=\"\"/c_addlibs=\"-lgap\"/' ${prefix}/bin/gac\ncd digraphs*\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} --with-gaproot=${prefix}/lib/gap\nmake -j${nproc}\n\n# copy the loadable module\nmkdir -p ${prefix}/lib/gap/\ncp bin/*/*.so ${prefix}/lib/gap/\n\ninstall_license LICENSE\n"""
+version = "v100.500.300"
+
+    [[metadata.dependencies]]
+    compat = "~400.1200.0"
+    name = "GAP_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "~400.1200.0"
+    name = "GAP_lib_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    paths = ["lib/gap/digraphs.so"]
+    type = "file"
+    variable_name = "digraphs"
+
+    [[metadata.sources]]
+    hash = "1781320032c37f5334ff5c80bf6857085de54cdae7a5f6db3e6daea47b8570cc"
+    type = "archive"
+    unpack_target = ""
+    url = "https://github.com/gap-packages/digraphs/releases/download/v1.5.3/digraphs-1.5.3.tar.gz"

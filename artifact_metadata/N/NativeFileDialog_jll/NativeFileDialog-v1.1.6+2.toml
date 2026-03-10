@@ -1,0 +1,48 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/9bc531ecb6c26f16b145be0bd6b3912eab051671/N/NativeFileDialog/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.4.1"
+
+[metadata]
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "NativeFileDialog"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "aarch64-apple-darwin"]
+script = """cd $WORKSPACE/srcdir/nativefiledialog/src/\nif [[ \"${target}\" == *-mingw* ]]; then\n    c++ nfd_common.c nfd_win.cpp -DNDEBUG -DUNICODE -D_UNICODE -lole32 -luuid -Iinclude -O2 -Wall -Wextra -fno-exceptions -shared -o \"${libdir}/libnfd.${dlext}\"\nelif [[ \"${target}\" == *-apple* ]]; then\n    cc nfd_cocoa.m nfd_common.c -DNDEBUG -framework Foundation -framework AppKit -Iinclude -O2 -Wall -Wextra -fno-exceptions -fPIC -shared -o \"${libdir}/libnfd.${dlext}\"\nelif [[ \"${target}\" == *-linux-* && \"${nbits}\" == 32 ]]; then\n    # patch for old gcc in 32bit linux and other for musl\n    atomic_patch -p2 ../../patches/32bit-linux-fix.diff\n    cc nfd_common.c nfd_gtk.c -D_FILE_OFFSET_BITS=64 -DNDEBUG -Iinclude `pkg-config --cflags --libs gtk+-3.0` -O2 -Wall -Wextra -fno-exceptions -fPIC -shared -o \"${libdir}/libnfd.${dlext}\"\nelse\n    cc nfd_common.c nfd_gtk.c -DNDEBUG -Iinclude `pkg-config --cflags --libs gtk+-3.0` -O2 -Wall -Wextra -fno-exceptions -fPIC -shared -o \"${libdir}/libnfd.${dlext}\"\nfi\n"""
+version = "v1.1.6"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "GTK3_jll"
+    type = "dependency"
+    uuid = "77ec8976-b24b-556a-a1bf-49a033a670a6"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Xorg_xorgproto_jll"
+    type = "builddependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libnfd"]
+    type = "lib"
+    variable_name = "libnfd"
+
+    [[metadata.sources]]
+    hash = "2850c97af02e6b4cce6ffb91a0445acb5eb9b241"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/mlabbe/nativefiledialog.git"
+    [[metadata.sources]]
+    follow_symlinks = false
+    path = "./bundled"
+    target = ""
+    type = "directory"
