@@ -1,0 +1,47 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/1b7cbf992afd2f24ce199ddd5dea28af513b953e/A/Arpack/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.5.7"
+
+[metadata]
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.8"
+lazy_artifacts = false
+name = "Arpack"
+platforms = ["i686-linux-gnu-libgfortran3", "i686-linux-gnu-libgfortran4", "i686-linux-gnu-libgfortran5", "x86_64-linux-gnu-libgfortran3", "x86_64-linux-gnu-libgfortran4", "x86_64-linux-gnu-libgfortran5", "aarch64-linux-gnu-libgfortran3", "aarch64-linux-gnu-libgfortran4", "aarch64-linux-gnu-libgfortran5", "armv6l-linux-gnueabihf-libgfortran3", "armv6l-linux-gnueabihf-libgfortran4", "armv6l-linux-gnueabihf-libgfortran5", "armv7l-linux-gnueabihf-libgfortran3", "armv7l-linux-gnueabihf-libgfortran4", "armv7l-linux-gnueabihf-libgfortran5", "powerpc64le-linux-gnu-libgfortran3", "powerpc64le-linux-gnu-libgfortran4", "powerpc64le-linux-gnu-libgfortran5", "i686-linux-musl-libgfortran3", "i686-linux-musl-libgfortran4", "i686-linux-musl-libgfortran5", "x86_64-linux-musl-libgfortran3", "x86_64-linux-musl-libgfortran4", "x86_64-linux-musl-libgfortran5", "aarch64-linux-musl-libgfortran3", "aarch64-linux-musl-libgfortran4", "aarch64-linux-musl-libgfortran5", "armv6l-linux-musleabihf-libgfortran3", "armv6l-linux-musleabihf-libgfortran4", "armv6l-linux-musleabihf-libgfortran5", "armv7l-linux-musleabihf-libgfortran3", "armv7l-linux-musleabihf-libgfortran4", "armv7l-linux-musleabihf-libgfortran5", "x86_64-apple-darwin-libgfortran3", "x86_64-apple-darwin-libgfortran4", "x86_64-apple-darwin-libgfortran5", "aarch64-apple-darwin-libgfortran5", "x86_64-unknown-freebsd-libgfortran3", "x86_64-unknown-freebsd-libgfortran4", "x86_64-unknown-freebsd-libgfortran5", "i686-w64-mingw32-libgfortran3", "i686-w64-mingw32-libgfortran4", "i686-w64-mingw32-libgfortran5", "x86_64-w64-mingw32-libgfortran3", "x86_64-w64-mingw32-libgfortran4", "x86_64-w64-mingw32-libgfortran5"]
+script = """cd ${WORKSPACE}/srcdir/arpack-ng*\n\n# arpack tests require finding libgfortran when linking with C linkers,\n# and gcc doesn't automatically add that search path.  So we do it for it with `rpath-link`.\nEXE_LINK_FLAGS=()\nif [[ ${target} != *darwin* ]]; then\n    EXE_LINK_FLAGS+=(\"-Wl,-rpath-link,/opt/${target}/${target}/lib\")\n    EXE_LINK_FLAGS+=(\"-Wl,-rpath-link,/opt/${target}/${target}/lib64\")\nfi\n\n# Symbols that have float32, float64, complexf32, and complexf64 support\nSDCZ_SYMBOLS=(\n    axpy copy gemv geqr2 lacpy lahqr lanhs larnv lartg\n    lascl laset scal trevc trmm trsen gbmv gbtrf gbtrs\n    gttrf gttrs pttrf pttrs\n)\n\n# All symbols that have float32/float64 support (including the SDCZ_SYMBOLS above)\nSD_SYMBOLS=(\n    ${SDCZ_SYMBOLS[@]}\n    dot ger labad laev2 lamch lanst lanv2\n    lapy2 larf larfg lasr nrm2 orm2r rot steqr swap\n)\n\n# All symbols that have complexf32/complexf64 support (including the SDCZ_SYMBOLS above)\nCZ_SYMBOLS=(${SDCZ_SYMBOLS[@]} dotc geru unm2r)\n\n# Add in (s|d)*_64 symbol remappings:\nSYMBOL_DEFS=()\nfor sym in ${SD_SYMBOLS[@]}; do\n    SYMBOL_DEFS+=(\"-Ds${sym}=s${sym}_64\" \"-Dd${sym}=d${sym}_64\")\ndone\n\n# Add in (c|z)*_64 symbol remappings:\nfor sym in ${CZ_SYMBOLS[@]}; do\n    SYMBOL_DEFS+=(\"-Dc${sym}=c${sym}_64\" \"-Dz${sym}=z${sym}_64\")\ndone\n\n# Add one-off symbol mappings; things that don't fit into any other bucket:\nfor sym in scnrm2 dznrm2 csscal zdscal dgetrf dgetrs; do\n    SYMBOL_DEFS+=(\"-D${sym}=${sym}_64\")\ndone\n\n# Set up not only lowercase symbol remappings, but uppercase as well:\nSYMBOL_DEFS+=(${SYMBOL_DEFS[@]^^})\n\nFFLAGS=\"${FFLAGS} -O3 -fPIE -ffixed-line-length-none -fno-optimize-sibling-calls -cpp\"\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    LBT=blastrampoline-5\nelse\n    LBT=blastrampoline\nfi\n\nif [[ ${nbits} == 64 ]]; then\n    FFLAGS=\"${FFLAGS} -fdefault-integer-8 ${SYMBOL_DEFS[@]}\"\nfi\n\nmkdir build\ncd build\nexport LDFLAGS=\"${EXE_LINK_FLAGS[@]} -L${libdir} -lpthread\"\ncmake .. -DCMAKE_INSTALL_PREFIX=\"$prefix\" \\\n    -DCMAKE_TOOLCHAIN_FILE=\"${CMAKE_TARGET_TOOLCHAIN}\" -DCMAKE_BUILD_TYPE=Release \\\n    -DEXAMPLES=OFF \\\n    -DBUILD_SHARED_LIBS=ON \\\n    -DBLAS_LIBRARIES=\"-l${LBT}\" \\\n    -DLAPACK_LIBRARIES=\"-l${LBT}\" \\\n    -DCMAKE_Fortran_FLAGS=\"${FFLAGS}\"\n\nmake -j${nproc} VERBOSE=1\nmake install VERBOSE=1\n\n# For now, we'll have to adjust the name of the Lbt library on macOS and FreeBSD.\n# Eventually, this should be fixed upstream\nif [[ ${target} == *-apple-* ]] || [[ ${target} == *freebsd* ]]; then\n    echo \"-- Modifying library name for Lbt\"\n\n    for nm in libarpack; do\n        # Figure out what version it probably latched on to:\n        if [[ ${target} == *-apple-* ]]; then\n            LBT_LINK=$(otool -L ${libdir}/${nm}.dylib | grep lib${LBT} | awk '{ print $1 }')\n            install_name_tool -change ${LBT_LINK} @rpath/lib${LBT}.dylib ${libdir}/${nm}.dylib\n        elif [[ ${target} == *freebsd* ]]; then\n            LBT_LINK=$(readelf -d ${libdir}/${nm}.so | grep lib${LBT} | sed -e 's/.*\\[\\(.*\\)\\].*/\\1/')\n            patchelf --replace-needed ${LBT_LINK} lib${LBT}.so ${libdir}/${nm}.so\n        elif [[ ${target} == *linux* ]]; then\n            LBT_LINK=$(readelf -d ${libdir}/${nm}.so | grep lib${LBT} | sed -e 's/.*\\[\\(.*\\)\\].*/\\1/')\n            patchelf --replace-needed ${LBT_LINK} lib${LBT}.so ${libdir}/${nm}.so\n        fi\n    done\nfi\n\n# Delete the extra soversion libraries built. https://github.com/JuliaPackaging/Yggdrasil/issues/7\nif [[ \"${target}\" == *-mingw* ]]; then\n    rm -f ${libdir}/lib*.*.${dlext}\n    rm -f ${libdir}/lib*.*.*.${dlext}\nfi\n"""
+version = "v3.9.1"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "libblastrampoline_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "CompilerSupportLibraries_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libarpack"]
+    type = "lib"
+    variable_name = "libarpack"
+
+    [[metadata.sources]]
+    hash = "40329031ae8deb7c1e26baf8353fa384fc37c251"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/opencollab/arpack-ng.git"

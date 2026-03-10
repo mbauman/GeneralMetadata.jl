@@ -1,0 +1,58 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/81d2ae234739dbf030d0fef37dd9f0375daab727/F/FLINT/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.5.5"
+
+[metadata]
+augment_platform_block = ""
+init_block = """  if !Sys.iswindows() && !(get(ENV, \"NEMO_THREADED\", \"\") == \"1\")\n    #to match the global gmp ones\n    fm = dlsym(libflint_handle, :__flint_set_memory_functions)\n    ccall(fm, Nothing,\n      (Ptr{Nothing},Ptr{Nothing},Ptr{Nothing},Ptr{Nothing}),\n        cglobal(:jl_malloc),\n        cglobal(:jl_calloc),\n        cglobal(:jl_realloc),\n        cglobal(:jl_free))\n  end\n"""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "FLINT"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/flint*\nif [[ ${target} == *musl* ]]; then\n   # because of some ordering issue with pthread.h and sched.h includes\n   export CFLAGS=-D_GNU_SOURCE\nelif [[ ${target} == *mingw* ]]; then\n   extraflags=--reentrant\nfi\n\n./configure --prefix=$prefix --disable-static --enable-shared --with-gmp=$prefix --with-mpfr=$prefix --with-blas=$prefix ${extraflags}\nmake -j${nproc}\nmake install LIBDIR=$(basename ${libdir})\n"""
+version = "v200.900.0"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "GMP_jll"
+    platforms = ["any"]
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "MPFR_jll"
+    platforms = ["any"]
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "OpenBLAS32_jll"
+    platforms = ["any"]
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libflint"]
+    type = "lib"
+    variable_name = "libflint"
+
+    [[metadata.sources]]
+    hash = "e143df4b0f19d2f841e36234a12b69f48c4359b9"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/wbhart/flint2.git"
+    [[metadata.sources]]
+    follow_symlinks = false
+    path = "./bundled"
+    target = ""
+    type = "directory"

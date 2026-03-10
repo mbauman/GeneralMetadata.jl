@@ -1,0 +1,47 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/23d3901beb7b2e14981ccbe19a163908195f2fc1/A/Arpack/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+system = "Yggdrasil"
+version = "0.5.7"
+
+[metadata]
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.8"
+lazy_artifacts = false
+name = "Arpack"
+platforms = ["i686-linux-gnu-libgfortran3", "i686-linux-gnu-libgfortran4", "i686-linux-gnu-libgfortran5", "x86_64-linux-gnu-libgfortran3", "x86_64-linux-gnu-libgfortran4", "x86_64-linux-gnu-libgfortran5", "aarch64-linux-gnu-libgfortran3", "aarch64-linux-gnu-libgfortran4", "aarch64-linux-gnu-libgfortran5", "armv6l-linux-gnueabihf-libgfortran3", "armv6l-linux-gnueabihf-libgfortran4", "armv6l-linux-gnueabihf-libgfortran5", "armv7l-linux-gnueabihf-libgfortran3", "armv7l-linux-gnueabihf-libgfortran4", "armv7l-linux-gnueabihf-libgfortran5", "powerpc64le-linux-gnu-libgfortran3", "powerpc64le-linux-gnu-libgfortran4", "powerpc64le-linux-gnu-libgfortran5", "i686-linux-musl-libgfortran3", "i686-linux-musl-libgfortran4", "i686-linux-musl-libgfortran5", "x86_64-linux-musl-libgfortran3", "x86_64-linux-musl-libgfortran4", "x86_64-linux-musl-libgfortran5", "aarch64-linux-musl-libgfortran3", "aarch64-linux-musl-libgfortran4", "aarch64-linux-musl-libgfortran5", "armv6l-linux-musleabihf-libgfortran3", "armv6l-linux-musleabihf-libgfortran4", "armv6l-linux-musleabihf-libgfortran5", "armv7l-linux-musleabihf-libgfortran3", "armv7l-linux-musleabihf-libgfortran4", "armv7l-linux-musleabihf-libgfortran5", "x86_64-apple-darwin-libgfortran3", "x86_64-apple-darwin-libgfortran4", "x86_64-apple-darwin-libgfortran5", "aarch64-apple-darwin-libgfortran5", "x86_64-unknown-freebsd-libgfortran3", "x86_64-unknown-freebsd-libgfortran4", "x86_64-unknown-freebsd-libgfortran5", "i686-w64-mingw32-libgfortran3", "i686-w64-mingw32-libgfortran4", "i686-w64-mingw32-libgfortran5", "x86_64-w64-mingw32-libgfortran3", "x86_64-w64-mingw32-libgfortran4", "x86_64-w64-mingw32-libgfortran5"]
+script = """cd ${WORKSPACE}/srcdir/arpack-ng*\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    LBT=blastrampoline-5\nelse\n    LBT=blastrampoline\nfi\n\nmkdir build\ncd build\n\nif [[ ${nbits} == 64 ]]; then\n    FLAGS=(-DINTERFACE64=1 -DSYMBOLSUFFIX=_64)\nfi\ncmake .. -DCMAKE_INSTALL_PREFIX=\"$prefix\" \\\n    -DCMAKE_TOOLCHAIN_FILE=\"${CMAKE_TARGET_TOOLCHAIN}\" \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DBLAS_LIBRARIES=${LBT} \\\n    -DBLAS_LINKER_FLAGS=\"-L${libdir}\" \\\n    -DLAPACK_LIBRARIES=${LBT} \\\n    -DLAPACK_LINKER_FLAGS=\"-L${libdir}\" \\\n    -DEXAMPLES=OFF \\\n    -DBUILD_SHARED_LIBS=ON \\\n    \"${FLAGS[@]}\"\n\nmake -j${nproc}\nmake install\n\n# Delete the extra soversion libraries built. https://github.com/JuliaPackaging/Yggdrasil/issues/7\nif [[ \"${target}\" == *-mingw* ]]; then\n    rm -f ${libdir}/lib*.*.${dlext}\n    rm -f ${libdir}/lib*.*.*.${dlext}\nfi\n"""
+version = "v3.9.1"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "libblastrampoline_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "CompilerSupportLibraries_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libarpack"]
+    type = "lib"
+    variable_name = "libarpack"
+
+    [[metadata.sources]]
+    hash = "40329031ae8deb7c1e26baf8353fa384fc37c251"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/opencollab/arpack-ng.git"
