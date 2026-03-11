@@ -1,0 +1,26 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/78e1131828813b3e08601e5068b0668665bbb818/Z/Zenohd/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+metadata_type = "BinaryBuilder --meta-json"
+metadata_version = "0.6.4"
+
+[metadata]
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Zenohd"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "aarch64-apple-darwin", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/zenoh\ninstall_license LICENSE\n# set up the host compiler for use by the ring native compilation path\nexport CC_$(echo $rust_host | sed \"s/-/_/g\")=$CC_BUILD\n# needed to build dylibs on musl\nif [[ \"${target}\" == *-musl* ]]; then\n    export RUSTFLAGS=\"-C target-feature=-crt-static\"\nfi\n# update static_init_macro to support cross-compilation\ncargo update -p static_init_macro\ncargo build --release --all-targets\ninstall -Dvm 0755 \"target/${rust_target}/release/zenohd${exeext}\" \"${bindir}/zenohd${exeext}\"\n"""
+version = "v1.4.0"
+
+    [[metadata.products]]
+    binnames = ["zenohd"]
+    type = "exe"
+    variable_name = "zenohd"
+
+    [[metadata.sources]]
+    hash = "b70ee93327d5d81e14cfd967587b3bdd55c53c41"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/eclipse-zenoh/zenoh.git"

@@ -1,0 +1,109 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/be2654b45329d74ef2cdd1db71d55b422e4c258e/T/TensorRT/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+metadata_type = "BinaryBuilder --meta-json"
+metadata_version = "0.6.3"
+
+[metadata]
+augment_platform_block = """using Base.BinaryPlatforms\n\ntry\n    using CUDA_Runtime_jll\ncatch\n    # during initial package installation, CUDA_Runtime_jll may not be available.\n    # in that case, we just won't select an artifact.\nend\n\n# can't use Preferences for the same reason\nconst CUDA_Runtime_jll_uuid = Base.UUID(\"76a88914-d11a-5bdc-97e0-2f5a05c973a2\")\nconst preferences = Base.get_preferences(CUDA_Runtime_jll_uuid)\nBase.record_compiletime_preference(CUDA_Runtime_jll_uuid, \"version\")\nBase.record_compiletime_preference(CUDA_Runtime_jll_uuid, \"local\")\nconst local_toolkit = something(tryparse(Bool, get(preferences, \"local\", \"false\")), false)\n\nfunction cuda_comparison_strategy(_a::String, _b::String, a_requested::Bool, b_requested::Bool)\n    # if we're using a local toolkit, we can't use artifacts\n    if local_toolkit\n        return false\n    end\n\n    # if either isn't a version number (e.g. \"none\"), perform a simple equality check\n    a = tryparse(VersionNumber, _a)\n    b = tryparse(VersionNumber, _b)\n    if a === nothing || b === nothing\n        return _a == _b\n    end\n\n    # if both b and a requested, then we fall back to equality\n    if a_requested && b_requested\n        return Base.thisminor(a) == Base.thisminor(b)\n    end\n\n    # otherwise, do the comparison between the the single version cap and the single version:\n    function is_compatible(artifact::VersionNumber, host::VersionNumber)\n        if host >= v\"11.0\"\n            # enhanced compatibility, semver-style\n            artifact.major == host.major &&\n            Base.thisminor(artifact) <= Base.thisminor(host)\n        else\n            Base.thisminor(artifact) == Base.thisminor(host)\n        end\n    end\n    if a_requested\n        is_compatible(b, a)\n    else\n        is_compatible(a, b)\n    end\nend\n\nfunction augment_platform!(platform::Platform)\n    if !@isdefined(CUDA_Runtime_jll)\n        # don't set to nothing or Pkg will download any artifact\n        platform[\"cuda\"] = \"none\"\n    end\n\n    if !haskey(platform, \"cuda\")\n        CUDA_Runtime_jll.augment_platform!(platform)\n    end\n    BinaryPlatforms.set_compare_strategy!(platform, \"cuda\", cuda_comparison_strategy)\n\n    return platform\nend"""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = true
+name = "TensorRT"
+platforms = ["x86_64-linux-gnu-cuda+11.0", "x86_64-w64-mingw32-cuda+11.0", "x86_64-linux-gnu-cuda+12.0", "x86_64-w64-mingw32-cuda+12.0", "aarch64-linux-gnu-cuda_platform+jetson-cuda+12.0", "aarch64-linux-gnu-cuda_platform+sbsa-cuda+12.0"]
+script = """mkdir -p $bindir $includedir $libdir\n\ncd $WORKSPACE/srcdir\n\ncd TensorRT*\nif [[ \"$target\" == x86_64-w64-mingw32 ]]; then\n    chmod +x bin/*.exe lib/*.dll\nfi\nmv -v bin/* $bindir\nmv -v include/* $includedir\nmv -v lib/*.${dlext}* $libdir\nif [[ \"$target\" == *-linux-gnu ]]; then\n    mv -v lib/stubs $libdir\nfi\ninstall_license doc/Acknowledgements.txt\n"""
+version = "v10.5.0"
+
+    [[metadata.dependencies]]
+    compat = "8, 9"
+    name = "CUDNN_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libnvinfer", "nvinfer_10"]
+    type = "lib"
+    variable_name = "libnvinfer"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libnvinfer_builder_resource", "nvinfer_builder_resource_10"]
+    type = "lib"
+    variable_name = "libnvinfer_builder_resource"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libnvinfer_dispatch", "nvinfer_dispatch_10"]
+    type = "lib"
+    variable_name = "libnvinfer_dispatch"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libnvinfer_lean", "nvinfer_lean_10"]
+    type = "lib"
+    variable_name = "libnvinfer_lean"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libnvinfer_plugin", "nvinfer_plugin_10"]
+    type = "lib"
+    variable_name = "libnvinfer_plugin"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libnvinfer_vc_plugin", "nvinfer_vc_plugin_10"]
+    type = "lib"
+    variable_name = "libnvinfer_vc_plugin"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libnvonnxparser", "nvonnxparser_10"]
+    type = "lib"
+    variable_name = "libnvonnxparser"
+    [[metadata.products]]
+    binnames = ["trtexec"]
+    type = "exe"
+    variable_name = "trtexec"
+
+    [[metadata.sources]]
+    hash = "ca37e6752e8182173aa18051a21c3082f8fdcb9995951e0ed0a8c2395f6f77b3"
+    type = "archive"
+    unpack_target = ""
+    url = "https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/10.5.0/tars/TensorRT-10.5.0.18.Linux.x86_64-gnu.cuda-11.8.tar.gz"
+    [[metadata.sources]]
+    hash = "9e83c1c877ee9b36e916adaaf8af009c6bddc05529b7f8ad0e8a39f582d92f93"
+    type = "archive"
+    unpack_target = ""
+    url = "https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/10.5.0/zip/TensorRT-10.5.0.18.Windows.win10.cuda-11.8.zip"
+    [[metadata.sources]]
+    hash = "f404d379d639552a3e026cd5267213bd6df18a4eb899d6e47815bbdb34854958"
+    type = "archive"
+    unpack_target = ""
+    url = "https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/10.5.0/tars/TensorRT-10.5.0.18.Linux.x86_64-gnu.cuda-12.6.tar.gz"
+    [[metadata.sources]]
+    hash = "e6436f4164db4e44d727354dccf7d93755efb70d6fbfd6fa95bdfeb2e7331b24"
+    type = "archive"
+    unpack_target = ""
+    url = "https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/10.5.0/zip/TensorRT-10.5.0.18.Windows.win10.cuda-12.6.zip"
+    [[metadata.sources]]
+    hash = "9f039b38db99dc0ff8994dab3b71653faca6a1a4f42bbe13140c679072d7b5cb"
+    type = "archive"
+    unpack_target = ""
+    url = "https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/10.5.0/tars/TensorRT-10.5.0.18.l4t.aarch64-gnu.cuda-12.6.tar.gz"
+    [[metadata.sources]]
+    hash = "c306bb5d01e496fc20728d3a1a30731f6f1a7c33f92a2726ff2cc8e110906683"
+    type = "archive"
+    unpack_target = ""
+    url = "https://developer.nvidia.com/downloads/compute/machine-learning/tensorrt/10.5.0/tars/TensorRT-10.5.0.18.Ubuntu-24.04.aarch64-gnu.cuda-12.6.tar.gz"
