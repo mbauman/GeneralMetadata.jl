@@ -1,0 +1,83 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/d45b45672ab10785416f2a48d711fa3aaec48a32/M/MMG/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+metadata_type = "BinaryBuilder --meta-json"
+metadata_version = "0.5.3"
+
+[metadata]
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "MMG"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """# Install genheader for host platform\ncp -r ${WORKSPACE}/srcdir/mmg-* ${WORKSPACE}/srcdir/mmg-genheader\ncd ${WORKSPACE}/srcdir/mmg-genheader\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/genheader.patch\"\nmkdir build\ncd build\ncmake .. \\\n    -DCMAKE_INSTALL_PREFIX=${host_prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_HOST_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release\nmake -j${nproc}\nmake install\ncd ${WORKSPACE}/srcdir && rm -r ${WORKSPACE}/srcdir/mmg-genheader\n\n# Install MMG\ncd ${WORKSPACE}/srcdir/mmg-*\nif [[ \"${target}\" == *mingw* ]]; then\n    atomic_patch -p1 \"${WORKSPACE}/srcdir/patches/MMG.mingw.patch\"\n    USE_SCOTCH=OFF\nelse\n    atomic_patch -p1 \"${WORKSPACE}/srcdir/patches/MMG.patch\"\n    USE_SCOTCH=ON\nfi\nmkdir build\ncd build\ncmake .. \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DBUILD_SHARED_LIBS=ON \\\n    -DUSE_SCOTCH=${USE_SCOTCH} \\\n    -DUSE_ELAS=ON \\\n    -DUSE_VTK=OFF\nmake -j${nproc}\nmake install\ninstall_license ../LICENSE\n"""
+version = "v5.6.0"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "LinearElasticity_jll"
+    platforms = ["any"]
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "SCOTCH_jll"
+    platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd"]
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libmmg"]
+    type = "lib"
+    variable_name = "libmmg"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libmmg2d"]
+    type = "lib"
+    variable_name = "libmmg2d"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libmmg3d"]
+    type = "lib"
+    variable_name = "libmmg3d"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libmmgs"]
+    type = "lib"
+    variable_name = "libmmgs"
+    [[metadata.products]]
+    binnames = ["mmg2d_O3"]
+    type = "exe"
+    variable_name = "mmg2d_O3"
+    [[metadata.products]]
+    binnames = ["mmg3d_O3"]
+    type = "exe"
+    variable_name = "mmg3d_O3"
+    [[metadata.products]]
+    binnames = ["mmgs_O3"]
+    type = "exe"
+    variable_name = "mmgs_O3"
+
+    [[metadata.sources]]
+    hash = "bbf9163d65bc6e0f81dd3acc5a51e4a8c47a7fdae849abc26277e01154fe2437"
+    type = "archive"
+    unpack_target = ""
+    url = "https://github.com/MmgTools/mmg/archive/refs/tags/v5.6.0.tar.gz"
+    [[metadata.sources]]
+    follow_symlinks = false
+    path = "./bundled"
+    target = ""
+    type = "directory"

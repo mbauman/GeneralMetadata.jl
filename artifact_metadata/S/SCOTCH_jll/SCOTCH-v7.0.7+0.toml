@@ -1,0 +1,109 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/ec707890e4ac6dc34bd7ce138cfe3613b0cf2c12/S/SCOTCH/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+metadata_type = "BinaryBuilder --meta-json"
+metadata_version = "0.6.4"
+
+[metadata]
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "SCOTCH"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd ${WORKSPACE}/srcdir/scotch*\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/scotch.patch\"\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/fortify-source.patch\"\n\nmkdir -p src/dummysizes/build-host\ncd src/dummysizes/build-host\ncp ${WORKSPACE}/srcdir/patches/CMakeLists-dummysizes.txt ../CMakeLists.txt\n\nCC=${CC_BUILD} cmake .. \\\n    -DSCOTCH_VERSION=7 \\\n    -DSCOTCH_RELEASE=0 \\\n    -DSCOTCH_PATCHLEVEL=7 \\\n    -DBUILD_PTSCOTCH=OFF \\\n    -DINTSIZE=\"32\" \\\n    -DCMAKE_BUILD_TYPE=Release\n\nmake -j${nproc}\n\ncd ${WORKSPACE}/srcdir/scotch*\nmkdir build\ncd build\n\nFLAGS=\"\"\nif [[ \"${target}\" == *linux* ]]; then\n    FLAGS=\"-lrt\"\nfi\nif [[ \"${target}\" == *linux-musl* ]]; then\n    FLAGS=\"-lrt -D_GNU_SOURCE\"\nfi\nif [[ \"${target}\" == *freebsd* ]]; then\n    FLAGS=\"-Dcpu_set_t=cpuset_t -D__BSD_VISIBLE\"\nfi\n\nCFLAGS=$FLAGS cmake .. \\\n    -DBUILD_SHARED_LIBS=ON \\\n    -DCMAKE_INSTALL_PREFIX=$prefix \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DINTSIZE=\"32\" \\\n    -DTHREADS=ON \\\n    -DMPI_THREAD_MULTIPLE=OFF \\\n    -DBUILD_PTSCOTCH=OFF \\\n    -DBUILD_LIBESMUMPS=ON \\\n    -DBUILD_LIBSCOTCHMETIS=ON \\\n    -DBUILD_DUMMYSIZES=OFF \\\n    -DINSTALL_METIS_HEADERS=OFF \\\n    -DLIBSCOTCHERR=scotcherr \\\n    -DENABLE_TESTS=OFF\n\n# make -j${nproc}\nmake\nmake install\n\ninstall_license ${WORKSPACE}/srcdir/scotch/LICENSE_en.txt\n"""
+version = "v7.0.7"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "CompilerSupportLibraries_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Zlib_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    uuid = "83775a58-1f1d-513f-b197-d71354ab007a"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "1.0.8"
+    name = "Bzip2_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    uuid = "6e34b625-4abd-537c-b88f-471c36dfa7a0"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "XZ_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    uuid = "ffd25f8a-64ca-5728-b0f7-c24cf3aae800"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libscotch"]
+    type = "lib"
+    variable_name = "libscotch"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libesmumps"]
+    type = "lib"
+    variable_name = "libesmumps"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libscotcherr"]
+    type = "lib"
+    variable_name = "libscotcherr"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libscotcherrexit"]
+    type = "lib"
+    variable_name = "libscotcherrexit"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libscotchmetisv3"]
+    type = "lib"
+    variable_name = "libscotchmetisv3"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libscotchmetisv5"]
+    type = "lib"
+    variable_name = "libscotchmetisv5"
+
+    [[metadata.sources]]
+    hash = "d736fce170ab3dfab7ec368b4d2a9be31d6ccd34"
+    type = "git"
+    unpack_target = ""
+    url = "https://gitlab.inria.fr/scotch/scotch"
+    [[metadata.sources]]
+    follow_symlinks = false
+    path = "./bundled"
+    target = ""
+    type = "directory"
