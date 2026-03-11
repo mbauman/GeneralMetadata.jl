@@ -1,0 +1,26 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/5a9f6ba6e34399ba720ebbd5978f8e4b8102cbee/G/GAP_pkg/GAP_pkg_fplsa/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+metadata_type = "BinaryBuilder --meta-json"
+metadata_version = "0.5.8"
+
+[metadata]
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "GAP_pkg_fplsa"
+platforms = ["x86_64-linux-gnu", "aarch64-linux-gnu", "powerpc64le-linux-gnu", "x86_64-linux-musl", "aarch64-linux-musl", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd"]
+script = """cd FPLSA*\n\n# HACK to workaround need to pass --with-gaproot\nmkdir -p $prefix/lib/gap/ # HACK\necho \"GAParch=dummy\" > $prefix/lib/gap/sysinfo.gap # HACK\necho \"GAP_CPPFLAGS=dummy\" >> $prefix/lib/gap/sysinfo.gap # HACK\n\n./configure ${prefix}/lib/gap\nmake -j${nproc}\n\n# copy just the executable\nmkdir -p ${prefix}/bin/\ncp bin/*/fplsa4 ${prefix}/bin/\n\ninstall_license LICENSE\n\nrm $prefix/lib/gap/sysinfo.gap\n"""
+version = "v100.200.600"
+
+    [[metadata.products]]
+    binnames = ["fplsa4"]
+    type = "exe"
+    variable_name = "fplsa4"
+
+    [[metadata.sources]]
+    hash = "cd9fb93eb4198955070d836575e15f6e156c7fee417fef9c42c8fc3502ba422f"
+    type = "archive"
+    unpack_target = ""
+    url = "https://github.com/gap-packages/FPLSA/releases/download/v1.2.6/FPLSA-1.2.6.tar.gz"
