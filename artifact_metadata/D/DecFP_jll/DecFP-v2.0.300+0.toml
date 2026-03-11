@@ -1,0 +1,34 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/f654f9d28afeea2879a8df020b586ee67c1bd00c/D/DecFP/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+metadata_type = "BinaryBuilder --meta-json"
+metadata_version = "0.6.5"
+
+[metadata]
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.7"
+lazy_artifacts = false
+name = "DecFP"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd ${WORKSPACE}/srcdir\natomic_patch -p1 patches/long_string.patch\natomic_patch -p1 patches/memory.patch\natomic_patch -p1 patches/windows.patch\natomic_patch -p1 patches/align.patch\ncd LIBRARY\nif [[ ${nbits} == 64 ]]; then\n    HOST_ARCH=\"x86_64\"\nelse\n    HOST_ARCH=\"x86\"\nfi\nCFLAGS_OPT=\"-O2 -fPIC -fsigned-char\"\nif [[ ${target} == *-w64-* ]]; then\n    HOST_OS=\"Windows_NT\"\n    CC=\"clang\"\n    CFLAGS_OPT+=\" -DBID_SIZE_LONG=4\"\n    objext=\"obj\"\nelif [[ ${target} == *-darwin* ]]; then\n    HOST_OS=\"Darwin\"\n    # clang causes failed tests on x86_64\n    CC=\"gcc\"\n    CFLAGS_OPT+=\" -DBID_SIZE_LONG=8\"\n    objext=\"o\"\nelif [[ ${target} == *-freebsd* ]]; then\n    HOST_OS=\"FreeBSD\"\n    CC=\"clang\"\n    CFLAGS_OPT+=\" -D__QNX__ -D__linux -DBID_SIZE_LONG=8\"\n    objext=\"o\"\nelse\n    HOST_OS=\"Linux\"\n    CC=\"gcc\"\n    if [[ ${target} == *-musl* ]]; then\n        CFLAGS_OPT+=\" -D__QNX__\"\n    fi\n    if [[ ${nbits} == 64 ]]; then\n        CFLAGS_OPT+=\" -DBID_SIZE_LONG=8\"\n    else\n        CFLAGS_OPT+=\" -DBID_SIZE_LONG=4\"\n    fi\n    objext=\"o\"\nfi\nexport CC CFLAGS_OPT\nmake _HOST_ARCH=\"${HOST_ARCH}\" _HOST_OS=\"${HOST_OS}\" CALL_BY_REF=0 GLOBAL_RND=0 GLOBAL_FLAGS=0 UNCHANGED_BINARY_FLAGS=0 NO_BINARY80=1\nmkdir -p \"${libdir}\"\n${CC} -shared -o \"${libdir}/libbid.${dlext}\" *.${objext}\ninstall_license ../eula.txt\n"""
+version = "v2.0.300"
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libbid"]
+    type = "lib"
+    variable_name = "libbid"
+
+    [[metadata.sources]]
+    hash = "13f6924b2ed71df9b137a7df98706a0dcc3b43c283a0e32f8b6eadca4305136a"
+    type = "archive"
+    unpack_target = ""
+    url = "https://www.netlib.org/misc/intel/IntelRDFPMathLib20U3.tar.gz"
+    [[metadata.sources]]
+    follow_symlinks = false
+    path = "./bundled"
+    target = ""
+    type = "directory"
