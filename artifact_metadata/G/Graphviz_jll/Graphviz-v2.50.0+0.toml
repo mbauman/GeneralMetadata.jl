@@ -1,0 +1,245 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/38dadc7fef61234624bc71a39bf1464c2f295303/G/Graphviz/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+metadata_type = "BinaryBuilder --meta-json"
+metadata_version = "0.5.3"
+
+[metadata]
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Graphviz"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir/graphviz-*/\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    # We need a `regex.h` header.  MinGW doesn't have one,\n    # let's use `pcreposix.h` instead.\n    cp ${prefix}/include/pcreposix.h ${prefix}/include/regex.h\n\n    export LDFLAGS=\"-lpcreposix -lexpat\"\n    export EXTRA_LDFLAGS=\"-no-undefined\"\n\n    # Remove wrong libtool archives\n    #rm ${prefix}/lib/libharfbuzz*.la\nfi\n\n# Do not build with -ffast-math\natomic_patch -p1 ../patches/1001-no-ffast-math.patch\natomic_patch -p1 ../patches/0001-windows-exports.patch\n\n# Rebuild the configure script\nautoreconf -fiv\n\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} --enable-shared\n\nmake -j${nproc} LDFLAGS=\"${LDFLAGS} ${EXTRA_LDFLAGS}\"\nmake install\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    # Cover up the traces of the hack\n    rm ${prefix}/include/regex.h\nfi\n\nif [[ \"${target}\" == *-linux* || \"${target}\" == *-freebsd* ]]; then\n    install -Dvm 755 ../config6-linux ${prefix}/lib/graphviz/config6\nelif [[ \"${target}\" == *-mingw* ]]; then\n    install -Dvm 755 ../config6-mingw ${prefix}/bin/config6\nelif [[ \"${target}\" == *-darwin* ]]; then\n    install -Dvm 755 ../config6-darwin ${prefix}/lib/graphviz/config6\nfi\n\ninstall_license COPYING\n"""
+version = "v2.50.0"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Cairo_jll"
+    platforms = ["any"]
+    type = "dependency"
+    uuid = "83423d85-b0ee-5818-9007-b63ccbeb887a"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "2.2.7"
+    name = "Expat_jll"
+    platforms = ["any"]
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "1.42.4"
+    name = "Pango_jll"
+    platforms = ["any"]
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Xorg_xorgproto_jll"
+    platforms = ["any"]
+    type = "builddependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libcdt"]
+    type = "lib"
+    variable_name = "libcdt"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libcgraph"]
+    type = "lib"
+    variable_name = "libcgraph"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libgvc"]
+    type = "lib"
+    variable_name = "libgvc"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libgvpr"]
+    type = "lib"
+    variable_name = "libgvpr"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["liblab_gamut"]
+    type = "lib"
+    variable_name = "liblab_gamut"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libpathplan"]
+    type = "lib"
+    variable_name = "libpathplan"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libxdot"]
+    type = "lib"
+    variable_name = "libxdot"
+    [[metadata.products]]
+    binnames = ["acyclic"]
+    type = "exe"
+    variable_name = "acyclic"
+    [[metadata.products]]
+    binnames = ["bcomps"]
+    type = "exe"
+    variable_name = "bcomps"
+    [[metadata.products]]
+    binnames = ["ccomps"]
+    type = "exe"
+    variable_name = "ccomps"
+    [[metadata.products]]
+    binnames = ["circo"]
+    type = "exe"
+    variable_name = "circo"
+    [[metadata.products]]
+    binnames = ["cluster"]
+    type = "exe"
+    variable_name = "cluster"
+    [[metadata.products]]
+    binnames = ["dijkstra"]
+    type = "exe"
+    variable_name = "dijkstra"
+    [[metadata.products]]
+    binnames = ["dot"]
+    type = "exe"
+    variable_name = "dot"
+    [[metadata.products]]
+    binnames = ["dot2gxl"]
+    type = "exe"
+    variable_name = "dot2gxl"
+    [[metadata.products]]
+    binnames = ["dot_builtins"]
+    type = "exe"
+    variable_name = "dot_builtins"
+    [[metadata.products]]
+    binnames = ["edgepaint"]
+    type = "exe"
+    variable_name = "edgepaint"
+    [[metadata.products]]
+    binnames = ["fdp"]
+    type = "exe"
+    variable_name = "fdp"
+    [[metadata.products]]
+    binnames = ["gc"]
+    type = "exe"
+    variable_name = "gc"
+    [[metadata.products]]
+    binnames = ["gml2gv"]
+    type = "exe"
+    variable_name = "gml2gv"
+    [[metadata.products]]
+    binnames = ["graphml2gv"]
+    type = "exe"
+    variable_name = "graphml2gv"
+    [[metadata.products]]
+    binnames = ["gv2gml"]
+    type = "exe"
+    variable_name = "gv2gml"
+    [[metadata.products]]
+    binnames = ["gv2gxl"]
+    type = "exe"
+    variable_name = "gv2gxl"
+    [[metadata.products]]
+    binnames = ["gvcolor"]
+    type = "exe"
+    variable_name = "gvcolor"
+    [[metadata.products]]
+    binnames = ["gvgen"]
+    type = "exe"
+    variable_name = "gvgen"
+    [[metadata.products]]
+    binnames = ["gvmap"]
+    type = "exe"
+    variable_name = "gvmap"
+    [[metadata.products]]
+    binnames = ["gvpack"]
+    type = "exe"
+    variable_name = "gvpack"
+    [[metadata.products]]
+    binnames = ["gvpr"]
+    type = "exe"
+    variable_name = "gvpr"
+    [[metadata.products]]
+    binnames = ["gxl2dot"]
+    type = "exe"
+    variable_name = "gxl2dot"
+    [[metadata.products]]
+    binnames = ["gxl2gv"]
+    type = "exe"
+    variable_name = "gxl2gv"
+    [[metadata.products]]
+    binnames = ["mm2gv"]
+    type = "exe"
+    variable_name = "mm2gv"
+    [[metadata.products]]
+    binnames = ["neato"]
+    type = "exe"
+    variable_name = "neato"
+    [[metadata.products]]
+    binnames = ["nop"]
+    type = "exe"
+    variable_name = "nop"
+    [[metadata.products]]
+    binnames = ["osage"]
+    type = "exe"
+    variable_name = "osage"
+    [[metadata.products]]
+    binnames = ["patchwork"]
+    type = "exe"
+    variable_name = "patchwork"
+    [[metadata.products]]
+    binnames = ["prune"]
+    type = "exe"
+    variable_name = "prune"
+    [[metadata.products]]
+    binnames = ["sccmap"]
+    type = "exe"
+    variable_name = "sccmap"
+    [[metadata.products]]
+    binnames = ["sfdp"]
+    type = "exe"
+    variable_name = "sfdp"
+    [[metadata.products]]
+    binnames = ["tred"]
+    type = "exe"
+    variable_name = "tred"
+    [[metadata.products]]
+    binnames = ["twopi"]
+    type = "exe"
+    variable_name = "twopi"
+    [[metadata.products]]
+    binnames = ["unflatten"]
+    type = "exe"
+    variable_name = "unflatten"
+
+    [[metadata.sources]]
+    hash = "e17021a510bbd2770d4ca4b4eb841138122aaa5948f9e617e6bc12b4bac62e8d"
+    type = "archive"
+    unpack_target = ""
+    url = "https://gitlab.com/api/v4/projects/4207231/packages/generic/graphviz-releases/2.50.0/graphviz-2.50.0.tar.gz"
+    [[metadata.sources]]
+    follow_symlinks = false
+    path = "./bundled"
+    target = ""
+    type = "directory"

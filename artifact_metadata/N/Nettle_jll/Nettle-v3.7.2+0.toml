@@ -1,0 +1,51 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/e5980496ca44a119217c1b82a0398753c812f04e/N/Nettle/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+metadata_type = "BinaryBuilder --meta-json"
+metadata_version = "0.3.3"
+
+[metadata]
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Nettle"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "aarch64-apple-darwin", "armv6l-linux-gnueabihf", "armv6l-linux-musleabihf"]
+script = """cd $WORKSPACE/srcdir/nettle-*/\natomic_patch -p1 ../patches/alloca.patch\n# Include patch for finding definition of `AT_HWCAP2` within the Linux\n# kernel headers, rather than the glibc headers, since our glibc is too old\natomic_patch -p1 ../patches/AT_HWCAP2-linux_headers.patch\n\n# Force c99 mode\nexport CFLAGS=\"${CFLAGS} -std=c99\"\n\nupdate_configure_scripts\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} --with-include-path=${includedir}\nmake -j${nproc} SUBDIRS=\"tools\"\nmake install    SUBDIRS=\"tools\"\ninstall_license COPYING*\n"""
+version = "v3.7.2"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "GMP_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libnettle"]
+    type = "lib"
+    variable_name = "libnettle"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libhogweed"]
+    type = "lib"
+    variable_name = "libhogweed"
+    [[metadata.products]]
+    binnames = ["nettle-hash"]
+    type = "exe"
+    variable_name = "nettle_hash"
+
+    [[metadata.sources]]
+    hash = "8d2a604ef1cde4cd5fb77e422531ea25ad064679ff0adf956e78b3352e0ef162"
+    type = "archive"
+    unpack_target = ""
+    url = "https://ftp.gnu.org/gnu/nettle/nettle-3.7.2.tar.gz"
+    [[metadata.sources]]
+    follow_symlinks = false
+    path = "./bundled"
+    target = ""
+    type = "directory"

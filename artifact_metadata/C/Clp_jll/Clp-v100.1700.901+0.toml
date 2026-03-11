@@ -1,0 +1,107 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/0adcd7a87c0dad1ef6b4afa606ce8da7c136d0d3/C/Coin-OR/Clp/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+metadata_type = "BinaryBuilder --meta-json"
+metadata_version = "0.5.8"
+
+[metadata]
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.9"
+lazy_artifacts = false
+name = "Clp"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir/Clp*\n\n# Remove misleading libtool files\nrm -f ${prefix}/lib/*.la\nupdate_configure_scripts\n\n# old and custom autoconf\nsed -i s/elf64ppc/elf64lppc/ configure\n\nmkdir build\ncd build/\n\nexport CPPFLAGS=\"${CPPFLAGS} -DNDEBUG -I${includedir} -I${includedir}/coin\"\nif [[ ${target} == *mingw* ]]; then\n    export LDFLAGS=\"-L${libdir}\"\nelif [[ ${target} == *linux* ]]; then\n    export LDFLAGS=\"-ldl -lrt\"\nfi\n\nif [[ ${target} == *aarch64* ]] || [[ ${target} == *arm* ]]; then\n   export CPPFLAGS=\"${CPPFLAGS} -D__arm__\"\nfi\n\n# BLAS and LAPACK\nif [[ \"${target}\" == *mingw* ]]; then\n  LBT=\"-lblastrampoline-5\"\nelse\n  LBT=\"-lblastrampoline\"\nfi\n\n../configure \\\n    --prefix=$prefix \\\n    --build=${MACHTYPE} \\\n    --host=${target} \\\n    --with-pic \\\n    --disable-pkg-config \\\n    --disable-debug \\\n    --disable-dependency-tracking \\\n    --enable-shared \\\n    lt_cv_deplibs_check_method=pass_all \\\n    --with-blas \\\n    --with-blas-lib=\"-L${libdir} ${LBT}\" \\\n    --with-lapack \\\n    --with-lapack-lib=\"-L${libdir} ${LBT}\" \\\n    --with-coinutils-lib=\"-lCoinUtils\" \\\n    --with-osi-lib=\"-lCoinUtils -lOsi\" \\\n    --with-mumps-lib=\"-L${libdir} -ldmumps -lmpiseq\" \\\n    --with-mumps-incdir=\"${includedir}/libseq\" \\\n    --with-metis-lib=\"-L${libdir} -lmetis\" \\\n    --with-metis-incdir=\"${includedir}\"\n\nmake -j${nproc}\nmake install\n"""
+version = "v100.1700.901"
+
+    [[metadata.dependencies]]
+    compat = "=200.1100.1100"
+    name = "CoinUtils_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    uuid = "be027038-0da8-5614-b30d-e42594cb92df"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "=5.1.2"
+    name = "METIS_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    uuid = "d00139f3-1899-568f-a2f0-47f597d42d70"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "=0.10800.1000"
+    name = "Osi_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    uuid = "7da25872-d9ce-5375-a4d3-7a845f58efdd"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "=500.700.300"
+    name = "MUMPS_seq_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    uuid = "d7ed1dd3-d0ae-5e8e-bfb4-87a502085b8d"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "5.4.0"
+    name = "libblastrampoline_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    uuid = "8e850b90-86db-534c-a0d3-1478176c7d93"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "CompilerSupportLibraries_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libClp"]
+    type = "lib"
+    variable_name = "libClp"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libOsiClp"]
+    type = "lib"
+    variable_name = "libOsiClp"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libClpSolver"]
+    type = "lib"
+    variable_name = "libClpSolver"
+    [[metadata.products]]
+    binnames = ["clp"]
+    type = "exe"
+    variable_name = "clp"
+
+    [[metadata.sources]]
+    hash = "7b9daa62d4c2710a368a17385913ce59d8c67b68"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/coin-or/Clp.git"
