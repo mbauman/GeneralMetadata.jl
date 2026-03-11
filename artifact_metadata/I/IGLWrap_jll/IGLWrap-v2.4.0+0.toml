@@ -1,0 +1,47 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/1af1953a1118f4556c381d69ccd1553dcf02ac3f/I/IGLWrap/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+metadata_type = "BinaryBuilder --meta-json"
+metadata_version = "0.5.6"
+
+[metadata]
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "IGLWrap"
+platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "x86_64-apple-darwin"]
+script = """cd $WORKSPACE/srcdir\nmkdir -p build\ncd build\ncmake \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    `# We can't run try_run in cross-compilation mode, pass the exit code and stdout of the program (the value of __cplusplus macro)` \\\n    -DCGAL_test_cpp_version_RUN_RES=0 \\\n    -DCGAL_test_cpp_version_RUN_RES__TRYRUN_OUTPUT=\"$(c++ -xc++ - -E -dM < /dev/null | grep -oP '__cplusplus \\K.*')\" \\\n    ..\nmake -j${nproc}\nmake install\ninstall_license /usr/share/licenses/GPL-3.0+\n"""
+version = "v2.4.0"
+
+    [[metadata.dependencies]]
+    compat = "6.2.0"
+    name = "GMP_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "4.1.0"
+    name = "MPFR_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = ["RTLD_NOW", "RTLD_LOCAL"]
+    dont_dlopen = false
+    libnames = ["libiglwrap"]
+    type = "lib"
+    variable_name = "libiglwrap"
+
+    [[metadata.sources]]
+    follow_symlinks = false
+    path = "./iglwrap"
+    target = ""
+    type = "directory"

@@ -1,0 +1,93 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/4d65be3f7eafc16ea494cf48a1ecc0c474db6dc1/L/libigc/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+metadata_type = "BinaryBuilder --meta-json"
+metadata_version = "0.5.3"
+
+[metadata]
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "libigc"
+platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11"]
+script = """# the build system uses git\nexport HOME=$(pwd)\ngit config --global user.name \"Binary Builder\"\ngit config --global user.email \"your@email.com\"\n\n# move everything in places where it will get detected by the IGC build system\nmv opencl-clang llvm-project/llvm/projects/opencl-clang\nmv SPIRV-LLVM-Translator llvm-project/llvm/projects/llvm-spirv\n\n# Work around compilation failures\n# https://gcc.gnu.org/bugzilla/show_bug.cgi?id=86678\natomic_patch -p0 patches/gcc-constexpr_assert_bug.patch\n# https://reviews.llvm.org/D64388\nsed -i '/add_subdirectory/i add_definitions(-D__STDC_FORMAT_MACROS)' intel-graphics-compiler/external/llvm/llvm.cmake\n\ncd intel-graphics-compiler\ninstall_license LICENSE.md\n\nCMAKE_FLAGS=()\n\n# Release build for best performance\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\n\n# Install things into $prefix\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix})\n\n# NOTE: igc currently can't cross compile due to a variety of issues:\n# - https://github.com/intel/intel-graphics-compiler/issues/131\n# - https://github.com/intel/opencl-clang/issues/91\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING:BOOL=OFF)\n\n# Explicitly use our cmake toolchain file\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\n\n# Silence developer warnings\nCMAKE_FLAGS+=(-Wno-dev)\n\ncmake -B build -S . -GNinja ${CMAKE_FLAGS[@]}\nninja -C build -j ${nproc} install\n"""
+version = "v1.0.11061"
+
+    [[metadata.products]]
+    binnames = ["GenX_IR"]
+    type = "exe"
+    variable_name = "GenX_IR"
+    [[metadata.products]]
+    binnames = ["iga32", "iga64"]
+    type = "exe"
+    variable_name = "iga"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libiga32", "libiga64"]
+    type = "lib"
+    variable_name = "libiga"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libigc"]
+    type = "lib"
+    variable_name = "libigc"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libigdfcl"]
+    type = "lib"
+    variable_name = "libigdfcl"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libopencl-clang"]
+    type = "lib"
+    variable_name = "libopencl_clang"
+
+    [[metadata.sources]]
+    hash = "62ab67c46dad5713d50702d3a5893e2398a99343"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/intel/intel-graphics-compiler.git"
+    [[metadata.sources]]
+    hash = "bbdd1587f577397a105c900be114b56755d1f7dc"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/intel/opencl-clang.git"
+    [[metadata.sources]]
+    hash = "99420daab98998a7e36858befac9c5ed109d4920"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/KhronosGroup/SPIRV-LLVM-Translator.git"
+    [[metadata.sources]]
+    hash = "45dd184c790d6bfc78a5a74a10c37e888b1823fa"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/KhronosGroup/SPIRV-Tools.git"
+    [[metadata.sources]]
+    hash = "b42ba6d92faf6b4938e6f22ddd186dbdacc98d78"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/KhronosGroup/SPIRV-Headers.git"
+    [[metadata.sources]]
+    hash = "c97396d044a8b3eacf0fbad5395a4b7bbce583a8"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/intel/vc-intrinsics.git"
+    [[metadata.sources]]
+    hash = "1fdec59bffc11ae37eb51a1b9869f0696bfd5312"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/llvm/llvm-project.git"
+    [[metadata.sources]]
+    follow_symlinks = false
+    path = "./bundled"
+    target = ""
+    type = "directory"
