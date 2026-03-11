@@ -55,6 +55,14 @@ function commit_from_tagname(owner, repo, tag_name)
     @assert tagsinfo["object"]["type"] == "commit"
     return tagsinfo["object"]["sha"]
 end
+function commit_message(owner, repo, commit_sha)
+    response = HTTP.get(string(GITHUB_API_BASE, "/repos/", owner, "/", repo, "/git/commits/", commit_sha), build_headers())
+    if response.status != 200
+        error("Failed to fetch commit info for $commit_sha: HTTP $(response.status)")
+    end
+    commitinfo = JSON.parse(response.body)
+    return commitinfo["message"]
+end
 
 function tree_sha_from_tagname(owner, repo, tag_name)
     commit_sha = commit_from_tagname(owner, repo, tag_name)
@@ -191,6 +199,10 @@ function merge_json_objects(objs::Vector)
 end
 
 function metadata_for_jll_release(org, repo, release, available_versions)
+    org == "JuliaBinaryWrappers" || error("don't know how to handle non-JuliaBinaryWrappers repo $org/$repo")
+    # Currently constrain to releases authored by jlbuild; TODO: relax this with BinaryBuilder2 support
+    release["author"]["login"] == "jlbuild" || error("release $org/$repo@$(release["tag_name"]) is not by jlbuild, got $(release["author"]["login"])")
+
     jllname = chopsuffix(chopsuffix(chopsuffix(repo, ".git"), ".jl"), "_jll")
     tree_sha = tree_sha_from_tagname(org, repo, release["tag_name"])
     matched_versions = filter(((ver,info),)->string(info.git_tree_sha1) == tree_sha, available_versions)
@@ -290,8 +302,13 @@ function metadata_for_jll_release(org, repo, release, available_versions)
             haskey(manifest, "deps") ? manifest["deps"]["BinaryBuilder"][]["version"] : manifest["BinaryBuilder"][]["version"]
         end
         if bb_meta["name"] != jllname || majorminorpatch(VersionNumber(bb_meta["version"])) != majorminorpatch(VersionNumber(version))
-            # Some old buildscripts were committed _after_ the release publication, which means we got the wrong version of the buildscript.
-            error("metadata mismatch: got $(bb_meta["name"])@$(bb_meta["version"]), expected $jllname@$version")
+            # There was a period of time where some releases were updated with new version numbers after the release was published
+            # but their build script versions still appeared in the commit itself
+            commit = commit_from_tagname(org, repo, release["tag_name"])
+            msg = commit_message(org, repo, commit)
+            if !startswith(msg, "$jllname build $(bb_meta["version"])+")
+                error("metadata mismatch: buildscript has version $(bb_meta["name"])@$(bb_meta["version"]) but release is tagged $jllname@$version and commit message is $msg")
+            end
         end
         return Dict{String,Any}(
             "buildscript" => "https://github.com/JuliaPackaging/Yggdrasil/tree/$(commit)$(chopprefix(buildscript,yggy))",
@@ -319,6 +336,11 @@ function update_metadata(; force = false, max_releases=100)
             continue
         end
         org, repo = m.captures
+        if org != "JuliaBinaryWrappers"
+            # We can't get any metadata for non-Yggdrasil packages for now
+            # TODO: this changes with BinaryBuilder2's JLL TOML!
+            continue
+        end
         github_releases = get_releases(org, repo)
         for release in github_releases
             tag_name = release["tag_name"]
