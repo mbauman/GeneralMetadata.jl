@@ -1,0 +1,49 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/73343436fb22e5391e970626e865c0084b8df833/M/MiniZinc/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+metadata_type = "BinaryBuilder --meta-json"
+metadata_version = "0.5.6"
+
+[metadata]
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "MiniZinc"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir/libminizinc\n\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/fixes.patch\n\n# Patch for MinGW toolchain\nfind .. -type f -exec sed -i 's/Windows.h/windows.h/g' {} +\n\nmkdir -p build\ncd build\n\n# FAST_BUILD is needed when linking HiGHS, because that's what\n# we used when compiling HiGHS_jll.\ncmake -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DCMAKE_CXX_FLAGS=\"-I${includedir}/highs\" \\\n    -DFAST_BUILD=ON \\\n    ..\n\nif [[ \"${target}\" == *-linux-* ]]; then\n        make -j ${nproc}\nelse\n    if [[ \"${target}\" == *-mingw* ]]; then\n        cmake --build . --config Release\n    else\n        cmake --build . --config Release --parallel\n    fi\nfi\nmake install\n"""
+version = "v2.7.6"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "CompilerSupportLibraries_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "=1.6.0"
+    name = "HiGHS_jll"
+    platforms = ["any"]
+    top_level = false
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    binnames = ["minizinc"]
+    type = "exe"
+    variable_name = "minizinc"
+
+    [[metadata.sources]]
+    hash = "3eacc4cd3e6ba1b5414e9fa1639beaefa270f24b"
+    type = "git"
+    unpack_target = ""
+    url = "https://github.com/MiniZinc/libminizinc.git"
+    [[metadata.sources]]
+    follow_symlinks = false
+    path = "./bundled"
+    target = ""
+    type = "directory"

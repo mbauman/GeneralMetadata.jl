@@ -1,0 +1,197 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/39c23b6f316ebf204c01cec724fbd9a2609b42f1/F/FFMPEG/FFMPEG/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+metadata_type = "BinaryBuilder --meta-json"
+metadata_version = "0.3.5"
+
+[metadata]
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "FFMPEG"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "aarch64-apple-darwin"]
+script = """FFPLAY=false\ncd $WORKSPACE/srcdir\ncd ffmpeg-*/\nsed -i 's/-lflite\"/-lflite -lasound\"/' configure\napk add coreutils yasm\n\nif [[ \"${target}\" == *-linux-* ]]; then\n    export ccOS=\"linux\"\nelif [[ \"${target}\" == *-apple-* ]]; then\n    export ccOS=\"darwin\"\nelif [[ \"${target}\" == *-w32-* ]]; then\n    export ccOS=\"mingw32\"\nelif [[ \"${target}\" == *-w64-* ]]; then\n    export ccOS=\"mingw64\"\nelif [[ \"${target}\" == *-unknown-freebsd* ]]; then\n    export ccOS=\"freebsd\"\nelse\n    export ccOS=\"linux\"\nfi\n\nif [[ \"${target}\" == x86_64-* ]]; then\n    export ccARCH=\"x86_64\"\nelif [[ \"${target}\" == i686-* ]]; then\n    export ccARCH=\"i686\"\nelif [[ \"${target}\" == arm-* ]]; then\n    export ccARCH=\"arm\"\nelif [[ \"${target}\" == aarch64-* ]]; then\n    export ccARCH=\"aarch64\"\nelif [[ \"${target}\" == powerpc64le-* ]]; then\n    export ccARCH=\"powerpc64le\"\nelse\n    export ccARCH=\"x86_64\"\nfi\n\nif [[ \"${target}\" == arm-* ]]; then\n    export CUDA_ARGS=\"\"\nelif [[ \"${target}\" == *-apple-* ]]; then\n    export CUDA_ARGS=\"\"\nelif [[ \"${target}\" == *-unknown-freebsd* ]]; then\n    export CUDA_ARGS=\"\"\nelse\n    export CUDA_ARGS=\"--enable-nvenc --enable-cuda-llvm\"\nfi\n\nEXTRA_FLAGS=()\nif [[ \"${target}\" == *-darwin* ]]; then\n    EXTRA_FLAGS+=(--objcc=\"${CC} -x objective-c\")\nfi\nif [[ \"${FFPLAY}\" == \"true\" ]]; then\n    EXTRA_FLAGS+=(\"--enable-ffplay\")\nfi\n\n# Remove `-march` flags\nsed -i 's/cpuflags=\"-march=$cpu\"/cpuflags=\"\"/g' configure\n\n./configure            \\\n  --enable-cross-compile \\\n  --cross-prefix=/opt/${target}/bin/${target}- \\\n  --arch=${ccARCH}     \\\n  --target-os=${ccOS}  \\\n  --cc=\"${CC}\"         \\\n  --cxx=\"${CXX}\"       \\\n  --dep-cc=\"${CC}\"     \\\n  --ar=ar              \\\n  --nm=nm              \\\n  --sysinclude=${prefix}/include \\\n  --pkg-config=$(which pkg-config) \\\n  --pkg-config-flags=--static \\\n  --prefix=$prefix     \\\n  --sysroot=/opt/${target}/${target}/sys-root \\\n  --extra-libs=-lpthread \\\n  --enable-gpl         \\\n  --enable-version3    \\\n  --enable-nonfree     \\\n  --disable-static     \\\n  --enable-shared      \\\n  --enable-pic         \\\n  --disable-debug      \\\n  --disable-doc        \\\n  --enable-avresample  \\\n  --enable-libass      \\\n  --enable-libfdk-aac  \\\n  --enable-libfreetype \\\n  --enable-libmp3lame  \\\n  --enable-libopus     \\\n  --enable-libvorbis   \\\n  --enable-libx264     \\\n  --enable-libx265     \\\n  --enable-libvpx      \\\n  --enable-encoders    \\\n  --enable-decoders    \\\n  --enable-muxers      \\\n  --enable-demuxers    \\\n  --enable-parsers     \\\n  --enable-openssl     \\\n  --disable-schannel   \\\n  --extra-cflags=\"-I${prefix}/include\" \\\n  --extra-ldflags=\"-L${libdir}\" ${CUDA_ARGS} \\\n  \"${EXTRA_FLAGS[@]}\"\nmake -j${nproc}\nif [[ \"${FFPLAY}\" == \"true\" ]]; then\n    # Manually install only the FFplay binary\n    mv \"ffplay${exeext}\" \"${bindir}/ffplay${exeext}\"\nelse\n    # Install all FFMPEG stuff: libraries, executables, header files, etc...\n    make install\nfi\ninstall_license LICENSE.md COPYING.*\n"""
+version = "v4.4.0"
+
+    [[metadata.dependencies]]
+    compat = ""
+    name = "nv_codec_headers_jll"
+    type = "builddependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "0.15.1"
+    name = "libass_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "libfdk_aac_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "FriBidi_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "FreeType2_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "LAME_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "libvorbis_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Ogg_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "LibVPX_jll"
+    type = "builddependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "~2021.05.05"
+    name = "x264_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "~3.5"
+    name = "x265_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = "1.0.8"
+    name = "Bzip2_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Zlib_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "OpenSSL_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+    [[metadata.dependencies]]
+    compat = ""
+    name = "Opus_jll"
+    type = "dependency"
+    version-major = 0
+    version-minor = 0
+    version-patch = 0
+
+    [[metadata.products]]
+    binnames = ["ffmpeg"]
+    type = "exe"
+    variable_name = "ffmpeg"
+    [[metadata.products]]
+    binnames = ["ffprobe"]
+    type = "exe"
+    variable_name = "ffprobe"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libavcodec", "avcodec"]
+    type = "lib"
+    variable_name = "libavcodec"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libavdevice", "avdevice"]
+    type = "lib"
+    variable_name = "libavdevice"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libavfilter", "avfilter"]
+    type = "lib"
+    variable_name = "libavfilter"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libavformat", "avformat"]
+    type = "lib"
+    variable_name = "libavformat"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libavresample", "avresample"]
+    type = "lib"
+    variable_name = "libavresample"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libavutil", "avutil"]
+    type = "lib"
+    variable_name = "libavutil"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libpostproc", "postproc"]
+    type = "lib"
+    variable_name = "libpostproc"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libswresample", "swresample"]
+    type = "lib"
+    variable_name = "libswresample"
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libswscale", "swscale"]
+    type = "lib"
+    variable_name = "libswscale"
+
+    [[metadata.sources]]
+    hash = "06b10a183ce5371f915c6bb15b7b1fffbe046e8275099c96affc29e17645d909"
+    type = "archive"
+    unpack_target = ""
+    url = "https://ffmpeg.org/releases/ffmpeg-4.4.tar.xz"
