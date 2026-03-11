@@ -1,0 +1,33 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/1beac7ef6c8cf02f3c58ae21085d6b2183a5a4db/A/ASL/build_tarballs.jl"
+metadata_source = "retrospective (by README link)"
+metadata_type = "BinaryBuilder --meta-json"
+metadata_version = "0.3.0"
+
+[metadata]
+dependencies = []
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "ASL"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/solvers/\nhead -17 asl.h > LICENSE.txt\nmkdir -p ${includedir}\nmkdir -p ${libdir}\n\nall_load=\"--whole-archive\"\nnoall_load=\"--no-whole-archive\"\nmakefile=\"makefile.u\"\ncflags=\"\"\n\nif [[ -f $WORKSPACE/srcdir/asl-extra/arith.h.$target ]]; then\n    cp $WORKSPACE/srcdir/asl-extra/arith.h.$target ./arith.h\nfi\n\nif [[ \"${target}\" == \"arm-linux-musleabihf\" ]]; then\n    cp $WORKSPACE/srcdir/asl-extra/arith.h.arm-linux-gnueabihf ./arith.h\nelif [[ $target == \"i686-linux-musl\" ]]; then\n    cp $WORKSPACE/srcdir/asl-extra/arith.h.i686-linux-gnu ./arith.h\nelif [[ \"${target}\" == \"aarch64-linux-musl\" ]]; then\n    cp $WORKSPACE/srcdir/asl-extra/arith.h.aarch64-linux-gnu ./arith.h\nelif [[ \"${target}\" == *-freebsd* ]]; then\n    cp $WORKSPACE/srcdir/asl-extra/arith.h.x86_64-linux-gnu ./arith.h\n    cflags=\"-D__XSI_VISIBLE=1\"\nelif [[ \"${target}\" == *-mingw* ]]; then\n    makefile=\"$WORKSPACE/srcdir/asl-extra/makefile.mingw\"\nelif [[ \"${target}\" == *-apple-* ]]; then\n    all_load=\"-all_load\"\n    noall_load=\"-noall_load\"\nfi\n\nmake -f $makefile CC=\"$CC\" CFLAGS=\"-O -fPIC $cflags\"\nc++ -fPIC -shared -I$WORKSPACE/srcdir/asl-extra -I. $WORKSPACE/srcdir/asl-extra/aslinterface.cc -Wl,${all_load} amplsolver.a -Wl,${noall_load} -o libasl.${dlext}\ncp libasl.${dlext} ${libdir}\ncp *.h ${includedir}\ncp *.hd ${includedir}\ninstall_license LICENSE.txt\n"""
+version = "v0.1.2"
+
+    [[metadata.products]]
+    dir_paths = []
+    dlopen_flags = []
+    dont_dlopen = false
+    libnames = ["libasl"]
+    type = "lib"
+    variable_name = "libasl"
+
+    [[metadata.sources]]
+    hash = "65bb7dc72ce072bd4fa49578164a8430c03b458969cd4abe5ff6d8e9c09ad2dc"
+    type = "archive"
+    unpack_target = ""
+    url = "http://netlib.org/ampl/solvers.tgz"
+    [[metadata.sources]]
+    follow_symlinks = false
+    path = "./bundled"
+    target = ""
+    type = "directory"

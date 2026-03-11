@@ -1,0 +1,19 @@
+buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/f73d17f1a7fa6781386009cfc2d13223f2441b1b/A/ASL/build_tarballs.jl"
+metadata_source = "retrospective (by timestamp)"
+metadata_type = "BinaryBuilder --meta-json"
+metadata_version = "0.2.2"
+
+[metadata]
+dependencies = []
+name = "ASL"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "arm-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "arm-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/solvers/\nmkdir -p ${libdir}\n\nall_load=\"--whole-archive\"\nnoall_load=\"--no-whole-archive\"\nmakefile=\"makefile.u\"\ncflags=\"\"\n\nif [[ -f $WORKSPACE/srcdir/asl-extra/arith.h.$target ]]; then\n    cp $WORKSPACE/srcdir/asl-extra/arith.h.$target ./arith.h\nfi\n\nif [[ \"${target}\" == \"arm-linux-musleabihf\" ]]; then\n    cp $WORKSPACE/srcdir/asl-extra/arith.h.arm-linux-gnueabihf ./arith.h\nelif [[ $target == \"i686-linux-musl\" ]]; then\n    cp $WORKSPACE/srcdir/asl-extra/arith.h.i686-linux-gnu ./arith.h\nelif [[ \"${target}\" == \"aarch64-linux-musl\" ]]; then\n    cp $WORKSPACE/srcdir/asl-extra/arith.h.aarch64-linux-gnu ./arith.h\nelif [[ \"${target}\" == *-freebsd* ]]; then\n    cp $WORKSPACE/srcdir/asl-extra/arith.h.x86_64-linux-gnu ./arith.h\n    cflags=\"-D__XSI_VISIBLE=1\"\nelif [[ \"${target}\" == *-mingw* ]]; then\n    makefile=\"$WORKSPACE/srcdir/asl-extra/makefile.mingw\"\nelif [[ \"${target}\" == *-apple-* ]]; then\n    all_load=\"-all_load\"\n    noall_load=\"-noall_load\"\nfi\n\nmake -f $makefile CC=\"$CC\" CFLAGS=\"-O -fPIC $cflags\"\nc++ -fPIC -shared -I$WORKSPACE/srcdir/asl-extra -I. $WORKSPACE/srcdir/asl-extra/aslinterface.cc -Wl,${all_load} amplsolver.a -Wl,${noall_load} -o libasl.${dlext}\nmv libasl.${dlext} ${libdir}\n"""
+sources = [{"http://netlib.org/ampl/solvers.tgz" = "775b92cadaf95af73fdeec3effba6b9c6ffdc518e5f628b575140fb170885903"}, "./bundled"]
+version = "v0.1.0"
+
+    [[metadata.products]]
+    dir_paths = []
+    dont_dlopen = false
+    libnames = ["libasl"]
+    type = "lib"
+    variable_name = "libasl"
