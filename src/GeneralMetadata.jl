@@ -73,19 +73,6 @@ function artifact_metadata()
     return Dict{String,Any}(meta)
 end
 
-function save_artifact_metadata!(meta)
-    for (pkg_name, pkg_meta) in meta, (artifact_name, artifact_meta) in pkg_meta
-        output_path = joinpath(@__DIR__, "..", "artifact_metadata", string(uppercase(pkg_name[1])), pkg_name, "$artifact_name.toml")
-        mkpath(dirname(output_path))
-        if isfile(output_path)
-            @assert basename(output_path) == "$artifact_name.toml" "Output path $output_path does not match expected artifact name $artifact_name"
-        end
-        open(output_path, "w") do io
-            TOML.print(io, artifact_meta, sorted = true)
-        end
-    end
-end
-
 function last_update(meta)
     maximum(get(verinfo, "registered", Dates.DateTime(0)) for (pkg, pkginfo) in meta for (ver, verinfo) in pkginfo)
 end

@@ -45,7 +45,6 @@ end
 
 @testset "package TOML schema" begin
     meta = GeneralMetadata.metadata()
-    ameta = GeneralMetadata.artifact_metadata()
     for (pkg, pkginfo) in meta
         @test !isempty(pkginfo)
         for (ver, verinfo) in pkginfo
@@ -63,44 +62,35 @@ end
             end
             # The metadata is either a key to describe all URLs or a mapping for each artifact_url
             if haskey(verinfo, "artifact_metadata")
-                @test verinfo["artifact_metadata"] isa Union{String, Dict}
-                if verinfo["artifact_metadata"] isa Dict
-                    @test all(k->isa(k, String), keys(verinfo["artifact_metadata"]))
-                    @test all(v->isa(v, String), values(verinfo["artifact_metadata"]))
-                    @test isempty(symdiff(keys(verinfo["artifact_metadata"]), Set(verinfo["artifact_urls"])))
-                end
-                vv = verinfo["artifact_metadata"] isa String ? [verinfo["artifact_metadata"]] : values(verinfo["artifact_metadata"])
-                for (apkg, aname) in split.(vv, "/", limit=2)
-                    @test haskey(ameta, apkg) && haskey(ameta[apkg], aname)
-                end
-            end
-        end
-    end
+                verinfo["artifact_metadata"] isa String && continue # MIGRATION PATHWAY
+                @test verinfo["artifact_metadata"] isa Vector
+                for ainfo in verinfo["artifact_metadata"]
+                    @test ainfo isa Dict
+                    @test haskey(ainfo, "artifact_urls") && ainfo["artifact_urls"] isa Vector
+                    @test all(x->isa(x, String), ainfo["artifact_urls"])
+                    @test all(in(verinfo["artifact_urls"]), ainfo["artifact_urls"])
 
-    # Now the artifact metadata:
-    for (apkg, apkginfo) in ameta
-        @test !isempty(apkginfo)
-        for (aname, ainfo) in apkginfo
-            # All artifact metadata must have some sort of metadata and information about it
-            @test haskey(ainfo, "buildscript")
-            @test ainfo["buildscript"] isa String
-            @test haskey(ainfo, "metadata_source")
-            @test ainfo["metadata_source"] isa String
-            @test haskey(ainfo, "metadata_type")
-            @test ainfo["metadata_type"] isa String
-            @test haskey(ainfo, "metadata_version")
-            @test ainfo["metadata_version"] isa String
-            @test haskey(ainfo, "metadata")
-            @test ainfo["metadata"] isa Dict
+                    @test haskey(ainfo, "buildscript")
+                    @test ainfo["buildscript"] isa String
+                    @test haskey(ainfo, "metadata_source")
+                    @test ainfo["metadata_source"] isa String
+                    @test haskey(ainfo, "metadata_type")
+                    @test ainfo["metadata_type"] isa String
+                    @test haskey(ainfo, "metadata_version")
+                    @test ainfo["metadata_version"] isa String
+                    @test haskey(ainfo, "metadata")
+                    @test ainfo["metadata"] isa Dict
 
-            if haskey(ainfo, "components")
-                @test ainfo["components"] isa Vector
-                for component_dict in ainfo["components"]
-                    @test component_dict isa Dict
-                    @test haskey(component_dict, "project")
-                    @test component_dict["project"] isa String
-                    if haskey(component_dict, "version")
-                        @test component_dict["version"] isa String
+                    if haskey(ainfo, "components")
+                        @test ainfo["components"] isa Vector
+                        for component_dict in ainfo["components"]
+                            @test component_dict isa Dict
+                            @test haskey(component_dict, "project")
+                            @test component_dict["project"] isa String
+                            if haskey(component_dict, "version")
+                                @test component_dict["version"] isa String
+                            end
+                        end
                     end
                 end
             end

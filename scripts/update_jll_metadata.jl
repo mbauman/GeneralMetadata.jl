@@ -5,6 +5,7 @@ using Pkg: Pkg, Registry, PackageSpec
 using Base64: base64decode
 using GeneralMetadata: GeneralMetadata
 using Random: shuffle!
+using Dates: DateTime
 
 # Copied from SecurityAdvisories just to make life a little easier, since this runs v1.7
 function get_registry(reg=Registry.RegistrySpec(name="General", uuid = "23338594-aafe-5451-b93e-139f81909106"); depot=Pkg.depots1())
@@ -29,10 +30,18 @@ function build_headers()
     end
     return headers
 end
-function get_releases(owner, repo)
+function get_github_releases(owner, repo)
     response = HTTP.get(string(GITHUB_API_BASE, "/repos/", owner, "/", repo, "/releases"), build_headers())
     if response.status != 200
         error("Failed to fetch advisories: HTTP $(response.status)")
+    end
+
+    return JSON.parse(response.body)
+end
+function get_github_release(owner, repo, name)
+    response = HTTP.get(string(GITHUB_API_BASE, "/repos/", owner, "/", repo, "/releases/tags/", name), build_headers())
+    if response.status != 200
+        error("Failed to fetch release for tag $name: HTTP $(response.status)")
     end
 
     return JSON.parse(response.body)
@@ -80,8 +89,10 @@ function get_readme(owner, repo, tree_sha)
     blob.encoding == "base64" || return nothing
     return String(base64decode(blob.content))
 end
-commit_and_path_from_readme(::Nothing) = nothing, nothing
-function commit_and_path_from_readme(readme)
+commit_and_path_from_readme(::Nothing, jllname, jllversion) = nothing, nothing
+function commit_and_path_from_readme(readme, jllname, jllversion)
+    # This ensures the version is correct; Yggdrasil didn't always tag the right release
+    startswith(readme, "# `$(jllname)_jll.jl` (v$jllversion)") || return nothing, nothing
     m = match(r"originating \[`build_tarballs\.jl`\]\(https://github\.com/JuliaPackaging/Yggdrasil/blob/([^/]+)/(.*\.jl)\)", readme)
     isnothing(m) && return nothing, nothing
     return (m.captures[1], joinpath(yggy, m.captures[2]))
@@ -150,6 +161,23 @@ function chopprefix(s::Union{String, SubString{String}},
     end
 end
 
+function github_release_artifacts(meta = GeneralMetadata.metadata())
+    releases = Pair{Tuple{String,String,DateTime}, Tuple{String,String,String}}[]
+    for (pkg, pkgentry) in meta
+        for (ver, verinfo) in pkgentry
+            haskey(verinfo, "artifact_urls") || continue
+            matches = unique(Tuple(String.(m)) for m in match.(r"^https://github.com/([^/]+)/([^/]+)/releases/download/([^/]+)/", verinfo["artifact_urls"]) if m !== nothing)
+            if isempty(matches) && any(contains("JuliaBinaryWrappers"), verinfo["artifact_urls"])
+                @warn "$pkg@$ver has artifact URLs that look like they should be from GitHub releases but didn't match the expected pattern: $(verinfo["artifact_urls"])"
+            end
+            for m in matches
+                push!(releases, ((pkg, ver, verinfo["registered"]) => m))
+            end
+        end
+    end
+    return releases
+end
+
 const yggy = mktempdir()
 run(pipeline(`git clone https://github.com/JuliaPackaging/Yggdrasil.git $yggy`, stdout=Base.devnull))
 
@@ -190,16 +218,34 @@ function merge_json_objects(objs::Vector)
     return merged
 end
 
-function metadata_for_jll_release(org, repo, release, available_versions)
-    jllname = chopsuffix(chopsuffix(chopsuffix(repo, ".git"), ".jl"), "_jll")
-    tree_sha = tree_sha_from_tagname(org, repo, release["tag_name"])
-    matched_versions = filter(((ver,info),)->string(info.git_tree_sha1) == tree_sha, available_versions)
-    if isempty(matched_versions)
-        # TODO: this logic would probably make more sense at the level of the loop over releases
-        error("tag $(release["tag_name"]) for $org/$repo has tree sha $tree_sha, which is not registered")
+function add_jll_artifact_metadata!(meta_version_entry)
+    urls = meta_version_entry["artifact_urls"]
+    releases = Dict{Tuple{String,String,String}, Vector{String}}()
+    for url in urls
+        m = match(r"^https://github.com/([^/]+)/([^/]+)/releases/download/([^/]+)/", url)
+        isnothing(m) && continue
+        push!(get!(releases, Tuple(m), String[]), url)
     end
-    version = only(matched_versions)[1]
-    commit_from_readme, path_from_readme = commit_and_path_from_readme(get_readme(org, repo, tree_sha))
+    for ((org, repo, tag), urls) in releases
+        org == "JuliaBinaryWrappers" || continue
+        jllmeta = metadata_for_jll_release(org, repo, tag)
+        jllmeta["artifact_urls"] = urls
+        push!(get!(meta_version_entry, "artifact_metadata", []), jllmeta)
+    end
+    return meta_version_entry
+end
+
+function metadata_for_jll_release(org, repo, tag)
+    contains(tag, "-v") || error("unknown tag $tag for $org/$repo")
+    jllname, jllversion = split(tag, "-v", limit=2)
+    release = get_github_release(org, repo, tag)
+    # Currently constrain to releases authored by jlbuild; TODO: relax this with BinaryBuilder2 support and log the author instead
+    release["author"]["login"] == "jlbuild" || error("release $(release["html_url"]) is not by jlbuild, got $(release["author"]["login"])")
+    # This might be wrong, but commit_and_path_from_readme checks to ensure versions match
+    # In cases where it's wrong, _there does exist_ a good link to Yggdrasil in its README... somewhere.
+    # But I don't know how to reliably get to it... so we fall back to the Yggdrasil timestamps
+    tree_sha = tree_sha_from_tagname(org, repo, release["tag_name"])
+    commit_from_readme, path_from_readme = commit_and_path_from_readme(get_readme(org, repo, tree_sha), jllname, jllversion)
     release_published_at = release.published_at
     return cd(yggy) do
         if !isnothing(commit_from_readme)
@@ -215,10 +261,10 @@ function metadata_for_jll_release(org, repo, release, available_versions)
             # First look for a potentially-deeper nested path, without worrying about case, then consider version numbers
             for searchpath in ("./$(jllname[1])/$jllname/build_tarballs.jl",
                                 "*/$jllname/build_tarballs.jl",
-                                "*/$jllname@$version/build_tarballs.jl",
-                                "*/$jllname@$(majorminorpatch(version))/build_tarballs.jl",
-                                "*/$jllname@$(majorminor(version))/build_tarballs.jl",
-                                "*/$jllname@$(major(version))/build_tarballs.jl")
+                                "*/$jllname@$jllversion/build_tarballs.jl",
+                                "*/$jllname@$(majorminorpatch(VersionNumber(jllversion)))/build_tarballs.jl",
+                                "*/$jllname@$(majorminor(VersionNumber(jllversion)))/build_tarballs.jl",
+                                "*/$jllname@$(major(VersionNumber(jllversion)))/build_tarballs.jl")
                 pathmatches = split(readchomp(`find . -ipath $searchpath`), "\n", keepempty=false)
                 if length(pathmatches) == 1
                     buildscript = joinpath(yggy, pathmatches[1])
@@ -229,7 +275,7 @@ function metadata_for_jll_release(org, repo, release, available_versions)
             end
         end
         !isfile(buildscript) && error("could not find build script for $jllname at Ygg $commit")
-        @info "$jllname@$version: $buildscript @ $commit"
+        @info "$jllname@$jllversion: $buildscript @ $commit"
         # Now find the version of BinaryBuilder/Julia to run
         if isfile(".ci/Manifest.toml")
             manifest = TOML.parsefile(".ci/Manifest.toml")
@@ -289,9 +335,9 @@ function metadata_for_jll_release(org, repo, release, available_versions)
             manifest = TOML.parsefile("$proj/Manifest.toml")
             haskey(manifest, "deps") ? manifest["deps"]["BinaryBuilder"][]["version"] : manifest["BinaryBuilder"][]["version"]
         end
-        if bb_meta["name"] != jllname || majorminorpatch(VersionNumber(bb_meta["version"])) != majorminorpatch(VersionNumber(version))
+        if bb_meta["name"] != jllname || majorminorpatch(VersionNumber(bb_meta["version"])) != majorminorpatch(VersionNumber(jllversion))
             # Some old buildscripts were committed _after_ the release publication, which means we got the wrong version of the buildscript.
-            error("metadata mismatch: got $(bb_meta["name"])@$(bb_meta["version"]), expected $jllname@$version")
+            error("metadata mismatch: buildscript defines version=$(bb_meta["name"])@$(bb_meta["version"]), tag is $jllname@$jllversion")
         end
         return Dict{String,Any}(
             "buildscript" => "https://github.com/JuliaPackaging/Yggdrasil/tree/$(commit)$(chopprefix(buildscript,yggy))",
@@ -303,63 +349,56 @@ function metadata_for_jll_release(org, repo, release, available_versions)
     end
 end
 
-function update_metadata(; force = false, max_releases=100)
-    metadata = GeneralMetadata.metadata()
-    artifact_metadata = GeneralMetadata.artifact_metadata()
+function update_jll_metadata(; force = false, max_releases=0)
+    meta = GeneralMetadata.metadata()
+    ameta = GeneralMetadata.artifact_metadata()
+    entries = []
+    for (pkg, pkgentry) in meta
+        for (ver, verinfo) in pkgentry
+            haskey(verinfo, "artifact_urls") && push!(entries, verinfo)
+        end
+    end
+    sort!(entries, by=x->(haskey(x, "artifact_metadata"), x["registered"]), rev=true)
+    failures = []
     count = 0
-    failures = String[]
-    for (uuid, pkgentry) in shuffle!(collect(jlls()))
-        jllinfo = Registry.registry_info(pkgentry)
-        pkgname = pkgentry.name
-        jllname = chopsuffix(pkgname, "_jll")
-        jllrepo = jllinfo.repo
-        m = match(r"github\.com[:/]([^/]+)/(.+?)(?:.git)?$", jllinfo.repo)
-        if isnothing(m)
-            @warn "unknown repo $(jllinfo.repo)"
+    for entry in entries
+        if haskey(entry, "artifact_metadata") && entry["artifact_metadata"] isa String
+             # Migrate the old data, but delete 2020 data that were populated with bad buildscript links
+            pkg, aname = split(entry["artifact_metadata"], "/", limit=2)
+            am = ameta[pkg][aname]
+            if entry["registered"] < DateTime(2021, 1, 1) && am["metadata_source"] == "retrospective (by README link)"
+                @warn "deleting artifact metadata for $pkg/$aname since it was registered before 2021 and likely has bad buildscript links"
+                delete!(entry, "artifact_metadata")
+            else
+                am["artifact_urls"] = entry["artifact_urls"]
+                entry["artifact_metadata"] = [am]
+            end
             continue
         end
-        org, repo = m.captures
-        github_releases = get_releases(org, repo)
-        for release in github_releases
-            tag_name = release["tag_name"]
-            release["draft"] && continue
-            if haskey(artifact_metadata, pkgentry.name) && haskey(artifact_metadata[pkgentry.name], tag_name) && !force
-                continue
-            end
-            count += 1
-            @info "$count/$max_releases: fetching metadata for $jllname at $tag_name"
-            try
-                release_meta = metadata_for_jll_release(org, repo, release, GeneralMetadata.registered_package_versions(uuid))
-                !haskey(artifact_metadata, pkgname) && (artifact_metadata[pkgname] = Dict{String,Any}())
-                artifact_metadata[pkgname][tag_name] = release_meta
-                # Also update metadata for the package itself
-                if haskey(metadata, pkgname)
-                    for (version, verinfo) in metadata[pkgname]
-                        if all(startswith("https://github.com/$org/$repo/releases/download/$tag_name/"), get(verinfo, "artifact_urls", ["false"]))
-                            verinfo["artifact_metadata"] = "$(pkgname)/$(tag_name)"
-                        end
-                    end
-                end
-            catch ex
-                @error "error getting metadata for $pkgname@$tag_name" ex
-                push!(failures, "$pkgname@$tag_name: $ex")
-                ex isa HTTP.Exceptions.StatusError && ex.status == 403 && (count = max_releases; break)
-            end
+        if !haskey(entry, "artifact_urls") || isempty(entry["artifact_urls"])
+            continue
         end
-        if count >= max_releases
-            @info "tried $count releases, stopping here"
-            break
+        if haskey(entry, "artifact_metadata") && !force
+            continue
         end
+        count >= max_releases && ( @info "tried $count releases, stopping here"; break)
+        try
+            add_jll_artifact_metadata!(entry)
+        catch ex
+            @error "error getting metadata for $(entry["artifact_urls"][1:begin])..." ex
+            push!(failures, "$(entry["artifact_urls"][1:begin])... => $ex")
+            ex isa HTTP.Exceptions.StatusError && ex.status == 403 && (count = max_releases; break)
+        end
+        count += 1
     end
     if length(failures) > 0
         @warn "encountered $(length(failures)) failures:"
         println(join(replace.(failures, ('\n'=>" ",)), "\n"))
     end
-    GeneralMetadata.save_artifact_metadata!(artifact_metadata)
-    GeneralMetadata.save_metadata!(metadata)
-    return artifact_metadata
+    GeneralMetadata.save_metadata!(meta)
+    return meta
 end
 
 if abspath(PROGRAM_FILE) == @__FILE__
-    update_metadata()
+    update_jll_metadata()
 end
