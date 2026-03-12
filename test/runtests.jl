@@ -62,7 +62,6 @@ end
             end
             # The metadata is either a key to describe all URLs or a mapping for each artifact_url
             if haskey(verinfo, "artifact_metadata")
-                verinfo["artifact_metadata"] isa String && continue # MIGRATION PATHWAY
                 @test verinfo["artifact_metadata"] isa Vector
                 for ainfo in verinfo["artifact_metadata"]
                     @test ainfo isa Dict

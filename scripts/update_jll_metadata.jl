@@ -349,32 +349,18 @@ function metadata_for_jll_release(org, repo, tag)
     end
 end
 
-function update_jll_metadata(; force = false, max_releases=0)
+function update_jll_metadata(; force = false, max_releases=200)
     meta = GeneralMetadata.metadata()
-    ameta = GeneralMetadata.artifact_metadata()
     entries = []
     for (pkg, pkgentry) in meta
         for (ver, verinfo) in pkgentry
             haskey(verinfo, "artifact_urls") && push!(entries, verinfo)
         end
     end
-    sort!(entries, by=x->(haskey(x, "artifact_metadata"), x["registered"]), rev=true)
+    sort!(entries, by=x->x["registered"], rev=true)
     failures = []
     count = 0
     for entry in entries
-        if haskey(entry, "artifact_metadata") && entry["artifact_metadata"] isa String
-             # Migrate the old data, but delete 2020 data that were populated with bad buildscript links
-            pkg, aname = split(entry["artifact_metadata"], "/", limit=2)
-            am = ameta[pkg][aname]
-            if entry["registered"] < DateTime(2021, 1, 1) && am["metadata_source"] == "retrospective (by README link)"
-                @warn "deleting artifact metadata for $pkg/$aname since it was registered before 2021 and likely has bad buildscript links"
-                delete!(entry, "artifact_metadata")
-            else
-                am["artifact_urls"] = entry["artifact_urls"]
-                entry["artifact_metadata"] = [am]
-            end
-            continue
-        end
         if !haskey(entry, "artifact_urls") || isempty(entry["artifact_urls"])
             continue
         end
