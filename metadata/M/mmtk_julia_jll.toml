@@ -42,6 +42,184 @@ registered = 2026-01-29T00:15:44.000Z
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/mmtk_julia_jll.jl/releases/download/mmtk_julia-v0.32.0+0/mmtk_julia.v0.32.0.x86_64-linux-gnu.tar.gz"]
 registered = 2026-02-10T08:53:40.000Z
 
+    [["0.32.0+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/mmtk_julia_jll.jl/releases/download/mmtk_julia-v0.32.0+0/mmtk_julia.v0.32.0.x86_64-linux-gnu.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/5211bf387ff7005ea3cdabd8284e3ed27ed3d245/M/mmtk_julia/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.6.5"
+
+        ["0.32.0+0".artifact_metadata.metadata]
+        augment_platform_block = ""
+        dependencies = []
+        init_block = ""
+        julia_compat = "1.6"
+        lazy_artifacts = false
+        name = "mmtk_julia"
+        platforms = ["x86_64-linux-gnu"]
+        script = """# Use the system linker. On Linux, force BFD to avoid \"lld not built with zlib support\" errors.\nexport RUSTFLAGS=\"-C linker=${CC}\"\nif [[ \"${target}\" == *-linux-* ]]; then\n    RUSTFLAGS=\"${RUSTFLAGS} -C link-arg=-fuse-ld=bfd\"\nfi\n\ncd $WORKSPACE/srcdir/mmtk-julia/\nMMTK_PLANS=(\"Immix\" \"StickyImmix\")\nMMTK_MOVING=(0 1)\nMMTK_BUILD=(\"debug\" \"release\")\n\n# Build MMTK (all configurations)\nfor build in \"${MMTK_BUILD[@]}\"; do\n    for plan in \"${MMTK_PLANS[@]}\"; do\n        for moving in \"${MMTK_MOVING[@]}\"; do\n            # Build MMTK\n            MMTK_PLAN=$plan MMTK_MOVING=$moving make $build\n\n            if [ \"$moving\" == 1 ]; then\n                moving_name=\"moving\"\n            else\n                moving_name=\"non_moving\"\n            fi\n\n            if [ \"$plan\" == \"Immix\" ]; then\n                plan_name=\"immix\"\n            else [ \"$plan\" == \"StickyImmix\" ]\n                plan_name=\"sticky\"\n            fi\n\n            # Install files\n            install -Dvm 755 \"mmtk/target/${rust_target}/${build}/libmmtk_julia.${dlext}\" -t \"${libdir}/${plan_name}/${moving_name}/${build}/\"\n        done\n    done\ndone\n\n# Install header files\ninstall -Dvm 644 \"mmtk/api/mmtk.h\" \"${includedir}/mmtk.h\"\ninstall -Dvm 644 \"mmtk/api/mmtkMutator.h\" \"${includedir}/mmtkMutator.h\"\n"""
+        version = "v0.32.0"
+
+            [["0.32.0+0".artifact_metadata.metadata.products]]
+            dir_paths = ["lib/immix/moving/debug"]
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libmmtk_julia"]
+            type = "lib"
+            variable_name = "libmmtk_julia_immix_moving_debug"
+            [["0.32.0+0".artifact_metadata.metadata.products]]
+            dir_paths = ["lib/immix/non_moving/debug"]
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libmmtk_julia"]
+            type = "lib"
+            variable_name = "libmmtk_julia_immix_non_moving_debug"
+            [["0.32.0+0".artifact_metadata.metadata.products]]
+            dir_paths = ["lib/immix/moving/release"]
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libmmtk_julia"]
+            type = "lib"
+            variable_name = "libmmtk_julia_immix_moving_release"
+            [["0.32.0+0".artifact_metadata.metadata.products]]
+            dir_paths = ["lib/immix/non_moving/release"]
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libmmtk_julia"]
+            type = "lib"
+            variable_name = "libmmtk_julia_immix_non_moving_release"
+            [["0.32.0+0".artifact_metadata.metadata.products]]
+            dir_paths = ["lib/sticky/moving/debug"]
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libmmtk_julia"]
+            type = "lib"
+            variable_name = "libmmtk_julia_sticky_moving_debug"
+            [["0.32.0+0".artifact_metadata.metadata.products]]
+            dir_paths = ["lib/sticky/non_moving/debug"]
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libmmtk_julia"]
+            type = "lib"
+            variable_name = "libmmtk_julia_sticky_non_moving_debug"
+            [["0.32.0+0".artifact_metadata.metadata.products]]
+            dir_paths = ["lib/sticky/moving/release"]
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libmmtk_julia"]
+            type = "lib"
+            variable_name = "libmmtk_julia_sticky_moving_release"
+            [["0.32.0+0".artifact_metadata.metadata.products]]
+            dir_paths = ["lib/sticky/non_moving/release"]
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libmmtk_julia"]
+            type = "lib"
+            variable_name = "libmmtk_julia_sticky_non_moving_release"
+            [["0.32.0+0".artifact_metadata.metadata.products]]
+            paths = ["include/mmtk.h"]
+            type = "file"
+            variable_name = "mmtk_h"
+            [["0.32.0+0".artifact_metadata.metadata.products]]
+            paths = ["include/mmtkMutator.h"]
+            type = "file"
+            variable_name = "mmtkMutator_h"
+
+            [["0.32.0+0".artifact_metadata.metadata.sources]]
+            hash = "959c4dc54f209d18245e531c32abf5769bed1dac"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/mmtk/mmtk-julia.git"
+
 ["0.32.1+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/mmtk_julia_jll.jl/releases/download/mmtk_julia-v0.32.1+0/mmtk_julia.v0.32.1.x86_64-linux-gnu.tar.gz"]
 registered = 2026-03-03T06:55:52.000Z
+
+    [["0.32.1+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/mmtk_julia_jll.jl/releases/download/mmtk_julia-v0.32.1+0/mmtk_julia.v0.32.1.x86_64-linux-gnu.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/e726e76fb0506c27aed0d83a11773430ea3dfdb8/M/mmtk_julia/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.6.6"
+
+        ["0.32.1+0".artifact_metadata.metadata]
+        augment_platform_block = ""
+        dependencies = []
+        init_block = ""
+        julia_compat = "1.6"
+        lazy_artifacts = false
+        name = "mmtk_julia"
+        platforms = ["x86_64-linux-gnu"]
+        script = """# Use the system linker. On Linux, force BFD to avoid \"lld not built with zlib support\" errors.\nexport RUSTFLAGS=\"-C linker=${CC}\"\nif [[ \"${target}\" == *-linux-* ]]; then\n    RUSTFLAGS=\"${RUSTFLAGS} -C link-arg=-fuse-ld=bfd\"\nfi\n\ncd $WORKSPACE/srcdir/mmtk-julia/\nMMTK_PLANS=(\"Immix\" \"StickyImmix\")\nMMTK_MOVING=(0 1)\nMMTK_BUILD=(\"debug\" \"release\")\n\n# Build MMTK (all configurations)\nfor build in \"${MMTK_BUILD[@]}\"; do\n    for plan in \"${MMTK_PLANS[@]}\"; do\n        for moving in \"${MMTK_MOVING[@]}\"; do\n            # Build MMTK\n            MMTK_PLAN=$plan MMTK_MOVING=$moving make $build\n\n            if [ \"$moving\" == 1 ]; then\n                moving_name=\"moving\"\n            else\n                moving_name=\"non_moving\"\n            fi\n\n            if [ \"$plan\" == \"Immix\" ]; then\n                plan_name=\"immix\"\n            else [ \"$plan\" == \"StickyImmix\" ]\n                plan_name=\"sticky\"\n            fi\n\n            # Install files\n            install -Dvm 755 \"mmtk/target/${rust_target}/${build}/libmmtk_julia.${dlext}\" -t \"${libdir}/${plan_name}/${moving_name}/${build}/\"\n        done\n    done\ndone\n\n# Install header files\ninstall -Dvm 644 \"mmtk/api/mmtk.h\" \"${includedir}/mmtk.h\"\ninstall -Dvm 644 \"mmtk/api/mmtkMutator.h\" \"${includedir}/mmtkMutator.h\"\n"""
+        version = "v0.32.1"
+
+            [["0.32.1+0".artifact_metadata.metadata.products]]
+            dir_paths = ["lib/immix/moving/debug"]
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libmmtk_julia"]
+            type = "lib"
+            variable_name = "libmmtk_julia_immix_moving_debug"
+            [["0.32.1+0".artifact_metadata.metadata.products]]
+            dir_paths = ["lib/immix/non_moving/debug"]
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libmmtk_julia"]
+            type = "lib"
+            variable_name = "libmmtk_julia_immix_non_moving_debug"
+            [["0.32.1+0".artifact_metadata.metadata.products]]
+            dir_paths = ["lib/immix/moving/release"]
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libmmtk_julia"]
+            type = "lib"
+            variable_name = "libmmtk_julia_immix_moving_release"
+            [["0.32.1+0".artifact_metadata.metadata.products]]
+            dir_paths = ["lib/immix/non_moving/release"]
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libmmtk_julia"]
+            type = "lib"
+            variable_name = "libmmtk_julia_immix_non_moving_release"
+            [["0.32.1+0".artifact_metadata.metadata.products]]
+            dir_paths = ["lib/sticky/moving/debug"]
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libmmtk_julia"]
+            type = "lib"
+            variable_name = "libmmtk_julia_sticky_moving_debug"
+            [["0.32.1+0".artifact_metadata.metadata.products]]
+            dir_paths = ["lib/sticky/non_moving/debug"]
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libmmtk_julia"]
+            type = "lib"
+            variable_name = "libmmtk_julia_sticky_non_moving_debug"
+            [["0.32.1+0".artifact_metadata.metadata.products]]
+            dir_paths = ["lib/sticky/moving/release"]
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libmmtk_julia"]
+            type = "lib"
+            variable_name = "libmmtk_julia_sticky_moving_release"
+            [["0.32.1+0".artifact_metadata.metadata.products]]
+            dir_paths = ["lib/sticky/non_moving/release"]
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libmmtk_julia"]
+            type = "lib"
+            variable_name = "libmmtk_julia_sticky_non_moving_release"
+            [["0.32.1+0".artifact_metadata.metadata.products]]
+            paths = ["include/mmtk.h"]
+            type = "file"
+            variable_name = "mmtk_h"
+            [["0.32.1+0".artifact_metadata.metadata.products]]
+            paths = ["include/mmtkMutator.h"]
+            type = "file"
+            variable_name = "mmtkMutator_h"
+
+            [["0.32.1+0".artifact_metadata.metadata.sources]]
+            hash = "a51981067a37c781351e05ddc2dc9795f1700227"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/mmtk/mmtk-julia.git"

@@ -121,3 +121,103 @@ registered = 2025-11-15T16:59:11.000Z
 ["5.0.10+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/OpenMPI_jll.jl/releases/download/OpenMPI-v5.0.10+0/OpenMPI.v5.0.10.aarch64-apple-darwin-libgfortran5-mpi+openmpi.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenMPI_jll.jl/releases/download/OpenMPI-v5.0.10+0/OpenMPI.v5.0.10.aarch64-linux-gnu-libgfortran5-mpi+openmpi.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenMPI_jll.jl/releases/download/OpenMPI-v5.0.10+0/OpenMPI.v5.0.10.aarch64-linux-musl-libgfortran5-mpi+openmpi.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenMPI_jll.jl/releases/download/OpenMPI-v5.0.10+0/OpenMPI.v5.0.10.powerpc64le-linux-gnu-libgfortran5-mpi+openmpi.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenMPI_jll.jl/releases/download/OpenMPI-v5.0.10+0/OpenMPI.v5.0.10.riscv64-linux-gnu-libgfortran5-mpi+openmpi.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenMPI_jll.jl/releases/download/OpenMPI-v5.0.10+0/OpenMPI.v5.0.10.x86_64-apple-darwin-libgfortran5-mpi+openmpi.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenMPI_jll.jl/releases/download/OpenMPI-v5.0.10+0/OpenMPI.v5.0.10.x86_64-linux-gnu-libgfortran5-mpi+openmpi.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenMPI_jll.jl/releases/download/OpenMPI-v5.0.10+0/OpenMPI.v5.0.10.x86_64-linux-musl-libgfortran5-mpi+openmpi.tar.gz"]
 registered = 2026-02-25T22:58:46.000Z
+
+    [["5.0.10+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/OpenMPI_jll.jl/releases/download/OpenMPI-v5.0.10+0/OpenMPI.v5.0.10.aarch64-apple-darwin-libgfortran5-mpi+openmpi.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenMPI_jll.jl/releases/download/OpenMPI-v5.0.10+0/OpenMPI.v5.0.10.aarch64-linux-gnu-libgfortran5-mpi+openmpi.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenMPI_jll.jl/releases/download/OpenMPI-v5.0.10+0/OpenMPI.v5.0.10.aarch64-linux-musl-libgfortran5-mpi+openmpi.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenMPI_jll.jl/releases/download/OpenMPI-v5.0.10+0/OpenMPI.v5.0.10.powerpc64le-linux-gnu-libgfortran5-mpi+openmpi.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenMPI_jll.jl/releases/download/OpenMPI-v5.0.10+0/OpenMPI.v5.0.10.riscv64-linux-gnu-libgfortran5-mpi+openmpi.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenMPI_jll.jl/releases/download/OpenMPI-v5.0.10+0/OpenMPI.v5.0.10.x86_64-apple-darwin-libgfortran5-mpi+openmpi.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenMPI_jll.jl/releases/download/OpenMPI-v5.0.10+0/OpenMPI.v5.0.10.x86_64-linux-gnu-libgfortran5-mpi+openmpi.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenMPI_jll.jl/releases/download/OpenMPI-v5.0.10+0/OpenMPI.v5.0.10.x86_64-linux-musl-libgfortran5-mpi+openmpi.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/32500ef84a0fc88d537a791d62b6acdbc4ff73d6/O/OpenMPI/OpenMPI@5/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.6.6"
+
+        ["5.0.10+0".artifact_metadata.metadata]
+        augment_platform_block = """    using Base.BinaryPlatforms\n    # Can't use Preferences since we might be running this very early with a non-existing Manifest\nMPIPreferences_UUID = Base.UUID(\"3da0fdf6-3ccc-4f1b-acd9-58baa6c99267\")\nconst preferences = Base.get_preferences(MPIPreferences_UUID)\n\n# Keep logic in sync with MPIPreferences.jl\nfunction augment_mpi!(platform)\n    # Doesn't need to be `const` since we depend on MPIPreferences so we\n    # invalidate the cache when it changes.\n    # Note: MPIPreferences uses `Sys.iswindows()` without the `platform` argument.\n    binary = get(preferences, \"binary\", Sys.iswindows(platform) ? \"MicrosoftMPI_jll\" : \"MPICH_jll\")\n\n    abi = if binary == \"system\"\n        let abi = get(preferences, \"abi\", nothing)\n            if abi === nothing\n                error(\"MPIPreferences: Inconsistent state detected, binary set to system, but no ABI set.\")\n            else\n                abi\n            end\n        end\n    elseif binary == \"MicrosoftMPI_jll\"\n        \"MicrosoftMPI\"\n    elseif binary == \"MPICH_jll\"\n        \"MPICH\"\n    elseif binary == \"MPICH_CUDA_jll\"\n        \"MPICH\"\n    elseif binary == \"OpenMPI_jll\"\n        \"OpenMPI\"\n    elseif binary == \"MPItrampoline_jll\"\n        \"MPItrampoline\"\n    else\n        error(\"Unknown binary: $binary\")\n    end\n\n    if !haskey(platform, \"mpi\")\n        platform[\"mpi\"] = abi\n    end\n    return platform\nend\n\n    augment_platform!(platform::Platform) = augment_mpi!(platform)\n"""
+        init_block = """ENV[\"OPAL_PREFIX\"] = artifact_dir\n"""
+        julia_compat = "1.6"
+        lazy_artifacts = true
+        name = "OpenMPI"
+        platforms = ["x86_64-linux-gnu-libgfortran5-mpi+openmpi", "aarch64-linux-gnu-libgfortran5-mpi+openmpi", "powerpc64le-linux-gnu-libgfortran5-mpi+openmpi", "riscv64-linux-gnu-libgfortran5-mpi+openmpi", "x86_64-linux-musl-libgfortran5-mpi+openmpi", "aarch64-linux-musl-libgfortran5-mpi+openmpi", "x86_64-apple-darwin-libgfortran5-mpi+openmpi", "aarch64-apple-darwin-libgfortran5-mpi+openmpi"]
+        script = """################################################################################\n# Install OpenMPI\n################################################################################\n\n# Enter the funzone\ncd ${WORKSPACE}/srcdir/openmpi-*\n\nif [[ \"${target}\" == aarch64-apple-* ]]; then\n    # Build internal `libevent` without `-Wl,--no-undefined`\n    # (taken from `L/libevent/build_tarballs.jl`)\n\n    # Expand libevent tarball so that we can patch it\n    pushd 3rd-party\n    tar xzf libevent-2.1.12-stable-ompi.tar.gz\n    cd libevent-2.1.12-stable-ompi\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/build_with_no_undefined.patch\n    popd\nfi\n\n# Autotools doesn't add `${includedir}` as an include directory on some platforms\nexport CPPFLAGS=\"-I${includedir}\"\n\n# The configure scripts doesn't link against `libdl` by itself on many platforms\nexport LIBS='-ldl'\n\n# We use `--enable-script-wrapper-compilers` to turn the compiler\n# wrappers (`mpicc` etc.) into scripts instead of binaries. As scripts,\n# they can be run in a cross-compiling environment, and cmake can\n# infer the MPI options. Otherwise, the MPI options need to be\n# specified manually for OpenMPI to work.\n\n./configure \\\n    --build=${MACHTYPE} \\\n    --enable-mpi-fortran=usempif08 \\\n    --enable-script-wrapper-compilers \\\n    --enable-shared=yes \\\n    --enable-static=no \\\n    --host=${target} \\\n    --prefix=${prefix} \\\n    --docdir=/tmp \\\n    --infodir=/tmp \\\n    --mandir=/tmp \\\n    --with-cross=${WORKSPACE}/srcdir/files/${target} \\\n    --with-libevent=internal \\\n    --without-cs-fs\n\n# Build the library\nmake -j${nproc}\n\n# Install the library\nmake install\n\n################################################################################\n# Install licenses\n################################################################################\n\ninstall_license $WORKSPACE/srcdir/openmpi*/LICENSE\n"""
+        version = "v5.0.10"
+
+            [["5.0.10+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "CompilerSupportLibraries_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["5.0.10+0".artifact_metadata.metadata.dependencies]]
+            compat = "2.12.0"
+            name = "Hwloc_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["5.0.10+0".artifact_metadata.metadata.dependencies]]
+            compat = "1.2.12"
+            name = "Zlib_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["5.0.10+0".artifact_metadata.metadata.dependencies]]
+            compat = "0.1"
+            name = "MPIPreferences"
+            platforms = ["any"]
+            top_level = true
+            type = "runtimedependency"
+            uuid = "3da0fdf6-3ccc-4f1b-acd9-58baa6c99267"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["5.0.10+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libmpi"]
+            type = "lib"
+            variable_name = "libmpi"
+            [["5.0.10+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libmpi_mpifh"]
+            type = "lib"
+            variable_name = "libmpi_mpifh"
+            [["5.0.10+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libmpi_usempi_ignore_tkr"]
+            type = "lib"
+            variable_name = "libmpi_usempi_ignore_tkr"
+            [["5.0.10+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libmpi_usempif08"]
+            type = "lib"
+            variable_name = "libmpi_usempif08"
+            [["5.0.10+0".artifact_metadata.metadata.products]]
+            binnames = ["mpiexec"]
+            type = "exe"
+            variable_name = "mpiexec"
+
+            [["5.0.10+0".artifact_metadata.metadata.sources]]
+            hash = "5692cc80554a7117c99eaa725d35100edd8bbf73423a5e265ff867979192df7d"
+            type = "archive"
+            unpack_target = ""
+            url = "https://download.open-mpi.org/release/open-mpi/v5.0/openmpi-5.0.10.tar.gz"
+            [["5.0.10+0".artifact_metadata.metadata.sources]]
+            follow_symlinks = false
+            path = "bundled"
+            target = ""
+            type = "directory"

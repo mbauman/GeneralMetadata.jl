@@ -3,31 +3,225 @@ artifact_urls = ["https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/do
 registered = 2020-08-17T18:20:39.000Z
 
 ["1.2.2+0"]
-artifact_metadata = "Musl_jll/Musl-v1.2.2+0"
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.2+0/Musl.v1.2.2.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.2+0/Musl.v1.2.2.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.2+0/Musl.v1.2.2.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.2+0/Musl.v1.2.2.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.2+0/Musl.v1.2.2.x86_64-linux-musl.tar.gz"]
 registered = 2022-02-05T20:04:06.000Z
 
+    [["1.2.2+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.2+0/Musl.v1.2.2.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.2+0/Musl.v1.2.2.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.2+0/Musl.v1.2.2.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.2+0/Musl.v1.2.2.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.2+0/Musl.v1.2.2.x86_64-linux-musl.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/80ff950acc9edd2af8ee8063b6c54b670a801de6/M/Musl/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.2.5"
+
+        ["1.2.2+0".artifact_metadata.metadata]
+        dependencies = []
+        init_block = ""
+        lazy_artifacts = false
+        name = "Musl"
+        platforms = ["i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf"]
+        script = """mkdir ${WORKSPACE}/srcdir/musl_build\ncd ${WORKSPACE}/srcdir/musl_build\nmusl_arch()\n{\n    case \"${target}\" in\n        i686*)\n            echo i386 ;;\n        arm*)\n            echo armhf ;;\n        *)\n            echo ${target%%-*} ;;\n    esac\n}\n\nexport LDFLAGS=\"${LDFLAGS} -Wl,-soname,libc.musl-$(musl_target).so.1\"\n${WORKSPACE}/srcdir/musl-*/configure --prefix=/usr \\\n    --host=${target} \\\n    --disable-multilib \\\n    --disable-werror \\\n    --enable-optimize \\\n    --enable-debug\n\nmake -j${nproc}\n\n# Install to fake directory\nmake install DESTDIR=${WORKSPACE}/srcdir/musl_deploy\n\n# In reality, all we want is what we need to run Musl programs, so\n# we just copy the dynamic loader directly over.\nmkdir -p ${prefix}/lib\nloader=$(echo ${WORKSPACE}/srcdir/musl_deploy/lib/*.so*)\nmv ${WORKSPACE}/srcdir/musl_deploy/usr/lib/libc.so ${prefix}/lib/$(basename \"${loader}\")\n"""
+        version = "v1.1.24"
+
+            [["1.2.2+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["ld-musl-x86_64", "ld-musl-i386", "ld-musl-armhf", "ld-musl-aarch64"]
+            type = "lib"
+            variable_name = "libc"
+
+            [["1.2.2+0".artifact_metadata.metadata.sources]]
+            hash = "1370c9a812b2cf2a7d92802510cca0058cc37e66a7bedd70051f0a34015022a3"
+            type = "archive"
+            unpack_target = ""
+            url = "https://www.musl-libc.org/releases/musl-1.1.24.tar.gz"
+
 ["1.2.2+1"]
-artifact_metadata = "Musl_jll/Musl-v1.2.2+1"
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.2+1/Musl.v1.2.2.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.2+1/Musl.v1.2.2.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.2+1/Musl.v1.2.2.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.2+1/Musl.v1.2.2.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.2+1/Musl.v1.2.2.x86_64-linux-musl.tar.gz"]
 registered = 2022-03-05T02:37:02.000Z
 
+    [["1.2.2+1".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.2+1/Musl.v1.2.2.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.2+1/Musl.v1.2.2.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.2+1/Musl.v1.2.2.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.2+1/Musl.v1.2.2.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.2+1/Musl.v1.2.2.x86_64-linux-musl.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/78a65d17d085d45b91202335428c9aa4963ba7a0/M/Musl/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.5.2"
+
+        ["1.2.2+1".artifact_metadata.metadata]
+        augment_platform_block = ""
+        dependencies = []
+        init_block = ""
+        julia_compat = "1.6"
+        lazy_artifacts = false
+        name = "Musl"
+        platforms = ["i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf"]
+        script = """cd ${WORKSPACE}/srcdir/musl-*\natomic_patch -p1 ../patches/qsort_r.patch\n\nmkdir ${WORKSPACE}/srcdir/musl_build\ncd ${WORKSPACE}/srcdir/musl_build\nmusl_arch()\n{\n    case \"${target}\" in\n        i686*)\n            echo i386 ;;\n        arm*)\n            echo armhf ;;\n        *)\n            echo ${target%%-*} ;;\n    esac\n}\n\nexport LDFLAGS=\"${LDFLAGS} -Wl,-soname,libc.musl-$(musl_target).so.1\"\n${WORKSPACE}/srcdir/musl-*/configure --prefix=/usr \\\n    --build=${MACHTYPE} \\\n    --host=${target} \\\n    --disable-multilib \\\n    --disable-werror \\\n    --enable-optimize \\\n    --enable-debug\n\nmake -j${nproc}\n\n# Install to fake directory\nmake install DESTDIR=${WORKSPACE}/srcdir/musl_deploy\n\n# In reality, all we want is what we need to run Musl programs, so\n# we just copy the dynamic loader directly over.\nmkdir -p ${prefix}/lib\nloader=$(echo ${WORKSPACE}/srcdir/musl_deploy/lib/*.so*)\nmv ${WORKSPACE}/srcdir/musl_deploy/usr/lib/libc.so ${prefix}/lib/$(basename \"${loader}\")\n\ninstall_license ${WORKSPACE}/srcdir/musl-*/COPYRIGHT\n"""
+        version = "v1.2.2"
+
+            [["1.2.2+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["ld-musl-x86_64", "ld-musl-i386", "ld-musl-armhf", "ld-musl-aarch64"]
+            type = "lib"
+            variable_name = "libc"
+
+            [["1.2.2+1".artifact_metadata.metadata.sources]]
+            hash = "9b969322012d796dc23dda27a35866034fa67d8fb67e0e2c45c913c3d43219dd"
+            type = "archive"
+            unpack_target = ""
+            url = "https://www.musl-libc.org/releases/musl-1.2.2.tar.gz"
+            [["1.2.2+1".artifact_metadata.metadata.sources]]
+            follow_symlinks = false
+            path = "./bundled"
+            target = ""
+            type = "directory"
+
 ["1.2.2+2"]
-artifact_metadata = "Musl_jll/Musl-v1.2.2+2"
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.2+2/Musl.v1.2.2.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.2+2/Musl.v1.2.2.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.2+2/Musl.v1.2.2.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.2+2/Musl.v1.2.2.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.2+2/Musl.v1.2.2.x86_64-linux-musl.tar.gz"]
 registered = 2022-04-15T07:44:38.000Z
 
+    [["1.2.2+2".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.2+2/Musl.v1.2.2.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.2+2/Musl.v1.2.2.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.2+2/Musl.v1.2.2.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.2+2/Musl.v1.2.2.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.2+2/Musl.v1.2.2.x86_64-linux-musl.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/f99f62061e9add8e288fca35673f267318d470df/M/Musl/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.5.3"
+
+        ["1.2.2+2".artifact_metadata.metadata]
+        augment_platform_block = ""
+        dependencies = []
+        init_block = ""
+        julia_compat = "1.6"
+        lazy_artifacts = false
+        name = "Musl"
+        platforms = ["i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf"]
+        script = """cd ${WORKSPACE}/srcdir/musl-*\natomic_patch -p1 ../patches/qsort_r.patch\n\nmkdir ${WORKSPACE}/srcdir/musl_build\ncd ${WORKSPACE}/srcdir/musl_build\nmusl_arch()\n{\n    case \"${target}\" in\n        i686*)\n            echo i386 ;;\n        arm*)\n            echo armhf ;;\n        *)\n            echo ${target%%-*} ;;\n    esac\n}\n\nexport LDFLAGS=\"${LDFLAGS} -Wl,-soname,libc.musl-$(musl_arch).so.1\"\n${WORKSPACE}/srcdir/musl-*/configure --prefix=/usr \\\n    --build=${MACHTYPE} \\\n    --host=${target} \\\n    --disable-multilib \\\n    --disable-werror \\\n    --enable-optimize \\\n    --enable-debug\n\nmake -j${nproc}\n\n# Install to fake directory\nmake install DESTDIR=${WORKSPACE}/srcdir/musl_deploy\n\n# In reality, all we want is what we need to run Musl programs, so\n# we just copy the dynamic loader directly over.\nmkdir -p ${prefix}/lib\nloader=$(echo ${WORKSPACE}/srcdir/musl_deploy/lib/*.so*)\nmv ${WORKSPACE}/srcdir/musl_deploy/usr/lib/libc.so ${prefix}/lib/$(basename \"${loader}\")\n\ninstall_license ${WORKSPACE}/srcdir/musl-*/COPYRIGHT\n"""
+        version = "v1.2.2"
+
+            [["1.2.2+2".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["ld-musl-x86_64", "ld-musl-i386", "ld-musl-armhf", "ld-musl-aarch64"]
+            type = "lib"
+            variable_name = "libc"
+
+            [["1.2.2+2".artifact_metadata.metadata.sources]]
+            hash = "9b969322012d796dc23dda27a35866034fa67d8fb67e0e2c45c913c3d43219dd"
+            type = "archive"
+            unpack_target = ""
+            url = "https://www.musl-libc.org/releases/musl-1.2.2.tar.gz"
+            [["1.2.2+2".artifact_metadata.metadata.sources]]
+            follow_symlinks = false
+            path = "./bundled"
+            target = ""
+            type = "directory"
+
 ["1.2.3+0"]
-artifact_metadata = "Musl_jll/Musl-v1.2.3+0"
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.3+0/Musl.v1.2.3.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.3+0/Musl.v1.2.3.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.3+0/Musl.v1.2.3.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.3+0/Musl.v1.2.3.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.3+0/Musl.v1.2.3.x86_64-linux-musl.tar.gz"]
 registered = 2025-07-15T09:06:26.000Z
 
+    [["1.2.3+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.3+0/Musl.v1.2.3.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.3+0/Musl.v1.2.3.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.3+0/Musl.v1.2.3.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.3+0/Musl.v1.2.3.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.3+0/Musl.v1.2.3.x86_64-linux-musl.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/2d7ba69592ac0f5ffa49b34e9f1791003202d366/M/Musl/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.6.4"
+
+        ["1.2.3+0".artifact_metadata.metadata]
+        augment_platform_block = ""
+        dependencies = []
+        init_block = ""
+        julia_compat = "1.6"
+        lazy_artifacts = false
+        name = "Musl"
+        platforms = ["i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf"]
+        script = """cd ${WORKSPACE}/srcdir/musl-*\n\nmkdir musl_build && cd musl_build\n\nmusl_arch()\n{\n    case \"${target}\" in\n        i686*)\n            echo i386 ;;\n        arm*)\n            echo armhf ;;\n        *)\n            echo ${target%%-*} ;;\n    esac\n}\n\nexport LDFLAGS=\"${LDFLAGS} -Wl,-soname,libc.musl-$(musl_arch).so.1\"\n${WORKSPACE}/srcdir/musl-*/configure --prefix=/usr \\\n    --build=${MACHTYPE} \\\n    --host=${target} \\\n    --disable-multilib \\\n    --disable-werror \\\n    --enable-optimize \\\n    --enable-debug\n\nmake -j${nproc}\n\n# Install to fake directory\nmake install DESTDIR=${WORKSPACE}/srcdir/musl_deploy\n\n# In reality, all we want is what we need to run Musl programs, so\n# we just copy the dynamic loader directly over.\nmkdir -p ${prefix}/lib\nloader=$(echo ${WORKSPACE}/srcdir/musl_deploy/lib/*.so*)\nmv ${WORKSPACE}/srcdir/musl_deploy/usr/lib/libc.so ${prefix}/lib/$(basename \"${loader}\")\n\ninstall_license ${WORKSPACE}/srcdir/musl-*/COPYRIGHT\n"""
+        version = "v1.2.3"
+
+            [["1.2.3+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["ld-musl-x86_64", "ld-musl-i386", "ld-musl-armhf", "ld-musl-aarch64"]
+            type = "lib"
+            variable_name = "libc"
+
+            [["1.2.3+0".artifact_metadata.metadata.sources]]
+            hash = "7d5b0b6062521e4627e099e4c9dc8248d32a30285e959b7eecaa780cf8cfd4a4"
+            type = "archive"
+            unpack_target = ""
+            url = "https://www.musl-libc.org/releases/musl-1.2.3.tar.gz"
+
 ["1.2.4+0"]
-artifact_metadata = "Musl_jll/Musl-v1.2.4+0"
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.4+0/Musl.v1.2.4.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.4+0/Musl.v1.2.4.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.4+0/Musl.v1.2.4.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.4+0/Musl.v1.2.4.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.4+0/Musl.v1.2.4.x86_64-linux-musl.tar.gz"]
 registered = 2023-10-04T13:00:10.000Z
 
+    [["1.2.4+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.4+0/Musl.v1.2.4.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.4+0/Musl.v1.2.4.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.4+0/Musl.v1.2.4.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.4+0/Musl.v1.2.4.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.4+0/Musl.v1.2.4.x86_64-linux-musl.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/96fb0196fb236a278abfb24a9fd3fa85c8d840e8/M/Musl/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.5.6"
+
+        ["1.2.4+0".artifact_metadata.metadata]
+        augment_platform_block = ""
+        dependencies = []
+        init_block = ""
+        julia_compat = "1.6"
+        lazy_artifacts = false
+        name = "Musl"
+        platforms = ["i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf"]
+        script = """cd ${WORKSPACE}/srcdir/musl-*\n\nmkdir musl_build && cd musl_build\n\nmusl_arch()\n{\n    case \"${target}\" in\n        i686*)\n            echo i386 ;;\n        arm*)\n            echo armhf ;;\n        *)\n            echo ${target%%-*} ;;\n    esac\n}\n\nexport LDFLAGS=\"${LDFLAGS} -Wl,-soname,libc.musl-$(musl_arch).so.1\"\n${WORKSPACE}/srcdir/musl-*/configure --prefix=/usr \\\n    --build=${MACHTYPE} \\\n    --host=${target} \\\n    --disable-multilib \\\n    --disable-werror \\\n    --enable-optimize \\\n    --enable-debug\n\nmake -j${nproc}\n\n# Install to fake directory\nmake install DESTDIR=${WORKSPACE}/srcdir/musl_deploy\n\n# In reality, all we want is what we need to run Musl programs, so\n# we just copy the dynamic loader directly over.\nmkdir -p ${prefix}/lib\nloader=$(echo ${WORKSPACE}/srcdir/musl_deploy/lib/*.so*)\nmv ${WORKSPACE}/srcdir/musl_deploy/usr/lib/libc.so ${prefix}/lib/$(basename \"${loader}\")\n\ninstall_license ${WORKSPACE}/srcdir/musl-*/COPYRIGHT\n"""
+        version = "v1.2.4"
+
+            [["1.2.4+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["ld-musl-x86_64", "ld-musl-i386", "ld-musl-armhf", "ld-musl-aarch64"]
+            type = "lib"
+            variable_name = "libc"
+
+            [["1.2.4+0".artifact_metadata.metadata.sources]]
+            hash = "7a35eae33d5372a7c0da1188de798726f68825513b7ae3ebe97aaaa52114f039"
+            type = "archive"
+            unpack_target = ""
+            url = "https://www.musl-libc.org/releases/musl-1.2.4.tar.gz"
+
 ["1.2.5+0"]
-artifact_metadata = "Musl_jll/Musl-v1.2.5+0"
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.5+0/Musl.v1.2.5.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.5+0/Musl.v1.2.5.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.5+0/Musl.v1.2.5.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.5+0/Musl.v1.2.5.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.5+0/Musl.v1.2.5.x86_64-linux-musl.tar.gz"]
 registered = 2024-12-23T19:58:21.000Z
+
+    [["1.2.5+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.5+0/Musl.v1.2.5.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.5+0/Musl.v1.2.5.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.5+0/Musl.v1.2.5.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.5+0/Musl.v1.2.5.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Musl_jll.jl/releases/download/Musl-v1.2.5+0/Musl.v1.2.5.x86_64-linux-musl.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/b66289afd1b856f3e9b1ad133840065acfed33d2/M/Musl/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.6.0"
+
+        ["1.2.5+0".artifact_metadata.metadata]
+        augment_platform_block = ""
+        dependencies = []
+        init_block = ""
+        julia_compat = "1.6"
+        lazy_artifacts = false
+        name = "Musl"
+        platforms = ["i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf"]
+        script = """cd ${WORKSPACE}/srcdir/musl-*\n\nmkdir musl_build && cd musl_build\n\nmusl_arch()\n{\n    case \"${target}\" in\n        i686*)\n            echo i386 ;;\n        arm*)\n            echo armhf ;;\n        *)\n            echo ${target%%-*} ;;\n    esac\n}\n\nexport LDFLAGS=\"${LDFLAGS} -Wl,-soname,libc.musl-$(musl_arch).so.1\"\n${WORKSPACE}/srcdir/musl-*/configure --prefix=/usr \\\n    --build=${MACHTYPE} \\\n    --host=${target} \\\n    --disable-multilib \\\n    --disable-werror \\\n    --enable-optimize \\\n    --enable-debug\n\nmake -j${nproc}\n\n# Install to fake directory\nmake install DESTDIR=${WORKSPACE}/srcdir/musl_deploy\n\n# In reality, all we want is what we need to run Musl programs, so\n# we just copy the dynamic loader directly over.\nmkdir -p ${prefix}/lib\nloader=$(echo ${WORKSPACE}/srcdir/musl_deploy/lib/*.so*)\nmv ${WORKSPACE}/srcdir/musl_deploy/usr/lib/libc.so ${prefix}/lib/$(basename \"${loader}\")\n\ninstall_license ${WORKSPACE}/srcdir/musl-*/COPYRIGHT\n"""
+        version = "v1.2.5"
+
+            [["1.2.5+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["ld-musl-x86_64", "ld-musl-i386", "ld-musl-armhf", "ld-musl-aarch64"]
+            type = "lib"
+            variable_name = "libc"
+
+            [["1.2.5+0".artifact_metadata.metadata.sources]]
+            hash = "a9a118bbe84d8764da0ea0d28b3ab3fae8477fc7e4085d90102b8596fc7c75e4"
+            type = "archive"
+            unpack_target = ""
+            url = "https://www.musl-libc.org/releases/musl-1.2.5.tar.gz"

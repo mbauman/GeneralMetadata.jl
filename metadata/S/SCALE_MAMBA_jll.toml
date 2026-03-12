@@ -1,4 +1,68 @@
 ["1.14.0+0"]
-artifact_metadata = "SCALE_MAMBA_jll/SCALE_MAMBA-v1.14.0+0"
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/SCALE_MAMBA_jll.jl/releases/download/SCALE_MAMBA-v1.14.0+0/SCALE_MAMBA.v1.14.0.x86_64-linux-gnu-march+avx.tar.gz", "https://github.com/JuliaBinaryWrappers/SCALE_MAMBA_jll.jl/releases/download/SCALE_MAMBA-v1.14.0+0/SCALE_MAMBA.v1.14.0.x86_64-linux-gnu-march+avx2.tar.gz", "https://github.com/JuliaBinaryWrappers/SCALE_MAMBA_jll.jl/releases/download/SCALE_MAMBA-v1.14.0+0/SCALE_MAMBA.v1.14.0.x86_64-linux-gnu-march+avx512.tar.gz"]
 registered = 2023-04-18T20:54:16.000Z
+
+    [["1.14.0+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/SCALE_MAMBA_jll.jl/releases/download/SCALE_MAMBA-v1.14.0+0/SCALE_MAMBA.v1.14.0.x86_64-linux-gnu-march+avx.tar.gz", "https://github.com/JuliaBinaryWrappers/SCALE_MAMBA_jll.jl/releases/download/SCALE_MAMBA-v1.14.0+0/SCALE_MAMBA.v1.14.0.x86_64-linux-gnu-march+avx2.tar.gz", "https://github.com/JuliaBinaryWrappers/SCALE_MAMBA_jll.jl/releases/download/SCALE_MAMBA-v1.14.0+0/SCALE_MAMBA.v1.14.0.x86_64-linux-gnu-march+avx512.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/379c3b53661aa57e5d65ebec17076b6350888b5d/S/SCALE_MAMBA/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.5.6"
+
+        ["1.14.0+0".artifact_metadata.metadata]
+        augment_platform_block = ""
+        init_block = ""
+        julia_compat = "1.0"
+        lazy_artifacts = false
+        name = "SCALE_MAMBA"
+        platforms = ["x86_64-linux-gnu-march+avx", "x86_64-linux-gnu-march+avx2", "x86_64-linux-gnu-march+avx512"]
+        script = """cd ${WORKSPACE}/srcdir/SCALE-MAMBA/\n\n# Remove explicitly setting march in Makefile\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/remove_arch.patch\n\ncat > CONFIG.mine <<EOF\nROOT = $(pwd)\nOSSL = ${prefix}\n\n# Take default values from typical CONFIG\nMAX_MOD = 7\nMAX_GFP = 3\nFLAGS = -DMAX_MOD_SZ=\\$(MAX_MOD) -DMAX_GFP_SZ=\\$(MAX_GFP)\nOPT = -O3\nEOF\n\nif [[ ${target} == *linux* ]]; then\n    echo \"LDFLAGS = -lrt\" >> CONFIG.mine\nfi\n\n# Build executables\nmake -j${nproc} CC=\"${CXX}\" -C src\n\n# Install executables into ${prefix}\ninstall -Dvm 755 \"Player.x${exeext}\" \"${bindir}/Player.x${exeext}\"\ninstall -Dvm 755 \"Setup.x${exeext}\" \"${bindir}/Setup.x${exeext}\"\n"""
+        version = "v1.14.0"
+
+            [["1.14.0+0".artifact_metadata.metadata.dependencies]]
+            compat = "1.1.10"
+            name = "OpenSSL_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["1.14.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "MPIR_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["1.14.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "cryptopp_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["1.14.0+0".artifact_metadata.metadata.products]]
+            binnames = ["Player.x"]
+            type = "exe"
+            variable_name = "playerx"
+            [["1.14.0+0".artifact_metadata.metadata.products]]
+            binnames = ["Setup.x"]
+            type = "exe"
+            variable_name = "setupx"
+
+            [["1.14.0+0".artifact_metadata.metadata.sources]]
+            hash = "6449e807c99c68203f6584166a7130055da52adb"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/KULeuven-COSIC/SCALE-MAMBA.git"
+            [["1.14.0+0".artifact_metadata.metadata.sources]]
+            follow_symlinks = false
+            path = "./bundled"
+            target = ""
+            type = "directory"
