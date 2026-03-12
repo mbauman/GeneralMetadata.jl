@@ -1,9 +1,141 @@
 ["5.2.0+0"]
-artifact_metadata = "libflame_jll/libflame-v5.2.0+0"
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/libflame_jll.jl/releases/download/libflame-v5.2.0+0/libflame.v5.2.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/libflame_jll.jl/releases/download/libflame-v5.2.0+0/libflame.v5.2.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/libflame_jll.jl/releases/download/libflame-v5.2.0+0/libflame.v5.2.0.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/libflame_jll.jl/releases/download/libflame-v5.2.0+0/libflame.v5.2.0.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/libflame_jll.jl/releases/download/libflame-v5.2.0+0/libflame.v5.2.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/libflame_jll.jl/releases/download/libflame-v5.2.0+0/libflame.v5.2.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/libflame_jll.jl/releases/download/libflame-v5.2.0+0/libflame.v5.2.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/libflame_jll.jl/releases/download/libflame-v5.2.0+0/libflame.v5.2.0.x86_64-w64-mingw32.tar.gz"]
 registered = 2025-05-22T03:45:04.000Z
 
+    [["5.2.0+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/libflame_jll.jl/releases/download/libflame-v5.2.0+0/libflame.v5.2.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/libflame_jll.jl/releases/download/libflame-v5.2.0+0/libflame.v5.2.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/libflame_jll.jl/releases/download/libflame-v5.2.0+0/libflame.v5.2.0.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/libflame_jll.jl/releases/download/libflame-v5.2.0+0/libflame.v5.2.0.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/libflame_jll.jl/releases/download/libflame-v5.2.0+0/libflame.v5.2.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/libflame_jll.jl/releases/download/libflame-v5.2.0+0/libflame.v5.2.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/libflame_jll.jl/releases/download/libflame-v5.2.0+0/libflame.v5.2.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/libflame_jll.jl/releases/download/libflame-v5.2.0+0/libflame.v5.2.0.x86_64-w64-mingw32.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/1169eed17bae28151cf3080a904967a416fb8443/L/libflame/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.6.4"
+
+        ["5.2.0+0".artifact_metadata.metadata]
+        augment_platform_block = ""
+        init_block = ""
+        julia_compat = "1.6"
+        lazy_artifacts = false
+        name = "libflame"
+        platforms = ["x86_64-linux-gnu", "aarch64-linux-gnu", "riscv64-linux-gnu", "x86_64-linux-musl", "aarch64-linux-musl", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "x86_64-w64-mingw32"]
+        script = """cd $WORKSPACE/srcdir/libflame\n\n# We might need newer `config.guess`` and `config.sub` files\nupdate_configure_scripts\n\nextra_flags=\" --disable-static-build \"\n\nif [[ \"${target}\" == *-apple-* ]]; then\n    extra_flags=\" --enable-static-build \"\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/mac-update-makefile.patch\nfi\n\nif [[ \"${target}\" == *-w64-mingw32* ]]; then\n    extra_flags+=\" --enable-windows-build \"\n    # disable time & clock functions on windows (mingw): sys/times.h is missing\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/windows-remove-time.patch\n    # update the make build scripts for windows cross-compiling with gcc:\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/windows-update-build.patch\nfi\n\nif [[ \"${target}\" == *mingw* ]]; then\n    LBT=\"-L${libdir} -lblastrampoline-5\"\nelse\n    LBT=\"-L${libdir} -lblastrampoline\"\nfi\n\n# - Compile and build a LAPACK compatibility layer with --enable-lapack2flame\n# - If a static library is not needed, use --disable-static-build\n# - Enable a dynamic build with --enable-dynamic-build\n./configure \\\n    --prefix=${prefix} --build=${MACHTYPE} --host=${target} \\\n    --enable-multithreading=openmp \\\n    --enable-lapack2flame \\\n    --enable-dynamic-build \\\n    --enable-max-arg-list-hack \\\n    --disable-autodetect-f77-ldflags --disable-autodetect-f77-name-mangling \\\n    $extra_flags\n\nmake -j${nproc} BLAS_LIB=\"${LBT}\"\nmake install\n\ninstall_license LICENSE\n"""
+        version = "v5.2.0"
+
+            [["5.2.0+0".artifact_metadata.metadata.dependencies]]
+            compat = "5.8"
+            name = "libblastrampoline_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "8e850b90-86db-534c-a0d3-1478176c7d93"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["5.2.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "CompilerSupportLibraries_jll"
+            platforms = ["x86_64-linux-gnu", "aarch64-linux-gnu", "riscv64-linux-gnu", "x86_64-linux-musl", "aarch64-linux-musl", "x86_64-w64-mingw32"]
+            top_level = false
+            type = "dependency"
+            uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["5.2.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "LLVMOpenMP_jll"
+            platforms = ["x86_64-unknown-freebsd", "aarch64-unknown-freebsd"]
+            top_level = false
+            type = "dependency"
+            uuid = "1d63c593-3942-5779-bab2-d838dc0a180e"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["5.2.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libflame"]
+            type = "lib"
+            variable_name = "libflame"
+
+            [["5.2.0+0".artifact_metadata.metadata.sources]]
+            hash = "646ed9075cc45aeffb53632a3ec88defb423fefa"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/flame/libflame"
+            [["5.2.0+0".artifact_metadata.metadata.sources]]
+            follow_symlinks = false
+            path = "bundled"
+            target = ""
+            type = "directory"
+
 ["5.2.0+1"]
-artifact_metadata = "libflame_jll/libflame-v5.2.0+1"
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/libflame_jll.jl/releases/download/libflame-v5.2.0+1/libflame.v5.2.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/libflame_jll.jl/releases/download/libflame-v5.2.0+1/libflame.v5.2.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/libflame_jll.jl/releases/download/libflame-v5.2.0+1/libflame.v5.2.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/libflame_jll.jl/releases/download/libflame-v5.2.0+1/libflame.v5.2.0.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/libflame_jll.jl/releases/download/libflame-v5.2.0+1/libflame.v5.2.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/libflame_jll.jl/releases/download/libflame-v5.2.0+1/libflame.v5.2.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/libflame_jll.jl/releases/download/libflame-v5.2.0+1/libflame.v5.2.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/libflame_jll.jl/releases/download/libflame-v5.2.0+1/libflame.v5.2.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/libflame_jll.jl/releases/download/libflame-v5.2.0+1/libflame.v5.2.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/libflame_jll.jl/releases/download/libflame-v5.2.0+1/libflame.v5.2.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/libflame_jll.jl/releases/download/libflame-v5.2.0+1/libflame.v5.2.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/libflame_jll.jl/releases/download/libflame-v5.2.0+1/libflame.v5.2.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/libflame_jll.jl/releases/download/libflame-v5.2.0+1/libflame.v5.2.0.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/libflame_jll.jl/releases/download/libflame-v5.2.0+1/libflame.v5.2.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/libflame_jll.jl/releases/download/libflame-v5.2.0+1/libflame.v5.2.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/libflame_jll.jl/releases/download/libflame-v5.2.0+1/libflame.v5.2.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/libflame_jll.jl/releases/download/libflame-v5.2.0+1/libflame.v5.2.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/libflame_jll.jl/releases/download/libflame-v5.2.0+1/libflame.v5.2.0.x86_64-w64-mingw32.tar.gz"]
 registered = 2025-10-18T04:18:34.000Z
+
+    [["5.2.0+1".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/libflame_jll.jl/releases/download/libflame-v5.2.0+1/libflame.v5.2.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/libflame_jll.jl/releases/download/libflame-v5.2.0+1/libflame.v5.2.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/libflame_jll.jl/releases/download/libflame-v5.2.0+1/libflame.v5.2.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/libflame_jll.jl/releases/download/libflame-v5.2.0+1/libflame.v5.2.0.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/libflame_jll.jl/releases/download/libflame-v5.2.0+1/libflame.v5.2.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/libflame_jll.jl/releases/download/libflame-v5.2.0+1/libflame.v5.2.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/libflame_jll.jl/releases/download/libflame-v5.2.0+1/libflame.v5.2.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/libflame_jll.jl/releases/download/libflame-v5.2.0+1/libflame.v5.2.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/libflame_jll.jl/releases/download/libflame-v5.2.0+1/libflame.v5.2.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/libflame_jll.jl/releases/download/libflame-v5.2.0+1/libflame.v5.2.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/libflame_jll.jl/releases/download/libflame-v5.2.0+1/libflame.v5.2.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/libflame_jll.jl/releases/download/libflame-v5.2.0+1/libflame.v5.2.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/libflame_jll.jl/releases/download/libflame-v5.2.0+1/libflame.v5.2.0.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/libflame_jll.jl/releases/download/libflame-v5.2.0+1/libflame.v5.2.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/libflame_jll.jl/releases/download/libflame-v5.2.0+1/libflame.v5.2.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/libflame_jll.jl/releases/download/libflame-v5.2.0+1/libflame.v5.2.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/libflame_jll.jl/releases/download/libflame-v5.2.0+1/libflame.v5.2.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/libflame_jll.jl/releases/download/libflame-v5.2.0+1/libflame.v5.2.0.x86_64-w64-mingw32.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/e7ab151477b2922b238c99159c34ff0c3e0bac47/L/libflame/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.6.5"
+
+        ["5.2.0+1".artifact_metadata.metadata]
+        augment_platform_block = ""
+        init_block = ""
+        julia_compat = "1.6"
+        lazy_artifacts = false
+        name = "libflame"
+        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+        script = """cd $WORKSPACE/srcdir/libflame\n\n# We might need newer `config.guess`` and `config.sub` files\nupdate_configure_scripts\n\nextra_flags=\" --disable-static-build \"\n\nif [[ \"${target}\" == *-apple-* ]]; then\n    extra_flags=\" --enable-static-build \"\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/mac-update-makefile.patch\nfi\n\nif [[ \"${target}\" == *-w64-mingw32* ]]; then\n    extra_flags+=\" --enable-windows-build \"\n    # disable time & clock functions on windows (mingw): sys/times.h is missing\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/windows-remove-time.patch\n    # update the make build scripts for windows cross-compiling with gcc:\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/windows-update-build.patch\nfi\n\nif [[ \"${target}\" == *mingw* ]]; then\n    LBT=\"-L${libdir} -lblastrampoline-5\"\nelse\n    LBT=\"-L${libdir} -lblastrampoline\"\nfi\n\n# - Compile and build a LAPACK compatibility layer with --enable-lapack2flame\n# - If a static library is not needed, use --disable-static-build\n# - Enable a dynamic build with --enable-dynamic-build\n./configure \\\n    --prefix=${prefix} --build=${MACHTYPE} --host=${target} \\\n    --enable-multithreading=openmp \\\n    --enable-lapack2flame \\\n    --enable-dynamic-build \\\n    --enable-max-arg-list-hack \\\n    --disable-autodetect-f77-ldflags --disable-autodetect-f77-name-mangling \\\n    $extra_flags\n\nmake -j${nproc} BLAS_LIB=\"${LBT}\"\nmake install\n\ninstall_license LICENSE\n"""
+        version = "v5.2.0"
+
+            [["5.2.0+1".artifact_metadata.metadata.dependencies]]
+            compat = "5.8"
+            name = "libblastrampoline_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "8e850b90-86db-534c-a0d3-1478176c7d93"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["5.2.0+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "CompilerSupportLibraries_jll"
+            platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+            top_level = false
+            type = "dependency"
+            uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["5.2.0+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "LLVMOpenMP_jll"
+            platforms = ["x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd"]
+            top_level = false
+            type = "dependency"
+            uuid = "1d63c593-3942-5779-bab2-d838dc0a180e"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["5.2.0+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libflame"]
+            type = "lib"
+            variable_name = "libflame"
+
+            [["5.2.0+1".artifact_metadata.metadata.sources]]
+            hash = "646ed9075cc45aeffb53632a3ec88defb423fefa"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/flame/libflame"
+            [["5.2.0+1".artifact_metadata.metadata.sources]]
+            follow_symlinks = false
+            path = "bundled"
+            target = ""
+            type = "directory"

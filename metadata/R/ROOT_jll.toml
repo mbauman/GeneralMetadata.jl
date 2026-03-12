@@ -1,14 +1,1117 @@
 ["6.32.8+0"]
-artifact_metadata = "ROOT_jll/ROOT-v6.32.8+0"
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/ROOT_jll.jl/releases/download/ROOT-v6.32.8+0/ROOT.v6.32.8.x86_64-linux-gnu.tar.gz"]
 registered = 2025-03-07T01:35:03.000Z
 
+    [["6.32.8+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/ROOT_jll.jl/releases/download/ROOT-v6.32.8+0/ROOT.v6.32.8.x86_64-linux-gnu.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/658ecbe7bb11371aea49e8abbb0090d530612949/R/ROOT/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.6.4"
+
+        ["6.32.8+0".artifact_metadata.metadata]
+        augment_platform_block = ""
+        init_block = ""
+        julia_compat = "1.6"
+        lazy_artifacts = false
+        name = "ROOT"
+        platforms = ["x86_64-linux-gnu"]
+        script = """cat > \"$WORKSPACE/recipe.sh\" <<END_OF_SCRIPT\n\necho USE_CCACHE: \\$USE_CCACHE\n\ncd \\$WORKSPACE\nif echo \"\\$target\" | grep -q musl; then #build wih musl library\n# Disabling what is not working with musl:\n    CMAKE_EXTRA_OPTS=(-Ddavix=OFF -Dxrootd=OFF -Dssl=OFF -Druntime_cxxmodules=OFF -Droofit=OFF)\nelse\n    CMAKE_EXTRA_OPTS=(-Druntime_cxxmodules=OFF)\nfi\n\n# Required to compile graf3d/ftgl/src/FTVectoriser.cxx (for gcc to accept a conversion from char* to unsigned char*)\nCMAKE_EXTRA_OPTS+=(-DCMAKE_CXX_FLAGS=-fpermissive)\n\n# Uncomment for a minimal build for debugging purposes\n#CMAKE_EXTRA_OPTS+=(-Dclad=OFF -Dhtml=OFF -Dwebgui=OFF -Dcxxmodules=OFF -Dproof=OFF -Dtmva=OFF -Drootfit=OFF -Dxproofd=OFF -Dxrootd=OFF -Dssl=OFF -Dpyroot=OFF -Dtesting=OFF -Droot7=OFF -Dspectrum=OFF -Dunfold=OFF -Dasimage=OFF -Dgviz=OFF -Dfitiso=OFF -Dcocoa=OFF -Dopengl=OFF -Dproof=OFF -Dxml=OFF -Dgfal=OFF -Dmpi=OFF)\n\nexport SYSTEM_INCLUDE_PATH=\"\\`g++ --sysroot=\"/opt/\\$target/\\$target/sys-root\" -E -x c++ -v /dev/null  2>&1  | awk '{gsub(\"^ \", \"\")} /End of search list/{a=0} {if(a==1){s=s d \\$0;d=\":\"}} /#include <...> search starts here/{a=1} END{print s}'\\`\"\n\n# build-in compilation of the libAfterImage library needs this directory\nmkdir -p /tmp/user/0\n\ncd /\n\ncd \"\\$WORKSPACE\"\n\n# For the cross-compiling, LLVM needs to compile the llvm-tblgen tool\n# for the host. The ROOT LLVM code tree does not include the test and\n# benchmark directories cmake will need to configure for the host for\n# this bootstrap. Therefore, we need to disable the build of the test and\n# benchmarks.\nsed -i 's/\\\\(option(LLVM_INCLUDE_TESTS[[:space:]].*[[:space:]]\\\\)on)\\\\(.*\\\\)/\\\\1OFF)\\\\2/i\n        s/\\\\(option(LLVM_INCLUDE_BENCHMARKS[[:space:]].*[[:space:]]\\\\)on)\\\\(.*\\\\)/\\\\1OFF)\\\\2/i' \\\\\n        srcdir/root/interpreter/llvm-project/llvm/CMakeLists.txt\necho \"set(CXX_STANDARD 17)\" >> srcdir/root/interpreter/llvm-project/llvm/CMakeLists.txt\n\n# N llvm links. LLVM link command needs 15GB\nnjobs=\\${nproc}\nLLVM_PARALLEL_LINK_JOBS=\\`grep MemTot /proc/meminfo  | awk '{a=int(\\$2/15100000); if(a>'\"\\$njobs\"') a='\"\\$njobs\"'; if(a<1) a=1; print a;}'\\`\n\n# For the rootcling execution performed during the build:\necho \"include_directories(SYSTEM /opt/\\$target/\\$target/sys-root/usr/include)\" >> \\${CMAKE_TARGET_TOOLCHAIN}\n\n# Build with or without debug information: Debug / Release\nBUILD_TYPE=Release\n\n#Patch needed for gcc [9.1.0, 9.3.0)\ncat <<EOF | gcc -x c -o need_variant_patch -\nint main(){\n  long vers = __GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__;\n  return (90100 <= vers && vers < 90300) ? 0 : 1;\n}\nEOF\n\n./need_variant_patch && (cd / && atomic_patch -p1 \\${WORKSPACE}/srcdir/patches/\\$target-variant.patch)\n\nif [ \\$target != \\$MACHTYPE ]; then #cross compilation\n\n   (cd srcdir\n   # patch to fix cross-compilation with rootcling\n   atomic_patch -p1 patches/rootcling-cross-compile_6.32.8.patch\n\n   # patch to fix cross-compilation for afterimage\n   atomic_patch -p1 patches/afterimage-cross-compile.patch\n   )\n\n   # Compile for the host binary used in the build process\n   # Davix is switched off, as otherwise build fails in buildkite CI. It should not be\n   # needed for the NATIVE tools. \n   mkdir NATIVE\n   cmake -GNinja \\\\\n         -DCMAKE_TOOLCHAIN_FILE=\\${CMAKE_HOST_TOOLCHAIN} \\\\\n         -DLLVM_HOST_TRIPLE=\\$MACHTYPE \\\\\n         -DLLVM_PARALLEL_LINK_JOBS=\\$LLVM_PARALLEL_LINK_JOBS \\\\\n         -DCXX_STANDARD=c++17 \\\\\n         -DCLANG_DEFAULT_STD_CXX=cxx17 \\\\\n         \"\\${CMAKE_EXTRA_OPTS[@]}\" \\\\\n         -DCMAKE_BUILD_TYPE=\\$BUILD_TYPE -DLLVM_BUILD_TYPE=\\$BUILD_TYPE \\\\\n         -DCLING_CXX_PATH=g++ \\\\\n         -DCLING_TARGET_GLIBC=1 \\\\\n         -DCLING_TARGET_GLIBCXX=1 \\\\\n         -DCLING_SYSTEM_INCLUDE_PATH=\"\\$SYSTEM_INCLUDE_PATH\" \\\\\n         -Ddavix=OFF \\\\\n         -B NATIVE -S srcdir/root\n\n   cmake --build NATIVE -- -j\\$njobs rootcling_stage1 rootcling llvm-tblgen clang-tblgen llvm-config llvm-symbolizer\n\n   CMAKE_EXTRA_OPTS+=(\\$CMAKE_EXTRA_OPTS \"-DNATIVE_BINARY_DIR=\\$PWD/NATIVE\" \\\\\n      \"-DLLVM_TABLEGEN=\\$PWD/NATIVE/interpreter/llvm-project/llvm/bin/llvm-tblgen\" \\\\\n      \"-DCLANG_TABLEGEN=\\$PWD/NATIVE/interpreter/llvm-project/llvm/bin/clang-tblgen\" \\\\\n      \"-DLLVM_CONFIG_PATH=\\$PWD/NATIVE/interpreter/llvm-project/llvm/bin/llvm-config\" \\\\\n      \"-DCLING_SYSTEM_INCLUDE_PATH=\\$SYSTEM_INCLUDE_PATH\")\nfi\n\n# CPLUS_INCLUDE_PATH used to set system include path for rootcling in absence\n# of a -sysroot option. It should be transparent gcc and target build as it set the path \n# to the value obtained from gcc itself before setting CPLUS_INCLUDE_PATH and using\n# the same sysroot option as for compilation.\nexport CPLUS_INCLUDE_PATH=\"\\$SYSTEM_INCLUDE_PATH\"\nmkdir build\ncmake -GNinja \\\\\n      -DCMAKE_TOOLCHAIN_FILE=\\${CMAKE_TARGET_TOOLCHAIN} \\\\\n      -DCMAKE_INSTALL_PREFIX=\\$prefix \\\\\n      -DLLVM_HOST_TRIPLE=\\$target \\\\\n      -DLLVM_PARALLEL_LINK_JOBS=\\$LLVM_PARALLEL_LINK_JOBS \\\\\n      -DCXX_STANDARD=c++17 \\\\\n      -DCLANG_DEFAULT_STD_CXX=cxx17 \\\\\n      \"\\${CMAKE_EXTRA_OPTS[@]}\" \\\\\n      -DCMAKE_BUILD_TYPE=\\$BUILD_TYPE -DLLVM_BUILD_TYPE=\\$BUILD_TYPE \\\\\n      -DCLING_CXX_PATH=g++ \\\\\n      -Dfound_urandom_EXITCODE=0 \\\\\n      -Dfound_urandom_EXITCODE__TRYRUN_OUTPUT=\"\" \\\\\n      -B build -S srcdir/root\n\n# Build the code\ncmake --build build -j\\${njobs}\n\n# Install the binaries\ncmake --install build --prefix \\$prefix\ninstall -Dvm 755 build/core/rootcling_stage1/src/rootcling_stage1 -t \"\\${bindir}\"\n\nEND_OF_SCRIPT\n\nchmod a+x \"$WORKSPACE/recipe.sh\"\n\necho USE_CCACHE: $USE_CCACHE\n\ncd $WORKSPACE\nif echo \"$target\" | grep -q musl; then #build wih musl library\n# Disabling what is not working with musl:\n    CMAKE_EXTRA_OPTS=(-Ddavix=OFF -Dxrootd=OFF -Dssl=OFF -Druntime_cxxmodules=OFF -Droofit=OFF)\nelse\n    CMAKE_EXTRA_OPTS=(-Druntime_cxxmodules=OFF)\nfi\n\n# Required to compile graf3d/ftgl/src/FTVectoriser.cxx (for gcc to accept a conversion from char* to unsigned char*)\nCMAKE_EXTRA_OPTS+=(-DCMAKE_CXX_FLAGS=-fpermissive)\n\n# Uncomment for a minimal build for debugging purposes\n#CMAKE_EXTRA_OPTS+=(-Dclad=OFF -Dhtml=OFF -Dwebgui=OFF -Dcxxmodules=OFF -Dproof=OFF -Dtmva=OFF -Drootfit=OFF -Dxproofd=OFF -Dxrootd=OFF -Dssl=OFF -Dpyroot=OFF -Dtesting=OFF -Droot7=OFF -Dspectrum=OFF -Dunfold=OFF -Dasimage=OFF -Dgviz=OFF -Dfitiso=OFF -Dcocoa=OFF -Dopengl=OFF -Dproof=OFF -Dxml=OFF -Dgfal=OFF -Dmpi=OFF)\n\nexport SYSTEM_INCLUDE_PATH=\"`g++ --sysroot=\"/opt/$target/$target/sys-root\" -E -x c++ -v /dev/null  2>&1  | awk '{gsub(\"^ \", \"\")} /End of search list/{a=0} {if(a==1){s=s d $0;d=\":\"}} /#include <...> search starts here/{a=1} END{print s}'`\"\n\n# build-in compilation of the libAfterImage library needs this directory\nmkdir -p /tmp/user/0\n\ncd /\n\ncd \"$WORKSPACE\"\n\n# For the cross-compiling, LLVM needs to compile the llvm-tblgen tool\n# for the host. The ROOT LLVM code tree does not include the test and\n# benchmark directories cmake will need to configure for the host for\n# this bootstrap. Therefore, we need to disable the build of the test and\n# benchmarks.\nsed -i 's/\\(option(LLVM_INCLUDE_TESTS[[:space:]].*[[:space:]]\\)on)\\(.*\\)/\\1OFF)\\2/i\n        s/\\(option(LLVM_INCLUDE_BENCHMARKS[[:space:]].*[[:space:]]\\)on)\\(.*\\)/\\1OFF)\\2/i' \\\n        srcdir/root/interpreter/llvm-project/llvm/CMakeLists.txt\necho \"set(CXX_STANDARD 17)\" >> srcdir/root/interpreter/llvm-project/llvm/CMakeLists.txt\n\n# N llvm links. LLVM link command needs 15GB\nnjobs=${nproc}\nLLVM_PARALLEL_LINK_JOBS=`grep MemTot /proc/meminfo  | awk '{a=int($2/15100000); if(a>'\"$njobs\"') a='\"$njobs\"'; if(a<1) a=1; print a;}'`\n\n# For the rootcling execution performed during the build:\necho \"include_directories(SYSTEM /opt/$target/$target/sys-root/usr/include)\" >> ${CMAKE_TARGET_TOOLCHAIN}\n\n# Build with or without debug information: Debug / Release\nBUILD_TYPE=Release\n\n#Patch needed for gcc [9.1.0, 9.3.0)\ncat <<EOF | gcc -x c -o need_variant_patch -\nint main(){\n  long vers = __GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__;\n  return (90100 <= vers && vers < 90300) ? 0 : 1;\n}\nEOF\n\n./need_variant_patch && (cd / && atomic_patch -p1 ${WORKSPACE}/srcdir/patches/$target-variant.patch)\n\nif [ $target != $MACHTYPE ]; then #cross compilation\n\n   (cd srcdir\n   # patch to fix cross-compilation with rootcling\n   atomic_patch -p1 patches/rootcling-cross-compile_6.32.8.patch\n\n   # patch to fix cross-compilation for afterimage\n   atomic_patch -p1 patches/afterimage-cross-compile.patch\n   )\n\n   # Compile for the host binary used in the build process\n   # Davix is switched off, as otherwise build fails in buildkite CI. It should not be\n   # needed for the NATIVE tools. \n   mkdir NATIVE\n   cmake -GNinja \\\n         -DCMAKE_TOOLCHAIN_FILE=${CMAKE_HOST_TOOLCHAIN} \\\n         -DLLVM_HOST_TRIPLE=$MACHTYPE \\\n         -DLLVM_PARALLEL_LINK_JOBS=$LLVM_PARALLEL_LINK_JOBS \\\n         -DCXX_STANDARD=c++17 \\\n         -DCLANG_DEFAULT_STD_CXX=cxx17 \\\n         \"${CMAKE_EXTRA_OPTS[@]}\" \\\n         -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DLLVM_BUILD_TYPE=$BUILD_TYPE \\\n         -DCLING_CXX_PATH=g++ \\\n         -DCLING_TARGET_GLIBC=1 \\\n         -DCLING_TARGET_GLIBCXX=1 \\\n         -DCLING_SYSTEM_INCLUDE_PATH=\"$SYSTEM_INCLUDE_PATH\" \\\n         -Ddavix=OFF \\\n         -B NATIVE -S srcdir/root\n\n   cmake --build NATIVE -- -j$njobs rootcling_stage1 rootcling llvm-tblgen clang-tblgen llvm-config llvm-symbolizer\n\n   CMAKE_EXTRA_OPTS+=($CMAKE_EXTRA_OPTS \"-DNATIVE_BINARY_DIR=$PWD/NATIVE\" \\\n      \"-DLLVM_TABLEGEN=$PWD/NATIVE/interpreter/llvm-project/llvm/bin/llvm-tblgen\" \\\n      \"-DCLANG_TABLEGEN=$PWD/NATIVE/interpreter/llvm-project/llvm/bin/clang-tblgen\" \\\n      \"-DLLVM_CONFIG_PATH=$PWD/NATIVE/interpreter/llvm-project/llvm/bin/llvm-config\" \\\n      \"-DCLING_SYSTEM_INCLUDE_PATH=$SYSTEM_INCLUDE_PATH\")\nfi\n\n# CPLUS_INCLUDE_PATH used to set system include path for rootcling in absence\n# of a -sysroot option. It should be transparent gcc and target build as it set the path \n# to the value obtained from gcc itself before setting CPLUS_INCLUDE_PATH and using\n# the same sysroot option as for compilation.\nexport CPLUS_INCLUDE_PATH=\"$SYSTEM_INCLUDE_PATH\"\nmkdir build\ncmake -GNinja \\\n      -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n      -DCMAKE_INSTALL_PREFIX=$prefix \\\n      -DLLVM_HOST_TRIPLE=$target \\\n      -DLLVM_PARALLEL_LINK_JOBS=$LLVM_PARALLEL_LINK_JOBS \\\n      -DCXX_STANDARD=c++17 \\\n      -DCLANG_DEFAULT_STD_CXX=cxx17 \\\n      \"${CMAKE_EXTRA_OPTS[@]}\" \\\n      -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DLLVM_BUILD_TYPE=$BUILD_TYPE \\\n      -DCLING_CXX_PATH=g++ \\\n      -Dfound_urandom_EXITCODE=0 \\\n      -Dfound_urandom_EXITCODE__TRYRUN_OUTPUT=\"\" \\\n      -B build -S srcdir/root\n\n# Build the code\ncmake --build build -j${njobs}\n\n# Install the binaries\ncmake --install build --prefix $prefix\ninstall -Dvm 755 build/core/rootcling_stage1/src/rootcling_stage1 -t \"${bindir}\"\n\n"""
+        version = "v6.32.8"
+
+            [["6.32.8+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_xorgproto_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            uuid = "c4d99508-4286-5418-9131-c86396af500b"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libX11_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "4f6342f7-b3d2-589e-9d20-edeb45f2b2bc"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libXpm_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "1a3ddb2d-74e3-57f3-a27b-e9b16291b4f2"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libXft_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "2c808117-e144-5220-80d1-69d4eaa9352c"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "VDT_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "474730fa-5ea9-5b8c-8629-63de62f23418"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "XRootD_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "b6113df7-b24e-50c0-846f-35a2e36cb9d5"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Lz4_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "5ced341a-0733-55b8-9ab6-a4889d929147"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "FFTW_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "f5851436-0d7a-5f13-b9de-f02708fd171a"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Giflib_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "59f7168a-df46-5410-90c8-f2779963d0ec"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Zstd_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "3161d3a3-bdf6-5164-811a-617609db77b4"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "PCRE2_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "efcefdf7-47ab-520b-bdef-62a2eaa19f15"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Graphviz_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "3c863552-8265-54e4-a6dc-903eb78fde85"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "xxHash_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "5fdcd639-92d1-5a06-bf6b-28f2061df1a9"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "XZ_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "ffd25f8a-64ca-5728-b0f7-c24cf3aae800"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Librsvg_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "925c91fb-5dd6-59dd-8e8c-345e74382d89"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "FreeType2_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "d7e528f0-a631-5988-bf34-fe36492bcfd7"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libICE_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "f67eecfb-183a-506d-b269-f58e52b52d7c"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libSM_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "c834827a-8449-5923-a945-d239c165b7dd"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libXfixes_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "d091e8ba-531a-589c-9de9-94069b037ed8"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libXi_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "a51aa0fd-4e3c-5386-b890-e753decda492"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libXinerama_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "d1454406-59df-5ea1-beac-c340f2130bc3"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libXmu_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "6bc1fdef-f8f4-516b-84c1-6f5f86a35b20"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libXt_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "28c4a263-0105-5ca0-9a8c-f4f6b89a1dd4"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libXtst_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "b6f176f1-7aea-5357-ad67-1d3e565ea1c6"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_xcb_util_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "2def613f-5ad1-5310-b15b-b15d46f528f5"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libxkbfile_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "cc61e674-0454-545c-8b26-ed2c68acab7a"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Libglvnd_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "7e76a0d4-f3c7-5321-8279-8d96eeed0f29"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "GLU_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "bd17208b-e95e-5925-bf81-e2f59b3e5c61"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "GLEW_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "bde7f898-03f7-559e-8810-194d950ce600"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "CFITSIO_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "b3e40c51-02ae-5482-8a39-3ace5868dcf4"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+0".artifact_metadata.metadata.dependencies]]
+            compat = "2021.9.0"
+            name = "oneTBB_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "1317d2d5-d96f-522e-a858-c73665f53c3e"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "OpenBLAS32_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "656ef2d0-ae68-5445-9ca0-591084a874a2"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["6.32.8+0".artifact_metadata.metadata.products]]
+            binnames = ["root"]
+            type = "exe"
+            variable_name = "root"
+            [["6.32.8+0".artifact_metadata.metadata.products]]
+            binnames = ["rootcling"]
+            type = "exe"
+            variable_name = "rootcling"
+            [["6.32.8+0".artifact_metadata.metadata.products]]
+            binnames = ["rootcling_stage1"]
+            type = "exe"
+            variable_name = "rootcling_stage1"
+
+            [["6.32.8+0".artifact_metadata.metadata.sources]]
+            hash = "a1748a069d2d5f27ec528cfd89b54b12dcba793e"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/root-project/root.git"
+            [["6.32.8+0".artifact_metadata.metadata.sources]]
+            follow_symlinks = false
+            path = "./bundled"
+            target = ""
+            type = "directory"
+
 ["6.32.8+1"]
-artifact_metadata = "ROOT_jll/ROOT-v6.32.8+1"
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/ROOT_jll.jl/releases/download/ROOT-v6.32.8+1/ROOT.v6.32.8.x86_64-linux-gnu.tar.gz"]
 registered = 2025-06-29T23:04:05.000Z
 
+    [["6.32.8+1".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/ROOT_jll.jl/releases/download/ROOT-v6.32.8+1/ROOT.v6.32.8.x86_64-linux-gnu.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/709de1757437724a5b293297623fb49522d360d8/R/ROOT/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.6.4"
+
+        ["6.32.8+1".artifact_metadata.metadata]
+        augment_platform_block = ""
+        init_block = ""
+        julia_compat = "1.6"
+        lazy_artifacts = false
+        name = "ROOT"
+        platforms = ["x86_64-linux-gnu"]
+        script = """cat > \"$WORKSPACE/recipe.sh\" <<END_OF_SCRIPT\n\necho USE_CCACHE: \\$USE_CCACHE\n\ncd \\$WORKSPACE\nif echo \"\\$target\" | grep -q musl; then #build wih musl library\n# Disabling what is not working with musl:\n    CMAKE_EXTRA_OPTS=(-Ddavix=OFF -Dxrootd=OFF -Dssl=OFF -Druntime_cxxmodules=OFF -Droofit=OFF)\nelse\n    CMAKE_EXTRA_OPTS=(-Druntime_cxxmodules=OFF)\nfi\n\n# Required to compile graf3d/ftgl/src/FTVectoriser.cxx (for gcc to accept a conversion from char* to unsigned char*)\nCMAKE_EXTRA_OPTS+=(-DCMAKE_CXX_FLAGS=-fpermissive)\n\n# Uncomment for a minimal build for debugging purposes\n#CMAKE_EXTRA_OPTS+=(-Dclad=OFF -Dhtml=OFF -Dwebgui=OFF -Dcxxmodules=OFF -Dproof=OFF -Dtmva=OFF -Drootfit=OFF -Dxproofd=OFF -Dxrootd=OFF -Dssl=OFF -Dpyroot=OFF -Dtesting=OFF -Droot7=OFF -Dspectrum=OFF -Dunfold=OFF -Dasimage=OFF -Dgviz=OFF -Dfitiso=OFF -Dcocoa=OFF -Dopengl=OFF -Dproof=OFF -Dxml=OFF -Dgfal=OFF -Dmpi=OFF)\n\nexport SYSTEM_INCLUDE_PATH=\"\\`g++ --sysroot=\"/opt/\\$target/\\$target/sys-root\" -E -x c++ -v /dev/null  2>&1  | awk '{gsub(\"^ \", \"\")} /End of search list/{a=0} {if(a==1){s=s d \\$0;d=\":\"}} /#include <...> search starts here/{a=1} END{print s}'\\`\"\n\n# build-in compilation of the libAfterImage library needs this directory\nmkdir -p /tmp/user/0\n\ncd /\n\ncd \"\\$WORKSPACE\"\n\n# For the cross-compiling, LLVM needs to compile the llvm-tblgen tool\n# for the host. The ROOT LLVM code tree does not include the test and\n# benchmark directories cmake will need to configure for the host for\n# this bootstrap. Therefore, we need to disable the build of the test and\n# benchmarks.\nsed -i 's/\\\\(option(LLVM_INCLUDE_TESTS[[:space:]].*[[:space:]]\\\\)on)\\\\(.*\\\\)/\\\\1OFF)\\\\2/i\n        s/\\\\(option(LLVM_INCLUDE_BENCHMARKS[[:space:]].*[[:space:]]\\\\)on)\\\\(.*\\\\)/\\\\1OFF)\\\\2/i' \\\\\n        srcdir/root/interpreter/llvm-project/llvm/CMakeLists.txt\necho \"set(CXX_STANDARD 17)\" >> srcdir/root/interpreter/llvm-project/llvm/CMakeLists.txt\n\n# N llvm links. LLVM link command needs 15GB\nnjobs=\\${nproc}\nLLVM_PARALLEL_LINK_JOBS=\\`grep MemTot /proc/meminfo  | awk '{a=int(\\$2/15100000); if(a>'\"\\$njobs\"') a='\"\\$njobs\"'; if(a<1) a=1; print a;}'\\`\n\n# For the rootcling execution performed during the build:\necho \"include_directories(SYSTEM /opt/\\$target/\\$target/sys-root/usr/include)\" >> \\${CMAKE_TARGET_TOOLCHAIN}\n\n# Build with or without debug information: Debug / Release\nBUILD_TYPE=Release\n\n#Patch needed for gcc [9.1.0, 9.3.0)\ncat <<EOF | gcc -x c -o need_variant_patch -\nint main(){\n  long vers = __GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__;\n  return (90100 <= vers && vers < 90300) ? 0 : 1;\n}\nEOF\n\n./need_variant_patch && (cd / && atomic_patch -p1 \\${WORKSPACE}/srcdir/patches/\\$target-variant.patch)\n\nif [ \\$target != \\$MACHTYPE ]; then #cross compilation\n\n   (cd srcdir\n   # patch to fix cross-compilation with rootcling\n   atomic_patch -p1 patches/rootcling-cross-compile_6.32.8.patch\n\n   # patch to fix cross-compilation for afterimage\n   atomic_patch -p1 patches/afterimage-cross-compile.patch\n   )\n\n   # Compile for the host binary used in the build process\n   # Davix is switched off, as otherwise build fails in buildkite CI. It should not be\n   # needed for the NATIVE tools. \n   mkdir NATIVE\n   cmake -GNinja \\\\\n         -DCMAKE_TOOLCHAIN_FILE=\\${CMAKE_HOST_TOOLCHAIN} \\\\\n         -DLLVM_HOST_TRIPLE=\\$MACHTYPE \\\\\n         -DLLVM_PARALLEL_LINK_JOBS=\\$LLVM_PARALLEL_LINK_JOBS \\\\\n         -DCXX_STANDARD=c++17 \\\\\n         -DCLANG_DEFAULT_STD_CXX=cxx17 \\\\\n         \"\\${CMAKE_EXTRA_OPTS[@]}\" \\\\\n         -DCMAKE_BUILD_TYPE=\\$BUILD_TYPE -DLLVM_BUILD_TYPE=\\$BUILD_TYPE \\\\\n         -DCLING_CXX_PATH=g++ \\\\\n         -DCLING_TARGET_GLIBC=1 \\\\\n         -DCLING_TARGET_GLIBCXX=1 \\\\\n         -DCLING_SYSTEM_INCLUDE_PATH=\"\\$SYSTEM_INCLUDE_PATH\" \\\\\n         -Ddavix=OFF \\\\\n         -B NATIVE -S srcdir/root\n\n   cmake --build NATIVE -- -j\\$njobs rootcling_stage1 rootcling llvm-tblgen clang-tblgen llvm-config llvm-symbolizer\n\n   CMAKE_EXTRA_OPTS+=(\\$CMAKE_EXTRA_OPTS \"-DNATIVE_BINARY_DIR=\\$PWD/NATIVE\" \\\\\n      \"-DLLVM_TABLEGEN=\\$PWD/NATIVE/interpreter/llvm-project/llvm/bin/llvm-tblgen\" \\\\\n      \"-DCLANG_TABLEGEN=\\$PWD/NATIVE/interpreter/llvm-project/llvm/bin/clang-tblgen\" \\\\\n      \"-DLLVM_CONFIG_PATH=\\$PWD/NATIVE/interpreter/llvm-project/llvm/bin/llvm-config\" \\\\\n      \"-DCLING_SYSTEM_INCLUDE_PATH=\\$SYSTEM_INCLUDE_PATH\")\nfi\n\n# CPLUS_INCLUDE_PATH used to set system include path for rootcling in absence\n# of a -sysroot option. It should be transparent gcc and target build as it set the path \n# to the value obtained from gcc itself before setting CPLUS_INCLUDE_PATH and using\n# the same sysroot option as for compilation.\nexport CPLUS_INCLUDE_PATH=\"\\$SYSTEM_INCLUDE_PATH\"\nmkdir build\ncmake -GNinja \\\\\n      -DCMAKE_TOOLCHAIN_FILE=\\${CMAKE_TARGET_TOOLCHAIN} \\\\\n      -DCMAKE_INSTALL_PREFIX=\\$prefix \\\\\n      -DLLVM_HOST_TRIPLE=\\$target \\\\\n      -DLLVM_PARALLEL_LINK_JOBS=\\$LLVM_PARALLEL_LINK_JOBS \\\\\n      -DCXX_STANDARD=c++17 \\\\\n      -DCLANG_DEFAULT_STD_CXX=cxx17 \\\\\n      \"\\${CMAKE_EXTRA_OPTS[@]}\" \\\\\n      -DCMAKE_BUILD_TYPE=\\$BUILD_TYPE -DLLVM_BUILD_TYPE=\\$BUILD_TYPE \\\\\n      -DCLING_CXX_PATH=g++ \\\\\n      -Dfound_urandom_EXITCODE=0 \\\\\n      -Dfound_urandom_EXITCODE__TRYRUN_OUTPUT=\"\" \\\\\n      -B build -S srcdir/root\n\n# Build the code\ncmake --build build -j\\${njobs}\n\n# Install the binaries\ncmake --install build --prefix \\$prefix\ninstall -Dvm 755 build/core/rootcling_stage1/src/rootcling_stage1 -t \"\\${bindir}\"\n\nEND_OF_SCRIPT\n\nchmod a+x \"$WORKSPACE/recipe.sh\"\n\necho USE_CCACHE: $USE_CCACHE\n\ncd $WORKSPACE\nif echo \"$target\" | grep -q musl; then #build wih musl library\n# Disabling what is not working with musl:\n    CMAKE_EXTRA_OPTS=(-Ddavix=OFF -Dxrootd=OFF -Dssl=OFF -Druntime_cxxmodules=OFF -Droofit=OFF)\nelse\n    CMAKE_EXTRA_OPTS=(-Druntime_cxxmodules=OFF)\nfi\n\n# Required to compile graf3d/ftgl/src/FTVectoriser.cxx (for gcc to accept a conversion from char* to unsigned char*)\nCMAKE_EXTRA_OPTS+=(-DCMAKE_CXX_FLAGS=-fpermissive)\n\n# Uncomment for a minimal build for debugging purposes\n#CMAKE_EXTRA_OPTS+=(-Dclad=OFF -Dhtml=OFF -Dwebgui=OFF -Dcxxmodules=OFF -Dproof=OFF -Dtmva=OFF -Drootfit=OFF -Dxproofd=OFF -Dxrootd=OFF -Dssl=OFF -Dpyroot=OFF -Dtesting=OFF -Droot7=OFF -Dspectrum=OFF -Dunfold=OFF -Dasimage=OFF -Dgviz=OFF -Dfitiso=OFF -Dcocoa=OFF -Dopengl=OFF -Dproof=OFF -Dxml=OFF -Dgfal=OFF -Dmpi=OFF)\n\nexport SYSTEM_INCLUDE_PATH=\"`g++ --sysroot=\"/opt/$target/$target/sys-root\" -E -x c++ -v /dev/null  2>&1  | awk '{gsub(\"^ \", \"\")} /End of search list/{a=0} {if(a==1){s=s d $0;d=\":\"}} /#include <...> search starts here/{a=1} END{print s}'`\"\n\n# build-in compilation of the libAfterImage library needs this directory\nmkdir -p /tmp/user/0\n\ncd /\n\ncd \"$WORKSPACE\"\n\n# For the cross-compiling, LLVM needs to compile the llvm-tblgen tool\n# for the host. The ROOT LLVM code tree does not include the test and\n# benchmark directories cmake will need to configure for the host for\n# this bootstrap. Therefore, we need to disable the build of the test and\n# benchmarks.\nsed -i 's/\\(option(LLVM_INCLUDE_TESTS[[:space:]].*[[:space:]]\\)on)\\(.*\\)/\\1OFF)\\2/i\n        s/\\(option(LLVM_INCLUDE_BENCHMARKS[[:space:]].*[[:space:]]\\)on)\\(.*\\)/\\1OFF)\\2/i' \\\n        srcdir/root/interpreter/llvm-project/llvm/CMakeLists.txt\necho \"set(CXX_STANDARD 17)\" >> srcdir/root/interpreter/llvm-project/llvm/CMakeLists.txt\n\n# N llvm links. LLVM link command needs 15GB\nnjobs=${nproc}\nLLVM_PARALLEL_LINK_JOBS=`grep MemTot /proc/meminfo  | awk '{a=int($2/15100000); if(a>'\"$njobs\"') a='\"$njobs\"'; if(a<1) a=1; print a;}'`\n\n# For the rootcling execution performed during the build:\necho \"include_directories(SYSTEM /opt/$target/$target/sys-root/usr/include)\" >> ${CMAKE_TARGET_TOOLCHAIN}\n\n# Build with or without debug information: Debug / Release\nBUILD_TYPE=Release\n\n#Patch needed for gcc [9.1.0, 9.3.0)\ncat <<EOF | gcc -x c -o need_variant_patch -\nint main(){\n  long vers = __GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__;\n  return (90100 <= vers && vers < 90300) ? 0 : 1;\n}\nEOF\n\n./need_variant_patch && (cd / && atomic_patch -p1 ${WORKSPACE}/srcdir/patches/$target-variant.patch)\n\nif [ $target != $MACHTYPE ]; then #cross compilation\n\n   (cd srcdir\n   # patch to fix cross-compilation with rootcling\n   atomic_patch -p1 patches/rootcling-cross-compile_6.32.8.patch\n\n   # patch to fix cross-compilation for afterimage\n   atomic_patch -p1 patches/afterimage-cross-compile.patch\n   )\n\n   # Compile for the host binary used in the build process\n   # Davix is switched off, as otherwise build fails in buildkite CI. It should not be\n   # needed for the NATIVE tools. \n   mkdir NATIVE\n   cmake -GNinja \\\n         -DCMAKE_TOOLCHAIN_FILE=${CMAKE_HOST_TOOLCHAIN} \\\n         -DLLVM_HOST_TRIPLE=$MACHTYPE \\\n         -DLLVM_PARALLEL_LINK_JOBS=$LLVM_PARALLEL_LINK_JOBS \\\n         -DCXX_STANDARD=c++17 \\\n         -DCLANG_DEFAULT_STD_CXX=cxx17 \\\n         \"${CMAKE_EXTRA_OPTS[@]}\" \\\n         -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DLLVM_BUILD_TYPE=$BUILD_TYPE \\\n         -DCLING_CXX_PATH=g++ \\\n         -DCLING_TARGET_GLIBC=1 \\\n         -DCLING_TARGET_GLIBCXX=1 \\\n         -DCLING_SYSTEM_INCLUDE_PATH=\"$SYSTEM_INCLUDE_PATH\" \\\n         -Ddavix=OFF \\\n         -B NATIVE -S srcdir/root\n\n   cmake --build NATIVE -- -j$njobs rootcling_stage1 rootcling llvm-tblgen clang-tblgen llvm-config llvm-symbolizer\n\n   CMAKE_EXTRA_OPTS+=($CMAKE_EXTRA_OPTS \"-DNATIVE_BINARY_DIR=$PWD/NATIVE\" \\\n      \"-DLLVM_TABLEGEN=$PWD/NATIVE/interpreter/llvm-project/llvm/bin/llvm-tblgen\" \\\n      \"-DCLANG_TABLEGEN=$PWD/NATIVE/interpreter/llvm-project/llvm/bin/clang-tblgen\" \\\n      \"-DLLVM_CONFIG_PATH=$PWD/NATIVE/interpreter/llvm-project/llvm/bin/llvm-config\" \\\n      \"-DCLING_SYSTEM_INCLUDE_PATH=$SYSTEM_INCLUDE_PATH\")\nfi\n\n# CPLUS_INCLUDE_PATH used to set system include path for rootcling in absence\n# of a -sysroot option. It should be transparent gcc and target build as it set the path \n# to the value obtained from gcc itself before setting CPLUS_INCLUDE_PATH and using\n# the same sysroot option as for compilation.\nexport CPLUS_INCLUDE_PATH=\"$SYSTEM_INCLUDE_PATH\"\nmkdir build\ncmake -GNinja \\\n      -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n      -DCMAKE_INSTALL_PREFIX=$prefix \\\n      -DLLVM_HOST_TRIPLE=$target \\\n      -DLLVM_PARALLEL_LINK_JOBS=$LLVM_PARALLEL_LINK_JOBS \\\n      -DCXX_STANDARD=c++17 \\\n      -DCLANG_DEFAULT_STD_CXX=cxx17 \\\n      \"${CMAKE_EXTRA_OPTS[@]}\" \\\n      -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DLLVM_BUILD_TYPE=$BUILD_TYPE \\\n      -DCLING_CXX_PATH=g++ \\\n      -Dfound_urandom_EXITCODE=0 \\\n      -Dfound_urandom_EXITCODE__TRYRUN_OUTPUT=\"\" \\\n      -B build -S srcdir/root\n\n# Build the code\ncmake --build build -j${njobs}\n\n# Install the binaries\ncmake --install build --prefix $prefix\ninstall -Dvm 755 build/core/rootcling_stage1/src/rootcling_stage1 -t \"${bindir}\"\n\n"""
+        version = "v6.32.8"
+
+            [["6.32.8+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_xorgproto_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            uuid = "c4d99508-4286-5418-9131-c86396af500b"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libX11_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "4f6342f7-b3d2-589e-9d20-edeb45f2b2bc"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libXpm_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "1a3ddb2d-74e3-57f3-a27b-e9b16291b4f2"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libXft_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "2c808117-e144-5220-80d1-69d4eaa9352c"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Libtiff_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "89763e89-9b03-5906-acba-b20f662cd828"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "VDT_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "474730fa-5ea9-5b8c-8629-63de62f23418"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "XRootD_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "b6113df7-b24e-50c0-846f-35a2e36cb9d5"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Lz4_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "5ced341a-0733-55b8-9ab6-a4889d929147"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "FFTW_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "f5851436-0d7a-5f13-b9de-f02708fd171a"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Giflib_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "59f7168a-df46-5410-90c8-f2779963d0ec"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Zstd_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "3161d3a3-bdf6-5164-811a-617609db77b4"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "PCRE2_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "efcefdf7-47ab-520b-bdef-62a2eaa19f15"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Graphviz_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "3c863552-8265-54e4-a6dc-903eb78fde85"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "xxHash_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "5fdcd639-92d1-5a06-bf6b-28f2061df1a9"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "XZ_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "ffd25f8a-64ca-5728-b0f7-c24cf3aae800"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Librsvg_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "925c91fb-5dd6-59dd-8e8c-345e74382d89"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "FreeType2_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "d7e528f0-a631-5988-bf34-fe36492bcfd7"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libICE_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "f67eecfb-183a-506d-b269-f58e52b52d7c"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libSM_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "c834827a-8449-5923-a945-d239c165b7dd"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libXfixes_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "d091e8ba-531a-589c-9de9-94069b037ed8"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libXi_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "a51aa0fd-4e3c-5386-b890-e753decda492"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libXinerama_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "d1454406-59df-5ea1-beac-c340f2130bc3"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libXmu_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "6bc1fdef-f8f4-516b-84c1-6f5f86a35b20"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libXt_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "28c4a263-0105-5ca0-9a8c-f4f6b89a1dd4"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libXtst_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "b6f176f1-7aea-5357-ad67-1d3e565ea1c6"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_xcb_util_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "2def613f-5ad1-5310-b15b-b15d46f528f5"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libxkbfile_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "cc61e674-0454-545c-8b26-ed2c68acab7a"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Libglvnd_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "7e76a0d4-f3c7-5321-8279-8d96eeed0f29"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "GLU_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "bd17208b-e95e-5925-bf81-e2f59b3e5c61"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "GLEW_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "bde7f898-03f7-559e-8810-194d950ce600"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "CFITSIO_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "b3e40c51-02ae-5482-8a39-3ace5868dcf4"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+1".artifact_metadata.metadata.dependencies]]
+            compat = "2021.9.0"
+            name = "oneTBB_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "1317d2d5-d96f-522e-a858-c73665f53c3e"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "OpenBLAS32_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "656ef2d0-ae68-5445-9ca0-591084a874a2"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["6.32.8+1".artifact_metadata.metadata.products]]
+            binnames = ["root"]
+            type = "exe"
+            variable_name = "root"
+            [["6.32.8+1".artifact_metadata.metadata.products]]
+            binnames = ["rootcling"]
+            type = "exe"
+            variable_name = "rootcling"
+            [["6.32.8+1".artifact_metadata.metadata.products]]
+            binnames = ["rootcling_stage1"]
+            type = "exe"
+            variable_name = "rootcling_stage1"
+
+            [["6.32.8+1".artifact_metadata.metadata.sources]]
+            hash = "a1748a069d2d5f27ec528cfd89b54b12dcba793e"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/root-project/root.git"
+            [["6.32.8+1".artifact_metadata.metadata.sources]]
+            follow_symlinks = false
+            path = "./bundled"
+            target = ""
+            type = "directory"
+
 ["6.32.8+2"]
-artifact_metadata = "ROOT_jll/ROOT-v6.32.8+2"
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/ROOT_jll.jl/releases/download/ROOT-v6.32.8+2/ROOT.v6.32.8.x86_64-linux-gnu.tar.gz"]
 registered = 2026-01-06T11:38:41.000Z
+
+    [["6.32.8+2".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/ROOT_jll.jl/releases/download/ROOT-v6.32.8+2/ROOT.v6.32.8.x86_64-linux-gnu.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/a6e4c0fe3e70c97526f336a2233841d3c812daa0/R/ROOT/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.6.5"
+
+        ["6.32.8+2".artifact_metadata.metadata]
+        augment_platform_block = ""
+        init_block = ""
+        julia_compat = "1.6"
+        lazy_artifacts = false
+        name = "ROOT"
+        platforms = ["x86_64-linux-gnu"]
+        script = """cat > \"$WORKSPACE/recipe.sh\" <<END_OF_SCRIPT\n\necho USE_CCACHE: \\$USE_CCACHE\n\ncd \\$WORKSPACE\nif echo \"\\$target\" | grep -q musl; then #build wih musl library\n# Disabling what is not working with musl:\n    CMAKE_EXTRA_OPTS=(-Ddavix=OFF -Dxrootd=OFF -Dssl=OFF -Druntime_cxxmodules=OFF -Droofit=OFF)\nelse\n    CMAKE_EXTRA_OPTS=(-Druntime_cxxmodules=OFF)\nfi\n\n# Required to compile graf3d/ftgl/src/FTVectoriser.cxx (for gcc to accept a conversion from char* to unsigned char*)\nCMAKE_CXX_FLAGS=(-fpermissive)\n\n# Uncomment for a minimal build for debugging purposes\n#CMAKE_EXTRA_OPTS+=(-Dclad=OFF -Dhtml=OFF -Dwebgui=OFF -Dcxxmodules=OFF -Dproof=OFF -Dtmva=OFF -Drootfit=OFF -Dxproofd=OFF -Dxrootd=OFF -Dssl=OFF -Dpyroot=OFF -Dtesting=OFF -Droot7=OFF -Dspectrum=OFF -Dunfold=OFF -Dasimage=OFF -Dgviz=OFF -Dfitiso=OFF -Dcocoa=OFF -Dopengl=OFF -Dproof=OFF -Dxml=OFF -Dgfal=OFF -Dmpi=OFF)\n\nexport SYSTEM_INCLUDE_PATH=\"\\`g++ --sysroot=\"/opt/\\$target/\\$target/sys-root\" -E -x c++ -v /dev/null  2>&1  | awk '{gsub(\"^ \", \"\")} /End of search list/{a=0} {if(a==1){s=s d \\$0;d=\":\"}} /#include <...> search starts here/{a=1} END{print s}'\\`\"\n\n# build-in compilation of the libAfterImage library needs this directory\nmkdir -p /tmp/user/0\n\ncd /\n\ncd \"\\$WORKSPACE\"\n\n# For the cross-compiling, LLVM needs to compile the llvm-tblgen tool\n# for the host. The ROOT LLVM code tree does not include the test and\n# benchmark directories cmake will need to configure for the host for\n# this bootstrap. Therefore, we need to disable the build of the test and\n# benchmarks.\nsed -i 's/\\\\(option(LLVM_INCLUDE_TESTS[[:space:]].*[[:space:]]\\\\)on)\\\\(.*\\\\)/\\\\1OFF)\\\\2/i\n        s/\\\\(option(LLVM_INCLUDE_BENCHMARKS[[:space:]].*[[:space:]]\\\\)on)\\\\(.*\\\\)/\\\\1OFF)\\\\2/i' \\\\\n        srcdir/root/interpreter/llvm-project/llvm/CMakeLists.txt\necho \"set(CXX_STANDARD 17)\" >> srcdir/root/interpreter/llvm-project/llvm/CMakeLists.txt\n\n# N llvm links. LLVM link command needs 15GB\nnjobs=\\${nproc}\nLLVM_PARALLEL_LINK_JOBS=\\`grep MemTot /proc/meminfo  | awk '{a=int(\\$2/15100000); if(a>'\"\\$njobs\"') a='\"\\$njobs\"'; if(a<1) a=1; print a;}'\\`\n\n# For the rootcling execution performed during the build:\necho \"include_directories(SYSTEM /opt/\\$target/\\$target/sys-root/usr/include)\" >> \\${CMAKE_TARGET_TOOLCHAIN}\n\n# Build with or without debug information: Debug / Release\nBUILD_TYPE=Release\n\n#Patch needed for gcc [9.1.0, 9.3.0)\ncat <<EOF | gcc -x c -o need_variant_patch -\nint main(){\n  long vers = __GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__;\n  return (90100 <= vers && vers < 90300) ? 0 : 1;\n}\nEOF\n\n./need_variant_patch && (cd / && atomic_patch -p1 \\${WORKSPACE}/srcdir/patches/\\$target-variant.patch)\n \n(cd srcdir\n # patch to add ONLY_SIGALARM_ROOT_HANDLER macro\n atomic_patch -p1 patches/signal_handler.patch\n)\n\nCMAKE_CXX_FLAGS+=(-DONLY_SIGALARM_ROOT_HANDLER)\n \nif [ \\$target != \\$MACHTYPE ]; then #cross compilation\n\n   (cd srcdir\n   # patch to fix cross-compilation with rootcling\n   atomic_patch -p1 patches/rootcling-cross-compile_6.32.8.patch\n\n   # patch to fix cross-compilation for afterimage\n   atomic_patch -p1 patches/afterimage-cross-compile.patch\n  )\n\n   # Compile for the host binary used in the build process\n   # Davix is switched off, as otherwise build fails in buildkite CI. It should not be\n   # needed for the NATIVE tools. \n   mkdir NATIVE\n   cmake -GNinja \\\\\n         -DCMAKE_TOOLCHAIN_FILE=\\${CMAKE_HOST_TOOLCHAIN} \\\\\n         -DLLVM_HOST_TRIPLE=\\$MACHTYPE \\\\\n         -DLLVM_PARALLEL_LINK_JOBS=\\$LLVM_PARALLEL_LINK_JOBS \\\\\n         -DCXX_STANDARD=c++17 \\\\\n         -DCLANG_DEFAULT_STD_CXX=cxx17 \\\\\n         \"\\${CMAKE_EXTRA_OPTS[@]}\" \\\\\n         -DCMAKE_CXX_FLAGS=\"\\${CMAKE_CXX_FLAGS[*]}\" \\\\\n         -DCMAKE_BUILD_TYPE=\\$BUILD_TYPE -DLLVM_BUILD_TYPE=\\$BUILD_TYPE \\\\\n         -DCLING_CXX_PATH=g++ \\\\\n         -DCLING_TARGET_GLIBC=1 \\\\\n         -DCLING_TARGET_GLIBCXX=1 \\\\\n         -DCLING_SYSTEM_INCLUDE_PATH=\"\\$SYSTEM_INCLUDE_PATH\" \\\\\n         -Ddavix=OFF \\\\\n         -B NATIVE -S srcdir/root\n\n   cmake --build NATIVE -- -j\\$njobs rootcling_stage1 rootcling llvm-tblgen clang-tblgen llvm-config llvm-symbolizer\n\n   CMAKE_EXTRA_OPTS+=(\"-DNATIVE_BINARY_DIR=\\$PWD/NATIVE\" \\\\\n      \"-DLLVM_TABLEGEN=\\$PWD/NATIVE/interpreter/llvm-project/llvm/bin/llvm-tblgen\" \\\\\n      \"-DCLANG_TABLEGEN=\\$PWD/NATIVE/interpreter/llvm-project/llvm/bin/clang-tblgen\" \\\\\n      \"-DLLVM_CONFIG_PATH=\\$PWD/NATIVE/interpreter/llvm-project/llvm/bin/llvm-config\" \\\\\n      \"-DCLING_SYSTEM_INCLUDE_PATH=\\$SYSTEM_INCLUDE_PATH\")\nfi\n\n# CPLUS_INCLUDE_PATH used to set system include path for rootcling in absence\n# of a -sysroot option. It should be transparent gcc and target build as it set the path \n# to the value obtained from gcc itself before setting CPLUS_INCLUDE_PATH and using\n# the same sysroot option as for compilation.\nexport CPLUS_INCLUDE_PATH=\"\\$SYSTEM_INCLUDE_PATH\"\nmkdir build\ncmake -GNinja \\\\\n      -DCMAKE_TOOLCHAIN_FILE=\\${CMAKE_TARGET_TOOLCHAIN} \\\\\n      -DCMAKE_INSTALL_PREFIX=\\$prefix \\\\\n      -DLLVM_HOST_TRIPLE=\\$target \\\\\n      -DLLVM_PARALLEL_LINK_JOBS=\\$LLVM_PARALLEL_LINK_JOBS \\\\\n      -DCXX_STANDARD=c++17 \\\\\n      -DCLANG_DEFAULT_STD_CXX=cxx17 \\\\\n      \"\\${CMAKE_EXTRA_OPTS[@]}\" \\\\\n      -DCMAKE_CXX_FLAGS=\"\\${CMAKE_CXX_FLAGS[*]}\" \\\\\n      -DCMAKE_BUILD_TYPE=\\$BUILD_TYPE -DLLVM_BUILD_TYPE=\\$BUILD_TYPE \\\\\n      -DCLING_CXX_PATH=g++ \\\\\n      -Dfound_urandom_EXITCODE=0 \\\\\n      -Dfound_urandom_EXITCODE__TRYRUN_OUTPUT=\"\" \\\\\n      -B build -S srcdir/root\n\n# Build the code\ncmake --build build -j\\${njobs}\n\n# Install the binaries\ncmake --install build --prefix \\$prefix\ninstall -Dvm 755 build/core/rootcling_stage1/src/rootcling_stage1 -t \"\\${bindir}\"\n\nEND_OF_SCRIPT\n\nchmod a+x \"$WORKSPACE/recipe.sh\"\n\necho USE_CCACHE: $USE_CCACHE\n\ncd $WORKSPACE\nif echo \"$target\" | grep -q musl; then #build wih musl library\n# Disabling what is not working with musl:\n    CMAKE_EXTRA_OPTS=(-Ddavix=OFF -Dxrootd=OFF -Dssl=OFF -Druntime_cxxmodules=OFF -Droofit=OFF)\nelse\n    CMAKE_EXTRA_OPTS=(-Druntime_cxxmodules=OFF)\nfi\n\n# Required to compile graf3d/ftgl/src/FTVectoriser.cxx (for gcc to accept a conversion from char* to unsigned char*)\nCMAKE_CXX_FLAGS=(-fpermissive)\n\n# Uncomment for a minimal build for debugging purposes\n#CMAKE_EXTRA_OPTS+=(-Dclad=OFF -Dhtml=OFF -Dwebgui=OFF -Dcxxmodules=OFF -Dproof=OFF -Dtmva=OFF -Drootfit=OFF -Dxproofd=OFF -Dxrootd=OFF -Dssl=OFF -Dpyroot=OFF -Dtesting=OFF -Droot7=OFF -Dspectrum=OFF -Dunfold=OFF -Dasimage=OFF -Dgviz=OFF -Dfitiso=OFF -Dcocoa=OFF -Dopengl=OFF -Dproof=OFF -Dxml=OFF -Dgfal=OFF -Dmpi=OFF)\n\nexport SYSTEM_INCLUDE_PATH=\"`g++ --sysroot=\"/opt/$target/$target/sys-root\" -E -x c++ -v /dev/null  2>&1  | awk '{gsub(\"^ \", \"\")} /End of search list/{a=0} {if(a==1){s=s d $0;d=\":\"}} /#include <...> search starts here/{a=1} END{print s}'`\"\n\n# build-in compilation of the libAfterImage library needs this directory\nmkdir -p /tmp/user/0\n\ncd /\n\ncd \"$WORKSPACE\"\n\n# For the cross-compiling, LLVM needs to compile the llvm-tblgen tool\n# for the host. The ROOT LLVM code tree does not include the test and\n# benchmark directories cmake will need to configure for the host for\n# this bootstrap. Therefore, we need to disable the build of the test and\n# benchmarks.\nsed -i 's/\\(option(LLVM_INCLUDE_TESTS[[:space:]].*[[:space:]]\\)on)\\(.*\\)/\\1OFF)\\2/i\n        s/\\(option(LLVM_INCLUDE_BENCHMARKS[[:space:]].*[[:space:]]\\)on)\\(.*\\)/\\1OFF)\\2/i' \\\n        srcdir/root/interpreter/llvm-project/llvm/CMakeLists.txt\necho \"set(CXX_STANDARD 17)\" >> srcdir/root/interpreter/llvm-project/llvm/CMakeLists.txt\n\n# N llvm links. LLVM link command needs 15GB\nnjobs=${nproc}\nLLVM_PARALLEL_LINK_JOBS=`grep MemTot /proc/meminfo  | awk '{a=int($2/15100000); if(a>'\"$njobs\"') a='\"$njobs\"'; if(a<1) a=1; print a;}'`\n\n# For the rootcling execution performed during the build:\necho \"include_directories(SYSTEM /opt/$target/$target/sys-root/usr/include)\" >> ${CMAKE_TARGET_TOOLCHAIN}\n\n# Build with or without debug information: Debug / Release\nBUILD_TYPE=Release\n\n#Patch needed for gcc [9.1.0, 9.3.0)\ncat <<EOF | gcc -x c -o need_variant_patch -\nint main(){\n  long vers = __GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__;\n  return (90100 <= vers && vers < 90300) ? 0 : 1;\n}\nEOF\n\n./need_variant_patch && (cd / && atomic_patch -p1 ${WORKSPACE}/srcdir/patches/$target-variant.patch)\n \n(cd srcdir\n # patch to add ONLY_SIGALARM_ROOT_HANDLER macro\n atomic_patch -p1 patches/signal_handler.patch\n)\n\nCMAKE_CXX_FLAGS+=(-DONLY_SIGALARM_ROOT_HANDLER)\n \nif [ $target != $MACHTYPE ]; then #cross compilation\n\n   (cd srcdir\n   # patch to fix cross-compilation with rootcling\n   atomic_patch -p1 patches/rootcling-cross-compile_6.32.8.patch\n\n   # patch to fix cross-compilation for afterimage\n   atomic_patch -p1 patches/afterimage-cross-compile.patch\n  )\n\n   # Compile for the host binary used in the build process\n   # Davix is switched off, as otherwise build fails in buildkite CI. It should not be\n   # needed for the NATIVE tools. \n   mkdir NATIVE\n   cmake -GNinja \\\n         -DCMAKE_TOOLCHAIN_FILE=${CMAKE_HOST_TOOLCHAIN} \\\n         -DLLVM_HOST_TRIPLE=$MACHTYPE \\\n         -DLLVM_PARALLEL_LINK_JOBS=$LLVM_PARALLEL_LINK_JOBS \\\n         -DCXX_STANDARD=c++17 \\\n         -DCLANG_DEFAULT_STD_CXX=cxx17 \\\n         \"${CMAKE_EXTRA_OPTS[@]}\" \\\n         -DCMAKE_CXX_FLAGS=\"${CMAKE_CXX_FLAGS[*]}\" \\\n         -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DLLVM_BUILD_TYPE=$BUILD_TYPE \\\n         -DCLING_CXX_PATH=g++ \\\n         -DCLING_TARGET_GLIBC=1 \\\n         -DCLING_TARGET_GLIBCXX=1 \\\n         -DCLING_SYSTEM_INCLUDE_PATH=\"$SYSTEM_INCLUDE_PATH\" \\\n         -Ddavix=OFF \\\n         -B NATIVE -S srcdir/root\n\n   cmake --build NATIVE -- -j$njobs rootcling_stage1 rootcling llvm-tblgen clang-tblgen llvm-config llvm-symbolizer\n\n   CMAKE_EXTRA_OPTS+=(\"-DNATIVE_BINARY_DIR=$PWD/NATIVE\" \\\n      \"-DLLVM_TABLEGEN=$PWD/NATIVE/interpreter/llvm-project/llvm/bin/llvm-tblgen\" \\\n      \"-DCLANG_TABLEGEN=$PWD/NATIVE/interpreter/llvm-project/llvm/bin/clang-tblgen\" \\\n      \"-DLLVM_CONFIG_PATH=$PWD/NATIVE/interpreter/llvm-project/llvm/bin/llvm-config\" \\\n      \"-DCLING_SYSTEM_INCLUDE_PATH=$SYSTEM_INCLUDE_PATH\")\nfi\n\n# CPLUS_INCLUDE_PATH used to set system include path for rootcling in absence\n# of a -sysroot option. It should be transparent gcc and target build as it set the path \n# to the value obtained from gcc itself before setting CPLUS_INCLUDE_PATH and using\n# the same sysroot option as for compilation.\nexport CPLUS_INCLUDE_PATH=\"$SYSTEM_INCLUDE_PATH\"\nmkdir build\ncmake -GNinja \\\n      -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n      -DCMAKE_INSTALL_PREFIX=$prefix \\\n      -DLLVM_HOST_TRIPLE=$target \\\n      -DLLVM_PARALLEL_LINK_JOBS=$LLVM_PARALLEL_LINK_JOBS \\\n      -DCXX_STANDARD=c++17 \\\n      -DCLANG_DEFAULT_STD_CXX=cxx17 \\\n      \"${CMAKE_EXTRA_OPTS[@]}\" \\\n      -DCMAKE_CXX_FLAGS=\"${CMAKE_CXX_FLAGS[*]}\" \\\n      -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DLLVM_BUILD_TYPE=$BUILD_TYPE \\\n      -DCLING_CXX_PATH=g++ \\\n      -Dfound_urandom_EXITCODE=0 \\\n      -Dfound_urandom_EXITCODE__TRYRUN_OUTPUT=\"\" \\\n      -B build -S srcdir/root\n\n# Build the code\ncmake --build build -j${njobs}\n\n# Install the binaries\ncmake --install build --prefix $prefix\ninstall -Dvm 755 build/core/rootcling_stage1/src/rootcling_stage1 -t \"${bindir}\"\n\n"""
+        version = "v6.32.8"
+
+            [["6.32.8+2".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_xorgproto_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            uuid = "c4d99508-4286-5418-9131-c86396af500b"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+2".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libX11_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "4f6342f7-b3d2-589e-9d20-edeb45f2b2bc"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+2".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libXpm_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "1a3ddb2d-74e3-57f3-a27b-e9b16291b4f2"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+2".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libXft_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "2c808117-e144-5220-80d1-69d4eaa9352c"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+2".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Libtiff_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "89763e89-9b03-5906-acba-b20f662cd828"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+2".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "VDT_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "474730fa-5ea9-5b8c-8629-63de62f23418"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+2".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "XRootD_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "b6113df7-b24e-50c0-846f-35a2e36cb9d5"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+2".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Lz4_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "5ced341a-0733-55b8-9ab6-a4889d929147"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+2".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "FFTW_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "f5851436-0d7a-5f13-b9de-f02708fd171a"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+2".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Giflib_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "59f7168a-df46-5410-90c8-f2779963d0ec"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+2".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Zstd_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "3161d3a3-bdf6-5164-811a-617609db77b4"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+2".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "PCRE2_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "efcefdf7-47ab-520b-bdef-62a2eaa19f15"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+2".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Graphviz_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "3c863552-8265-54e4-a6dc-903eb78fde85"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+2".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "xxHash_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "5fdcd639-92d1-5a06-bf6b-28f2061df1a9"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+2".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "XZ_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "ffd25f8a-64ca-5728-b0f7-c24cf3aae800"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+2".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Librsvg_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "925c91fb-5dd6-59dd-8e8c-345e74382d89"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+2".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "FreeType2_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "d7e528f0-a631-5988-bf34-fe36492bcfd7"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+2".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libICE_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "f67eecfb-183a-506d-b269-f58e52b52d7c"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+2".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libSM_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "c834827a-8449-5923-a945-d239c165b7dd"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+2".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libXfixes_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "d091e8ba-531a-589c-9de9-94069b037ed8"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+2".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libXi_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "a51aa0fd-4e3c-5386-b890-e753decda492"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+2".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libXinerama_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "d1454406-59df-5ea1-beac-c340f2130bc3"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+2".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libXmu_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "6bc1fdef-f8f4-516b-84c1-6f5f86a35b20"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+2".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libXt_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "28c4a263-0105-5ca0-9a8c-f4f6b89a1dd4"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+2".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libXtst_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "b6f176f1-7aea-5357-ad67-1d3e565ea1c6"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+2".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_xcb_util_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "2def613f-5ad1-5310-b15b-b15d46f528f5"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+2".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libxkbfile_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "cc61e674-0454-545c-8b26-ed2c68acab7a"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+2".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Libglvnd_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "7e76a0d4-f3c7-5321-8279-8d96eeed0f29"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+2".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "GLU_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "bd17208b-e95e-5925-bf81-e2f59b3e5c61"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+2".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "GLEW_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "bde7f898-03f7-559e-8810-194d950ce600"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+2".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "CFITSIO_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "b3e40c51-02ae-5482-8a39-3ace5868dcf4"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+2".artifact_metadata.metadata.dependencies]]
+            compat = "2021.9.0"
+            name = "oneTBB_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "1317d2d5-d96f-522e-a858-c73665f53c3e"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.32.8+2".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "OpenBLAS32_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "656ef2d0-ae68-5445-9ca0-591084a874a2"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["6.32.8+2".artifact_metadata.metadata.products]]
+            binnames = ["root"]
+            type = "exe"
+            variable_name = "root"
+            [["6.32.8+2".artifact_metadata.metadata.products]]
+            binnames = ["rootcling"]
+            type = "exe"
+            variable_name = "rootcling"
+            [["6.32.8+2".artifact_metadata.metadata.products]]
+            binnames = ["rootcling_stage1"]
+            type = "exe"
+            variable_name = "rootcling_stage1"
+
+            [["6.32.8+2".artifact_metadata.metadata.sources]]
+            hash = "a1748a069d2d5f27ec528cfd89b54b12dcba793e"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/root-project/root.git"
+            [["6.32.8+2".artifact_metadata.metadata.sources]]
+            follow_symlinks = false
+            path = "./bundled"
+            target = ""
+            type = "directory"
