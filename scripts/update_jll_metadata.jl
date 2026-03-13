@@ -352,7 +352,7 @@ end
 function update_jll_metadata(; force = false, max_releases=200)
     meta = GeneralMetadata.metadata()
     entries = []
-    for (pkg, pkgentry) in ["IntelOpenMP_jll" => meta["IntelOpenMP_jll"]]
+    for (pkg, pkgentry) in meta
         for (ver, verinfo) in pkgentry
             haskey(verinfo, "artifact_urls") && push!(entries, verinfo)
         end
