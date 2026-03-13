@@ -1,3 +1,53 @@
 ["2024.5.0+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/GASNet_conduit_smp_jll.jl/releases/download/GASNet_conduit_smp-v2024.5.0+0/GASNet_conduit_smp.v2024.5.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/GASNet_conduit_smp_jll.jl/releases/download/GASNet_conduit_smp-v2024.5.0+0/GASNet_conduit_smp.v2024.5.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GASNet_conduit_smp_jll.jl/releases/download/GASNet_conduit_smp-v2024.5.0+0/GASNet_conduit_smp.v2024.5.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/GASNet_conduit_smp_jll.jl/releases/download/GASNet_conduit_smp-v2024.5.0+0/GASNet_conduit_smp.v2024.5.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/GASNet_conduit_smp_jll.jl/releases/download/GASNet_conduit_smp-v2024.5.0+0/GASNet_conduit_smp.v2024.5.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GASNet_conduit_smp_jll.jl/releases/download/GASNet_conduit_smp-v2024.5.0+0/GASNet_conduit_smp.v2024.5.0.x86_64-linux-musl.tar.gz"]
 registered = 2025-05-08T14:57:05.000Z
+
+    [["2024.5.0+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/GASNet_conduit_smp_jll.jl/releases/download/GASNet_conduit_smp-v2024.5.0+0/GASNet_conduit_smp.v2024.5.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/GASNet_conduit_smp_jll.jl/releases/download/GASNet_conduit_smp-v2024.5.0+0/GASNet_conduit_smp.v2024.5.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GASNet_conduit_smp_jll.jl/releases/download/GASNet_conduit_smp-v2024.5.0+0/GASNet_conduit_smp.v2024.5.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/GASNet_conduit_smp_jll.jl/releases/download/GASNet_conduit_smp-v2024.5.0+0/GASNet_conduit_smp.v2024.5.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/GASNet_conduit_smp_jll.jl/releases/download/GASNet_conduit_smp-v2024.5.0+0/GASNet_conduit_smp.v2024.5.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GASNet_conduit_smp_jll.jl/releases/download/GASNet_conduit_smp-v2024.5.0+0/GASNet_conduit_smp.v2024.5.0.x86_64-linux-musl.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/9f418d3bbff54ea24cf0d39b4e0f09e8bba176bc/G/GASNet/GASNet_conduit_smp/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.6.4"
+
+        ["2024.5.0+0".artifact_metadata.metadata]
+        augment_platform_block = ""
+        dependencies = []
+        init_block = ""
+        julia_compat = "1.6"
+        lazy_artifacts = true
+        name = "GASNet_conduit_smp"
+        platforms = ["x86_64-linux-musl", "x86_64-linux-gnu", "aarch64-linux-gnu", "aarch64-linux-musl", "x86_64-apple-darwin", "aarch64-apple-darwin"]
+        script = """cd ${WORKSPACE}/srcdir/GASNet-2024.5.0/\n\n# TODO this needs platform-dependent optimization! should be automatically detected on target platforms\n## Whether the system has a working version of anonymous mmap\nexport CROSS_HAVE_MMAP='1'\n\n## The system VM page size (ie mmap granularity, even if swapping is not supported)\nexport CROSS_PAGESIZE=4096\n\n## Does the system stack grow up?\nexport CROSS_STACK_GROWS_UP='0'\n\n## MIC doesn't have cmpxchg16b instruction!\nexport CROSS_HAVE_X86_CMPXCHG16B='0'\n\n## Enable Posix shared memory\nexport CROSS_HAVE_SHM_OPEN='1'\n\n# if target contains apple-darwin, set RANLIB to ar (llvm-ranlib fails)\nif [[ ${target} == *apple-darwin* ]]; then\n    export RANLIB=ar\nfi\n\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${MACHTYPE} --target=${target} \\\n    --enable-cross-compile \\\n    --with-cflags=-fPIC --with-cxxflags=-fPIC --with-mpi-cflags=-fPIC \\\n    --enable-smp \\\n    --disable-udp \\\n    --disable-mpi\n\nmake -j${nproc}\n\n# build for smp conduit\npushd smp-conduit\nfor file in libgasnet-smp-*.a; do\n    # extract the object files from the static library\n    ar -x $file\n\n    # extract the suffix from the filename\n    mode=${file#libgasnet-smp-}\n    mode=${mode%.a}\n\n    ${CC} -shared *.o -o libgasnet-smp-$mode.${dlext}\n    install -Dvm 0755 libgasnet-smp-$mode.${dlext} ${libdir}/libgasnet-smp-$mode.${dlext}\n\n    rm *.o\ndone\npopd\n\nmake install-includeHEADERS\n\ninstall_license license.txt\n"""
+        version = "v2024.5.0"
+
+            [["2024.5.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libgasnet-smp-seq"]
+            type = "lib"
+            variable_name = "libgasnet_smp_seq"
+            [["2024.5.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libgasnet-smp-par"]
+            type = "lib"
+            variable_name = "libgasnet_smp_par"
+            [["2024.5.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libgasnet-smp-parsync"]
+            type = "lib"
+            variable_name = "libgasnet_smp_parsync"
+            [["2024.5.0+0".artifact_metadata.metadata.products]]
+            paths = ["include/gasnet.h"]
+            type = "file"
+            variable_name = "gasnet_h"
+
+            [["2024.5.0+0".artifact_metadata.metadata.sources]]
+            hash = "f945e80f71d340664766b66290496d230e021df5e5cd88f404d101258446daa9"
+            type = "archive"
+            unpack_target = ""
+            url = "https://gasnet.lbl.gov/EX/GASNet-2024.5.0.tar.gz"

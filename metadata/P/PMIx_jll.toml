@@ -34,6 +34,76 @@ registered = 2024-09-25T19:23:06.000Z
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/PMIx_jll.jl/releases/download/PMIx-v6.0.0+0/PMIx.v6.0.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/PMIx_jll.jl/releases/download/PMIx-v6.0.0+0/PMIx.v6.0.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/PMIx_jll.jl/releases/download/PMIx-v6.0.0+0/PMIx.v6.0.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/PMIx_jll.jl/releases/download/PMIx-v6.0.0+0/PMIx.v6.0.0.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/PMIx_jll.jl/releases/download/PMIx-v6.0.0+0/PMIx.v6.0.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/PMIx_jll.jl/releases/download/PMIx-v6.0.0+0/PMIx.v6.0.0.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/PMIx_jll.jl/releases/download/PMIx-v6.0.0+0/PMIx.v6.0.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/PMIx_jll.jl/releases/download/PMIx-v6.0.0+0/PMIx.v6.0.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/PMIx_jll.jl/releases/download/PMIx-v6.0.0+0/PMIx.v6.0.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/PMIx_jll.jl/releases/download/PMIx-v6.0.0+0/PMIx.v6.0.0.x86_64-unknown-freebsd.tar.gz"]
 registered = 2025-05-24T17:40:51.000Z
 
+    [["6.0.0+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/PMIx_jll.jl/releases/download/PMIx-v6.0.0+0/PMIx.v6.0.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/PMIx_jll.jl/releases/download/PMIx-v6.0.0+0/PMIx.v6.0.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/PMIx_jll.jl/releases/download/PMIx-v6.0.0+0/PMIx.v6.0.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/PMIx_jll.jl/releases/download/PMIx-v6.0.0+0/PMIx.v6.0.0.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/PMIx_jll.jl/releases/download/PMIx-v6.0.0+0/PMIx.v6.0.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/PMIx_jll.jl/releases/download/PMIx-v6.0.0+0/PMIx.v6.0.0.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/PMIx_jll.jl/releases/download/PMIx-v6.0.0+0/PMIx.v6.0.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/PMIx_jll.jl/releases/download/PMIx-v6.0.0+0/PMIx.v6.0.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/PMIx_jll.jl/releases/download/PMIx-v6.0.0+0/PMIx.v6.0.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/PMIx_jll.jl/releases/download/PMIx-v6.0.0+0/PMIx.v6.0.0.x86_64-unknown-freebsd.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/3e14d477342eae443e4cd18463179072fcf31228/P/PMIx/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.6.4"
+
+        ["6.0.0+0".artifact_metadata.metadata]
+        augment_platform_block = ""
+        init_block = """ENV[\"PMIX_PREFIX\"] = artifact_dir\n"""
+        julia_compat = "1.6"
+        lazy_artifacts = false
+        name = "PMIx"
+        platforms = ["x86_64-linux-gnu", "aarch64-linux-gnu", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "x86_64-linux-musl", "aarch64-linux-musl", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd"]
+        script = """cd $WORKSPACE/srcdir/pmix-*\nif [[ ${target} == *-musl* ]]; then\n   # Help configure find installed packages\n   export CPPFLAGS=-I${includedir}\nelif [[ ${target} == *bsd* ]]; then\n    # nonstandard pthread extensions live in a different header on some BSDs.\n    atomic_patch -p1 ${WORKSPACE}/srcdir/nonstandard_pthreads.patch\nfi\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \\\n    --enable-shared \\\n    --with-hwloc=${prefix} \\\n    --with-libevent=${prefix} \\\n    --with-zlib=${prefix} \\\n    --without-tests-examples \\\n    --disable-man-pages\nmake -j${nproc}\nmake install\ninstall_license LICENSE\n"""
+        version = "v6.0.0"
+
+            [["6.0.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "libevent_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "1080aeaf-3a6a-583e-a51c-c537b09f60ec"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.0.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Hwloc_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "e33a78d0-f292-5ffc-b300-72abe9b543c8"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.0.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Zlib_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["6.0.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libpmix"]
+            type = "lib"
+            variable_name = "libpmix"
+            [["6.0.0+0".artifact_metadata.metadata.products]]
+            binnames = ["pmix_info"]
+            type = "exe"
+            variable_name = "pmix_info"
+
+            [["6.0.0+0".artifact_metadata.metadata.sources]]
+            hash = "bfe969966d0ce82e032739cac286239bd5ad74a831d7adae013284919f125318"
+            type = "archive"
+            unpack_target = ""
+            url = "https://github.com/openpmix/openpmix/releases/download/v6.0.0/pmix-6.0.0.tar.bz2"
+            [["6.0.0+0".artifact_metadata.metadata.sources]]
+            follow_symlinks = false
+            path = "bundled"
+            target = ""
+            type = "directory"
+
 ["6.1.0+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/PMIx_jll.jl/releases/download/PMIx-v6.1.0+0/PMIx.v6.1.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/PMIx_jll.jl/releases/download/PMIx-v6.1.0+0/PMIx.v6.1.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/PMIx_jll.jl/releases/download/PMIx-v6.1.0+0/PMIx.v6.1.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/PMIx_jll.jl/releases/download/PMIx-v6.1.0+0/PMIx.v6.1.0.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/PMIx_jll.jl/releases/download/PMIx-v6.1.0+0/PMIx.v6.1.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/PMIx_jll.jl/releases/download/PMIx-v6.1.0+0/PMIx.v6.1.0.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/PMIx_jll.jl/releases/download/PMIx-v6.1.0+0/PMIx.v6.1.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/PMIx_jll.jl/releases/download/PMIx-v6.1.0+0/PMIx.v6.1.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/PMIx_jll.jl/releases/download/PMIx-v6.1.0+0/PMIx.v6.1.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/PMIx_jll.jl/releases/download/PMIx-v6.1.0+0/PMIx.v6.1.0.x86_64-unknown-freebsd.tar.gz"]
 registered = 2026-03-04T23:20:21.000Z

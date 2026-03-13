@@ -5,3 +5,37 @@ registered = 2022-09-02T22:52:54.000Z
 ["0.29.0+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/rcodesign_jll.jl/releases/download/rcodesign-v0.29.0+0/rcodesign.v0.29.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/rcodesign_jll.jl/releases/download/rcodesign-v0.29.0+0/rcodesign.v0.29.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/rcodesign_jll.jl/releases/download/rcodesign-v0.29.0+0/rcodesign.v0.29.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/rcodesign_jll.jl/releases/download/rcodesign-v0.29.0+0/rcodesign.v0.29.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/rcodesign_jll.jl/releases/download/rcodesign-v0.29.0+0/rcodesign.v0.29.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/rcodesign_jll.jl/releases/download/rcodesign-v0.29.0+0/rcodesign.v0.29.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/rcodesign_jll.jl/releases/download/rcodesign-v0.29.0+0/rcodesign.v0.29.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/rcodesign_jll.jl/releases/download/rcodesign-v0.29.0+0/rcodesign.v0.29.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/rcodesign_jll.jl/releases/download/rcodesign-v0.29.0+0/rcodesign.v0.29.0.x86_64-w64-mingw32.tar.gz"]
 registered = 2025-04-15T14:53:38.000Z
+
+    [["0.29.0+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/rcodesign_jll.jl/releases/download/rcodesign-v0.29.0+0/rcodesign.v0.29.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/rcodesign_jll.jl/releases/download/rcodesign-v0.29.0+0/rcodesign.v0.29.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/rcodesign_jll.jl/releases/download/rcodesign-v0.29.0+0/rcodesign.v0.29.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/rcodesign_jll.jl/releases/download/rcodesign-v0.29.0+0/rcodesign.v0.29.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/rcodesign_jll.jl/releases/download/rcodesign-v0.29.0+0/rcodesign.v0.29.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/rcodesign_jll.jl/releases/download/rcodesign-v0.29.0+0/rcodesign.v0.29.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/rcodesign_jll.jl/releases/download/rcodesign-v0.29.0+0/rcodesign.v0.29.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/rcodesign_jll.jl/releases/download/rcodesign-v0.29.0+0/rcodesign.v0.29.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/rcodesign_jll.jl/releases/download/rcodesign-v0.29.0+0/rcodesign.v0.29.0.x86_64-w64-mingw32.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/a12f7b02ed6cb538ef261d2c18085bbeb25c9142/R/rcodesign/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.6.4"
+
+        ["0.29.0+0".artifact_metadata.metadata]
+        augment_platform_block = ""
+        dependencies = []
+        init_block = ""
+        julia_compat = "1.6"
+        lazy_artifacts = false
+        name = "rcodesign"
+        platforms = ["x86_64-linux-gnu", "aarch64-linux-gnu", "powerpc64le-linux-gnu", "x86_64-linux-musl", "aarch64-linux-musl", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "x86_64-w64-mingw32"]
+        script = """    if [[ \"${target}\" == *\"freebsd\"* ]]; then\n        # FreeBSD requires _XOPEN_SOURCE=700 to make gettimeofday() visible in <sys/time.h>\n        export CFLAGS=\"${CFLAGS} -D_XOPEN_SOURCE=700\"\n    fi\n\n    if [[ \"${target}\" == x86_64-apple-darwin* ]]; then\n        #install a newer SDK which supports `kSecKeyAlgorithmRSASignatureMessagePSSSHA256`\n        pushd $WORKSPACE/srcdir/MacOSX11.*.sdk\n        rm -rf /opt/${target}/${target}/sys-root/System\n        rm -rf /opt/${target}/${target}/sys-root/usr/*\n        cp -ra usr/* \"/opt/${target}/${target}/sys-root/usr/.\"\n        cp -ra System \"/opt/${target}/${target}/sys-root/.\"\n        popd\n    fi\n\n    cd $WORKSPACE/srcdir/apple-platform-rs-apple-codesign-*/\n    cargo build --release --package apple-codesign --target-dir ${WORKSPACE}/tmp\n\n    install_license apple-codesign/LICENSE\n    install -Dvm 755 \"${WORKSPACE}/tmp/${rust_target}/release/rcodesign${exeext}\" \"${bindir}/rcodesign${exeext}\"\n"""
+        version = "v0.29.0"
+
+            [["0.29.0+0".artifact_metadata.metadata.products]]
+            binnames = ["rcodesign"]
+            type = "exe"
+            variable_name = "rcodesign"
+
+            [["0.29.0+0".artifact_metadata.metadata.sources]]
+            hash = "e92e27c2d0738523b5f0bfc2da5dbab33601568cfeff3e1d40eadd0ffb8e5a98"
+            type = "archive"
+            unpack_target = ""
+            url = "https://github.com/indygreg/apple-platform-rs/archive/refs/tags/apple-codesign/0.29.0.tar.gz"
+            [["0.29.0+0".artifact_metadata.metadata.sources]]
+            hash = "d3feee3ef9c6016b526e1901013f264467bb927865a03422a9cb925991cc9783"
+            type = "archive"
+            unpack_target = ""
+            url = "https://github.com/phracker/MacOSX-SDKs/releases/download/11.3/MacOSX11.0.sdk.tar.xz"
