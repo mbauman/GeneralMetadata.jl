@@ -5,7 +5,7 @@ using Pkg: Pkg, Registry, PackageSpec
 using Base64: base64decode
 using GeneralMetadata: GeneralMetadata
 using Random: shuffle!
-using Dates: DateTime
+using Dates: Dates, DateTime
 
 # Copied from SecurityAdvisories just to make life a little easier, since this runs v1.7
 function get_registry(reg=Registry.RegistrySpec(name="General", uuid = "23338594-aafe-5451-b93e-139f81909106"); depot=Pkg.depots1())
@@ -349,7 +349,8 @@ function metadata_for_jll_release(org, repo, tag)
     end
 end
 
-function update_jll_metadata(; force = false, max_releases=200)
+function update_jll_metadata(; force = false, timelimit=Dates.Minute(90))
+    start_time = Dates.now()
     meta = GeneralMetadata.metadata()
     entries = []
     for (pkg, pkgentry) in meta
@@ -359,7 +360,6 @@ function update_jll_metadata(; force = false, max_releases=200)
     end
     sort!(entries, by=x->x["registered"], rev=true)
     failures = []
-    count = 0
     for entry in entries
         if !haskey(entry, "artifact_urls") || isempty(entry["artifact_urls"])
             continue
@@ -367,15 +367,14 @@ function update_jll_metadata(; force = false, max_releases=200)
         if haskey(entry, "artifact_metadata") && !force
             continue
         end
-        count >= max_releases && ( @info "tried $count releases, stopping here"; break)
+        (Dates.now() - start_time) > timelimit && ( @info "timelimit of $timelimit reached, stopping here"; break)
         try
             add_jll_artifact_metadata!(entry)
         catch ex
             @error "error getting metadata for $(entry["artifact_urls"][1:begin])..." ex
             push!(failures, "$(entry["artifact_urls"][1:begin])... => $ex")
-            ex isa HTTP.Exceptions.StatusError && ex.status == 403 && (count = max_releases; break)
+            ex isa HTTP.Exceptions.StatusError && ex.status == 403 && (start_time = Dates.now() - timelimit; break)
         end
-        count += 1
     end
     if length(failures) > 0
         @warn "encountered $(length(failures)) failures:"
