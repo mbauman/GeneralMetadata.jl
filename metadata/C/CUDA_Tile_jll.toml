@@ -2,6 +2,48 @@
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/CUDA_Tile_jll.jl/releases/download/CUDA_Tile-v13.1.0+0/CUDA_Tile.v13.1.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDA_Tile_jll.jl/releases/download/CUDA_Tile-v13.1.0+0/CUDA_Tile.v13.1.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDA_Tile_jll.jl/releases/download/CUDA_Tile-v13.1.0+0/CUDA_Tile.v13.1.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDA_Tile_jll.jl/releases/download/CUDA_Tile-v13.1.0+0/CUDA_Tile.v13.1.0.x86_64-w64-mingw32.tar.gz"]
 registered = 2026-01-04T12:30:52.000Z
 
+    [["13.1.0+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/CUDA_Tile_jll.jl/releases/download/CUDA_Tile-v13.1.0+0/CUDA_Tile.v13.1.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDA_Tile_jll.jl/releases/download/CUDA_Tile-v13.1.0+0/CUDA_Tile.v13.1.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDA_Tile_jll.jl/releases/download/CUDA_Tile-v13.1.0+0/CUDA_Tile.v13.1.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDA_Tile_jll.jl/releases/download/CUDA_Tile-v13.1.0+0/CUDA_Tile.v13.1.0.x86_64-w64-mingw32.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/3c711ab3c331b868d0d57e09b96726bf13ccec28/C/CUDA/CUDA_Tile/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.6.5"
+
+        ["13.1.0+0".artifact_metadata.metadata]
+        augment_platform_block = ""
+        dependencies = []
+        init_block = ""
+        julia_compat = "1.6"
+        lazy_artifacts = false
+        name = "CUDA_Tile"
+        platforms = ["x86_64-linux-gnu", "aarch64-linux-gnu", "x86_64-w64-mingw32", "aarch64-apple-darwin"]
+        script = """# Phase 1: bootstrap LLVM+MLIR\n#\n# Cross compilation of LLVM and CUDA Tile need native tools, so perform a bootstrap first.\n\ncd $WORKSPACE/srcdir/llvm-project\n\nmkdir native_build\ncd native_build\n\nCMAKE_FLAGS=()\n\n# Install things into a temporary prefix\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=$WORKSPACE/srcdir/llvm-project/native_install)\n\n# Explicitly use our cmake toolchain file and tell CMake we're compiling natively\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_HOST_TOOLCHAIN})\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING=OFF)\n\n# Release build for best performance\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\n\n# Match CUDA Tile build options\n# (see https://github.com/NVIDIA/cuda-tile/blob/main/cmake/IncludeLLVM.cmake)\n## Set LLVM options\nCMAKE_FLAGS+=(-DLLVM_HOST_TRIPLE=${MACHTYPE})\nCMAKE_FLAGS+=(-DLLVM_TARGETS_TO_BUILD=host)\nCMAKE_FLAGS+=(-DLLVM_INCLUDE_EXAMPLES=OFF)\nCMAKE_FLAGS+=(-DLLVM_INCLUDE_TESTS=OFF)\nCMAKE_FLAGS+=(-DLLVM_INCLUDE_BENCHMARKS=OFF)\nCMAKE_FLAGS+=(-DLLVM_BUILD_EXAMPLES=OFF)\nCMAKE_FLAGS+=(-DLLVM_ENABLE_ASSERTIONS=OFF)\nCMAKE_FLAGS+=(-DLLVM_ENABLE_PROJECTS=\"mlir\")\n## Set MLIR options\nCMAKE_FLAGS+=(-DMLIR_BUILD_EXAMPLES=OFF)\nCMAKE_FLAGS+=(-DMLIR_ENABLE_BINDINGS_PYTHON=OFF)\n\n# Disable dependencies the native tools don't need\nCMAKE_FLAGS+=(-DLLVM_ENABLE_ZLIB=OFF)\nCMAKE_FLAGS+=(-DLLVM_ENABLE_ZSTD=OFF)\nCMAKE_FLAGS+=(-DLLVM_ENABLE_LIBXML2=OFF)\n\ncmake ../llvm ${CMAKE_FLAGS[@]}\n\nmake -j${nproc} install\n\n\n# Phase 2: cross-compile LLVM+MLIR\n\ncd $WORKSPACE/srcdir/llvm-project\n\nmkdir build\ncd build\n\nCMAKE_FLAGS=()\nCMAKE_C_FLAGS=()\nCMAKE_CXX_FLAGS=()\n\n# Point to native tools directory\nCMAKE_FLAGS+=(-DLLVM_NATIVE_TOOL_DIR=${WORKSPACE}/srcdir/llvm-project/native_build/bin)\n\n# Also set individual tool paths explicitly\nCMAKE_FLAGS+=(-DLLVM_TABLEGEN=${WORKSPACE}/srcdir/llvm-project/native_build/bin/llvm-tblgen)\nCMAKE_FLAGS+=(-DLLVM_CONFIG_PATH=${WORKSPACE}/srcdir/llvm-project/native_build/bin/llvm-config)\nCMAKE_FLAGS+=(-DLLVM_HEADERS_TABLEGEN=${WORKSPACE}/srcdir/llvm-project/native_build/bin/llvm-min-tblgen)\nCMAKE_FLAGS+=(-DMLIR_TABLEGEN=${WORKSPACE}/srcdir/llvm-project/native_build/bin/mlir-tblgen)\nCMAKE_FLAGS+=(-DMLIR_LINALG_ODS_YAML_GEN=${WORKSPACE}/srcdir/llvm-project/native_build/bin/mlir-linalg-ods-yaml-gen)\nCMAKE_FLAGS+=(-DMLIR_PDLL_TABLEGEN=${WORKSPACE}/srcdir/llvm-project/native_build/bin/mlir-pdll)\n\n# Install things into a temporary prefix\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=$WORKSPACE/srcdir/llvm-project/install)\n\n# Explicitly use our cmake toolchain file and tell CMake we're cross-compiling\nif [[ \"${target}\" == *mingw* ]]; then\n    # using Clang works around several (string table and eport symbol) limits on Windows\n    CMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN%.*}_clang.cmake)\n\n    # using Clang necessitates forcing pthread\n    CMAKE_C_FLAGS+=(-pthread)\n    CMAKE_CXX_FLAGS+=(-pthread)\nelse\n    CMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\nfi\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING=ON)\n\n# Release build for best performance\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\n\n# Also install utils, since CUDA Tile's install target depends on it\nCMAKE_FLAGS+=(-DLLVM_INSTALL_UTILS=True)\n\n# Match CUDA Tile build options\n# (see https://github.com/NVIDIA/cuda-tile/blob/main/cmake/IncludeLLVM.cmake)\n## Set LLVM options\nCMAKE_FLAGS+=(-DLLVM_INCLUDE_EXAMPLES=OFF)\nCMAKE_FLAGS+=(-DLLVM_INCLUDE_TESTS=OFF)\nCMAKE_FLAGS+=(-DLLVM_INCLUDE_BENCHMARKS=OFF)\nCMAKE_FLAGS+=(-DLLVM_BUILD_EXAMPLES=OFF)\nCMAKE_FLAGS+=(-DLLVM_ENABLE_ASSERTIONS=OFF)\nCMAKE_FLAGS+=(-DLLVM_ENABLE_PROJECTS=\"mlir\")\nCMAKE_FLAGS+=(-DLLVM_TARGETS_TO_BUILD=\"\")\n## Set MLIR options\nCMAKE_FLAGS+=(-DMLIR_BUILD_EXAMPLES=OFF)\nCMAKE_FLAGS+=(-DMLIR_ENABLE_BINDINGS_PYTHON=OFF)\n\ncmake ../llvm ${CMAKE_FLAGS[@]} \"-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS[*]}\" \"-DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS[*]}\"\n\n# For some reason, LLVM doesn't build the necessary tablegen files...\nmake llvm-headers mlir-generic-headers vt_gen\n\nmake -j${nproc} install\n\n\n# Phase 3: build CUDA Tile\n\ncd $WORKSPACE/srcdir/cuda-tile\n\ninstall_license LICENSE.txt\n\n# Patches\n## Force linking against -pthread, which our llvm-config doesn't report\nsed -i '/target_link_libraries(cuda-tile-tblgen/,/)/ s/)/  pthread\\n)/' tools/cuda-tile-tblgen/CMakeLists.txt\n## Fix missing include\nsed -i 's|#include <vector>|#include <vector>\\n#include <unordered_map>|' \\\n  tools/cuda-tile-tblgen/CudaTileOp.h\n\nmkdir build\ncd build/\n\nCMAKE_FLAGS=()\n\n# Install things into $prefix\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix})\n\n# Explicitly use our cmake toolchain file and tell CMake we're cross-compiling\nif [[ \"${target}\" == *mingw* ]]; then\n    # using Clang as we link against a Clang-built LLVM\n    CMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN%.*}_clang.cmake)\n    CMAKE_C_FLAGS+=(-pthread)\n    CMAKE_CXX_FLAGS+=(-pthread)\nelse\n    CMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\nfi\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING=ON)\n\n# Point CUDA Tile to our host compilers\nCMAKE_FLAGS+=(-DNATIVE_C_COMPILER=$HOSTCC)\nCMAKE_FLAGS+=(-DNATIVE_CXX_COMPILER=$HOSTCXX)\n\n# Release build for best performance\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\n\n# Point to our MLIR installation\nCMAKE_FLAGS+=(-DCUDA_TILE_USE_LLVM_INSTALL_DIR=${WORKSPACE}/srcdir/llvm-project/install)\nCMAKE_FLAGS+=(-DCUDA_TILE_USE_NATIVE_LLVM_INSTALL_DIR=${WORKSPACE}/srcdir/llvm-project/native_install)\n\ncmake .. ${CMAKE_FLAGS[@]} \"-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS[*]}\" \"-DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS[*]}\"\nmake -j${nproc} install\n\n# XXX: remove third-party tools that aren't needed at run time\nrm -rf ${prefix}/third_party\n"""
+        version = "v13.1.0"
+
+            [["13.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["cuda-tile-tblgen"]
+            type = "exe"
+            variable_name = "cuda_tile_tblgen"
+            [["13.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["cuda-tile-opt"]
+            type = "exe"
+            variable_name = "cuda_tile_opt"
+            [["13.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["cuda-tile-translate"]
+            type = "exe"
+            variable_name = "cuda_tile_translate"
+
+            [["13.1.0+0".artifact_metadata.metadata.sources]]
+            hash = "802d9378800a3b7c9f88875206e84b2746d6991b"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/NVIDIA/cuda-tile"
+            [["13.1.0+0".artifact_metadata.metadata.sources]]
+            hash = "cfbb4cc31215d615f605466aef0bcfb42aa9faa5"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/llvm/llvm-project.git"
+
 ["13.1.6+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/CUDA_Tile_jll.jl/releases/download/CUDA_Tile-v13.1.6+0/CUDA_Tile.v13.1.6.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDA_Tile_jll.jl/releases/download/CUDA_Tile-v13.1.6+0/CUDA_Tile.v13.1.6.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDA_Tile_jll.jl/releases/download/CUDA_Tile-v13.1.6+0/CUDA_Tile.v13.1.6.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDA_Tile_jll.jl/releases/download/CUDA_Tile-v13.1.6+0/CUDA_Tile.v13.1.6.x86_64-w64-mingw32.tar.gz"]
 registered = 2026-03-11T08:46:45.000Z
