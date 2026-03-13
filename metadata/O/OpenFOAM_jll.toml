@@ -10,6 +10,1794 @@ registered = 2022-07-26T23:54:51.000Z
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/OpenFOAM_jll.jl/releases/download/OpenFOAM-v8.0.20210316+0/OpenFOAM.v8.0.20210316.x86_64-linux-gnu-cxx11-mpi+mpich.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenFOAM_jll.jl/releases/download/OpenFOAM-v8.0.20210316+0/OpenFOAM.v8.0.20210316.x86_64-linux-gnu-cxx11-mpi+mpitrampoline.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenFOAM_jll.jl/releases/download/OpenFOAM-v8.0.20210316+0/OpenFOAM.v8.0.20210316.x86_64-linux-gnu-cxx11-mpi+openmpi.tar.gz"]
 registered = 2025-12-30T12:50:33.000Z
 
+    [["8.0.20210316+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/OpenFOAM_jll.jl/releases/download/OpenFOAM-v8.0.20210316+0/OpenFOAM.v8.0.20210316.x86_64-linux-gnu-cxx11-mpi+mpich.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenFOAM_jll.jl/releases/download/OpenFOAM-v8.0.20210316+0/OpenFOAM.v8.0.20210316.x86_64-linux-gnu-cxx11-mpi+mpitrampoline.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenFOAM_jll.jl/releases/download/OpenFOAM-v8.0.20210316+0/OpenFOAM.v8.0.20210316.x86_64-linux-gnu-cxx11-mpi+openmpi.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/0e4bdd549d4dc64325d40364a2100fa08fe5ee42/O/OpenFOAM/OpenFOAM@8/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.6.5"
+
+        ["8.0.20210316+0".artifact_metadata.metadata]
+        augment_platform_block = """    using Base.BinaryPlatforms\n    # Can't use Preferences since we might be running this very early with a non-existing Manifest\nMPIPreferences_UUID = Base.UUID(\"3da0fdf6-3ccc-4f1b-acd9-58baa6c99267\")\nconst preferences = Base.get_preferences(MPIPreferences_UUID)\n\n# Keep logic in sync with MPIPreferences.jl\nfunction augment_mpi!(platform)\n    # Doesn't need to be `const` since we depend on MPIPreferences so we\n    # invalidate the cache when it changes.\n    # Note: MPIPreferences uses `Sys.iswindows()` without the `platform` argument.\n    binary = get(preferences, \"binary\", Sys.iswindows(platform) ? \"MicrosoftMPI_jll\" : \"MPICH_jll\")\n\n    abi = if binary == \"system\"\n        let abi = get(preferences, \"abi\", nothing)\n            if abi === nothing\n                error(\"MPIPreferences: Inconsistent state detected, binary set to system, but no ABI set.\")\n            else\n                abi\n            end\n        end\n    elseif binary == \"MicrosoftMPI_jll\"\n        \"MicrosoftMPI\"\n    elseif binary == \"MPICH_jll\"\n        \"MPICH\"\n    elseif binary == \"MPICH_CUDA_jll\"\n        \"MPICH\"\n    elseif binary == \"OpenMPI_jll\"\n        \"OpenMPI\"\n    elseif binary == \"MPItrampoline_jll\"\n        \"MPItrampoline\"\n    else\n        error(\"Unknown binary: $binary\")\n    end\n\n    if !haskey(platform, \"mpi\")\n        platform[\"mpi\"] = abi\n    end\n    return platform\nend\n\n    augment_platform!(platform::Platform) = augment_mpi!(platform)\n"""
+        init_block = ""
+        julia_compat = "1.6"
+        lazy_artifacts = true
+        name = "OpenFOAM"
+        platforms = ["x86_64-linux-gnu-cxx11-mpi+mpich", "x86_64-linux-gnu-cxx11-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-mpi+openmpi"]
+        script = """SCOTCH_VERSION=6.1.0\ncd ${WORKSPACE}/srcdir/OpenFOAM*\natomic_patch -p1 ../patches/etc-bashrc.patch\n\n# Set rpath-link in all C/C++ compilers\nLDFLAGS=\"\"\nfor dir in \"\" \"/dummy\" \"/mpi-system\"; do\n    LDFLAGS=\"${LDFLAGS} -Wl,-rpath-link=${PWD}/platforms/linux64GccDPInt32Opt/lib${dir}\"\ndone\nsed -i \"s?-m64?-m64 ${LDFLAGS}?g\" wmake/rules/*/c*\n\n# Set version of Scotch\necho \"export SCOTCH_VERSION=${SCOTCH_VERSION}\" > etc/config.sh/scotch\necho \"export SCOTCH_ARCH_PATH=${prefix}\"      >> etc/config.sh/scotch\n\n# Set up to use our MPI\nsed -i 's/WM_MPLIB=SYSTEMOPENMPI/WM_MPLIB=SYSTEMMPI/g' etc/bashrc\nexport MPI_ROOT=\"${prefix}\"\nexport MPI_ARCH_FLAGS=\"\"\nexport MPI_ARCH_INC=\"-I${includedir}\"\nif grep -q MPICH_NAME $prefix/include/mpi.h; then\n    export MPI_ARCH_LIBS=\"-L${libdir} -lmpi\"\nelif grep -q MPItrampoline $prefix/include/mpi.h; then\n    export MPI_ARCH_LIBS=\"-L${libdir} -lmpitrampoline\"\nelif grep -q OMPI_MAJOR_VERSION $prefix/include/mpi.h; then\n    export MPI_ARCH_LIBS=\"-L${libdir} -lmpi\"\nfi\n\n# Set up the environment.  Note, this script may internally have some failing command, which\n# would spring our traps, so we have to allow failures, sigh\nsource etc/bashrc || true\n\n# Build!\n./Allwmake -j${nproc}\n\n# Highly advanced installation process (inspired by Debian:\n# https://salsa.debian.org/science-team/openfoam/-/tree/master/debian)\nmkdir -p \"${libdir}\" \"${bindir}\" \"${prefix}/share/openfoam\"\ncp platforms/linux64GccDPInt32Opt/lib/{,dummy/,mpi-system/}*.${dlext}* \"${libdir}/.\"\ncp platforms/linux64GccDPInt32Opt/bin/* \"${bindir}/.\"\ncp -r etc/ \"${prefix}/share/openfoam/.\"\n"""
+        version = "v8.0.20210316"
+
+            [["8.0.20210316+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "flex_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["8.0.20210316+0".artifact_metadata.metadata.dependencies]]
+            compat = "6.1.3"
+            name = "SCOTCH_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["8.0.20210316+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "PTSCOTCH_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["8.0.20210316+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "METIS_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["8.0.20210316+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Zlib_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["8.0.20210316+0".artifact_metadata.metadata.dependencies]]
+            compat = "4.3.0 - 4"
+            name = "MPICH_jll"
+            platforms = ["x86_64-linux-gnu-cxx11-mpi+mpich"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["8.0.20210316+0".artifact_metadata.metadata.dependencies]]
+            compat = "5.5.3 - 5"
+            name = "MPItrampoline_jll"
+            platforms = ["x86_64-linux-gnu-cxx11-mpi+mpitrampoline"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["8.0.20210316+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "MicrosoftMPI_jll"
+            platforms = []
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["8.0.20210316+0".artifact_metadata.metadata.dependencies]]
+            compat = "4.1.8, 5.0.7"
+            name = "OpenMPI_jll"
+            platforms = ["x86_64-linux-gnu-cxx11-mpi+openmpi"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["8.0.20210316+0".artifact_metadata.metadata.dependencies]]
+            compat = "0.1"
+            name = "MPIPreferences"
+            platforms = ["any"]
+            top_level = true
+            type = "dependency"
+            uuid = "3da0fdf6-3ccc-4f1b-acd9-58baa6c99267"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libatmosphericModels"]
+            type = "lib"
+            variable_name = "libatmosphericModels"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libbarotropicCompressibilityModel"]
+            type = "lib"
+            variable_name = "libbarotropicCompressibilityModel"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libblockMesh"]
+            type = "lib"
+            variable_name = "libblockMesh"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libchemistryModel"]
+            type = "lib"
+            variable_name = "libchemistryModel"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libcoalCombustion"]
+            type = "lib"
+            variable_name = "libcoalCombustion"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libcombustionModels"]
+            type = "lib"
+            variable_name = "libcombustionModels"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libconversion"]
+            type = "lib"
+            variable_name = "libconversion"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libdecompose"]
+            type = "lib"
+            variable_name = "libdecompose"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libdecompositionMethods"]
+            type = "lib"
+            variable_name = "libdecompositionMethods"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libdistributed"]
+            type = "lib"
+            variable_name = "libdistributed"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libdistributionModels"]
+            type = "lib"
+            variable_name = "libdistributionModels"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libDPMMomentumTransportModels"]
+            type = "lib"
+            variable_name = "libDPMMomentumTransportModels"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libdriftFluxRelativeVelocityModels"]
+            type = "lib"
+            variable_name = "libdriftFluxRelativeVelocityModels"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libdriftFluxTransportModels"]
+            type = "lib"
+            variable_name = "libdriftFluxTransportModels"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libDSMC"]
+            type = "lib"
+            variable_name = "libDSMC"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libdynamicFvMesh"]
+            type = "lib"
+            variable_name = "libdynamicFvMesh"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libdynamicMesh"]
+            type = "lib"
+            variable_name = "libdynamicMesh"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libengine"]
+            type = "lib"
+            variable_name = "libengine"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libeulerianInterfacialCompositionModels"]
+            type = "lib"
+            variable_name = "libeulerianInterfacialCompositionModels"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libeulerianInterfacialModels"]
+            type = "lib"
+            variable_name = "libeulerianInterfacialModels"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libextrude2DMesh"]
+            type = "lib"
+            variable_name = "libextrude2DMesh"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libextrudeModel"]
+            type = "lib"
+            variable_name = "libextrudeModel"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libfieldFunctionObjects"]
+            type = "lib"
+            variable_name = "libfieldFunctionObjects"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libfileFormats"]
+            type = "lib"
+            variable_name = "libfileFormats"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libfiniteVolume"]
+            type = "lib"
+            variable_name = "libfiniteVolume"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libfluidThermoMomentumTransportModels"]
+            type = "lib"
+            variable_name = "libfluidThermoMomentumTransportModels"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libfluidThermophysicalModels"]
+            type = "lib"
+            variable_name = "libfluidThermophysicalModels"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libfoamToVTK"]
+            type = "lib"
+            variable_name = "libfoamToVTK"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libforces"]
+            type = "lib"
+            variable_name = "libforces"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libfvMotionSolvers"]
+            type = "lib"
+            variable_name = "libfvMotionSolvers"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libfvOptions"]
+            type = "lib"
+            variable_name = "libfvOptions"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libgenericPatchFields"]
+            type = "lib"
+            variable_name = "libgenericPatchFields"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libimmiscibleIncompressibleTwoPhaseMixture"]
+            type = "lib"
+            variable_name = "libimmiscibleIncompressibleTwoPhaseMixture"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libincompressibleMomentumTransportModels"]
+            type = "lib"
+            variable_name = "libincompressibleMomentumTransportModels"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libincompressibleTransportModels"]
+            type = "lib"
+            variable_name = "libincompressibleTransportModels"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libincompressibleTwoPhaseMixture"]
+            type = "lib"
+            variable_name = "libincompressibleTwoPhaseMixture"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libinterfaceProperties"]
+            type = "lib"
+            variable_name = "libinterfaceProperties"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["liblagrangianFunctionObjects"]
+            type = "lib"
+            variable_name = "liblagrangianFunctionObjects"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["liblagrangianIntermediate"]
+            type = "lib"
+            variable_name = "liblagrangianIntermediate"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["liblagrangian"]
+            type = "lib"
+            variable_name = "liblagrangian"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["liblagrangianSpray"]
+            type = "lib"
+            variable_name = "liblagrangianSpray"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["liblagrangianTurbulence"]
+            type = "lib"
+            variable_name = "liblagrangianTurbulence"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["liblaminarFlameSpeedModels"]
+            type = "lib"
+            variable_name = "liblaminarFlameSpeedModels"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libmeshTools"]
+            type = "lib"
+            variable_name = "libmeshTools"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libmetisDecomp"]
+            type = "lib"
+            variable_name = "libmetisDecomp"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libMGridGen"]
+            type = "lib"
+            variable_name = "libMGridGen"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libmolecularMeasurements"]
+            type = "lib"
+            variable_name = "libmolecularMeasurements"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libmolecule"]
+            type = "lib"
+            variable_name = "libmolecule"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libmomentumTransportModels"]
+            type = "lib"
+            variable_name = "libmomentumTransportModels"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libmultiphaseEulerFoamFunctionObjects"]
+            type = "lib"
+            variable_name = "libmultiphaseEulerFoamFunctionObjects"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libmultiphaseInterFoam"]
+            type = "lib"
+            variable_name = "libmultiphaseInterFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libmultiphaseMixtureThermo"]
+            type = "lib"
+            variable_name = "libmultiphaseMixtureThermo"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libmultiphaseMomentumTransportModels"]
+            type = "lib"
+            variable_name = "libmultiphaseMomentumTransportModels"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libmultiphaseSystems"]
+            type = "lib"
+            variable_name = "libmultiphaseSystems"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libmultiphaseThermophysicalTransportModels"]
+            type = "lib"
+            variable_name = "libmultiphaseThermophysicalTransportModels"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libODE"]
+            type = "lib"
+            variable_name = "libODE"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libOpenFOAM"]
+            type = "lib"
+            variable_name = "libOpenFOAM"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libpairPatchAgglomeration"]
+            type = "lib"
+            variable_name = "libpairPatchAgglomeration"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libphaseChangeTwoPhaseMixtures"]
+            type = "lib"
+            variable_name = "libphaseChangeTwoPhaseMixtures"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libphaseSystem"]
+            type = "lib"
+            variable_name = "libphaseSystem"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libpotential"]
+            type = "lib"
+            variable_name = "libpotential"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libpsiReactionThermophysicalTransportModels"]
+            type = "lib"
+            variable_name = "libpsiReactionThermophysicalTransportModels"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libPstream"]
+            type = "lib"
+            variable_name = "libPstream"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libptscotchDecomp"]
+            type = "lib"
+            variable_name = "libptscotchDecomp"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libradiationModels"]
+            type = "lib"
+            variable_name = "libradiationModels"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["librandomProcesses"]
+            type = "lib"
+            variable_name = "librandomProcesses"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libreactionThermophysicalModels"]
+            type = "lib"
+            variable_name = "libreactionThermophysicalModels"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libreconstruct"]
+            type = "lib"
+            variable_name = "libreconstruct"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libregionModels"]
+            type = "lib"
+            variable_name = "libregionModels"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["librenumberMethods"]
+            type = "lib"
+            variable_name = "librenumberMethods"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["librhoCentralFoam"]
+            type = "lib"
+            variable_name = "librhoCentralFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["librhoReactionThermophysicalTransportModels"]
+            type = "lib"
+            variable_name = "librhoReactionThermophysicalTransportModels"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["librigidBodyDynamics"]
+            type = "lib"
+            variable_name = "librigidBodyDynamics"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["librigidBodyMeshMotion"]
+            type = "lib"
+            variable_name = "librigidBodyMeshMotion"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["librigidBodyState"]
+            type = "lib"
+            variable_name = "librigidBodyState"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libsampling"]
+            type = "lib"
+            variable_name = "libsampling"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libscotchDecomp"]
+            type = "lib"
+            variable_name = "libscotchDecomp"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libsixDoFRigidBodyMotion"]
+            type = "lib"
+            variable_name = "libsixDoFRigidBodyMotion"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libsixDoFRigidBodyState"]
+            type = "lib"
+            variable_name = "libsixDoFRigidBodyState"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libSLGThermo"]
+            type = "lib"
+            variable_name = "libSLGThermo"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libsnappyHexMesh"]
+            type = "lib"
+            variable_name = "libsnappyHexMesh"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libsolidDisplacementThermo"]
+            type = "lib"
+            variable_name = "libsolidDisplacementThermo"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libsolidParticle"]
+            type = "lib"
+            variable_name = "libsolidParticle"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libsolidThermo"]
+            type = "lib"
+            variable_name = "libsolidThermo"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libsolverFunctionObjects"]
+            type = "lib"
+            variable_name = "libsolverFunctionObjects"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libspecie"]
+            type = "lib"
+            variable_name = "libspecie"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libspecieTransfer"]
+            type = "lib"
+            variable_name = "libspecieTransfer"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libsurfaceFilmDerivedFvPatchFields"]
+            type = "lib"
+            variable_name = "libsurfaceFilmDerivedFvPatchFields"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libsurfaceFilmModels"]
+            type = "lib"
+            variable_name = "libsurfaceFilmModels"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libsurfMesh"]
+            type = "lib"
+            variable_name = "libsurfMesh"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libtabulatedWallFunctions"]
+            type = "lib"
+            variable_name = "libtabulatedWallFunctions"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libthermalBaffleModels"]
+            type = "lib"
+            variable_name = "libthermalBaffleModels"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libthermophysicalProperties"]
+            type = "lib"
+            variable_name = "libthermophysicalProperties"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libthermophysicalTransportModels"]
+            type = "lib"
+            variable_name = "libthermophysicalTransportModels"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libtopoChangerFvMesh"]
+            type = "lib"
+            variable_name = "libtopoChangerFvMesh"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libtriSurface"]
+            type = "lib"
+            variable_name = "libtriSurface"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libtwoPhaseMixture"]
+            type = "lib"
+            variable_name = "libtwoPhaseMixture"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libtwoPhaseMixtureThermo"]
+            type = "lib"
+            variable_name = "libtwoPhaseMixtureThermo"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libtwoPhaseProperties"]
+            type = "lib"
+            variable_name = "libtwoPhaseProperties"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libtwoPhaseSurfaceTension"]
+            type = "lib"
+            variable_name = "libtwoPhaseSurfaceTension"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libuserd-foam"]
+            type = "lib"
+            variable_name = "libuserd_foam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libutilityFunctionObjects"]
+            type = "lib"
+            variable_name = "libutilityFunctionObjects"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libVoFphaseCompressibleMomentumTransportModels"]
+            type = "lib"
+            variable_name = "libVoFphaseCompressibleMomentumTransportModels"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libwaves"]
+            type = "lib"
+            variable_name = "libwaves"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["adiabaticFlameT"]
+            type = "exe"
+            variable_name = "adiabaticFlameT"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["adjointShapeOptimizationFoam"]
+            type = "exe"
+            variable_name = "adjointShapeOptimizationFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["ansysToFoam"]
+            type = "exe"
+            variable_name = "ansysToFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["applyBoundaryLayer"]
+            type = "exe"
+            variable_name = "applyBoundaryLayer"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["attachMesh"]
+            type = "exe"
+            variable_name = "attachMesh"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["autoPatch"]
+            type = "exe"
+            variable_name = "autoPatch"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["autoRefineMesh"]
+            type = "exe"
+            variable_name = "autoRefineMesh"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["blockMesh"]
+            type = "exe"
+            variable_name = "blockMesh"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["boundaryFoam"]
+            type = "exe"
+            variable_name = "boundaryFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["boxTurb"]
+            type = "exe"
+            variable_name = "boxTurb"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["buoyantPimpleFoam"]
+            type = "exe"
+            variable_name = "buoyantPimpleFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["buoyantSimpleFoam"]
+            type = "exe"
+            variable_name = "buoyantSimpleFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["cavitatingFoam"]
+            type = "exe"
+            variable_name = "cavitatingFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["cfx4ToFoam"]
+            type = "exe"
+            variable_name = "cfx4ToFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["changeDictionary"]
+            type = "exe"
+            variable_name = "changeDictionary"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["checkMesh"]
+            type = "exe"
+            variable_name = "checkMesh"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["chemFoam"]
+            type = "exe"
+            variable_name = "chemFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["chemkinToFoam"]
+            type = "exe"
+            variable_name = "chemkinToFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["chtMultiRegionFoam"]
+            type = "exe"
+            variable_name = "chtMultiRegionFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["coalChemistryFoam"]
+            type = "exe"
+            variable_name = "coalChemistryFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["coldEngineFoam"]
+            type = "exe"
+            variable_name = "coldEngineFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["collapseEdges"]
+            type = "exe"
+            variable_name = "collapseEdges"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["combinePatchFaces"]
+            type = "exe"
+            variable_name = "combinePatchFaces"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["compressibleInterFilmFoam"]
+            type = "exe"
+            variable_name = "compressibleInterFilmFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["compressibleInterFoam"]
+            type = "exe"
+            variable_name = "compressibleInterFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["compressibleMultiphaseInterFoam"]
+            type = "exe"
+            variable_name = "compressibleMultiphaseInterFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["createBaffles"]
+            type = "exe"
+            variable_name = "createBaffles"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["createExternalCoupledPatchGeometry"]
+            type = "exe"
+            variable_name = "createExternalCoupledPatchGeometry"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["createPatch"]
+            type = "exe"
+            variable_name = "createPatch"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["datToFoam"]
+            type = "exe"
+            variable_name = "datToFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["decomposePar"]
+            type = "exe"
+            variable_name = "decomposePar"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["deformedGeom"]
+            type = "exe"
+            variable_name = "deformedGeom"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["dnsFoam"]
+            type = "exe"
+            variable_name = "dnsFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["DPMFoam"]
+            type = "exe"
+            variable_name = "DPMFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["driftFluxFoam"]
+            type = "exe"
+            variable_name = "driftFluxFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["dsmcFoam"]
+            type = "exe"
+            variable_name = "dsmcFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["dsmcInitialise"]
+            type = "exe"
+            variable_name = "dsmcInitialise"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["electrostaticFoam"]
+            type = "exe"
+            variable_name = "electrostaticFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["engineCompRatio"]
+            type = "exe"
+            variable_name = "engineCompRatio"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["engineFoam"]
+            type = "exe"
+            variable_name = "engineFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["engineSwirl"]
+            type = "exe"
+            variable_name = "engineSwirl"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["equilibriumCO"]
+            type = "exe"
+            variable_name = "equilibriumCO"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["equilibriumFlameT"]
+            type = "exe"
+            variable_name = "equilibriumFlameT"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["extrude2DMesh"]
+            type = "exe"
+            variable_name = "extrude2DMesh"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["extrudeMesh"]
+            type = "exe"
+            variable_name = "extrudeMesh"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["extrudeToRegionMesh"]
+            type = "exe"
+            variable_name = "extrudeToRegionMesh"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["faceAgglomerate"]
+            type = "exe"
+            variable_name = "faceAgglomerate"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["financialFoam"]
+            type = "exe"
+            variable_name = "financialFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["fireFoam"]
+            type = "exe"
+            variable_name = "fireFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["flattenMesh"]
+            type = "exe"
+            variable_name = "flattenMesh"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["fluent3DMeshToFoam"]
+            type = "exe"
+            variable_name = "fluent3DMeshToFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["fluentMeshToFoam"]
+            type = "exe"
+            variable_name = "fluentMeshToFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["foamDataToFluent"]
+            type = "exe"
+            variable_name = "foamDataToFluent"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["foamDictionary"]
+            type = "exe"
+            variable_name = "foamDictionary"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["foamFormatConvert"]
+            type = "exe"
+            variable_name = "foamFormatConvert"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["foamListTimes"]
+            type = "exe"
+            variable_name = "foamListTimes"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["foamMeshToFluent"]
+            type = "exe"
+            variable_name = "foamMeshToFluent"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["foamSetupCHT"]
+            type = "exe"
+            variable_name = "foamSetupCHT"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["foamToEnsight"]
+            type = "exe"
+            variable_name = "foamToEnsight"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["foamToEnsightParts"]
+            type = "exe"
+            variable_name = "foamToEnsightParts"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["foamToGMV"]
+            type = "exe"
+            variable_name = "foamToGMV"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["foamToStarMesh"]
+            type = "exe"
+            variable_name = "foamToStarMesh"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["foamToSurface"]
+            type = "exe"
+            variable_name = "foamToSurface"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["foamToTetDualMesh"]
+            type = "exe"
+            variable_name = "foamToTetDualMesh"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["foamToVTK"]
+            type = "exe"
+            variable_name = "foamToVTK"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["gambitToFoam"]
+            type = "exe"
+            variable_name = "gambitToFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["gmshToFoam"]
+            type = "exe"
+            variable_name = "gmshToFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["icoFoam"]
+            type = "exe"
+            variable_name = "icoFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["ideasUnvToFoam"]
+            type = "exe"
+            variable_name = "ideasUnvToFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["insideCells"]
+            type = "exe"
+            variable_name = "insideCells"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["interFoam"]
+            type = "exe"
+            variable_name = "interFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["interMixingFoam"]
+            type = "exe"
+            variable_name = "interMixingFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["interPhaseChangeFoam"]
+            type = "exe"
+            variable_name = "interPhaseChangeFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["kivaToFoam"]
+            type = "exe"
+            variable_name = "kivaToFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["laplacianFoam"]
+            type = "exe"
+            variable_name = "laplacianFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["magneticFoam"]
+            type = "exe"
+            variable_name = "magneticFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["mapFields"]
+            type = "exe"
+            variable_name = "mapFields"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["mapFieldsPar"]
+            type = "exe"
+            variable_name = "mapFieldsPar"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["mdEquilibrationFoam"]
+            type = "exe"
+            variable_name = "mdEquilibrationFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["mdFoam"]
+            type = "exe"
+            variable_name = "mdFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["mdInitialise"]
+            type = "exe"
+            variable_name = "mdInitialise"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["mergeMeshes"]
+            type = "exe"
+            variable_name = "mergeMeshes"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["mergeOrSplitBaffles"]
+            type = "exe"
+            variable_name = "mergeOrSplitBaffles"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["mhdFoam"]
+            type = "exe"
+            variable_name = "mhdFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["mirrorMesh"]
+            type = "exe"
+            variable_name = "mirrorMesh"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["mixtureAdiabaticFlameT"]
+            type = "exe"
+            variable_name = "mixtureAdiabaticFlameT"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["modifyMesh"]
+            type = "exe"
+            variable_name = "modifyMesh"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["moveDynamicMesh"]
+            type = "exe"
+            variable_name = "moveDynamicMesh"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["moveEngineMesh"]
+            type = "exe"
+            variable_name = "moveEngineMesh"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["moveMesh"]
+            type = "exe"
+            variable_name = "moveMesh"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["MPPICFoam"]
+            type = "exe"
+            variable_name = "MPPICFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["mshToFoam"]
+            type = "exe"
+            variable_name = "mshToFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["multiphaseEulerFoam"]
+            type = "exe"
+            variable_name = "multiphaseEulerFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["multiphaseInterFoam"]
+            type = "exe"
+            variable_name = "multiphaseInterFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["netgenNeutralToFoam"]
+            type = "exe"
+            variable_name = "netgenNeutralToFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["noise"]
+            type = "exe"
+            variable_name = "noise"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["nonNewtonianIcoFoam"]
+            type = "exe"
+            variable_name = "nonNewtonianIcoFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["objToVTK"]
+            type = "exe"
+            variable_name = "objToVTK"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["orientFaceZone"]
+            type = "exe"
+            variable_name = "orientFaceZone"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["particleFoam"]
+            type = "exe"
+            variable_name = "particleFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["particleTracks"]
+            type = "exe"
+            variable_name = "particleTracks"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["patchSummary"]
+            type = "exe"
+            variable_name = "patchSummary"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["pdfPlot"]
+            type = "exe"
+            variable_name = "pdfPlot"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["PDRFoam"]
+            type = "exe"
+            variable_name = "PDRFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["PDRMesh"]
+            type = "exe"
+            variable_name = "PDRMesh"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["pimpleFoam"]
+            type = "exe"
+            variable_name = "pimpleFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["pisoFoam"]
+            type = "exe"
+            variable_name = "pisoFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["plot3dToFoam"]
+            type = "exe"
+            variable_name = "plot3dToFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["polyDualMesh"]
+            type = "exe"
+            variable_name = "polyDualMesh"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["porousSimpleFoam"]
+            type = "exe"
+            variable_name = "porousSimpleFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["postChannel"]
+            type = "exe"
+            variable_name = "postChannel"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["postProcess"]
+            type = "exe"
+            variable_name = "postProcess"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["potentialFoam"]
+            type = "exe"
+            variable_name = "potentialFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["potentialFreeSurfaceFoam"]
+            type = "exe"
+            variable_name = "potentialFreeSurfaceFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["reactingFoam"]
+            type = "exe"
+            variable_name = "reactingFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["reactingParcelFoam"]
+            type = "exe"
+            variable_name = "reactingParcelFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["reconstructPar"]
+            type = "exe"
+            variable_name = "reconstructPar"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["reconstructParMesh"]
+            type = "exe"
+            variable_name = "reconstructParMesh"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["redistributePar"]
+            type = "exe"
+            variable_name = "redistributePar"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["refineHexMesh"]
+            type = "exe"
+            variable_name = "refineHexMesh"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["refinementLevel"]
+            type = "exe"
+            variable_name = "refinementLevel"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["refineMesh"]
+            type = "exe"
+            variable_name = "refineMesh"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["refineWallLayer"]
+            type = "exe"
+            variable_name = "refineWallLayer"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["removeFaces"]
+            type = "exe"
+            variable_name = "removeFaces"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["renumberMesh"]
+            type = "exe"
+            variable_name = "renumberMesh"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["rhoCentralFoam"]
+            type = "exe"
+            variable_name = "rhoCentralFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["rhoParticleFoam"]
+            type = "exe"
+            variable_name = "rhoParticleFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["rhoPimpleFoam"]
+            type = "exe"
+            variable_name = "rhoPimpleFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["rhoPorousSimpleFoam"]
+            type = "exe"
+            variable_name = "rhoPorousSimpleFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["rhoReactingBuoyantFoam"]
+            type = "exe"
+            variable_name = "rhoReactingBuoyantFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["rhoReactingFoam"]
+            type = "exe"
+            variable_name = "rhoReactingFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["rhoSimpleFoam"]
+            type = "exe"
+            variable_name = "rhoSimpleFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["rotateMesh"]
+            type = "exe"
+            variable_name = "rotateMesh"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["sammToFoam"]
+            type = "exe"
+            variable_name = "sammToFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["scalarTransportFoam"]
+            type = "exe"
+            variable_name = "scalarTransportFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["selectCells"]
+            type = "exe"
+            variable_name = "selectCells"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["setFields"]
+            type = "exe"
+            variable_name = "setFields"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["setSet"]
+            type = "exe"
+            variable_name = "setSet"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["setsToZones"]
+            type = "exe"
+            variable_name = "setsToZones"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["setWaves"]
+            type = "exe"
+            variable_name = "setWaves"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["shallowWaterFoam"]
+            type = "exe"
+            variable_name = "shallowWaterFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["simpleFoam"]
+            type = "exe"
+            variable_name = "simpleFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["simpleReactingParcelFoam"]
+            type = "exe"
+            variable_name = "simpleReactingParcelFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["singleCellMesh"]
+            type = "exe"
+            variable_name = "singleCellMesh"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["smapToFoam"]
+            type = "exe"
+            variable_name = "smapToFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["snappyHexMesh"]
+            type = "exe"
+            variable_name = "snappyHexMesh"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["solidDisplacementFoam"]
+            type = "exe"
+            variable_name = "solidDisplacementFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["solidEquilibriumDisplacementFoam"]
+            type = "exe"
+            variable_name = "solidEquilibriumDisplacementFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["splitCells"]
+            type = "exe"
+            variable_name = "splitCells"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["splitMesh"]
+            type = "exe"
+            variable_name = "splitMesh"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["splitMeshRegions"]
+            type = "exe"
+            variable_name = "splitMeshRegions"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["sprayFoam"]
+            type = "exe"
+            variable_name = "sprayFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["SRFPimpleFoam"]
+            type = "exe"
+            variable_name = "SRFPimpleFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["SRFSimpleFoam"]
+            type = "exe"
+            variable_name = "SRFSimpleFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["star3ToFoam"]
+            type = "exe"
+            variable_name = "star3ToFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["star4ToFoam"]
+            type = "exe"
+            variable_name = "star4ToFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["steadyParticleTracks"]
+            type = "exe"
+            variable_name = "steadyParticleTracks"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["stitchMesh"]
+            type = "exe"
+            variable_name = "stitchMesh"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["subsetMesh"]
+            type = "exe"
+            variable_name = "subsetMesh"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["surfaceAdd"]
+            type = "exe"
+            variable_name = "surfaceAdd"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["surfaceAutoPatch"]
+            type = "exe"
+            variable_name = "surfaceAutoPatch"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["surfaceBooleanFeatures"]
+            type = "exe"
+            variable_name = "surfaceBooleanFeatures"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["surfaceCheck"]
+            type = "exe"
+            variable_name = "surfaceCheck"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["surfaceClean"]
+            type = "exe"
+            variable_name = "surfaceClean"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["surfaceCoarsen"]
+            type = "exe"
+            variable_name = "surfaceCoarsen"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["surfaceConvert"]
+            type = "exe"
+            variable_name = "surfaceConvert"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["surfaceFeatureConvert"]
+            type = "exe"
+            variable_name = "surfaceFeatureConvert"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["surfaceFeatures"]
+            type = "exe"
+            variable_name = "surfaceFeatures"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["surfaceFind"]
+            type = "exe"
+            variable_name = "surfaceFind"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["surfaceHookUp"]
+            type = "exe"
+            variable_name = "surfaceHookUp"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["surfaceInertia"]
+            type = "exe"
+            variable_name = "surfaceInertia"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["surfaceLambdaMuSmooth"]
+            type = "exe"
+            variable_name = "surfaceLambdaMuSmooth"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["surfaceMeshConvert"]
+            type = "exe"
+            variable_name = "surfaceMeshConvert"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["surfaceMeshConvertTesting"]
+            type = "exe"
+            variable_name = "surfaceMeshConvertTesting"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["surfaceMeshExport"]
+            type = "exe"
+            variable_name = "surfaceMeshExport"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["surfaceMeshImport"]
+            type = "exe"
+            variable_name = "surfaceMeshImport"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["surfaceMeshInfo"]
+            type = "exe"
+            variable_name = "surfaceMeshInfo"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["surfaceMeshTriangulate"]
+            type = "exe"
+            variable_name = "surfaceMeshTriangulate"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["surfaceOrient"]
+            type = "exe"
+            variable_name = "surfaceOrient"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["surfacePointMerge"]
+            type = "exe"
+            variable_name = "surfacePointMerge"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["surfaceRedistributePar"]
+            type = "exe"
+            variable_name = "surfaceRedistributePar"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["surfaceRefineRedGreen"]
+            type = "exe"
+            variable_name = "surfaceRefineRedGreen"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["surfaceSplitByPatch"]
+            type = "exe"
+            variable_name = "surfaceSplitByPatch"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["surfaceSplitByTopology"]
+            type = "exe"
+            variable_name = "surfaceSplitByTopology"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["surfaceSplitNonManifolds"]
+            type = "exe"
+            variable_name = "surfaceSplitNonManifolds"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["surfaceSubset"]
+            type = "exe"
+            variable_name = "surfaceSubset"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["surfaceToPatch"]
+            type = "exe"
+            variable_name = "surfaceToPatch"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["surfaceTransformPoints"]
+            type = "exe"
+            variable_name = "surfaceTransformPoints"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["temporalInterpolate"]
+            type = "exe"
+            variable_name = "temporalInterpolate"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["tetgenToFoam"]
+            type = "exe"
+            variable_name = "tetgenToFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["thermoFoam"]
+            type = "exe"
+            variable_name = "thermoFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["topoSet"]
+            type = "exe"
+            variable_name = "topoSet"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["transformPoints"]
+            type = "exe"
+            variable_name = "transformPoints"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["twoLiquidMixingFoam"]
+            type = "exe"
+            variable_name = "twoLiquidMixingFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["viewFactorsGen"]
+            type = "exe"
+            variable_name = "viewFactorsGen"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["vtkUnstructuredToFoam"]
+            type = "exe"
+            variable_name = "vtkUnstructuredToFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["wallFunctionTable"]
+            type = "exe"
+            variable_name = "wallFunctionTable"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["writeMeshObj"]
+            type = "exe"
+            variable_name = "writeMeshObj"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["XiEngineFoam"]
+            type = "exe"
+            variable_name = "XiEngineFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["XiFoam"]
+            type = "exe"
+            variable_name = "XiFoam"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            binnames = ["zipUpMesh"]
+            type = "exe"
+            variable_name = "zipUpMesh"
+            [["8.0.20210316+0".artifact_metadata.metadata.products]]
+            paths = ["share/openfoam/etc"]
+            type = "file"
+            variable_name = "openfoam_etc"
+
+            [["8.0.20210316+0".artifact_metadata.metadata.sources]]
+            hash = "1c9b5879390b09ea0320e98800aca0974dfcdc41"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/OpenFOAM/OpenFOAM-8.git"
+            [["8.0.20210316+0".artifact_metadata.metadata.sources]]
+            follow_symlinks = false
+            path = "./bundled"
+            target = ""
+            type = "directory"
+
 ["13.0.20250911+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/OpenFOAM_jll.jl/releases/download/OpenFOAM-v13.0.20250911+0/OpenFOAM.v13.0.20250911.x86_64-linux-gnu-cxx11-mpi+mpich.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenFOAM_jll.jl/releases/download/OpenFOAM-v13.0.20250911+0/OpenFOAM.v13.0.20250911.x86_64-linux-gnu-cxx11-mpi+mpitrampoline.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenFOAM_jll.jl/releases/download/OpenFOAM-v13.0.20250911+0/OpenFOAM.v13.0.20250911.x86_64-linux-gnu-cxx11-mpi+openmpi.tar.gz"]
 registered = 2025-12-30T08:44:27.000Z
+
+    [["13.0.20250911+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/OpenFOAM_jll.jl/releases/download/OpenFOAM-v13.0.20250911+0/OpenFOAM.v13.0.20250911.x86_64-linux-gnu-cxx11-mpi+mpich.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenFOAM_jll.jl/releases/download/OpenFOAM-v13.0.20250911+0/OpenFOAM.v13.0.20250911.x86_64-linux-gnu-cxx11-mpi+mpitrampoline.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenFOAM_jll.jl/releases/download/OpenFOAM-v13.0.20250911+0/OpenFOAM.v13.0.20250911.x86_64-linux-gnu-cxx11-mpi+openmpi.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/0e4bdd549d4dc64325d40364a2100fa08fe5ee42/O/OpenFOAM/OpenFOAM@13/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.6.5"
+
+        ["13.0.20250911+0".artifact_metadata.metadata]
+        augment_platform_block = """    using Base.BinaryPlatforms\n    # Can't use Preferences since we might be running this very early with a non-existing Manifest\nMPIPreferences_UUID = Base.UUID(\"3da0fdf6-3ccc-4f1b-acd9-58baa6c99267\")\nconst preferences = Base.get_preferences(MPIPreferences_UUID)\n\n# Keep logic in sync with MPIPreferences.jl\nfunction augment_mpi!(platform)\n    # Doesn't need to be `const` since we depend on MPIPreferences so we\n    # invalidate the cache when it changes.\n    # Note: MPIPreferences uses `Sys.iswindows()` without the `platform` argument.\n    binary = get(preferences, \"binary\", Sys.iswindows(platform) ? \"MicrosoftMPI_jll\" : \"MPICH_jll\")\n\n    abi = if binary == \"system\"\n        let abi = get(preferences, \"abi\", nothing)\n            if abi === nothing\n                error(\"MPIPreferences: Inconsistent state detected, binary set to system, but no ABI set.\")\n            else\n                abi\n            end\n        end\n    elseif binary == \"MicrosoftMPI_jll\"\n        \"MicrosoftMPI\"\n    elseif binary == \"MPICH_jll\"\n        \"MPICH\"\n    elseif binary == \"MPICH_CUDA_jll\"\n        \"MPICH\"\n    elseif binary == \"OpenMPI_jll\"\n        \"OpenMPI\"\n    elseif binary == \"MPItrampoline_jll\"\n        \"MPItrampoline\"\n    else\n        error(\"Unknown binary: $binary\")\n    end\n\n    if !haskey(platform, \"mpi\")\n        platform[\"mpi\"] = abi\n    end\n    return platform\nend\n\n    augment_platform!(platform::Platform) = augment_mpi!(platform)\n"""
+        init_block = ""
+        julia_compat = "1.6"
+        lazy_artifacts = true
+        name = "OpenFOAM"
+        platforms = ["x86_64-linux-gnu-cxx11-mpi+mpich", "x86_64-linux-gnu-cxx11-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-mpi+openmpi"]
+        script = """SCOTCH_VERSION=6.1.0\ncd ${WORKSPACE}/srcdir/OpenFOAM*\n\n#atomic_patch -p1 ../patches/etc-bashrc.patch\nln -sf /proc/self/fd /dev/fd\n\n# Set rpath-link in all C/C++ compilers\nLDFLAGS=\"\"\nfor dir in \"\" \"/dummy\" \"/mpi-system\"; do\n    LDFLAGS=\"${LDFLAGS} -Wl,-rpath-link=${PWD}/platforms/linux64GccDPInt32Opt/lib${dir}\"\ndone\nsed -i \"s?-m64?-m64 ${LDFLAGS}?g\" wmake/rules/*/c*\n\n# Set version of Scotch\necho \"export SCOTCH_VERSION=${SCOTCH_VERSION}\" > etc/config.sh/scotch\necho \"export SCOTCH_ARCH_PATH=${prefix}\"      >> etc/config.sh/scotch\n\n# Set up to use our MPI\nsed -i 's/WM_MPLIB=SYSTEMOPENMPI/WM_MPLIB=SYSTEMMPI/g' etc/bashrc\nexport MPI_ROOT=\"${prefix}\"\nexport MPI_ARCH_FLAGS=\"\"\nexport MPI_ARCH_INC=\"-I${includedir}\"\nif grep -q MPICH_NAME $prefix/include/mpi.h; then\n    export MPI_ARCH_LIBS=\"-L${libdir} -lmpi\"\nelif grep -q MPItrampoline $prefix/include/mpi.h; then\n    export MPI_ARCH_LIBS=\"-L${libdir} -lmpitrampoline\"\nelif grep -q OMPI_MAJOR_VERSION $prefix/include/mpi.h; then\n    export MPI_ARCH_LIBS=\"-L${libdir} -lmpi\"\nfi\n\n# Set up the environment.  Note, this script may internally have some failing command, which\n# would spring our traps, so we have to allow failures, sigh\nsource etc/bashrc || true\n\n# Remove zoltan decomposition\nexport ZOLTAN_VERSION=zoltan-none\nexport ZOLTAN_TYPE=none\n\n# Build!\n./Allwmake -j${nproc}\n\n# Highly advanced installation process (inspired by Debian:\n# https://salsa.debian.org/science-team/openfoam/-/tree/master/debian)\nmkdir -p ${libdir} ${bindir} ${prefix}/share/openfoam\ncp platforms/linux64GccDPInt32Opt/lib/{,dummy/,mpi-system/}*.${dlext}* ${libdir}\ncp platforms/linux64GccDPInt32Opt/bin/* ${bindir}\ncp -r -L bin/* ${bindir}\ncp -r etc/ ${prefix}/share/openfoam/\n"""
+        version = "v13.0.20250911"
+
+            [["13.0.20250911+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "flex_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["13.0.20250911+0".artifact_metadata.metadata.dependencies]]
+            compat = "6.1.3"
+            name = "SCOTCH_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["13.0.20250911+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "PTSCOTCH_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["13.0.20250911+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "METIS_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["13.0.20250911+0".artifact_metadata.metadata.dependencies]]
+            compat = "1.2.12"
+            name = "Zlib_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["13.0.20250911+0".artifact_metadata.metadata.dependencies]]
+            compat = "4.3.0 - 4"
+            name = "MPICH_jll"
+            platforms = ["x86_64-linux-gnu-cxx11-mpi+mpich"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["13.0.20250911+0".artifact_metadata.metadata.dependencies]]
+            compat = "5.5.3 - 5"
+            name = "MPItrampoline_jll"
+            platforms = ["x86_64-linux-gnu-cxx11-mpi+mpitrampoline"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["13.0.20250911+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "MicrosoftMPI_jll"
+            platforms = []
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["13.0.20250911+0".artifact_metadata.metadata.dependencies]]
+            compat = "4.1.8, 5.0.7"
+            name = "OpenMPI_jll"
+            platforms = ["x86_64-linux-gnu-cxx11-mpi+openmpi"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["13.0.20250911+0".artifact_metadata.metadata.dependencies]]
+            compat = "0.1"
+            name = "MPIPreferences"
+            platforms = ["any"]
+            top_level = true
+            type = "dependency"
+            uuid = "3da0fdf6-3ccc-4f1b-acd9-58baa6c99267"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["13.0.20250911+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libOpenFOAM"]
+            type = "lib"
+            variable_name = "libOpenFOAM"
+            [["13.0.20250911+0".artifact_metadata.metadata.products]]
+            binnames = ["simpleFoam"]
+            type = "exe"
+            variable_name = "simpleFoam"
+            [["13.0.20250911+0".artifact_metadata.metadata.products]]
+            paths = ["share/openfoam/etc"]
+            type = "file"
+            variable_name = "openfoam_etc"
+
+            [["13.0.20250911+0".artifact_metadata.metadata.sources]]
+            hash = "cde978a97c939b1d5c8f2efce4e12f9b9ec460a9"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/OpenFOAM/OpenFOAM-13.git"
