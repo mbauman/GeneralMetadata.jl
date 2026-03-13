@@ -6,6 +6,55 @@ registered = 2025-02-06T19:55:08.000Z
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/Heptagon_jll.jl/releases/download/Heptagon-v1.5.0+1/Heptagon.v1.5.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Heptagon_jll.jl/releases/download/Heptagon-v1.5.0+1/Heptagon.v1.5.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Heptagon_jll.jl/releases/download/Heptagon-v1.5.0+1/Heptagon.v1.5.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Heptagon_jll.jl/releases/download/Heptagon-v1.5.0+1/Heptagon.v1.5.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Heptagon_jll.jl/releases/download/Heptagon-v1.5.0+1/Heptagon.v1.5.0.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Heptagon_jll.jl/releases/download/Heptagon-v1.5.0+1/Heptagon.v1.5.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Heptagon_jll.jl/releases/download/Heptagon-v1.5.0+1/Heptagon.v1.5.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Heptagon_jll.jl/releases/download/Heptagon-v1.5.0+1/Heptagon.v1.5.0.x86_64-w64-mingw32.tar.gz"]
 registered = 2025-07-07T13:48:29.000Z
 
+    [["1.5.0+1".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/Heptagon_jll.jl/releases/download/Heptagon-v1.5.0+1/Heptagon.v1.5.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Heptagon_jll.jl/releases/download/Heptagon-v1.5.0+1/Heptagon.v1.5.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Heptagon_jll.jl/releases/download/Heptagon-v1.5.0+1/Heptagon.v1.5.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Heptagon_jll.jl/releases/download/Heptagon-v1.5.0+1/Heptagon.v1.5.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Heptagon_jll.jl/releases/download/Heptagon-v1.5.0+1/Heptagon.v1.5.0.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Heptagon_jll.jl/releases/download/Heptagon-v1.5.0+1/Heptagon.v1.5.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Heptagon_jll.jl/releases/download/Heptagon-v1.5.0+1/Heptagon.v1.5.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Heptagon_jll.jl/releases/download/Heptagon-v1.5.0+1/Heptagon.v1.5.0.x86_64-w64-mingw32.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/6f51d2bcd72a85d458c76cf1c7348eb9452f121d/H/Heptagon/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.6.4"
+
+        ["1.5.0+1".artifact_metadata.metadata]
+        augment_platform_block = ""
+        dependencies = []
+        init_block = ""
+        julia_compat = "1.6"
+        lazy_artifacts = false
+        name = "Heptagon"
+        platforms = ["x86_64-linux-gnu", "aarch64-linux-gnu", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "aarch64-linux-musl", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-w64-mingw32"]
+        script = """apk add ncurses # needed for tput\n\n# XXX: define this variable upstream?\nhost=$MACHTYPE\nhost_full=$(ls /opt/bin | grep $host)\n\n\n# dependency: stdlib-shims\n\ncd ${WORKSPACE}/srcdir/stdlib-shims\ndune build -j ${nproc}\ndune install --libdir=$OCAMLLIB\n\n\n# dependency: ocamlgraph\n\ncd ${WORKSPACE}/srcdir/ocamlgraph\ndune build -p ocamlgraph -j ${nproc}\ndune install ocamlgraph --libdir=$OCAMLLIB\n\n# also build it for the host, as we'll need it to build heptagon for the host\n(\n    export OCAMLLIB=/opt/$host/lib/ocaml PATH=/opt/bin/$host_full:/opt/$host/bin:$PATH\n    dune build -p ocamlgraph -j ${nproc}\n    dune install ocamlgraph --libdir=$OCAMLLIB --prefix=$host_prefix\n)\n\n\n# dependency: menhir\n\ncd ${WORKSPACE}/srcdir/menhir\n\n# generate the menhir binary for the host\n(\n    export OCAMLLIB=/opt/$host/lib/ocaml PATH=/opt/bin/$host_full:/opt/$host/bin:$PATH\n    dune build -j ${nproc}\n    dune install --libdir=$OCAMLLIB --prefix=$host_prefix\n)\nrm -rf _build\n\n# make menhir use bytecode binaries so that the multi-stage build works by interpretation\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/menhir-compile-bytecode.patch\n\n# compile the menhir library for the target\ndune build -j ${nproc} -p menhirLib\ndune install --libdir=$OCAMLLIB -p menhirLib\n\n\n# heptagon\n\ncd ${WORKSPACE}/srcdir/heptagon\ninstall_license COPYING\n\n# get rid of the camlp4 dependency, which is hard to cross-compile\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/heptagon-remove-camlp4-reatk.patch\nautoconf\n\n# first, generate a host compiler we can execute here\n(\n    export OCAMLLIB=/opt/$host/lib/ocaml PATH=/opt/bin/$host_full:/opt/$host/bin:$PATH\n    ./configure --prefix=$prefix --libdir=$OCAMLLIB\n    make -C compiler native\n)\ncp compiler/heptc.native /tmp\nmake clean\n\n# XXX: get rid of the host stdlibs, because they get accidentally picked up...\n#      Error: Files \"utilities/misc.cmx\"\n#             and \"/opt/x86_64-linux-musl/lib/ocaml/str/str.cmxa\"\n#             make inconsistent assumptions over interface \"Str\"\nrm -rf /opt/$host/lib/ocaml\nln -s /opt/$target/lib/ocaml /opt/$host/lib/ocaml\n\n# then, configure the build for the target\n./configure --prefix=$prefix --libdir=$prefix/lib/ocaml --enable-native\nmake || true\n\n# the build fails because it cannot execute the target compiler to generate the stdlib.\n# swap in the previously built host compiler and build the standard library\ncp /tmp/heptc.native compiler/heptc.native\nmake -C lib\n\n# finally, re-build the compiler for the target so that we can distribute it\nrm compiler/heptc.native\nmake -C compiler native\n\nmake install\nif [[ ${target} == *mingw* ]]; then\n    mv $prefix/bin/heptc $prefix/bin/heptc.exe\nfi\n"""
+        version = "v1.5.0"
+
+            [["1.5.0+1".artifact_metadata.metadata.products]]
+            binnames = ["heptc"]
+            type = "exe"
+            variable_name = "heptc"
+
+            [["1.5.0+1".artifact_metadata.metadata.sources]]
+            follow_symlinks = false
+            path = "./bundled"
+            target = ""
+            type = "directory"
+            [["1.5.0+1".artifact_metadata.metadata.sources]]
+            hash = "fb6815e5d745f07fd567c11671149de6ef2e74c8"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/ocaml/stdlib-shims"
+            [["1.5.0+1".artifact_metadata.metadata.sources]]
+            hash = "710007690fb2286f9f2ce10e19fa47a67b634670"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/backtracking/ocamlgraph"
+            [["1.5.0+1".artifact_metadata.metadata.sources]]
+            hash = "d71051f500c4f34c9faf93192a593cdf4903b0c0"
+            type = "git"
+            unpack_target = ""
+            url = "https://gitlab.inria.fr/fpottier/menhir"
+            [["1.5.0+1".artifact_metadata.metadata.sources]]
+            hash = "af93d1f0916b7ff37cb88beb8744ecb976d53ae0"
+            type = "git"
+            unpack_target = ""
+            url = "https://gitlab.inria.fr/synchrone/heptagon"
+
 ["1.5.1+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/Heptagon_jll.jl/releases/download/Heptagon-v1.5.1+0/Heptagon.v1.5.1.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Heptagon_jll.jl/releases/download/Heptagon-v1.5.1+0/Heptagon.v1.5.1.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Heptagon_jll.jl/releases/download/Heptagon-v1.5.1+0/Heptagon.v1.5.1.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Heptagon_jll.jl/releases/download/Heptagon-v1.5.1+0/Heptagon.v1.5.1.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Heptagon_jll.jl/releases/download/Heptagon-v1.5.1+0/Heptagon.v1.5.1.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Heptagon_jll.jl/releases/download/Heptagon-v1.5.1+0/Heptagon.v1.5.1.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Heptagon_jll.jl/releases/download/Heptagon-v1.5.1+0/Heptagon.v1.5.1.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Heptagon_jll.jl/releases/download/Heptagon-v1.5.1+0/Heptagon.v1.5.1.x86_64-w64-mingw32.tar.gz"]
 registered = 2025-11-10T15:34:23.000Z
