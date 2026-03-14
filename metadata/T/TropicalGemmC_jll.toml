@@ -2,9 +2,451 @@
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/TropicalGemmC_jll.jl/releases/download/TropicalGemmC-v0.1.0+0/TropicalGemmC.v0.1.0.x86_64-linux-gnu-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/TropicalGemmC_jll.jl/releases/download/TropicalGemmC-v0.1.0+0/TropicalGemmC.v0.1.0.x86_64-linux-gnu-cuda+12.1.tar.gz"]
 registered = 2023-10-03T22:01:47.000Z
 
+    [["0.1.0+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/TropicalGemmC_jll.jl/releases/download/TropicalGemmC-v0.1.0+0/TropicalGemmC.v0.1.0.x86_64-linux-gnu-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/TropicalGemmC_jll.jl/releases/download/TropicalGemmC-v0.1.0+0/TropicalGemmC.v0.1.0.x86_64-linux-gnu-cuda+12.1.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/2df21ede9decc9b0645fba4459eed3e8a2e624fb/T/TropicalGemmC/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.5.6"
+
+        ["0.1.0+0".artifact_metadata.metadata]
+        augment_platform_block = """using Base.BinaryPlatforms\n\ntry\n    using CUDA_Runtime_jll\ncatch\n    # during initial package installation, CUDA_Runtime_jll may not be available.\n    # in that case, we just won't select an artifact.\nend\n\n# can't use Preferences for the same reason\nconst CUDA_Runtime_jll_uuid = Base.UUID(\"76a88914-d11a-5bdc-97e0-2f5a05c973a2\")\nconst preferences = Base.get_preferences(CUDA_Runtime_jll_uuid)\nBase.record_compiletime_preference(CUDA_Runtime_jll_uuid, \"version\")\nBase.record_compiletime_preference(CUDA_Runtime_jll_uuid, \"local\")\nconst local_toolkit = something(tryparse(Bool, get(preferences, \"local\", \"false\")), false)\n\nfunction cuda_comparison_strategy(_a::String, _b::String, a_requested::Bool, b_requested::Bool)\n    # if we're using a local toolkit, we can't use artifacts\n    if local_toolkit\n        return false\n    end\n\n    # if either isn't a version number (e.g. \"none\"), perform a simple equality check\n    a = tryparse(VersionNumber, _a)\n    b = tryparse(VersionNumber, _b)\n    if a === nothing || b === nothing\n        return _a == _b\n    end\n\n    # if both b and a requested, then we fall back to equality\n    if a_requested && b_requested\n        return Base.thisminor(a) == Base.thisminor(b)\n    end\n\n    # otherwise, do the comparison between the the single version cap and the single version:\n    function is_compatible(artifact::VersionNumber, host::VersionNumber)\n        if host >= v\"11.0\"\n            # enhanced compatibility, semver-style\n            artifact.major == host.major &&\n            Base.thisminor(artifact) <= Base.thisminor(host)\n        else\n            Base.thisminor(artifact) == Base.thisminor(host)\n        end\n    end\n    if a_requested\n        is_compatible(b, a)\n    else\n        is_compatible(a, b)\n    end\nend\n\nfunction augment_platform!(platform::Platform)\n    if !@isdefined(CUDA_Runtime_jll)\n        # don't set to nothing or Pkg will download any artifact\n        platform[\"cuda\"] = \"none\"\n    end\n\n    if !haskey(platform, \"cuda\")\n        CUDA_Runtime_jll.augment_platform!(platform)\n    end\n    BinaryPlatforms.set_compare_strategy!(platform, \"cuda\", cuda_comparison_strategy)\n\n    # store the fact that we're using a local CUDA toolkit, for debugging purposes\n    platform[\"cuda_local\"] = string(local_toolkit)\n\n    return platform\nend"""
+        init_block = ""
+        julia_compat = "1.6"
+        lazy_artifacts = true
+        name = "TropicalGemmC"
+        platforms = ["x86_64-linux-gnu-cuda+12.0", "x86_64-linux-gnu-cuda+12.1"]
+        script = """cd $WORKSPACE/srcdir\ncd TropicalGemm_Cuda/\n\nexport CUDA_HOME=${WORKSPACE}/destdir/cuda;\nexport PATH=$PATH:$CUDA_HOME/bin\n\nmkdir build\ncd build\n\ncmake ..\nmake -j${nproc}\n\ncd ..\nfor file in lib/*.${dlext}; do\n    if [ -f \"$file\" ]; then\n        install -Dvm 0755 $file ${libdir}/$(basename $file)\n    fi\ndone\n\ninstall_license /usr/share/licenses/MIT\n"""
+        version = "v0.1.0"
+
+            [["0.1.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "CompilerSupportLibraries_jll"
+            platforms = ["x86_64-linux-gnu-cuda+12.0"]
+            top_level = false
+            type = "dependency"
+            uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["0.1.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "CUDA_full_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 12
+            version-minor = 0
+            version-patch = 1
+            [["0.1.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "CUDA_Runtime_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "runtimedependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["0.1.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "CompilerSupportLibraries_jll"
+            platforms = ["x86_64-linux-gnu-cuda+12.1"]
+            top_level = false
+            type = "dependency"
+            uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["0.1.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "CUDA_full_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 12
+            version-minor = 1
+            version-patch = 1
+
+            [["0.1.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["lib_PlusMul_FP32"]
+            type = "lib"
+            variable_name = "lib_PlusMul_FP32"
+            [["0.1.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["lib_PlusMul_FP64"]
+            type = "lib"
+            variable_name = "lib_PlusMul_FP64"
+            [["0.1.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["lib_PlusMul_INT32"]
+            type = "lib"
+            variable_name = "lib_PlusMul_INT32"
+            [["0.1.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["lib_PlusMul_INT64"]
+            type = "lib"
+            variable_name = "lib_PlusMul_INT64"
+            [["0.1.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["lib_TropicalMaxMul_FP32"]
+            type = "lib"
+            variable_name = "lib_TropicalMaxMul_FP32"
+            [["0.1.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["lib_TropicalMaxMul_FP64"]
+            type = "lib"
+            variable_name = "lib_TropicalMaxMul_FP64"
+            [["0.1.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["lib_TropicalMaxMul_INT32"]
+            type = "lib"
+            variable_name = "lib_TropicalMaxMul_INT32"
+            [["0.1.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["lib_TropicalMaxMul_INT64"]
+            type = "lib"
+            variable_name = "lib_TropicalMaxMul_INT64"
+            [["0.1.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["lib_TropicalAndOr_Bool"]
+            type = "lib"
+            variable_name = "TropicalAndOr_Bool"
+            [["0.1.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["lib_TropicalMaxPlus_FP32"]
+            type = "lib"
+            variable_name = "TropicalMaxPlus_FP32"
+            [["0.1.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["lib_TropicalMaxPlus_FP64"]
+            type = "lib"
+            variable_name = "TropicalMaxPlus_FP64"
+            [["0.1.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["lib_TropicalMinPlus_FP32"]
+            type = "lib"
+            variable_name = "TropicalMinPlus_FP32"
+            [["0.1.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["lib_TropicalMinPlus_FP64"]
+            type = "lib"
+            variable_name = "TropicalMinPlus_FP64"
+
+            [["0.1.0+0".artifact_metadata.metadata.sources]]
+            hash = "5510f1394e8b5dc4fc98df7ea640a54a417188a2"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/ArrogantGao/TropicalGemm_Cuda.git"
+
 ["0.1.1+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/TropicalGemmC_jll.jl/releases/download/TropicalGemmC-v0.1.1+0/TropicalGemmC.v0.1.1.x86_64-linux-gnu-cuda+11.4.tar.gz", "https://github.com/JuliaBinaryWrappers/TropicalGemmC_jll.jl/releases/download/TropicalGemmC-v0.1.1+0/TropicalGemmC.v0.1.1.x86_64-linux-gnu-cuda+11.5.tar.gz", "https://github.com/JuliaBinaryWrappers/TropicalGemmC_jll.jl/releases/download/TropicalGemmC-v0.1.1+0/TropicalGemmC.v0.1.1.x86_64-linux-gnu-cuda+11.6.tar.gz", "https://github.com/JuliaBinaryWrappers/TropicalGemmC_jll.jl/releases/download/TropicalGemmC-v0.1.1+0/TropicalGemmC.v0.1.1.x86_64-linux-gnu-cuda+11.7.tar.gz", "https://github.com/JuliaBinaryWrappers/TropicalGemmC_jll.jl/releases/download/TropicalGemmC-v0.1.1+0/TropicalGemmC.v0.1.1.x86_64-linux-gnu-cuda+11.8.tar.gz", "https://github.com/JuliaBinaryWrappers/TropicalGemmC_jll.jl/releases/download/TropicalGemmC-v0.1.1+0/TropicalGemmC.v0.1.1.x86_64-linux-gnu-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/TropicalGemmC_jll.jl/releases/download/TropicalGemmC-v0.1.1+0/TropicalGemmC.v0.1.1.x86_64-linux-gnu-cuda+12.1.tar.gz", "https://github.com/JuliaBinaryWrappers/TropicalGemmC_jll.jl/releases/download/TropicalGemmC-v0.1.1+0/TropicalGemmC.v0.1.1.x86_64-linux-gnu-cuda+12.2.tar.gz"]
 registered = 2023-10-18T09:04:49.000Z
+
+    [["0.1.1+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/TropicalGemmC_jll.jl/releases/download/TropicalGemmC-v0.1.1+0/TropicalGemmC.v0.1.1.x86_64-linux-gnu-cuda+11.4.tar.gz", "https://github.com/JuliaBinaryWrappers/TropicalGemmC_jll.jl/releases/download/TropicalGemmC-v0.1.1+0/TropicalGemmC.v0.1.1.x86_64-linux-gnu-cuda+11.5.tar.gz", "https://github.com/JuliaBinaryWrappers/TropicalGemmC_jll.jl/releases/download/TropicalGemmC-v0.1.1+0/TropicalGemmC.v0.1.1.x86_64-linux-gnu-cuda+11.6.tar.gz", "https://github.com/JuliaBinaryWrappers/TropicalGemmC_jll.jl/releases/download/TropicalGemmC-v0.1.1+0/TropicalGemmC.v0.1.1.x86_64-linux-gnu-cuda+11.7.tar.gz", "https://github.com/JuliaBinaryWrappers/TropicalGemmC_jll.jl/releases/download/TropicalGemmC-v0.1.1+0/TropicalGemmC.v0.1.1.x86_64-linux-gnu-cuda+11.8.tar.gz", "https://github.com/JuliaBinaryWrappers/TropicalGemmC_jll.jl/releases/download/TropicalGemmC-v0.1.1+0/TropicalGemmC.v0.1.1.x86_64-linux-gnu-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/TropicalGemmC_jll.jl/releases/download/TropicalGemmC-v0.1.1+0/TropicalGemmC.v0.1.1.x86_64-linux-gnu-cuda+12.1.tar.gz", "https://github.com/JuliaBinaryWrappers/TropicalGemmC_jll.jl/releases/download/TropicalGemmC-v0.1.1+0/TropicalGemmC.v0.1.1.x86_64-linux-gnu-cuda+12.2.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/5574e64a483f4f0c18cbfe36ae19b0a0f8474ad8/T/TropicalGemmC/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.5.6"
+
+        ["0.1.1+0".artifact_metadata.metadata]
+        augment_platform_block = """using Base.BinaryPlatforms\n\ntry\n    using CUDA_Runtime_jll\ncatch\n    # during initial package installation, CUDA_Runtime_jll may not be available.\n    # in that case, we just won't select an artifact.\nend\n\n# can't use Preferences for the same reason\nconst CUDA_Runtime_jll_uuid = Base.UUID(\"76a88914-d11a-5bdc-97e0-2f5a05c973a2\")\nconst preferences = Base.get_preferences(CUDA_Runtime_jll_uuid)\nBase.record_compiletime_preference(CUDA_Runtime_jll_uuid, \"version\")\nBase.record_compiletime_preference(CUDA_Runtime_jll_uuid, \"local\")\nconst local_toolkit = something(tryparse(Bool, get(preferences, \"local\", \"false\")), false)\n\nfunction cuda_comparison_strategy(_a::String, _b::String, a_requested::Bool, b_requested::Bool)\n    # if we're using a local toolkit, we can't use artifacts\n    if local_toolkit\n        return false\n    end\n\n    # if either isn't a version number (e.g. \"none\"), perform a simple equality check\n    a = tryparse(VersionNumber, _a)\n    b = tryparse(VersionNumber, _b)\n    if a === nothing || b === nothing\n        return _a == _b\n    end\n\n    # if both b and a requested, then we fall back to equality\n    if a_requested && b_requested\n        return Base.thisminor(a) == Base.thisminor(b)\n    end\n\n    # otherwise, do the comparison between the the single version cap and the single version:\n    function is_compatible(artifact::VersionNumber, host::VersionNumber)\n        if host >= v\"11.0\"\n            # enhanced compatibility, semver-style\n            artifact.major == host.major &&\n            Base.thisminor(artifact) <= Base.thisminor(host)\n        else\n            Base.thisminor(artifact) == Base.thisminor(host)\n        end\n    end\n    if a_requested\n        is_compatible(b, a)\n    else\n        is_compatible(a, b)\n    end\nend\n\nfunction augment_platform!(platform::Platform)\n    if !@isdefined(CUDA_Runtime_jll)\n        # don't set to nothing or Pkg will download any artifact\n        platform[\"cuda\"] = \"none\"\n    end\n\n    if !haskey(platform, \"cuda\")\n        CUDA_Runtime_jll.augment_platform!(platform)\n    end\n    BinaryPlatforms.set_compare_strategy!(platform, \"cuda\", cuda_comparison_strategy)\n\n    # store the fact that we're using a local CUDA toolkit, for debugging purposes\n    platform[\"cuda_local\"] = string(local_toolkit)\n\n    return platform\nend"""
+        init_block = ""
+        julia_compat = "1.6"
+        lazy_artifacts = true
+        name = "TropicalGemmC"
+        platforms = ["x86_64-linux-gnu-cuda+11.4", "x86_64-linux-gnu-cuda+11.5", "x86_64-linux-gnu-cuda+11.6", "x86_64-linux-gnu-cuda+11.7", "x86_64-linux-gnu-cuda+11.8", "x86_64-linux-gnu-cuda+12.0", "x86_64-linux-gnu-cuda+12.1", "x86_64-linux-gnu-cuda+12.2"]
+        script = """cd $WORKSPACE/srcdir\ncd TropicalGemm_Cuda/\n\nexport CUDA_HOME=${WORKSPACE}/destdir/cuda;\nexport PATH=$PATH:$CUDA_HOME/bin\nexport CUDACXX=$CUDA_HOME/bin/nvcc\n\nmkdir build\ncd build\n\nmv ${WORKSPACE}/destdir/cuda/lib ${WORKSPACE}/destdir/cuda/lib64\n\ncmake .. -DCMAKE_CUDA_ARCHITECTURES=60 -DCMAKE_BUILD_TYPE=Release\nmake -j${nproc}\n\ncd ..\nfor file in lib/*.${dlext}; do\n    if [ -f \"$file\" ]; then\n        install -Dvm 0755 $file ${libdir}/$(basename $file)\n    fi\ndone\n\ninstall_license /usr/share/licenses/MIT\n"""
+        version = "v0.1.1"
+
+            [["0.1.1+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "CompilerSupportLibraries_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["0.1.1+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "CUDA_SDK_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 11
+            version-minor = 4
+            version-patch = 4
+            [["0.1.1+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "CUDA_Runtime_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "runtimedependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["0.1.1+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "CUDA_SDK_static_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 11
+            version-minor = 4
+            version-patch = 4
+            [["0.1.1+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "CUDA_SDK_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 11
+            version-minor = 5
+            version-patch = 2
+            [["0.1.1+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "CUDA_SDK_static_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 11
+            version-minor = 5
+            version-patch = 2
+            [["0.1.1+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "CUDA_SDK_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 11
+            version-minor = 6
+            version-patch = 2
+            [["0.1.1+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "CUDA_SDK_static_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 11
+            version-minor = 6
+            version-patch = 2
+            [["0.1.1+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "CUDA_SDK_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 11
+            version-minor = 7
+            version-patch = 1
+            [["0.1.1+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "CUDA_SDK_static_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 11
+            version-minor = 7
+            version-patch = 1
+            [["0.1.1+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "CUDA_SDK_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 11
+            version-minor = 8
+            version-patch = 0
+            [["0.1.1+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "CUDA_SDK_static_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 11
+            version-minor = 8
+            version-patch = 0
+            [["0.1.1+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "CUDA_SDK_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 12
+            version-minor = 0
+            version-patch = 1
+            [["0.1.1+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "CUDA_SDK_static_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 12
+            version-minor = 0
+            version-patch = 1
+            [["0.1.1+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "CUDA_SDK_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 12
+            version-minor = 1
+            version-patch = 1
+            [["0.1.1+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "CUDA_SDK_static_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 12
+            version-minor = 1
+            version-patch = 1
+            [["0.1.1+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "CUDA_SDK_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 12
+            version-minor = 2
+            version-patch = 2
+            [["0.1.1+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "CUDA_SDK_static_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 12
+            version-minor = 2
+            version-patch = 2
+
+            [["0.1.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["lib_PlusMul_FP32"]
+            type = "lib"
+            variable_name = "lib_PlusMul_FP32"
+            [["0.1.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["lib_PlusMul_FP64"]
+            type = "lib"
+            variable_name = "lib_PlusMul_FP64"
+            [["0.1.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["lib_PlusMul_INT32"]
+            type = "lib"
+            variable_name = "lib_PlusMul_INT32"
+            [["0.1.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["lib_PlusMul_INT64"]
+            type = "lib"
+            variable_name = "lib_PlusMul_INT64"
+            [["0.1.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["lib_TropicalMaxMul_FP32"]
+            type = "lib"
+            variable_name = "lib_TropicalMaxMul_FP32"
+            [["0.1.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["lib_TropicalMaxMul_FP64"]
+            type = "lib"
+            variable_name = "lib_TropicalMaxMul_FP64"
+            [["0.1.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["lib_TropicalMaxMul_INT32"]
+            type = "lib"
+            variable_name = "lib_TropicalMaxMul_INT32"
+            [["0.1.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["lib_TropicalMaxMul_INT64"]
+            type = "lib"
+            variable_name = "lib_TropicalMaxMul_INT64"
+            [["0.1.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["lib_TropicalAndOr_Bool"]
+            type = "lib"
+            variable_name = "lib_TropicalAndOr_Bool"
+            [["0.1.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["lib_TropicalMaxPlus_FP32"]
+            type = "lib"
+            variable_name = "lib_TropicalMaxPlus_FP32"
+            [["0.1.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["lib_TropicalMaxPlus_FP64"]
+            type = "lib"
+            variable_name = "lib_TropicalMaxPlus_FP64"
+            [["0.1.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["lib_TropicalMinPlus_FP32"]
+            type = "lib"
+            variable_name = "lib_TropicalMinPlus_FP32"
+            [["0.1.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["lib_TropicalMinPlus_FP64"]
+            type = "lib"
+            variable_name = "lib_TropicalMinPlus_FP64"
+
+            [["0.1.1+0".artifact_metadata.metadata.sources]]
+            hash = "5510f1394e8b5dc4fc98df7ea640a54a417188a2"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/ArrogantGao/TropicalGemm_Cuda.git"
 
 ["0.1.2+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/TropicalGemmC_jll.jl/releases/download/TropicalGemmC-v0.1.2+0/TropicalGemmC.v0.1.2.x86_64-linux-gnu-cuda+11.4.tar.gz", "https://github.com/JuliaBinaryWrappers/TropicalGemmC_jll.jl/releases/download/TropicalGemmC-v0.1.2+0/TropicalGemmC.v0.1.2.x86_64-linux-gnu-cuda+11.5.tar.gz", "https://github.com/JuliaBinaryWrappers/TropicalGemmC_jll.jl/releases/download/TropicalGemmC-v0.1.2+0/TropicalGemmC.v0.1.2.x86_64-linux-gnu-cuda+11.6.tar.gz", "https://github.com/JuliaBinaryWrappers/TropicalGemmC_jll.jl/releases/download/TropicalGemmC-v0.1.2+0/TropicalGemmC.v0.1.2.x86_64-linux-gnu-cuda+11.7.tar.gz", "https://github.com/JuliaBinaryWrappers/TropicalGemmC_jll.jl/releases/download/TropicalGemmC-v0.1.2+0/TropicalGemmC.v0.1.2.x86_64-linux-gnu-cuda+11.8.tar.gz", "https://github.com/JuliaBinaryWrappers/TropicalGemmC_jll.jl/releases/download/TropicalGemmC-v0.1.2+0/TropicalGemmC.v0.1.2.x86_64-linux-gnu-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/TropicalGemmC_jll.jl/releases/download/TropicalGemmC-v0.1.2+0/TropicalGemmC.v0.1.2.x86_64-linux-gnu-cuda+12.1.tar.gz", "https://github.com/JuliaBinaryWrappers/TropicalGemmC_jll.jl/releases/download/TropicalGemmC-v0.1.2+0/TropicalGemmC.v0.1.2.x86_64-linux-gnu-cuda+12.2.tar.gz", "https://github.com/JuliaBinaryWrappers/TropicalGemmC_jll.jl/releases/download/TropicalGemmC-v0.1.2+0/TropicalGemmC.v0.1.2.x86_64-linux-gnu-cuda+12.3.tar.gz"]
