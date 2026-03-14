@@ -54,6 +54,74 @@ registered = 2022-10-14T22:52:13.000Z
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/MKL_jll.jl/releases/download/MKL-v2023.1.0+0/MKL.v2023.1.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MKL_jll.jl/releases/download/MKL-v2023.1.0+0/MKL.v2023.1.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/MKL_jll.jl/releases/download/MKL-v2023.1.0+0/MKL.v2023.1.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/MKL_jll.jl/releases/download/MKL-v2023.1.0+0/MKL.v2023.1.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MKL_jll.jl/releases/download/MKL-v2023.1.0+0/MKL.v2023.1.0.x86_64-w64-mingw32.tar.gz"]
 registered = 2023-04-17T20:21:45.000Z
 
+    [["2023.1.0+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/MKL_jll.jl/releases/download/MKL-v2023.1.0+0/MKL.v2023.1.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MKL_jll.jl/releases/download/MKL-v2023.1.0+0/MKL.v2023.1.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/MKL_jll.jl/releases/download/MKL-v2023.1.0+0/MKL.v2023.1.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/MKL_jll.jl/releases/download/MKL-v2023.1.0+0/MKL.v2023.1.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MKL_jll.jl/releases/download/MKL-v2023.1.0+0/MKL.v2023.1.0.x86_64-w64-mingw32.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/f63ca0531e4b751a84868781b7b708fdcd11b09e/M/MKL/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.5.6"
+
+        ["2023.1.0+0".artifact_metadata.metadata]
+        augment_platform_block = ""
+        init_block = ""
+        julia_compat = "1.0"
+        lazy_artifacts = true
+        name = "MKL"
+        platforms = ["i686-w64-mingw32", "x86_64-w64-mingw32", "i686-linux-gnu", "x86_64-linux-gnu", "x86_64-apple-darwin"]
+        script = ["""cd ${WORKSPACE}/srcdir/mkl-${target}\nif [[ ${target} == *-mingw* ]]; then\n    cp -r Library/bin/* ${libdir}\nelse\n    cp -r lib/* ${libdir}\nfi\n\ninstall_license info/licenses/*.txt""", """\nsha256() { sha256sum \"$1\" | awk '{ print $1 }'; }\n\nexists() {\n  if [ \"$2\" != in ]; then\n    echo \"Incorrect usage.  Use: exists {key} in {array}\"\n    return\n  fi\n  eval '[ ${'$3'[$1]+x} ]'\n}\n\ncd ${WORKSPACE}/srcdir/mkl-${target}/lib\n\n#####\n## Replace duplicate library files with symlinks\n## (https://github.com/JuliaPackaging/Yggdrasil/issues/3632)\n\ndeclare -A SHAs\n\n# Iterate over files in reverse order of name length.\n# This ensures any symlinks go to the longer name.\nfor file in $(find . -type f | awk '{ print length, $0 }' | sort -n -r | cut -d\" \" -f2-); do\n    sha=$(sha256 \"$file\")\n\n    if ! exists $sha in SHAs; then\n        SHAs[$sha]=\"$file\"\n        continue\n    fi\n\n    src_file=\"${SHAs[$sha]}\"\n    ln -sf $src_file $file\ndone\n\n#####\n\ncd ..\ncp -r lib/* ${libdir}\ninstall_license info/licenses/*.txt"""]
+        version = "v2023.1.0"
+
+            [["2023.1.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "IntelOpenMP_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["2023.1.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libmkl_core", "mkl_core", "mkl_core.2"]
+            type = "lib"
+            variable_name = "libmkl_core"
+            [["2023.1.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libmkl_rt", "mkl_rt", "mkl_rt.2"]
+            type = "lib"
+            variable_name = "libmkl_rt"
+
+            [["2023.1.0+0".artifact_metadata.metadata.sources]]
+            hash = "b84848ab6a9b785171a58f8bf96e4843fb695e66af804d31f75e86877d53c7da"
+            type = "archive"
+            unpack_target = "mkl-i686-w64-mingw32"
+            url = "https://anaconda.org/intel/mkl/2023.1.0/download/win-32/mkl-2023.1.0-intel_46356.tar.bz2"
+            [["2023.1.0+0".artifact_metadata.metadata.sources]]
+            hash = "767fbbe50157e9f365eca77d42a1495b66661b5845a1c13b8e33fe79d3b4a9f4"
+            type = "archive"
+            unpack_target = "mkl-x86_64-w64-mingw32"
+            url = "https://anaconda.org/intel/mkl/2023.1.0/download/win-64/mkl-2023.1.0-intel_46356.tar.bz2"
+            [["2023.1.0+0".artifact_metadata.metadata.sources]]
+            hash = "ed00993f38f05e39252c718b6041d422f1217c015d3a62faa1f294cc7f089430"
+            type = "archive"
+            unpack_target = "mkl-i686-linux-gnu"
+            url = "https://anaconda.org/intel/mkl/2023.1.0/download/linux-32/mkl-2023.1.0-intel_46342.tar.bz2"
+            [["2023.1.0+0".artifact_metadata.metadata.sources]]
+            hash = "3820a9053b1c028b3d9f62448f7d0d53a57ca6d6d38c2279faec8663f27d0a5c"
+            type = "archive"
+            unpack_target = "mkl-x86_64-linux-gnu"
+            url = "https://anaconda.org/intel/mkl/2023.1.0/download/linux-64/mkl-2023.1.0-intel_46342.tar.bz2"
+            [["2023.1.0+0".artifact_metadata.metadata.sources]]
+            hash = "a4c7a5e322ebb988aa914c3dbdc88afd241c1f50d2fac3f919d3ebca4df4727d"
+            type = "archive"
+            unpack_target = "mkl-x86_64-apple-darwin14"
+            url = "https://anaconda.org/intel/mkl/2023.1.0/download/osx-64/mkl-2023.1.0-intel_43558.tar.bz2"
+
 ["2023.2.0+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/MKL_jll.jl/releases/download/MKL-v2023.2.0+0/MKL.v2023.2.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MKL_jll.jl/releases/download/MKL-v2023.2.0+0/MKL.v2023.2.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/MKL_jll.jl/releases/download/MKL-v2023.2.0+0/MKL.v2023.2.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/MKL_jll.jl/releases/download/MKL-v2023.2.0+0/MKL.v2023.2.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MKL_jll.jl/releases/download/MKL-v2023.2.0+0/MKL.v2023.2.0.x86_64-w64-mingw32.tar.gz"]
 registered = 2023-08-07T13:59:37.000Z
