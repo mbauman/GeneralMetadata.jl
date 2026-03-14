@@ -9,3 +9,198 @@ registered = 2022-08-04T11:30:10.000Z
 ["0.1.2+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/TempestModel_jll.jl/releases/download/TempestModel-v0.1.2+0/TempestModel.v0.1.2.x86_64-apple-darwin-mpi+mpich.tar.gz", "https://github.com/JuliaBinaryWrappers/TempestModel_jll.jl/releases/download/TempestModel-v0.1.2+0/TempestModel.v0.1.2.x86_64-apple-darwin-mpi+mpitrampoline.tar.gz", "https://github.com/JuliaBinaryWrappers/TempestModel_jll.jl/releases/download/TempestModel-v0.1.2+0/TempestModel.v0.1.2.x86_64-apple-darwin-mpi+openmpi.tar.gz", "https://github.com/JuliaBinaryWrappers/TempestModel_jll.jl/releases/download/TempestModel-v0.1.2+0/TempestModel.v0.1.2.x86_64-linux-gnu-cxx03-mpi+mpich.tar.gz", "https://github.com/JuliaBinaryWrappers/TempestModel_jll.jl/releases/download/TempestModel-v0.1.2+0/TempestModel.v0.1.2.x86_64-linux-gnu-cxx03-mpi+mpitrampoline.tar.gz", "https://github.com/JuliaBinaryWrappers/TempestModel_jll.jl/releases/download/TempestModel-v0.1.2+0/TempestModel.v0.1.2.x86_64-linux-gnu-cxx03-mpi+openmpi.tar.gz", "https://github.com/JuliaBinaryWrappers/TempestModel_jll.jl/releases/download/TempestModel-v0.1.2+0/TempestModel.v0.1.2.x86_64-linux-gnu-cxx11-mpi+mpich.tar.gz", "https://github.com/JuliaBinaryWrappers/TempestModel_jll.jl/releases/download/TempestModel-v0.1.2+0/TempestModel.v0.1.2.x86_64-linux-gnu-cxx11-mpi+mpitrampoline.tar.gz", "https://github.com/JuliaBinaryWrappers/TempestModel_jll.jl/releases/download/TempestModel-v0.1.2+0/TempestModel.v0.1.2.x86_64-linux-gnu-cxx11-mpi+openmpi.tar.gz"]
 registered = 2024-03-30T15:29:04.000Z
+
+    [["0.1.2+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/TempestModel_jll.jl/releases/download/TempestModel-v0.1.2+0/TempestModel.v0.1.2.x86_64-apple-darwin-mpi+mpich.tar.gz", "https://github.com/JuliaBinaryWrappers/TempestModel_jll.jl/releases/download/TempestModel-v0.1.2+0/TempestModel.v0.1.2.x86_64-apple-darwin-mpi+mpitrampoline.tar.gz", "https://github.com/JuliaBinaryWrappers/TempestModel_jll.jl/releases/download/TempestModel-v0.1.2+0/TempestModel.v0.1.2.x86_64-apple-darwin-mpi+openmpi.tar.gz", "https://github.com/JuliaBinaryWrappers/TempestModel_jll.jl/releases/download/TempestModel-v0.1.2+0/TempestModel.v0.1.2.x86_64-linux-gnu-cxx03-mpi+mpich.tar.gz", "https://github.com/JuliaBinaryWrappers/TempestModel_jll.jl/releases/download/TempestModel-v0.1.2+0/TempestModel.v0.1.2.x86_64-linux-gnu-cxx03-mpi+mpitrampoline.tar.gz", "https://github.com/JuliaBinaryWrappers/TempestModel_jll.jl/releases/download/TempestModel-v0.1.2+0/TempestModel.v0.1.2.x86_64-linux-gnu-cxx03-mpi+openmpi.tar.gz", "https://github.com/JuliaBinaryWrappers/TempestModel_jll.jl/releases/download/TempestModel-v0.1.2+0/TempestModel.v0.1.2.x86_64-linux-gnu-cxx11-mpi+mpich.tar.gz", "https://github.com/JuliaBinaryWrappers/TempestModel_jll.jl/releases/download/TempestModel-v0.1.2+0/TempestModel.v0.1.2.x86_64-linux-gnu-cxx11-mpi+mpitrampoline.tar.gz", "https://github.com/JuliaBinaryWrappers/TempestModel_jll.jl/releases/download/TempestModel-v0.1.2+0/TempestModel.v0.1.2.x86_64-linux-gnu-cxx11-mpi+openmpi.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/0219bd1f53e86a47a307efe5616c670a10f5fbeb/T/TempestModel/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.5.8"
+
+        ["0.1.2+0".artifact_metadata.metadata]
+        augment_platform_block = """    using Base.BinaryPlatforms\n    # Can't use Preferences since we might be running this very early with a non-existing Manifest\nMPIPreferences_UUID = Base.UUID(\"3da0fdf6-3ccc-4f1b-acd9-58baa6c99267\")\nconst preferences = Base.get_preferences(MPIPreferences_UUID)\n\n# Keep logic in sync with MPIPreferences.jl\nfunction augment_mpi!(platform)\n    # Doesn't need to be `const` since we depend on MPIPreferences so we\n    # invalidate the cache when it changes.\n    binary = get(preferences, \"binary\", Sys.iswindows() ? \"MicrosoftMPI_jll\" : \"MPICH_jll\")\n\n    abi = if binary == \"system\"\n        let abi = get(preferences, \"abi\", nothing)\n            if abi === nothing\n                error(\"MPIPreferences: Inconsistent state detected, binary set to system, but no ABI set.\")\n            else\n                abi\n            end\n        end\n    elseif binary == \"MicrosoftMPI_jll\"\n        \"MicrosoftMPI\"\n    elseif binary == \"MPICH_jll\"\n        \"MPICH\"\n    elseif binary == \"OpenMPI_jll\"\n        \"OpenMPI\"\n    elseif binary == \"MPItrampoline_jll\"\n        \"MPItrampoline\"\n    else\n        error(\"Unknown binary: $binary\")\n    end\n\n    if !haskey(platform, \"mpi\")\n        platform[\"mpi\"] = abi\n    end\n    return platform\nend\n\n    augment_platform!(platform::Platform) = augment_mpi!(platform)\n"""
+        init_block = ""
+        julia_compat = "1.6"
+        lazy_artifacts = true
+        name = "TempestModel"
+        platforms = ["x86_64-linux-gnu-cxx03-mpi+mpich", "x86_64-linux-gnu-cxx11-mpi+mpich", "x86_64-apple-darwin-mpi+mpich", "x86_64-linux-gnu-cxx03-mpi+openmpi", "x86_64-linux-gnu-cxx11-mpi+openmpi", "x86_64-apple-darwin-mpi+openmpi", "x86_64-linux-gnu-cxx03-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-mpi+mpitrampoline", "x86_64-apple-darwin-mpi+mpitrampoline"]
+        script = """mkdir -vp $bindir\nmkdir -vp $libdir\n\ncd ${WORKSPACE}/srcdir/tempestmodel*\n\natomic_patch -p1 ../patches/mk_defs.patch  \natomic_patch -p1 ../patches/mk_system_macosx.patch\n# linux system fallback\natomic_patch -p1 ../patches/mk_system_agri.patch\natomic_patch -p1 ../patches/netcdf_cpp.patch\n\n# Override MPItrampoline's built-in compiler paths\nexport MPITRAMPOLINE_CC=cc\nexport MPITRAMPOLINE_CXX=c++\nexport MPITRAMPOLINE_FC=gfortran\n\n# Use `mpicxx` if `mpic++` is not available\nif ! which mpic++; then\n    mkdir -p bin\n    ln -s $(which mpicxx) bin/mpic++\n    export PATH=\"${PATH}:$(pwd)/bin\"\nfi\n\nexport CXXFLAGS=\"-I${includedir}\"\nexport LDFLAGS=\"-L${libdir}\"\n\nmake NETCDF_ROOT=$prefix -j${nproc} all\n\ncp -v test/nonhydro_sphere/ScharMountainSphereTest ${bindir}\ncp -v test/nonhydro_sphere/BaroclinicWaveJWTest ${bindir}\ncp -v test/nonhydro_sphere/StationaryMountainFlowTest ${bindir}\ncp -v test/nonhydro_sphere/MountainWaveSphereTest ${bindir}\ncp -v test/nonhydro_sphere/HeldSuarezTest ${bindir}\ncp -v test/nonhydro_sphere/InertiaGravityWaveTest ${bindir}\ncp -v test/nonhydro_sphere/BaroclinicWaveUMJSTest ${bindir}\ncp -v test/nonhydro_sphere/MountainRossby3DTest ${bindir}\ncp -v test/nonhydro_sphere/BaldaufGravityWaveTest ${bindir}\n\ncp -v test/nonhydro_xz/RobertBubbleCartesianTest ${bindir}\ncp -v test/nonhydro_xz/ShearJetMtnWave2DCartesianTest ${bindir}\ncp -v test/nonhydro_xz/ThermalBubbleCartesian3DTest ${bindir}\ncp -v test/nonhydro_xz/Baroclinic3DCartesianTest ${bindir}\ncp -v test/nonhydro_xz/DensityCurrentCartesianTest ${bindir}\ncp -v test/nonhydro_xz/NonHydroMountainCartesianTest ${bindir}\ncp -v test/nonhydro_xz/HydrostaticMountainCartesianTest ${bindir}\ncp -v test/nonhydro_xz/ThermalBubbleCartesianTest ${bindir}\ncp -v test/nonhydro_xz/Baroclinic3DCartesianRidgeTest ${bindir}\ncp -v test/nonhydro_xz/ScharMountainCartesianTest ${bindir}\ncp -v test/nonhydro_xz/InertialGravityCartesianXZTest ${bindir}\n\ncp -v test/shallowwater_sphere/BarotropicInstabilityTest ${bindir}\ncp -v test/shallowwater_sphere/MountainRossbyTest ${bindir}\ncp -v test/shallowwater_sphere/RossbyHaurwitzWaveTest ${bindir}\n"""
+        version = "v0.1.2"
+
+            [["0.1.2+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "MKL_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["0.1.2+0".artifact_metadata.metadata.dependencies]]
+            compat = "400.902.208 - 400.999"
+            name = "NetCDF_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["0.1.2+0".artifact_metadata.metadata.dependencies]]
+            compat = "~1.14.3"
+            name = "HDF5_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["0.1.2+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "MPICH_jll"
+            platforms = ["x86_64-linux-gnu-cxx03-mpi+mpich", "x86_64-linux-gnu-cxx11-mpi+mpich", "x86_64-apple-darwin-mpi+mpich"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["0.1.2+0".artifact_metadata.metadata.dependencies]]
+            compat = "4.1.6, 5"
+            name = "OpenMPI_jll"
+            platforms = ["x86_64-linux-gnu-cxx03-mpi+openmpi", "x86_64-linux-gnu-cxx11-mpi+openmpi", "x86_64-apple-darwin-mpi+openmpi"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["0.1.2+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "MicrosoftMPI_jll"
+            platforms = []
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["0.1.2+0".artifact_metadata.metadata.dependencies]]
+            compat = "5.3.1"
+            name = "MPItrampoline_jll"
+            platforms = ["x86_64-linux-gnu-cxx03-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-mpi+mpitrampoline", "x86_64-apple-darwin-mpi+mpitrampoline"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["0.1.2+0".artifact_metadata.metadata.dependencies]]
+            compat = "0.1"
+            name = "MPIPreferences"
+            platforms = ["any"]
+            top_level = true
+            type = "dependency"
+            uuid = "3da0fdf6-3ccc-4f1b-acd9-58baa6c99267"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["0.1.2+0".artifact_metadata.metadata.products]]
+            binnames = ["ScharMountainSphereTest"]
+            type = "exe"
+            variable_name = "ScharMountainSphereTest_exe"
+            [["0.1.2+0".artifact_metadata.metadata.products]]
+            binnames = ["BaroclinicWaveJWTest"]
+            type = "exe"
+            variable_name = "BaroclinicWaveJWTest_exe"
+            [["0.1.2+0".artifact_metadata.metadata.products]]
+            binnames = ["StationaryMountainFlowTest"]
+            type = "exe"
+            variable_name = "StationaryMountainFlowTest_exe"
+            [["0.1.2+0".artifact_metadata.metadata.products]]
+            binnames = ["MountainWaveSphereTest"]
+            type = "exe"
+            variable_name = "MountainWaveSphereTest_exe"
+            [["0.1.2+0".artifact_metadata.metadata.products]]
+            binnames = ["HeldSuarezTest"]
+            type = "exe"
+            variable_name = "HeldSuarezTest_exe"
+            [["0.1.2+0".artifact_metadata.metadata.products]]
+            binnames = ["InertiaGravityWaveTest"]
+            type = "exe"
+            variable_name = "InertiaGravityWaveTest_exe"
+            [["0.1.2+0".artifact_metadata.metadata.products]]
+            binnames = ["BaroclinicWaveUMJSTest"]
+            type = "exe"
+            variable_name = "BaroclinicWaveUMJSTest_exe"
+            [["0.1.2+0".artifact_metadata.metadata.products]]
+            binnames = ["MountainRossby3DTest"]
+            type = "exe"
+            variable_name = "MountainRossby3DTest_exe"
+            [["0.1.2+0".artifact_metadata.metadata.products]]
+            binnames = ["BaldaufGravityWaveTest"]
+            type = "exe"
+            variable_name = "BaldaufGravityWaveTest_exe"
+            [["0.1.2+0".artifact_metadata.metadata.products]]
+            binnames = ["RobertBubbleCartesianTest"]
+            type = "exe"
+            variable_name = "RobertBubbleCartesianTest_exe"
+            [["0.1.2+0".artifact_metadata.metadata.products]]
+            binnames = ["ShearJetMtnWave2DCartesianTest"]
+            type = "exe"
+            variable_name = "ShearJetMtnWave2DCartesianTest_exe"
+            [["0.1.2+0".artifact_metadata.metadata.products]]
+            binnames = ["ThermalBubbleCartesian3DTest"]
+            type = "exe"
+            variable_name = "ThermalBubbleCartesian3DTest_exe"
+            [["0.1.2+0".artifact_metadata.metadata.products]]
+            binnames = ["Baroclinic3DCartesianTest"]
+            type = "exe"
+            variable_name = "Baroclinic3DCartesianTest_exe"
+            [["0.1.2+0".artifact_metadata.metadata.products]]
+            binnames = ["DensityCurrentCartesianTest"]
+            type = "exe"
+            variable_name = "DensityCurrentCartesianTest_exe"
+            [["0.1.2+0".artifact_metadata.metadata.products]]
+            binnames = ["NonHydroMountainCartesianTest"]
+            type = "exe"
+            variable_name = "NonHydroMountainCartesianTest_exe"
+            [["0.1.2+0".artifact_metadata.metadata.products]]
+            binnames = ["HydrostaticMountainCartesianTest"]
+            type = "exe"
+            variable_name = "HydrostaticMountainCartesianTest_exe"
+            [["0.1.2+0".artifact_metadata.metadata.products]]
+            binnames = ["ThermalBubbleCartesianTest"]
+            type = "exe"
+            variable_name = "ThermalBubbleCartesianTest_exe"
+            [["0.1.2+0".artifact_metadata.metadata.products]]
+            binnames = ["Baroclinic3DCartesianRidgeTest"]
+            type = "exe"
+            variable_name = "Baroclinic3DCartesianRidgeTest_exe"
+            [["0.1.2+0".artifact_metadata.metadata.products]]
+            binnames = ["ScharMountainCartesianTest"]
+            type = "exe"
+            variable_name = "ScharMountainCartesianTest_exe"
+            [["0.1.2+0".artifact_metadata.metadata.products]]
+            binnames = ["InertialGravityCartesianXZTest"]
+            type = "exe"
+            variable_name = "InertialGravityCartesianXZTest_exe"
+            [["0.1.2+0".artifact_metadata.metadata.products]]
+            binnames = ["BarotropicInstabilityTest"]
+            type = "exe"
+            variable_name = "BarotropicInstabilityTest_exe"
+            [["0.1.2+0".artifact_metadata.metadata.products]]
+            binnames = ["MountainRossbyTest"]
+            type = "exe"
+            variable_name = "MountainRossbyTest_exe"
+            [["0.1.2+0".artifact_metadata.metadata.products]]
+            binnames = ["RossbyHaurwitzWaveTest"]
+            type = "exe"
+            variable_name = "RossbyHaurwitzWaveTest_exe"
+
+            [["0.1.2+0".artifact_metadata.metadata.sources]]
+            hash = "4ecf5146f3100fb24d36156a2f99433f049f0f66"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/paullric/tempestmodel"
+            [["0.1.2+0".artifact_metadata.metadata.sources]]
+            follow_symlinks = false
+            path = "./bundled"
+            target = ""
+            type = "directory"

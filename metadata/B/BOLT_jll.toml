@@ -1,3 +1,62 @@
 ["18.1.4+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/BOLT_jll.jl/releases/download/BOLT-v18.1.4+0/BOLT.v18.1.4.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/BOLT_jll.jl/releases/download/BOLT-v18.1.4+0/BOLT.v18.1.4.aarch64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/BOLT_jll.jl/releases/download/BOLT-v18.1.4+0/BOLT.v18.1.4.aarch64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/BOLT_jll.jl/releases/download/BOLT-v18.1.4+0/BOLT.v18.1.4.aarch64-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/BOLT_jll.jl/releases/download/BOLT-v18.1.4+0/BOLT.v18.1.4.aarch64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/BOLT_jll.jl/releases/download/BOLT-v18.1.4+0/BOLT.v18.1.4.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/BOLT_jll.jl/releases/download/BOLT-v18.1.4+0/BOLT.v18.1.4.x86_64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/BOLT_jll.jl/releases/download/BOLT-v18.1.4+0/BOLT.v18.1.4.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/BOLT_jll.jl/releases/download/BOLT-v18.1.4+0/BOLT.v18.1.4.x86_64-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/BOLT_jll.jl/releases/download/BOLT-v18.1.4+0/BOLT.v18.1.4.x86_64-linux-musl-cxx11.tar.gz"]
 registered = 2024-04-17T23:00:41.000Z
+
+    [["18.1.4+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/BOLT_jll.jl/releases/download/BOLT-v18.1.4+0/BOLT.v18.1.4.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/BOLT_jll.jl/releases/download/BOLT-v18.1.4+0/BOLT.v18.1.4.aarch64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/BOLT_jll.jl/releases/download/BOLT-v18.1.4+0/BOLT.v18.1.4.aarch64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/BOLT_jll.jl/releases/download/BOLT-v18.1.4+0/BOLT.v18.1.4.aarch64-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/BOLT_jll.jl/releases/download/BOLT-v18.1.4+0/BOLT.v18.1.4.aarch64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/BOLT_jll.jl/releases/download/BOLT-v18.1.4+0/BOLT.v18.1.4.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/BOLT_jll.jl/releases/download/BOLT-v18.1.4+0/BOLT.v18.1.4.x86_64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/BOLT_jll.jl/releases/download/BOLT-v18.1.4+0/BOLT.v18.1.4.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/BOLT_jll.jl/releases/download/BOLT-v18.1.4+0/BOLT.v18.1.4.x86_64-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/BOLT_jll.jl/releases/download/BOLT-v18.1.4+0/BOLT.v18.1.4.x86_64-linux-musl-cxx11.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/6357f54cf776a3d631525931ec4ca900fb8abfd9/B/BOLT/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.5.8"
+
+        ["18.1.4+0".artifact_metadata.metadata]
+        augment_platform_block = ""
+        init_block = ""
+        julia_compat = "1.6"
+        lazy_artifacts = false
+        name = "BOLT"
+        platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin"]
+        script = """# We want to exit the program if errors occur.\nset -o errexit\n\n# Increase max file descriptors\nfd_lim=$(ulimit -n -H)\nulimit -n $fd_lim\n\nif [[ (\"${target}\" == x86_64-apple-darwin*) ]]; then\n    # LLVM 15 requires macOS SDK 10.14, see\n    # <https://github.com/JuliaPackaging/Yggdrasil/pull/5592#issuecomment-1309525112> and\n    # references therein.\n    pushd $WORKSPACE/srcdir/MacOSX10.*.sdk\n    rm -rf /opt/${target}/${target}/sys-root/System\n    cp -ra usr/* \"/opt/${target}/${target}/sys-root/usr/.\"\n    cp -ra System \"/opt/${target}/${target}/sys-root/.\"\n    export MACOSX_DEPLOYMENT_TARGET=10.14\n    popd\nfi\n\ncd ${WORKSPACE}/srcdir/llvm-project/llvm\nLLVM_SRCDIR=$(pwd)\n\n# Let's do the actual build within the `build` subdirectory\nmkdir ${WORKSPACE}/build && cd ${WORKSPACE}/build\n\n# Accumulate these flags outside CMAKE_FLAGS,\n# they will be added at the end.\nCMAKE_CPP_FLAGS=()\nCMAKE_CXX_FLAGS=()\nCMAKE_C_FLAGS=()\n\nCMAKE_FLAGS=()\n\n# The very first thing we need to do is to build llvm-tblgen for x86_64-linux-muslc\n# This is because LLVM's cross-compile setup is kind of borked, so we just\n# build the tools natively ourselves, directly.  :/\n\n# Build llvm-tblgen, clang-tblgen, and llvm-config\nmkdir ${WORKSPACE}/bootstrap\n\npushd ${WORKSPACE}/bootstrap\nCMAKE_FLAGS=()\nCMAKE_FLAGS+=(-DLLVM_TARGETS_TO_BUILD:STRING=host)\nCMAKE_FLAGS+=(-DLLVM_HOST_TRIPLE=${MACHTYPE})\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\nCMAKE_FLAGS+=(-DLLVM_ENABLE_PROJECTS='llvm')\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING=False)\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_HOST_TOOLCHAIN})\n\ncmake -GNinja ${LLVM_SRCDIR} ${CMAKE_FLAGS[@]}\nninja -j${nproc} llvm-tblgen llvm-config\npopd\n\n# Release build for best performance\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\n\n# build for our host arch\nCMAKE_FLAGS+=(-DLLVM_TARGETS_TO_BUILD:STRING=host)\n\nCMAKE_FLAGS+=(-DLLVM_ENABLE_PROJECTS:STRING=bolt)\n\n# We want a build with no bindings\nCMAKE_FLAGS+=(-DLLVM_BINDINGS_LIST=\"\" )\n\n# Turn on ZLIB\nCMAKE_FLAGS+=(-DLLVM_ENABLE_ZLIB=ON)\n# Turn off XML2\nCMAKE_FLAGS+=(-DLLVM_ENABLE_LIBXML2=OFF)\n\n# Disable useless things like docs, terminfo, etc....\nCMAKE_FLAGS+=(-DLLVM_INCLUDE_DOCS=Off)\nCMAKE_FLAGS+=(-DLLVM_ENABLE_TERMINFO=Off)\nCMAKE_FLAGS+=(-DHAVE_LIBEDIT=Off)\nCMAKE_FLAGS+=(-DLLVM_INCLUDE_BENCHMARKS=OFF)\nCMAKE_FLAGS+=(-DLLVM_INCLUDE_EXAMPLES=OFF)\nCMAKE_FLAGS+=(-DLLVM_INCLUDE_TESTS=OFF)\nCMAKE_FLAGS+=(-DLLVM_ENABLE_DOXYGEN=OFF)\n\n# Change this to check if we are building with clang?\nif [[ \"${bb_full_target}\" != *sanitize* && ( \"${target}\" == *linux* ) ]]; then\n    # https://bugs.llvm.org/show_bug.cgi?id=48221\n    CMAKE_CXX_FLAGS+=(-fno-gnu-unique)\nfi\n\n# Install things into $prefix, and make sure it knows we're cross-compiling\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix})\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING=True)\n\n# Tell LLVM where our pre-built tblgen tools are\nCMAKE_FLAGS+=(-DLLVM_TABLEGEN=${WORKSPACE}/bootstrap/bin/llvm-tblgen)\nCMAKE_FLAGS+=(-DLLVM_CONFIG_PATH=${WORKSPACE}/bootstrap/bin/llvm-config)\n\n# Explicitly use our cmake toolchain file\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\n\n# Manually set the host triplet, as otherwise on some platforms it tries to guess using\n# `ld -v`, which is hilariously wrong.\nCMAKE_FLAGS+=(-DLLVM_HOST_TRIPLE=${target})\n\n# Most targets use the actual target string, but we disagree on `aarch64-darwin` and `arm64-darwin`\nCMAKE_TARGET=${target}\n\nif [[ \"${target}\" == *apple* ]]; then\n    # On OSX, we need to override LLVM's looking around for our SDK\n    # We need to link against libc++ on OSX\n    CMAKE_FLAGS+=(-DLLVM_ENABLE_LIBCXX=ON)\n\n    # If we're building for Apple, CMake gets confused with `aarch64-apple-darwin` and instead prefers\n    # `arm64-apple-darwin`.  If this issue persists, we may have to change our triplet printing.\n    if [[ \"${target}\" == aarch64* ]]; then\n        CMAKE_TARGET=arm64-${target#*-}\n    fi\nfi\n\nGCC_VERSION=$(gcc --version | head -1 | awk '{ print $3 }' | cut -d. -f1)\nif [[ $version -le 10 && \"${target}\" == aarch64-linux* ]]; then\n    CMAKE_C_FLAGS+=(-mno-outline-atomics)\n    CMAKE_CPP_FLAGS+=(-mno-outline-atomics)\nfi\n\n# Tell LLVM which compiler target to use, because it loses track for some reason\nCMAKE_FLAGS+=(-DCMAKE_C_COMPILER_TARGET=${CMAKE_TARGET})\nCMAKE_FLAGS+=(-DCMAKE_CXX_COMPILER_TARGET=${CMAKE_TARGET})\nCMAKE_FLAGS+=(-DCMAKE_ASM_COMPILER_TARGET=${CMAKE_TARGET})\n\n# Defaults to off when crosscompiling, starting from LLVM 18\nCMAKE_FLAGS+=(-DBOLT_ENABLE_RUNTIME=ON)\n\ncmake -GNinja ${LLVM_SRCDIR} ${CMAKE_FLAGS[@]} -DCMAKE_CXX_FLAGS=\"${CMAKE_CPP_FLAGS[*]} ${CMAKE_CXX_FLAGS[*]}\" -DCMAKE_C_FLAGS=\"${CMAKE_C_FLAGS[*]}\"\nninja -j${nproc} -vv bolt\n\n# Install!\nninja install-llvm-bolt\n\ninstall_license ${WORKSPACE}/srcdir/llvm-project/bolt/LICENSE.TXT\n"""
+        version = "v18.1.4"
+
+            [["18.1.4+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Zlib_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["18.1.4+0".artifact_metadata.metadata.products]]
+            binnames = ["llvm-bolt"]
+            type = "exe"
+            variable_name = "llvm_bolt"
+            [["18.1.4+0".artifact_metadata.metadata.products]]
+            binnames = ["llvm-boltdiff"]
+            type = "exe"
+            variable_name = "llvm_boltdiff"
+            [["18.1.4+0".artifact_metadata.metadata.products]]
+            binnames = ["llvm-bolt-heatmap"]
+            type = "exe"
+            variable_name = "llvm_bolt_heatmap"
+            [["18.1.4+0".artifact_metadata.metadata.products]]
+            binnames = ["merge-fdata"]
+            type = "exe"
+            variable_name = "merge_fdata"
+            [["18.1.4+0".artifact_metadata.metadata.products]]
+            binnames = ["perf2bolt"]
+            type = "exe"
+            variable_name = "perf2bolt"
+
+            [["18.1.4+0".artifact_metadata.metadata.sources]]
+            hash = "e6c3289804a67ea0bb6a86fadbe454dd93b8d855"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/llvm/llvm-project.git"
+            [["18.1.4+0".artifact_metadata.metadata.sources]]
+            hash = "0f03869f72df8705b832910517b47dd5b79eb4e160512602f593ed243b28715f"
+            type = "archive"
+            unpack_target = ""
+            url = "https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.14.sdk.tar.xz"
