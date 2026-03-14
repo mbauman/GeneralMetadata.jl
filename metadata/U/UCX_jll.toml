@@ -46,6 +46,119 @@ registered = 2021-12-02T17:08:47.000Z
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/UCX_jll.jl/releases/download/UCX-v1.18.0+0/UCX.v1.18.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/UCX_jll.jl/releases/download/UCX-v1.18.0+0/UCX.v1.18.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/UCX_jll.jl/releases/download/UCX-v1.18.0+0/UCX.v1.18.0.x86_64-linux-gnu.tar.gz"]
 registered = 2025-01-25T01:53:13.000Z
 
+    [["1.18.0+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/UCX_jll.jl/releases/download/UCX-v1.18.0+0/UCX.v1.18.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/UCX_jll.jl/releases/download/UCX-v1.18.0+0/UCX.v1.18.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/UCX_jll.jl/releases/download/UCX-v1.18.0+0/UCX.v1.18.0.x86_64-linux-gnu.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/e6d8c439da06de6837dc32e323ec5ac46f2ac022/U/UCX/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.6.3"
+
+        ["1.18.0+0".artifact_metadata.metadata]
+        augment_platform_block = ""
+        init_block = ""
+        julia_compat = "1.0"
+        lazy_artifacts = false
+        name = "UCX"
+        platforms = ["x86_64-linux-gnu", "aarch64-linux-gnu", "powerpc64le-linux-gnu"]
+        script = """cd $WORKSPACE/srcdir/ucx*\n\n# Apply all our patches\nif [ -d $WORKSPACE/srcdir/patches ]; then\nfor f in $WORKSPACE/srcdir/patches/*.patch; do\n    echo \"Applying patch ${f}\"\n    atomic_patch -p1 ${f}\ndone\nfi\n./autogen.sh\nupdate_configure_scripts --reconf\n\nFLAGS=()\nFLAGS+=(--prefix=${prefix})\nFLAGS+=(--build=${MACHTYPE})\nFLAGS+=(--host=${target})\nFLAGS+=(--disable-debug)\nFLAGS+=(--disable-assertions)\nFLAGS+=(--disable-params-check)\nFLAGS+=(--disable-static)\nFLAGS+=(--disable-profiling)\nFLAGS+=(--enable-shared)\nFLAGS+=(--enable-mt)\nFLAGS+=(--enable-frame-pointer)\nFLAGS+=(--enable-cma)\nFLAGS+=(--with-rdmacm=${prefix})\n\nif [[ \"${target}\" != *aarch64* ]]; then\n    FLAGS+=(--with-cuda=${prefix}/cuda)\nfi\n\nif [[ \"${target}\" == *x86_64* ]]; then\n    FLAGS+=(--with-rocm=${prefix})\nfi\n\n./configure ${FLAGS[@]}\n\n# For a bug in `src/uct/sm/cma/Makefile` that I did't have the time to look\n# into, we have to build with `V=1`\nmake -j${nproc} V=1\nmake install\n\ninstall_license LICENSE\n"""
+        version = "v1.18.0"
+
+            [["1.18.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "CompilerSupportLibraries_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["1.18.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "NUMA_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "7f51dc2b-bb24-59f8-b771-bb1490e4195d"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["1.18.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "rdma_core_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "69dc3629-5c98-505f-8bcd-225213cebe70"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["1.18.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "CUDA_full_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 11
+            version-minor = 4
+            version-patch = 4
+            [["1.18.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "hsa_rocr_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 4
+            version-minor = 2
+            version-patch = 0
+
+            [["1.18.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libuct"]
+            type = "lib"
+            variable_name = "libuct"
+            [["1.18.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libucm"]
+            type = "lib"
+            variable_name = "libucm"
+            [["1.18.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libucp"]
+            type = "lib"
+            variable_name = "libucp"
+            [["1.18.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libucs"]
+            type = "lib"
+            variable_name = "libucs"
+            [["1.18.0+0".artifact_metadata.metadata.products]]
+            binnames = ["ucx_info"]
+            type = "exe"
+            variable_name = "ucx_info"
+            [["1.18.0+0".artifact_metadata.metadata.products]]
+            binnames = ["ucx_perftest"]
+            type = "exe"
+            variable_name = "ucx_perftest"
+            [["1.18.0+0".artifact_metadata.metadata.products]]
+            binnames = ["ucx_read_profile"]
+            type = "exe"
+            variable_name = "ucx_read_profile"
+
+            [["1.18.0+0".artifact_metadata.metadata.sources]]
+            hash = "693d02837894b9c346c9f91b105e4aff6f259c09"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/openucx/ucx.git"
+
 ["1.20.0+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/UCX_jll.jl/releases/download/UCX-v1.20.0+0/UCX.v1.20.0.aarch64-linux-gnu-cuda+none.tar.gz", "https://github.com/JuliaBinaryWrappers/UCX_jll.jl/releases/download/UCX-v1.20.0+0/UCX.v1.20.0.x86_64-linux-gnu-cuda+12.2.tar.gz", "https://github.com/JuliaBinaryWrappers/UCX_jll.jl/releases/download/UCX-v1.20.0+0/UCX.v1.20.0.x86_64-linux-gnu-cuda+12.3.tar.gz", "https://github.com/JuliaBinaryWrappers/UCX_jll.jl/releases/download/UCX-v1.20.0+0/UCX.v1.20.0.x86_64-linux-gnu-cuda+12.4.tar.gz", "https://github.com/JuliaBinaryWrappers/UCX_jll.jl/releases/download/UCX-v1.20.0+0/UCX.v1.20.0.x86_64-linux-gnu-cuda+12.5.tar.gz", "https://github.com/JuliaBinaryWrappers/UCX_jll.jl/releases/download/UCX-v1.20.0+0/UCX.v1.20.0.x86_64-linux-gnu-cuda+12.6.tar.gz", "https://github.com/JuliaBinaryWrappers/UCX_jll.jl/releases/download/UCX-v1.20.0+0/UCX.v1.20.0.x86_64-linux-gnu-cuda+12.8.tar.gz", "https://github.com/JuliaBinaryWrappers/UCX_jll.jl/releases/download/UCX-v1.20.0+0/UCX.v1.20.0.x86_64-linux-gnu-cuda+12.9.tar.gz", "https://github.com/JuliaBinaryWrappers/UCX_jll.jl/releases/download/UCX-v1.20.0+0/UCX.v1.20.0.x86_64-linux-gnu-cuda+13.0.tar.gz", "https://github.com/JuliaBinaryWrappers/UCX_jll.jl/releases/download/UCX-v1.20.0+0/UCX.v1.20.0.x86_64-linux-gnu-cuda+none.tar.gz"]
 registered = 2026-02-04T16:52:00.000Z
