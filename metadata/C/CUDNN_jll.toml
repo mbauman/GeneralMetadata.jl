@@ -26,6 +26,129 @@ registered = 2022-03-11T12:46:22.000Z
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v8.2.4+1/CUDNN.v8.2.4.aarch64-linux-gnu-cuda+10.2.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v8.2.4+1/CUDNN.v8.2.4.aarch64-linux-gnu-cuda+11.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v8.2.4+1/CUDNN.v8.2.4.powerpc64le-linux-gnu-cuda+11.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v8.2.4+1/CUDNN.v8.2.4.x86_64-linux-gnu-cuda+10.2.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v8.2.4+1/CUDNN.v8.2.4.x86_64-linux-gnu-cuda+11.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v8.2.4+1/CUDNN.v8.2.4.x86_64-w64-mingw32-cuda+10.2.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v8.2.4+1/CUDNN.v8.2.4.x86_64-w64-mingw32-cuda+11.0.tar.gz"]
 registered = 2023-12-20T13:10:56.000Z
 
+    [["8.2.4+1".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v8.2.4+1/CUDNN.v8.2.4.aarch64-linux-gnu-cuda+10.2.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v8.2.4+1/CUDNN.v8.2.4.aarch64-linux-gnu-cuda+11.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v8.2.4+1/CUDNN.v8.2.4.powerpc64le-linux-gnu-cuda+11.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v8.2.4+1/CUDNN.v8.2.4.x86_64-linux-gnu-cuda+10.2.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v8.2.4+1/CUDNN.v8.2.4.x86_64-linux-gnu-cuda+11.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v8.2.4+1/CUDNN.v8.2.4.x86_64-w64-mingw32-cuda+10.2.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v8.2.4+1/CUDNN.v8.2.4.x86_64-w64-mingw32-cuda+11.0.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/f94e555c08315b9415616191170a9b06d8055bbc/C/CUDNN/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.5.6"
+
+        ["8.2.4+1".artifact_metadata.metadata]
+        augment_platform_block = """using Base.BinaryPlatforms\n\ntry\n    using CUDA_Runtime_jll\ncatch\n    # during initial package installation, CUDA_Runtime_jll may not be available.\n    # in that case, we just won't select an artifact.\nend\n\n# can't use Preferences for the same reason\nconst CUDA_Runtime_jll_uuid = Base.UUID(\"76a88914-d11a-5bdc-97e0-2f5a05c973a2\")\nconst preferences = Base.get_preferences(CUDA_Runtime_jll_uuid)\nBase.record_compiletime_preference(CUDA_Runtime_jll_uuid, \"version\")\nBase.record_compiletime_preference(CUDA_Runtime_jll_uuid, \"local\")\nconst local_toolkit = something(tryparse(Bool, get(preferences, \"local\", \"false\")), false)\n\nfunction cuda_comparison_strategy(_a::String, _b::String, a_requested::Bool, b_requested::Bool)\n    # if we're using a local toolkit, we can't use artifacts\n    if local_toolkit\n        return false\n    end\n\n    # if either isn't a version number (e.g. \"none\"), perform a simple equality check\n    a = tryparse(VersionNumber, _a)\n    b = tryparse(VersionNumber, _b)\n    if a === nothing || b === nothing\n        return _a == _b\n    end\n\n    # if both b and a requested, then we fall back to equality\n    if a_requested && b_requested\n        return Base.thisminor(a) == Base.thisminor(b)\n    end\n\n    # otherwise, do the comparison between the the single version cap and the single version:\n    function is_compatible(artifact::VersionNumber, host::VersionNumber)\n        if host >= v\"11.0\"\n            # enhanced compatibility, semver-style\n            artifact.major == host.major &&\n            Base.thisminor(artifact) <= Base.thisminor(host)\n        else\n            Base.thisminor(artifact) == Base.thisminor(host)\n        end\n    end\n    if a_requested\n        is_compatible(b, a)\n    else\n        is_compatible(a, b)\n    end\nend\n\nfunction augment_platform!(platform::Platform)\n    if !@isdefined(CUDA_Runtime_jll)\n        # don't set to nothing or Pkg will download any artifact\n        platform[\"cuda\"] = \"none\"\n    end\n\n    if !haskey(platform, \"cuda\")\n        CUDA_Runtime_jll.augment_platform!(platform)\n    end\n    BinaryPlatforms.set_compare_strategy!(platform, \"cuda\", cuda_comparison_strategy)\n\n    # store the fact that we're using a local CUDA toolkit, for debugging purposes\n    platform[\"cuda_local\"] = string(local_toolkit)\n\n    return platform\nend"""
+        init_block = ""
+        julia_compat = "1.6"
+        lazy_artifacts = true
+        name = "CUDNN"
+        platforms = ["x86_64-linux-gnu-cuda+10.2", "x86_64-w64-mingw32-cuda+10.2", "aarch64-linux-gnu-cuda+10.2", "x86_64-linux-gnu-cuda+11.0", "powerpc64le-linux-gnu-cuda+11.0", "x86_64-w64-mingw32-cuda+11.0", "aarch64-linux-gnu-cuda+11.0"]
+        script = """mkdir -p ${libdir} ${prefix}/include\n\ncd ${WORKSPACE}/srcdir\nif [[ ${target} == powerpc64le-linux-gnu ]]; then\n    cd cuda/targets/ppc64le-linux\n    find .\n\n    install_license NVIDIA_SLA_cuDNN_Support.txt\n\n    mv lib/libcudnn*.so* ${libdir}\n    mv include/* ${prefix}/include\nelif [[ ${target} == aarch64-linux-gnu && ${bb_full_target} == aarch64-linux-gnu-*-cuda+10.2 ]]; then\n    apk add dpkg\n    dpkg-deb -x libcudnn8_*.deb .\n    dpkg-deb -x libcudnn8-dev_*.deb .\n    mv -nv ./usr/include/aarch64-linux-gnu/* ${includedir}\n    mv -nv ./usr/lib/aarch64-linux-gnu/libcudnn*.so* ${libdir}\n    install_license ./usr/src/cudnn_samples_v8/NVIDIA_SLA_cuDNN_Support.txt\nelif [[ ${target} == *-linux-gnu ]]; then\n    cd cuda\n    find .\n\n    install_license NVIDIA_SLA_cuDNN_Support.txt\n\n    mv lib64/libcudnn*.so* ${libdir}\n    mv include/* ${prefix}/include\nelif [[ ${target} == x86_64-w64-mingw32 ]]; then\n    cd cuda\n    find .\n\n    install_license NVIDIA_SLA_cuDNN_Support.txt\n\n    mv bin/cudnn*64_*.dll ${libdir}\n    mv include/* ${prefix}/include\n\n    mv ../dll_x64/zlibwapi.dll ${libdir}\n\n    # fixup\n    chmod +x ${libdir}/*.dll\nfi\n"""
+        version = "v8.2.4"
+
+            [["8.2.4+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "CUDA_Runtime_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "runtimedependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["8.2.4+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libcudnn_ops_infer", "cudnn_ops_infer64_8"]
+            type = "lib"
+            variable_name = "libcudnn_ops_infer64"
+            [["8.2.4+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libcudnn_ops_train", "cudnn_ops_train64_8"]
+            type = "lib"
+            variable_name = "libcudnn_ops_train64"
+            [["8.2.4+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libcudnn_cnn_infer", "cudnn_cnn_infer64_8"]
+            type = "lib"
+            variable_name = "libcudnn_cnn_infer64"
+            [["8.2.4+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libcudnn_cnn_train", "cudnn_cnn_train64_8"]
+            type = "lib"
+            variable_name = "libcudnn_cnn_train64"
+            [["8.2.4+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libcudnn_adv_infer", "cudnn_adv_infer64_8"]
+            type = "lib"
+            variable_name = "libcudnn_adv_infer64"
+            [["8.2.4+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libcudnn_adv_train", "cudnn_adv_train64_8"]
+            type = "lib"
+            variable_name = "libcudnn_adv_train64"
+            [["8.2.4+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libcudnn", "cudnn64_8"]
+            type = "lib"
+            variable_name = "libcudnn"
+
+            [["8.2.4+1".artifact_metadata.metadata.sources]]
+            hash = "d23c94a3115a1c77116a6c127d9175fbf59f723364374f26a34699075f3222f1"
+            type = "archive"
+            unpack_target = ""
+            url = "https://developer.nvidia.com/compute/machine-learning/cudnn/secure/8.2.4/10.2_20210831/cudnn-10.2-linux-x64-v8.2.4.15.tgz"
+            [["8.2.4+1".artifact_metadata.metadata.sources]]
+            hash = "a13eb10cfd7e6b7b8f39d8593038855b911012c29f03990878622bdae873c4a8"
+            type = "archive"
+            unpack_target = ""
+            url = "https://developer.nvidia.com/compute/machine-learning/cudnn/secure/8.2.4/10.2_20210831/cudnn-10.2-windows10-x64-v8.2.4.15.zip"
+            [["8.2.4+1".artifact_metadata.metadata.sources]]
+            hash = "fd324c6923aa4f45a60413665e0b68bb34a7779d0861849e02d2711ff8efb9a4"
+            type = "archive"
+            unpack_target = ""
+            url = "http://www.winimage.com/zLibDll/zlib123dllx64.zip"
+            [["8.2.4+1".artifact_metadata.metadata.sources]]
+            filename = "libcudnn8_8.2.4.15-1+cuda10.2_arm64.deb"
+            hash = "3f08dbe14c3becb9fa1ed85cd4a080efb30edb0c4beb2fc1a2e14da3f2eefb79"
+            type = "file"
+            url = "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/arm64/libcudnn8_8.2.4.15-1+cuda10.2_arm64.deb"
+            [["8.2.4+1".artifact_metadata.metadata.sources]]
+            filename = "libcudnn8-dev_8.2.4.15-1+cuda10.2_arm64.deb"
+            hash = "4816575e8a14baf3fc1619cb01c6dc2afd4f1b39210079d271208088ecc48702"
+            type = "file"
+            url = "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/arm64/libcudnn8-dev_8.2.4.15-1+cuda10.2_arm64.deb"
+            [["8.2.4+1".artifact_metadata.metadata.sources]]
+            hash = "0e5d2df890b9967efa6619da421310d97323565a79f05a1a8cb9b7165baad0d7"
+            type = "archive"
+            unpack_target = ""
+            url = "https://developer.nvidia.com/compute/machine-learning/cudnn/secure/8.2.4/11.4_20210831/cudnn-11.4-linux-x64-v8.2.4.15.tgz"
+            [["8.2.4+1".artifact_metadata.metadata.sources]]
+            hash = "af8749ca83fd6bba117c8bee31b787b7f204946e864294030ee0091eb7d3577e"
+            type = "archive"
+            unpack_target = ""
+            url = "https://developer.nvidia.com/compute/machine-learning/cudnn/secure/8.2.4/11.4_20210831/cudnn-11.4-linux-ppc64le-v8.2.4.15.tgz"
+            [["8.2.4+1".artifact_metadata.metadata.sources]]
+            hash = "f01594639de35c380b4e360673ccaf04cdb238578e4b284935ee3d5a45f51f3c"
+            type = "archive"
+            unpack_target = ""
+            url = "https://developer.nvidia.com/compute/machine-learning/cudnn/secure/8.2.4/11.4_20210831/cudnn-11.4-windows-x64-v8.2.4.15.zip"
+            [["8.2.4+1".artifact_metadata.metadata.sources]]
+            hash = "48b11f19e9cd3414ec3c6c357ad228aebbd43282aae372d42cab2af67c32a08b"
+            type = "archive"
+            unpack_target = ""
+            url = "https://developer.nvidia.com/compute/machine-learning/cudnn/secure/8.2.4/11.4_20210831/cudnn-11.4-linux-aarch64sbsa-v8.2.4.15.tgz"
+
 ["8.3.1+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v8.3.1+0/CUDNN.v8.3.1.aarch64-linux-gnu-cuda+11.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v8.3.1+0/CUDNN.v8.3.1.aarch64-linux-gnu-cuda+11.1.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v8.3.1+0/CUDNN.v8.3.1.aarch64-linux-gnu-cuda+11.2.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v8.3.1+0/CUDNN.v8.3.1.aarch64-linux-gnu-cuda+11.3.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v8.3.1+0/CUDNN.v8.3.1.aarch64-linux-gnu-cuda+11.4.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v8.3.1+0/CUDNN.v8.3.1.aarch64-linux-gnu-cuda+11.5.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v8.3.1+0/CUDNN.v8.3.1.powerpc64le-linux-gnu-cuda+11.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v8.3.1+0/CUDNN.v8.3.1.powerpc64le-linux-gnu-cuda+11.1.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v8.3.1+0/CUDNN.v8.3.1.powerpc64le-linux-gnu-cuda+11.2.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v8.3.1+0/CUDNN.v8.3.1.powerpc64le-linux-gnu-cuda+11.3.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v8.3.1+0/CUDNN.v8.3.1.powerpc64le-linux-gnu-cuda+11.4.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v8.3.1+0/CUDNN.v8.3.1.powerpc64le-linux-gnu-cuda+11.5.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v8.3.1+0/CUDNN.v8.3.1.x86_64-linux-gnu-cuda+10.2.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v8.3.1+0/CUDNN.v8.3.1.x86_64-linux-gnu-cuda+11.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v8.3.1+0/CUDNN.v8.3.1.x86_64-linux-gnu-cuda+11.1.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v8.3.1+0/CUDNN.v8.3.1.x86_64-linux-gnu-cuda+11.2.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v8.3.1+0/CUDNN.v8.3.1.x86_64-linux-gnu-cuda+11.3.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v8.3.1+0/CUDNN.v8.3.1.x86_64-linux-gnu-cuda+11.4.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v8.3.1+0/CUDNN.v8.3.1.x86_64-linux-gnu-cuda+11.5.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v8.3.1+0/CUDNN.v8.3.1.x86_64-w64-mingw32-cuda+10.2.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v8.3.1+0/CUDNN.v8.3.1.x86_64-w64-mingw32-cuda+11.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v8.3.1+0/CUDNN.v8.3.1.x86_64-w64-mingw32-cuda+11.1.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v8.3.1+0/CUDNN.v8.3.1.x86_64-w64-mingw32-cuda+11.2.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v8.3.1+0/CUDNN.v8.3.1.x86_64-w64-mingw32-cuda+11.3.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v8.3.1+0/CUDNN.v8.3.1.x86_64-w64-mingw32-cuda+11.4.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v8.3.1+0/CUDNN.v8.3.1.x86_64-w64-mingw32-cuda+11.5.tar.gz"]
 registered = 2021-12-09T17:32:24.000Z
@@ -464,9 +587,248 @@ registered = 2025-02-07T22:55:16.000Z
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v9.0.0+0/CUDNN.v9.0.0.aarch64-linux-gnu-cuda+11.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v9.0.0+0/CUDNN.v9.0.0.aarch64-linux-gnu-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v9.0.0+0/CUDNN.v9.0.0.powerpc64le-linux-gnu-cuda+11.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v9.0.0+0/CUDNN.v9.0.0.powerpc64le-linux-gnu-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v9.0.0+0/CUDNN.v9.0.0.x86_64-linux-gnu-cuda+11.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v9.0.0+0/CUDNN.v9.0.0.x86_64-linux-gnu-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v9.0.0+0/CUDNN.v9.0.0.x86_64-w64-mingw32-cuda+11.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v9.0.0+0/CUDNN.v9.0.0.x86_64-w64-mingw32-cuda+12.0.tar.gz"]
 registered = 2024-02-14T19:16:54.000Z
 
+    [["9.0.0+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v9.0.0+0/CUDNN.v9.0.0.aarch64-linux-gnu-cuda+11.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v9.0.0+0/CUDNN.v9.0.0.aarch64-linux-gnu-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v9.0.0+0/CUDNN.v9.0.0.powerpc64le-linux-gnu-cuda+11.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v9.0.0+0/CUDNN.v9.0.0.powerpc64le-linux-gnu-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v9.0.0+0/CUDNN.v9.0.0.x86_64-linux-gnu-cuda+11.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v9.0.0+0/CUDNN.v9.0.0.x86_64-linux-gnu-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v9.0.0+0/CUDNN.v9.0.0.x86_64-w64-mingw32-cuda+11.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v9.0.0+0/CUDNN.v9.0.0.x86_64-w64-mingw32-cuda+12.0.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/4e8f753789e288e5300591b5eb8db16042364d97/C/CUDA/CUDNN/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.5.7"
+
+        ["9.0.0+0".artifact_metadata.metadata]
+        augment_platform_block = """using Base.BinaryPlatforms\n\ntry\n    using CUDA_Runtime_jll\ncatch\n    # during initial package installation, CUDA_Runtime_jll may not be available.\n    # in that case, we just won't select an artifact.\nend\n\n# can't use Preferences for the same reason\nconst CUDA_Runtime_jll_uuid = Base.UUID(\"76a88914-d11a-5bdc-97e0-2f5a05c973a2\")\nconst preferences = Base.get_preferences(CUDA_Runtime_jll_uuid)\nBase.record_compiletime_preference(CUDA_Runtime_jll_uuid, \"version\")\nBase.record_compiletime_preference(CUDA_Runtime_jll_uuid, \"local\")\nconst local_toolkit = something(tryparse(Bool, get(preferences, \"local\", \"false\")), false)\n\nfunction cuda_comparison_strategy(_a::String, _b::String, a_requested::Bool, b_requested::Bool)\n    # if we're using a local toolkit, we can't use artifacts\n    if local_toolkit\n        return false\n    end\n\n    # if either isn't a version number (e.g. \"none\"), perform a simple equality check\n    a = tryparse(VersionNumber, _a)\n    b = tryparse(VersionNumber, _b)\n    if a === nothing || b === nothing\n        return _a == _b\n    end\n\n    # if both b and a requested, then we fall back to equality\n    if a_requested && b_requested\n        return Base.thisminor(a) == Base.thisminor(b)\n    end\n\n    # otherwise, do the comparison between the the single version cap and the single version:\n    function is_compatible(artifact::VersionNumber, host::VersionNumber)\n        if host >= v\"11.0\"\n            # enhanced compatibility, semver-style\n            artifact.major == host.major &&\n            Base.thisminor(artifact) <= Base.thisminor(host)\n        else\n            Base.thisminor(artifact) == Base.thisminor(host)\n        end\n    end\n    if a_requested\n        is_compatible(b, a)\n    else\n        is_compatible(a, b)\n    end\nend\n\nfunction augment_platform!(platform::Platform)\n    if !@isdefined(CUDA_Runtime_jll)\n        # don't set to nothing or Pkg will download any artifact\n        platform[\"cuda\"] = \"none\"\n    end\n\n    if !haskey(platform, \"cuda\")\n        CUDA_Runtime_jll.augment_platform!(platform)\n    end\n    BinaryPlatforms.set_compare_strategy!(platform, \"cuda\", cuda_comparison_strategy)\n\n    # store the fact that we're using a local CUDA toolkit, for debugging purposes\n    platform[\"cuda_local\"] = string(local_toolkit)\n\n    return platform\nend"""
+        init_block = ""
+        julia_compat = "1.6"
+        lazy_artifacts = true
+        name = "CUDNN"
+        platforms = ["x86_64-linux-gnu-cuda+11.0", "powerpc64le-linux-gnu-cuda+11.0", "aarch64-linux-gnu-cuda+11.0", "x86_64-w64-mingw32-cuda+11.0", "x86_64-linux-gnu-cuda+12.0", "powerpc64le-linux-gnu-cuda+12.0", "aarch64-linux-gnu-cuda+12.0", "x86_64-w64-mingw32-cuda+12.0"]
+        script = """mkdir -p ${libdir} ${prefix}/include\n\ncd ${WORKSPACE}/srcdir\nif [[ ${target} == *-linux-gnu ]]; then\n    cd cudnn*\n    find .\n\n    install_license LICENSE\n\n    mv lib/libcudnn*.so* ${libdir}\n    mv include/* ${prefix}/include\nelif [[ ${target} == x86_64-w64-mingw32 ]]; then\n    cd cudnn*\n    find .\n\n    install_license LICENSE\n\n    mv bin/cudnn*64_*.dll ${libdir}\n    mv include/* ${prefix}/include\n\n    mv ../dll_x64/zlibwapi.dll ${libdir}\n\n    # fixup\n    chmod +x ${libdir}/*.dll\nfi\n"""
+        version = "v9.0.0"
+
+            [["9.0.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "CUDA_Runtime_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "runtimedependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["9.0.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libcudnn_graph", "cudnn_graph64_9"]
+            type = "lib"
+            variable_name = "libcudnn_graph"
+            [["9.0.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libcudnn_cnn", "cudnn_cnn64_9"]
+            type = "lib"
+            variable_name = "libcudnn_cnn"
+            [["9.0.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libcudnn_ops", "cudnn_ops64_9"]
+            type = "lib"
+            variable_name = "libcudnn_ops"
+            [["9.0.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libcudnn_adv", "cudnn_adv64_9"]
+            type = "lib"
+            variable_name = "libcudnn_adv"
+            [["9.0.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libcudnn", "cudnn64_9"]
+            type = "lib"
+            variable_name = "libcudnn"
+
+            [["9.0.0+0".artifact_metadata.metadata.sources]]
+            hash = "52fa7088deb25d4555e37996b3d767e61d5d4397b7d45cce50bfc54cd8608a63"
+            type = "archive"
+            unpack_target = ""
+            url = "https://developer.download.nvidia.com/compute/cudnn/redist/cudnn/linux-x86_64/cudnn-linux-x86_64-9.0.0.312_cuda11-archive.tar.xz"
+            [["9.0.0+0".artifact_metadata.metadata.sources]]
+            hash = "e8044c8d8932351fd0b0e9794b329ebf68408d7c42cc873ac3e40f6bb6be544d"
+            type = "archive"
+            unpack_target = ""
+            url = "https://developer.download.nvidia.com/compute/cudnn/redist/cudnn/linux-ppc64le/cudnn-linux-ppc64le-9.0.0.312_cuda11-archive.tar.xz"
+            [["9.0.0+0".artifact_metadata.metadata.sources]]
+            hash = "997e53e92e4047373edab0512c1efc7f2067111532abdeab974fe395947ae0ef"
+            type = "archive"
+            unpack_target = ""
+            url = "https://developer.download.nvidia.com/compute/cudnn/redist/cudnn/linux-sbsa/cudnn-linux-sbsa-9.0.0.312_cuda11-archive.tar.xz"
+            [["9.0.0+0".artifact_metadata.metadata.sources]]
+            hash = "a9b223a5cc3822b4d5d3e2a1aff90a55d1138d4714cb503842379fadacb4c305"
+            type = "archive"
+            unpack_target = ""
+            url = "https://developer.download.nvidia.com/compute/cudnn/redist/cudnn/windows-x86_64/cudnn-windows-x86_64-9.0.0.312_cuda11-archive.zip"
+            [["9.0.0+0".artifact_metadata.metadata.sources]]
+            hash = "fd324c6923aa4f45a60413665e0b68bb34a7779d0861849e02d2711ff8efb9a4"
+            type = "archive"
+            unpack_target = ""
+            url = "http://www.winimage.com/zLibDll/zlib123dllx64.zip"
+            [["9.0.0+0".artifact_metadata.metadata.sources]]
+            hash = "d3890e609d6530ee5b88ff95b60c8e6b1c1ec7fa966ec533925f20f896fcc630"
+            type = "archive"
+            unpack_target = ""
+            url = "https://developer.download.nvidia.com/compute/cudnn/redist/cudnn/linux-x86_64/cudnn-linux-x86_64-9.0.0.312_cuda12-archive.tar.xz"
+            [["9.0.0+0".artifact_metadata.metadata.sources]]
+            hash = "b8ef6f249128e1985893a8787a21de35cb83ec47c6dc6fd1809061dd9a3ffb20"
+            type = "archive"
+            unpack_target = ""
+            url = "https://developer.download.nvidia.com/compute/cudnn/redist/cudnn/linux-ppc64le/cudnn-linux-ppc64le-9.0.0.312_cuda12-archive.tar.xz"
+            [["9.0.0+0".artifact_metadata.metadata.sources]]
+            hash = "430fbf5b513c69e989b3a3a5a572369778ce0c214ce1259af6b935f9cab7dd54"
+            type = "archive"
+            unpack_target = ""
+            url = "https://developer.download.nvidia.com/compute/cudnn/redist/cudnn/linux-sbsa/cudnn-linux-sbsa-9.0.0.312_cuda12-archive.tar.xz"
+            [["9.0.0+0".artifact_metadata.metadata.sources]]
+            hash = "ee40e0bb0d695e4793979cc88cbbe58ad1d83a0584a57a056c9259743fd86992"
+            type = "archive"
+            unpack_target = ""
+            url = "https://developer.download.nvidia.com/compute/cudnn/redist/cudnn/windows-x86_64/cudnn-windows-x86_64-9.0.0.312_cuda12-archive.zip"
+
 ["9.0.0+1"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v9.0.0+1/CUDNN.v9.0.0.aarch64-linux-gnu-cuda+11.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v9.0.0+1/CUDNN.v9.0.0.aarch64-linux-gnu-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v9.0.0+1/CUDNN.v9.0.0.powerpc64le-linux-gnu-cuda+11.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v9.0.0+1/CUDNN.v9.0.0.powerpc64le-linux-gnu-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v9.0.0+1/CUDNN.v9.0.0.x86_64-linux-gnu-cuda+11.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v9.0.0+1/CUDNN.v9.0.0.x86_64-linux-gnu-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v9.0.0+1/CUDNN.v9.0.0.x86_64-w64-mingw32-cuda+11.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v9.0.0+1/CUDNN.v9.0.0.x86_64-w64-mingw32-cuda+12.0.tar.gz"]
 registered = 2024-02-15T10:35:50.000Z
+
+    [["9.0.0+1".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v9.0.0+1/CUDNN.v9.0.0.aarch64-linux-gnu-cuda+11.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v9.0.0+1/CUDNN.v9.0.0.aarch64-linux-gnu-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v9.0.0+1/CUDNN.v9.0.0.powerpc64le-linux-gnu-cuda+11.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v9.0.0+1/CUDNN.v9.0.0.powerpc64le-linux-gnu-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v9.0.0+1/CUDNN.v9.0.0.x86_64-linux-gnu-cuda+11.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v9.0.0+1/CUDNN.v9.0.0.x86_64-linux-gnu-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v9.0.0+1/CUDNN.v9.0.0.x86_64-w64-mingw32-cuda+11.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v9.0.0+1/CUDNN.v9.0.0.x86_64-w64-mingw32-cuda+12.0.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/8ce1faee3a7ebb1a22ff5e2dbaf34de59f38221b/C/CUDA/CUDNN/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.5.7"
+
+        ["9.0.0+1".artifact_metadata.metadata]
+        augment_platform_block = """using Base.BinaryPlatforms\n\ntry\n    using CUDA_Runtime_jll\ncatch\n    # during initial package installation, CUDA_Runtime_jll may not be available.\n    # in that case, we just won't select an artifact.\nend\n\n# can't use Preferences for the same reason\nconst CUDA_Runtime_jll_uuid = Base.UUID(\"76a88914-d11a-5bdc-97e0-2f5a05c973a2\")\nconst preferences = Base.get_preferences(CUDA_Runtime_jll_uuid)\nBase.record_compiletime_preference(CUDA_Runtime_jll_uuid, \"version\")\nBase.record_compiletime_preference(CUDA_Runtime_jll_uuid, \"local\")\nconst local_toolkit = something(tryparse(Bool, get(preferences, \"local\", \"false\")), false)\n\nfunction cuda_comparison_strategy(_a::String, _b::String, a_requested::Bool, b_requested::Bool)\n    # if we're using a local toolkit, we can't use artifacts\n    if local_toolkit\n        return false\n    end\n\n    # if either isn't a version number (e.g. \"none\"), perform a simple equality check\n    a = tryparse(VersionNumber, _a)\n    b = tryparse(VersionNumber, _b)\n    if a === nothing || b === nothing\n        return _a == _b\n    end\n\n    # if both b and a requested, then we fall back to equality\n    if a_requested && b_requested\n        return Base.thisminor(a) == Base.thisminor(b)\n    end\n\n    # otherwise, do the comparison between the the single version cap and the single version:\n    function is_compatible(artifact::VersionNumber, host::VersionNumber)\n        if host >= v\"11.0\"\n            # enhanced compatibility, semver-style\n            artifact.major == host.major &&\n            Base.thisminor(artifact) <= Base.thisminor(host)\n        else\n            Base.thisminor(artifact) == Base.thisminor(host)\n        end\n    end\n    if a_requested\n        is_compatible(b, a)\n    else\n        is_compatible(a, b)\n    end\nend\n\nfunction augment_platform!(platform::Platform)\n    if !@isdefined(CUDA_Runtime_jll)\n        # don't set to nothing or Pkg will download any artifact\n        platform[\"cuda\"] = \"none\"\n    end\n\n    if !haskey(platform, \"cuda\")\n        CUDA_Runtime_jll.augment_platform!(platform)\n    end\n    BinaryPlatforms.set_compare_strategy!(platform, \"cuda\", cuda_comparison_strategy)\n\n    # store the fact that we're using a local CUDA toolkit, for debugging purposes\n    platform[\"cuda_local\"] = string(local_toolkit)\n\n    return platform\nend"""
+        init_block = ""
+        julia_compat = "1.6"
+        lazy_artifacts = true
+        name = "CUDNN"
+        platforms = ["x86_64-linux-gnu-cuda+11.0", "powerpc64le-linux-gnu-cuda+11.0", "aarch64-linux-gnu-cuda+11.0", "x86_64-w64-mingw32-cuda+11.0", "x86_64-linux-gnu-cuda+12.0", "powerpc64le-linux-gnu-cuda+12.0", "aarch64-linux-gnu-cuda+12.0", "x86_64-w64-mingw32-cuda+12.0"]
+        script = """mkdir -p ${libdir} ${prefix}/include\n\ncd ${WORKSPACE}/srcdir\nif [[ ${target} == *-linux-gnu ]]; then\n    cd cudnn*\n    find .\n\n    install_license LICENSE\n\n    mv lib/libcudnn*.so* ${libdir}\n    mv include/* ${prefix}/include\nelif [[ ${target} == x86_64-w64-mingw32 ]]; then\n    cd cudnn*\n    find .\n\n    install_license LICENSE\n\n    mv bin/cudnn*64_*.dll ${libdir}\n    mv include/* ${prefix}/include\n\n    mv ../dll_x64/zlibwapi.dll ${libdir}\n\n    # fixup\n    chmod +x ${libdir}/*.dll\nfi\n"""
+        version = "v9.0.0"
+
+            [["9.0.0+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "CUDA_Runtime_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "runtimedependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["9.0.0+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libcudnn_graph", "cudnn_graph64_9"]
+            type = "lib"
+            variable_name = "libcudnn_graph"
+            [["9.0.0+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libcudnn_cnn", "cudnn_cnn64_9"]
+            type = "lib"
+            variable_name = "libcudnn_cnn"
+            [["9.0.0+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libcudnn_ops", "cudnn_ops64_9"]
+            type = "lib"
+            variable_name = "libcudnn_ops"
+            [["9.0.0+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libcudnn_adv", "cudnn_adv64_9"]
+            type = "lib"
+            variable_name = "libcudnn_adv"
+            [["9.0.0+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libcudnn", "cudnn64_9"]
+            type = "lib"
+            variable_name = "libcudnn"
+            [["9.0.0+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libcudnn_engines_precompiled", "cudnn_engines_precompiled64_9"]
+            type = "lib"
+            variable_name = "libcudnn_engines_precompiled"
+            [["9.0.0+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libcudnn_heuristic", "cudnn_heuristic64_9"]
+            type = "lib"
+            variable_name = "libcudnn_heuristic"
+            [["9.0.0+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libcudnn_engines_runtime_compiled", "cudnn_engines_runtime_compiled64_9"]
+            type = "lib"
+            variable_name = "libcudnn_engines_runtime_compiled"
+
+            [["9.0.0+1".artifact_metadata.metadata.sources]]
+            hash = "52fa7088deb25d4555e37996b3d767e61d5d4397b7d45cce50bfc54cd8608a63"
+            type = "archive"
+            unpack_target = ""
+            url = "https://developer.download.nvidia.com/compute/cudnn/redist/cudnn/linux-x86_64/cudnn-linux-x86_64-9.0.0.312_cuda11-archive.tar.xz"
+            [["9.0.0+1".artifact_metadata.metadata.sources]]
+            hash = "e8044c8d8932351fd0b0e9794b329ebf68408d7c42cc873ac3e40f6bb6be544d"
+            type = "archive"
+            unpack_target = ""
+            url = "https://developer.download.nvidia.com/compute/cudnn/redist/cudnn/linux-ppc64le/cudnn-linux-ppc64le-9.0.0.312_cuda11-archive.tar.xz"
+            [["9.0.0+1".artifact_metadata.metadata.sources]]
+            hash = "997e53e92e4047373edab0512c1efc7f2067111532abdeab974fe395947ae0ef"
+            type = "archive"
+            unpack_target = ""
+            url = "https://developer.download.nvidia.com/compute/cudnn/redist/cudnn/linux-sbsa/cudnn-linux-sbsa-9.0.0.312_cuda11-archive.tar.xz"
+            [["9.0.0+1".artifact_metadata.metadata.sources]]
+            hash = "a9b223a5cc3822b4d5d3e2a1aff90a55d1138d4714cb503842379fadacb4c305"
+            type = "archive"
+            unpack_target = ""
+            url = "https://developer.download.nvidia.com/compute/cudnn/redist/cudnn/windows-x86_64/cudnn-windows-x86_64-9.0.0.312_cuda11-archive.zip"
+            [["9.0.0+1".artifact_metadata.metadata.sources]]
+            hash = "fd324c6923aa4f45a60413665e0b68bb34a7779d0861849e02d2711ff8efb9a4"
+            type = "archive"
+            unpack_target = ""
+            url = "http://www.winimage.com/zLibDll/zlib123dllx64.zip"
+            [["9.0.0+1".artifact_metadata.metadata.sources]]
+            hash = "d3890e609d6530ee5b88ff95b60c8e6b1c1ec7fa966ec533925f20f896fcc630"
+            type = "archive"
+            unpack_target = ""
+            url = "https://developer.download.nvidia.com/compute/cudnn/redist/cudnn/linux-x86_64/cudnn-linux-x86_64-9.0.0.312_cuda12-archive.tar.xz"
+            [["9.0.0+1".artifact_metadata.metadata.sources]]
+            hash = "b8ef6f249128e1985893a8787a21de35cb83ec47c6dc6fd1809061dd9a3ffb20"
+            type = "archive"
+            unpack_target = ""
+            url = "https://developer.download.nvidia.com/compute/cudnn/redist/cudnn/linux-ppc64le/cudnn-linux-ppc64le-9.0.0.312_cuda12-archive.tar.xz"
+            [["9.0.0+1".artifact_metadata.metadata.sources]]
+            hash = "430fbf5b513c69e989b3a3a5a572369778ce0c214ce1259af6b935f9cab7dd54"
+            type = "archive"
+            unpack_target = ""
+            url = "https://developer.download.nvidia.com/compute/cudnn/redist/cudnn/linux-sbsa/cudnn-linux-sbsa-9.0.0.312_cuda12-archive.tar.xz"
+            [["9.0.0+1".artifact_metadata.metadata.sources]]
+            hash = "ee40e0bb0d695e4793979cc88cbbe58ad1d83a0584a57a056c9259743fd86992"
+            type = "archive"
+            unpack_target = ""
+            url = "https://developer.download.nvidia.com/compute/cudnn/redist/cudnn/windows-x86_64/cudnn-windows-x86_64-9.0.0.312_cuda12-archive.zip"
 
 ["9.1.1+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v9.1.1+0/CUDNN.v9.1.1.aarch64-linux-gnu-cuda_platform+jetson-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v9.1.1+0/CUDNN.v9.1.1.aarch64-linux-gnu-cuda_platform+sbsa-cuda+11.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v9.1.1+0/CUDNN.v9.1.1.aarch64-linux-gnu-cuda_platform+sbsa-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v9.1.1+0/CUDNN.v9.1.1.x86_64-linux-gnu-cuda+11.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v9.1.1+0/CUDNN.v9.1.1.x86_64-linux-gnu-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v9.1.1+0/CUDNN.v9.1.1.x86_64-w64-mingw32-cuda+11.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDNN_jll.jl/releases/download/CUDNN-v9.1.1+0/CUDNN.v9.1.1.x86_64-w64-mingw32-cuda+12.0.tar.gz"]
