@@ -10,9 +10,107 @@ registered = 2022-10-17T14:41:11.000Z
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/CUDA_Driver_jll.jl/releases/download/CUDA_Driver-v0.3.0+0/CUDA_Driver.v0.3.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDA_Driver_jll.jl/releases/download/CUDA_Driver-v0.3.0+0/CUDA_Driver.v0.3.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDA_Driver_jll.jl/releases/download/CUDA_Driver-v0.3.0+0/CUDA_Driver.v0.3.0.x86_64-linux-gnu.tar.gz"]
 registered = 2023-01-23T13:24:34.000Z
 
+    [["0.3.0+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/CUDA_Driver_jll.jl/releases/download/CUDA_Driver-v0.3.0+0/CUDA_Driver.v0.3.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDA_Driver_jll.jl/releases/download/CUDA_Driver-v0.3.0+0/CUDA_Driver.v0.3.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDA_Driver_jll.jl/releases/download/CUDA_Driver-v0.3.0+0/CUDA_Driver.v0.3.0.x86_64-linux-gnu.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/fc1fd5190e1b75f4d73398242abb8b0684e5b429/C/CUDA/CUDA_Driver/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.5.6"
+
+        ["0.3.0+0".artifact_metadata.metadata]
+        augment_platform_block = ""
+        dependencies = []
+        init_block = """    global compat_version = v\"12.0.0\"\n    # global variables we will set\n    global libcuda\n    global libcuda_version\n    global libcuda_original_version\n\n    # minimal API call wrappers we need\n    function driver_version(library_handle)\n        function_handle = Libdl.dlsym(library_handle, \"cuDriverGetVersion\")\n        version_ref = Ref{Cint}()\n        status = ccall(function_handle, Cint, (Ptr{Cint},), version_ref)\n        if status != 0\n            return nothing\n        end\n        major, ver = divrem(version_ref[], 1000)\n        minor, patch = divrem(ver, 10)\n        return VersionNumber(major, minor, patch)\n    end\n    function init_driver(library_handle)\n        function_handle = Libdl.dlsym(library_handle, \"cuInit\")\n        status = ccall(function_handle, Cint, (UInt32,), 0)\n        Libdl.dlclose(library_handle)\n        return status\n    end\n\n    # find the system driver\n    system_driver = if Sys.iswindows()\n        Libdl.find_library(\"nvcuda\")\n    else\n        Libdl.find_library([\"libcuda.so.1\", \"libcuda.so\"])\n    end\n    if system_driver == \"\"\n        @debug \"No system CUDA driver found\"\n        return\n    end\n    libcuda = system_driver\n\n    # check if the system driver is already loaded. in that case, we have to use it because\n    # the code that loaded it in the first place might have made assumptions based on it.\n    system_driver_loaded = Libdl.dlopen(system_driver, Libdl.RTLD_NOLOAD;\n                                        throw_error=false) !== nothing\n    driver_handle = Libdl.dlopen(system_driver; throw_error=true)\n\n    # query the system driver version\n    # XXX: apparently cuDriverGetVersion can be used before cuInit,\n    #      despite the docs stating \"any function [...] will return\n    #      CUDA_ERROR_NOT_INITIALIZED\"; is this a recent change?\n    system_version = driver_version(driver_handle)\n    if system_version === nothing\n        @debug \"Failed to query system CUDA driver version\"\n        # note that libcuda is already set here, so we'll continue using the system driver\n        # and CUDA.jl will likely report the reason cuDriverGetVersion didn't work.\n        return\n    end\n    @debug \"System CUDA driver found at $system_driver, detected as version $system_version\"\n    libcuda = system_driver\n    libcuda_version = system_version\n\n    # check if the system driver is already loaded (see above)\n    if system_driver_loaded\n        @debug \"System CUDA driver already loaded, continuing using it\"\n        return\n    end\n\n    # check the user preference\n    if !parse(Bool, get(ENV, \"JULIA_CUDA_USE_COMPAT\", \"true\"))\n        @debug \"User disallows using forward-compatible driver.\"\n        return\n    end\n\n    # check the version\n    if system_version >= compat_version\n        @debug \"System CUDA driver is recent enough; not using forward-compatible driver\"\n        return\n    end\n\n    # check if we can unload the system driver.\n    # if we didn't, we can't consider a forward compatible library because that would\n    # risk having multiple copies of libcuda.so loaded (also see NVIDIA bug #3418723)\n    Libdl.dlclose(driver_handle)\n    system_driver_loaded = Libdl.dlopen(system_driver, Libdl.RTLD_NOLOAD;\n                                        throw_error=false) !== nothing\n    if system_driver_loaded\n        @debug \"Could not unload the system CUDA library;\" *\n               \" this prevents use of the forward-compatible driver\"\n        return\n    end\n\n    # check if this process is hooked by CUDA's injection libraries, which prevents\n    # unloading libcuda after dlopening. this is problematic, because we might want to\n    # after loading a forwards-compatible libcuda and realizing we can't use it. without\n    # being able to unload the library, we'd run into issues (see NVIDIA bug #3418723)\n    hooked = haskey(ENV, \"CUDA_INJECTION64_PATH\")\n    if hooked\n        @debug \"Running under CUDA injection tools;\" *\n               \" this prevents use of the forward-compatible driver\"\n        return\n    end\n\n    # check if we even have an artifact\n    if !@isdefined(libcuda_compat)\n        @debug \"No forward-compatible CUDA library available for your platform.\"\n        return\n    end\n    compat_driver = libcuda_compat\n    @debug \"Forward-compatible CUDA driver found at $compat_driver;\" *\n           \" reported as version $(compat_version)\"\n\n    # finally, load the compatibility driver to see if it supports this platform\n    driver_handle = Libdl.dlopen(compat_driver; throw_error=true)\n    # TODO: do we need to dlopen the JIT compiler library for it to be discoverable?\n    #       doesn't that clash with a system one if compat cuInit fails? or should\n    #       we load it _after_ the compat driver initialization succeeds?\n    #compiler_handle = libnvidia_ptxjitcompiler\n    #Libdl.dlopen(compiler_handle)\n\n    init_status = init_driver(driver_handle)\n    if init_status != 0\n        @debug \"Could not use forward compatibility package (error $init_status)\"\n\n        # see comment above about unloading the system driver\n        Libdl.dlclose(driver_handle)\n        compat_driver_loaded = Libdl.dlopen(compat_driver, Libdl.RTLD_NOLOAD;\n                                            throw_error=false) !== nothing\n        if compat_driver_loaded\n            error(\"Could not unload the forward compatible CUDA driver library.\" *\n                  \"This is probably caused by running Julia under a tool that hooks CUDA API calls.\" *\n                  \"In that case, prevent Julia from loading multiple drivers\" *\n                  \" by setting JULIA_CUDA_USE_COMPAT=false in your environment.\")\n        end\n\n        return\n    end\n\n    @debug \"Successfully loaded forwards-compatible CUDA driver\"\n    libcuda = compat_driver\n    libcuda_version = compat_version\n    libcuda_original_version = system_version\n"""
+        julia_compat = "1.0"
+        lazy_artifacts = true
+        name = "CUDA_Driver"
+        platforms = ["x86_64-linux-gnu", "powerpc64le-linux-gnu", "aarch64-linux-gnu"]
+        script = """    apk update\n    apk add rpm2cpio\n    rpm2cpio compat.rpm | cpio -idmv\n\n    mkdir -p ${libdir}\n\n    mv usr/local/cuda-*/compat/* ${libdir}\n"""
+        version = "v0.3.0"
+
+            [["0.3.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libcuda"]
+            type = "lib"
+            variable_name = "libcuda_compat"
+            [["0.3.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libnvidia-ptxjitcompiler"]
+            type = "lib"
+            variable_name = "libnvidia_ptxjitcompiler"
+
+            [["0.3.0+0".artifact_metadata.metadata.sources]]
+            filename = "compat.rpm"
+            hash = "9c495dfe7f5abde58c9446ce4e21e80623e5942db00f8d7500047895e7676b69"
+            type = "file"
+            url = "https://developer.download.nvidia.com/compute/cuda/repos/rhel8/x86_64/cuda-compat-12-0-525.60.13-1.x86_64.rpm"
+            [["0.3.0+0".artifact_metadata.metadata.sources]]
+            filename = "compat.rpm"
+            hash = "568f0167405c911731177aea6277a64de95e488b5770babe0f72c89790bcf02f"
+            type = "file"
+            url = "https://developer.download.nvidia.com/compute/cuda/repos/rhel8/ppc64le/cuda-compat-12-0-525.60.13-1.ppc64le.rpm"
+            [["0.3.0+0".artifact_metadata.metadata.sources]]
+            filename = "compat.rpm"
+            hash = "a791a355addeab181ca78a088b87dbda7468cd58bb8ef22a21db6bdb688faacc"
+            type = "file"
+            url = "https://developer.download.nvidia.com/compute/cuda/repos/rhel8/sbsa/cuda-compat-12-0-525.60.13-1.aarch64.rpm"
+
 ["0.3.0+1"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/CUDA_Driver_jll.jl/releases/download/CUDA_Driver-v0.3.0+0/CUDA_Driver.v0.3.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDA_Driver_jll.jl/releases/download/CUDA_Driver-v0.3.0+0/CUDA_Driver.v0.3.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDA_Driver_jll.jl/releases/download/CUDA_Driver-v0.3.0+0/CUDA_Driver.v0.3.0.x86_64-linux-gnu.tar.gz"]
 registered = 2023-02-03T16:17:43.000Z
+
+    [["0.3.0+1".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/CUDA_Driver_jll.jl/releases/download/CUDA_Driver-v0.3.0+0/CUDA_Driver.v0.3.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDA_Driver_jll.jl/releases/download/CUDA_Driver-v0.3.0+0/CUDA_Driver.v0.3.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDA_Driver_jll.jl/releases/download/CUDA_Driver-v0.3.0+0/CUDA_Driver.v0.3.0.x86_64-linux-gnu.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/fc1fd5190e1b75f4d73398242abb8b0684e5b429/C/CUDA/CUDA_Driver/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.5.6"
+
+        ["0.3.0+1".artifact_metadata.metadata]
+        augment_platform_block = ""
+        dependencies = []
+        init_block = """    global compat_version = v\"12.0.0\"\n    # global variables we will set\n    global libcuda\n    global libcuda_version\n    global libcuda_original_version\n\n    # minimal API call wrappers we need\n    function driver_version(library_handle)\n        function_handle = Libdl.dlsym(library_handle, \"cuDriverGetVersion\")\n        version_ref = Ref{Cint}()\n        status = ccall(function_handle, Cint, (Ptr{Cint},), version_ref)\n        if status != 0\n            return nothing\n        end\n        major, ver = divrem(version_ref[], 1000)\n        minor, patch = divrem(ver, 10)\n        return VersionNumber(major, minor, patch)\n    end\n    function init_driver(library_handle)\n        function_handle = Libdl.dlsym(library_handle, \"cuInit\")\n        status = ccall(function_handle, Cint, (UInt32,), 0)\n        Libdl.dlclose(library_handle)\n        return status\n    end\n\n    # find the system driver\n    system_driver = if Sys.iswindows()\n        Libdl.find_library(\"nvcuda\")\n    else\n        Libdl.find_library([\"libcuda.so.1\", \"libcuda.so\"])\n    end\n    if system_driver == \"\"\n        @debug \"No system CUDA driver found\"\n        return\n    end\n    libcuda = system_driver\n\n    # check if the system driver is already loaded. in that case, we have to use it because\n    # the code that loaded it in the first place might have made assumptions based on it.\n    system_driver_loaded = Libdl.dlopen(system_driver, Libdl.RTLD_NOLOAD;\n                                        throw_error=false) !== nothing\n    driver_handle = Libdl.dlopen(system_driver; throw_error=true)\n\n    # query the system driver version\n    # XXX: apparently cuDriverGetVersion can be used before cuInit,\n    #      despite the docs stating \"any function [...] will return\n    #      CUDA_ERROR_NOT_INITIALIZED\"; is this a recent change?\n    system_version = driver_version(driver_handle)\n    if system_version === nothing\n        @debug \"Failed to query system CUDA driver version\"\n        # note that libcuda is already set here, so we'll continue using the system driver\n        # and CUDA.jl will likely report the reason cuDriverGetVersion didn't work.\n        return\n    end\n    @debug \"System CUDA driver found at $system_driver, detected as version $system_version\"\n    libcuda = system_driver\n    libcuda_version = system_version\n\n    # check if the system driver is already loaded (see above)\n    if system_driver_loaded\n        @debug \"System CUDA driver already loaded, continuing using it\"\n        return\n    end\n\n    # check the user preference\n    if !parse(Bool, get(ENV, \"JULIA_CUDA_USE_COMPAT\", \"true\"))\n        @debug \"User disallows using forward-compatible driver.\"\n        return\n    end\n\n    # check the version\n    if system_version >= compat_version\n        @debug \"System CUDA driver is recent enough; not using forward-compatible driver\"\n        return\n    end\n\n    # check if we can unload the system driver.\n    # if we didn't, we can't consider a forward compatible library because that would\n    # risk having multiple copies of libcuda.so loaded (also see NVIDIA bug #3418723)\n    Libdl.dlclose(driver_handle)\n    system_driver_loaded = Libdl.dlopen(system_driver, Libdl.RTLD_NOLOAD;\n                                        throw_error=false) !== nothing\n    if system_driver_loaded\n        @debug \"Could not unload the system CUDA library;\" *\n               \" this prevents use of the forward-compatible driver\"\n        return\n    end\n\n    # check if this process is hooked by CUDA's injection libraries, which prevents\n    # unloading libcuda after dlopening. this is problematic, because we might want to\n    # after loading a forwards-compatible libcuda and realizing we can't use it. without\n    # being able to unload the library, we'd run into issues (see NVIDIA bug #3418723)\n    hooked = haskey(ENV, \"CUDA_INJECTION64_PATH\")\n    if hooked\n        @debug \"Running under CUDA injection tools;\" *\n               \" this prevents use of the forward-compatible driver\"\n        return\n    end\n\n    # check if we even have an artifact\n    if !@isdefined(libcuda_compat)\n        @debug \"No forward-compatible CUDA library available for your platform.\"\n        return\n    end\n    compat_driver = libcuda_compat\n    @debug \"Forward-compatible CUDA driver found at $compat_driver;\" *\n           \" reported as version $(compat_version)\"\n\n    # finally, load the compatibility driver to see if it supports this platform\n    driver_handle = Libdl.dlopen(compat_driver; throw_error=true)\n    # TODO: do we need to dlopen the JIT compiler library for it to be discoverable?\n    #       doesn't that clash with a system one if compat cuInit fails? or should\n    #       we load it _after_ the compat driver initialization succeeds?\n    #compiler_handle = libnvidia_ptxjitcompiler\n    #Libdl.dlopen(compiler_handle)\n\n    init_status = init_driver(driver_handle)\n    if init_status != 0\n        @debug \"Could not use forward compatibility package (error $init_status)\"\n\n        # see comment above about unloading the system driver\n        Libdl.dlclose(driver_handle)\n        compat_driver_loaded = Libdl.dlopen(compat_driver, Libdl.RTLD_NOLOAD;\n                                            throw_error=false) !== nothing\n        if compat_driver_loaded\n            error(\"Could not unload the forward compatible CUDA driver library.\" *\n                  \"This is probably caused by running Julia under a tool that hooks CUDA API calls.\" *\n                  \"In that case, prevent Julia from loading multiple drivers\" *\n                  \" by setting JULIA_CUDA_USE_COMPAT=false in your environment.\")\n        end\n\n        return\n    end\n\n    @debug \"Successfully loaded forwards-compatible CUDA driver\"\n    libcuda = compat_driver\n    libcuda_version = compat_version\n    libcuda_original_version = system_version\n"""
+        julia_compat = "1.0"
+        lazy_artifacts = true
+        name = "CUDA_Driver"
+        platforms = ["x86_64-linux-gnu", "powerpc64le-linux-gnu", "aarch64-linux-gnu"]
+        script = """    apk update\n    apk add rpm2cpio\n    rpm2cpio compat.rpm | cpio -idmv\n\n    mkdir -p ${libdir}\n\n    mv usr/local/cuda-*/compat/* ${libdir}\n"""
+        version = "v0.3.0"
+
+            [["0.3.0+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libcuda"]
+            type = "lib"
+            variable_name = "libcuda_compat"
+            [["0.3.0+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libnvidia-ptxjitcompiler"]
+            type = "lib"
+            variable_name = "libnvidia_ptxjitcompiler"
+
+            [["0.3.0+1".artifact_metadata.metadata.sources]]
+            filename = "compat.rpm"
+            hash = "9c495dfe7f5abde58c9446ce4e21e80623e5942db00f8d7500047895e7676b69"
+            type = "file"
+            url = "https://developer.download.nvidia.com/compute/cuda/repos/rhel8/x86_64/cuda-compat-12-0-525.60.13-1.x86_64.rpm"
+            [["0.3.0+1".artifact_metadata.metadata.sources]]
+            filename = "compat.rpm"
+            hash = "568f0167405c911731177aea6277a64de95e488b5770babe0f72c89790bcf02f"
+            type = "file"
+            url = "https://developer.download.nvidia.com/compute/cuda/repos/rhel8/ppc64le/cuda-compat-12-0-525.60.13-1.ppc64le.rpm"
+            [["0.3.0+1".artifact_metadata.metadata.sources]]
+            filename = "compat.rpm"
+            hash = "a791a355addeab181ca78a088b87dbda7468cd58bb8ef22a21db6bdb688faacc"
+            type = "file"
+            url = "https://developer.download.nvidia.com/compute/cuda/repos/rhel8/sbsa/cuda-compat-12-0-525.60.13-1.aarch64.rpm"
 
 ["0.4.0+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/CUDA_Driver_jll.jl/releases/download/CUDA_Driver-v0.4.0+0/CUDA_Driver.v0.4.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDA_Driver_jll.jl/releases/download/CUDA_Driver-v0.4.0+0/CUDA_Driver.v0.4.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDA_Driver_jll.jl/releases/download/CUDA_Driver-v0.4.0+0/CUDA_Driver.v0.4.0.x86_64-linux-gnu.tar.gz"]

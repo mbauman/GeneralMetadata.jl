@@ -18,6 +18,80 @@ registered = 2022-03-21T23:18:34.000Z
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/tblis_jll.jl/releases/download/tblis-v1.2.0+4/tblis.v1.2.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/tblis_jll.jl/releases/download/tblis-v1.2.0+4/tblis.v1.2.0.x86_64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/tblis_jll.jl/releases/download/tblis-v1.2.0+4/tblis.v1.2.0.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/tblis_jll.jl/releases/download/tblis-v1.2.0+4/tblis.v1.2.0.x86_64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/tblis_jll.jl/releases/download/tblis-v1.2.0+4/tblis.v1.2.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/tblis_jll.jl/releases/download/tblis-v1.2.0+4/tblis.v1.2.0.x86_64-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/tblis_jll.jl/releases/download/tblis-v1.2.0+4/tblis.v1.2.0.x86_64-w64-mingw32-cxx11.tar.gz"]
 registered = 2022-12-20T09:44:49.000Z
 
+    [["1.2.0+4".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/tblis_jll.jl/releases/download/tblis-v1.2.0+4/tblis.v1.2.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/tblis_jll.jl/releases/download/tblis-v1.2.0+4/tblis.v1.2.0.x86_64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/tblis_jll.jl/releases/download/tblis-v1.2.0+4/tblis.v1.2.0.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/tblis_jll.jl/releases/download/tblis-v1.2.0+4/tblis.v1.2.0.x86_64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/tblis_jll.jl/releases/download/tblis-v1.2.0+4/tblis.v1.2.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/tblis_jll.jl/releases/download/tblis-v1.2.0+4/tblis.v1.2.0.x86_64-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/tblis_jll.jl/releases/download/tblis-v1.2.0+4/tblis.v1.2.0.x86_64-w64-mingw32-cxx11.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/1d483197fde835cd6d51e5639908d0b4a897998c/T/tblis/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.5.6"
+
+        ["1.2.0+4".artifact_metadata.metadata]
+        augment_platform_block = ""
+        init_block = ""
+        julia_compat = "1.0"
+        lazy_artifacts = false
+        name = "tblis"
+        platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "x86_64-linux-musl-cxx11", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+        script = """cd $WORKSPACE/srcdir\ncd tblis/\n\nfor i in ./Makefile.* ./configure*; do\n\n    # Building in container forbids -march options\n    sed -i \"s/-march[^ ]*//g\" $i\n\ndone\n\ncase ${target} in\n    # Unlike stated in Wiki, \n    # TBLIS automatically detects threading model.\n    *\"x86_64\"*\"linux\"*\"gnu\"*) \n        export BLI_CONFIG=x86,reference\n        export BLI_THREAD=openmp\n        ;;\n    *\"x86_64\"*\"linux\"*\"musl\"*)\n        export BLI_CONFIG=x86,reference\n        export BLI_THREAD=pthreads\n        export CC=clang\n        export CXX=clang++\n        ;;\n    *\"x86_64\"*\"w64\"*)\n        # Windows lacks support for some instructions.\n        # Building only for AMD processors.\n        export BLI_CONFIG=amd,reference\n        export BLI_THREAD=openmp\n        # Wrapper for posix_memalign calls.\n        patch src/memory/aligned_allocator.hpp < ${WORKSPACE}/srcdir/patches/aligned_allocator.hpp.mingw.patch\n        # Additional linking parameter needed for MinGW Autoconf.\n        # Update Autoconf parameters and refresh.\n        cd src/external/tci\n        echo \"AM_LDFLAGS=-no-undefined\" >> Makefile.am\n        echo \"lib_libtci_la_LDFLAGS=-no-undefined\" >> Makefile.am\n        update_configure_scripts --reconf\n        cd ../../..\n        sed -i \"s/.*AM_LDFLAGS.*/AM_LDFLAGS=-lpthread -no-undefined/\" Makefile.am\n        echo \"lib_libtblis_la_LDFLAGS=-no-undefined\" >> Makefile.am\n        update_configure_scripts --reconf\n        ;;\n    *\"x86_64\"*\"apple\"*) \n        export BLI_CONFIG=x86,reference\n        export BLI_THREAD=openmp\n        ;;\n    *\"x86_64\"*\"freebsd\"*) \n        export BLI_CONFIG=x86,reference\n        export BLI_THREAD=openmp\n        ;;\n    *)\n        ;; \n\nesac\n\nCFG_OPTION_POSIX=\"--prefix=${prefix} --build=${MACHTYPE} --host=${target}\"\n# ./configure will warn about --enable-thread-model but it is actually effective.\nCFG_OPTION_TBLIS=\"--enable-config=${BLI_CONFIG} --enable-thread-model=${BLI_THREAD}\"\n\n./configure ${CFG_OPTION_TBLIS} ${CFG_OPTION_POSIX}\nmake -j${nproc}\nmake install\n\n# Copy license file\ninstall_license LICENSE\n"""
+        version = "v1.2.0"
+
+            [["1.2.0+4".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Hwloc_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "e33a78d0-f292-5ffc-b300-72abe9b543c8"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["1.2.0+4".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "CompilerSupportLibraries_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["1.2.0+4".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "LLVMOpenMP_jll"
+            platforms = ["x86_64-apple-darwin", "x86_64-unknown-freebsd"]
+            top_level = false
+            type = "dependency"
+            uuid = "1d63c593-3942-5779-bab2-d838dc0a180e"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["1.2.0+4".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libtci"]
+            type = "lib"
+            variable_name = "tci"
+            [["1.2.0+4".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libtblis"]
+            type = "lib"
+            variable_name = "tblis"
+
+            [["1.2.0+4".artifact_metadata.metadata.sources]]
+            hash = "3e4c4b82943726c443b6f408c9c9791dcad7a847"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/devinamatthews/tblis.git"
+            [["1.2.0+4".artifact_metadata.metadata.sources]]
+            follow_symlinks = false
+            path = "./bundled"
+            target = ""
+            type = "directory"
+
 ["1.3.0+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/tblis_jll.jl/releases/download/tblis-v1.3.0+0/tblis.v1.3.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/tblis_jll.jl/releases/download/tblis-v1.3.0+0/tblis.v1.3.0.x86_64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/tblis_jll.jl/releases/download/tblis-v1.3.0+0/tblis.v1.3.0.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/tblis_jll.jl/releases/download/tblis-v1.3.0+0/tblis.v1.3.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/tblis_jll.jl/releases/download/tblis-v1.3.0+0/tblis.v1.3.0.x86_64-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/tblis_jll.jl/releases/download/tblis-v1.3.0+0/tblis.v1.3.0.x86_64-w64-mingw32-cxx11.tar.gz"]
 registered = 2025-09-21T09:29:09.000Z

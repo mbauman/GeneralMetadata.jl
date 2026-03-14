@@ -14,6 +14,366 @@ registered = 2022-02-28T00:48:32.000Z
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/Qemu_jll.jl/releases/download/Qemu-v7.1.0+0/Qemu.v7.1.0.i686-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qemu_jll.jl/releases/download/Qemu-v7.1.0+0/Qemu.v7.1.0.i686-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Qemu_jll.jl/releases/download/Qemu-v7.1.0+0/Qemu.v7.1.0.x86_64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qemu_jll.jl/releases/download/Qemu-v7.1.0+0/Qemu.v7.1.0.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Qemu_jll.jl/releases/download/Qemu-v7.1.0+0/Qemu.v7.1.0.x86_64-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qemu_jll.jl/releases/download/Qemu-v7.1.0+0/Qemu.v7.1.0.x86_64-linux-musl-cxx11.tar.gz"]
 registered = 2022-12-10T20:15:04.000Z
 
+    [["7.1.0+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/Qemu_jll.jl/releases/download/Qemu-v7.1.0+0/Qemu.v7.1.0.i686-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qemu_jll.jl/releases/download/Qemu-v7.1.0+0/Qemu.v7.1.0.i686-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Qemu_jll.jl/releases/download/Qemu-v7.1.0+0/Qemu.v7.1.0.x86_64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qemu_jll.jl/releases/download/Qemu-v7.1.0+0/Qemu.v7.1.0.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Qemu_jll.jl/releases/download/Qemu-v7.1.0+0/Qemu.v7.1.0.x86_64-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qemu_jll.jl/releases/download/Qemu-v7.1.0+0/Qemu.v7.1.0.x86_64-linux-musl-cxx11.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/efc42abaecc9e920cc52329e58d7f639e6fad66c/Q/Qemu/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.5.6"
+
+        ["7.1.0+0".artifact_metadata.metadata]
+        augment_platform_block = ""
+        init_block = ""
+        julia_compat = "1.6"
+        lazy_artifacts = false
+        name = "Qemu"
+        platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11"]
+        script = """cd $WORKSPACE/srcdir/qemu-*\ninstall_license COPYING\n\n# check if we need to use a more recent glibc\nif [[ -f \"$prefix/usr/include/sched.h\" ]]; then\n    GLIBC_ARTIFACT_DIR=$(dirname $(dirname $(dirname $(realpath $prefix/usr/include/sched.h))))\n    rsync --archive ${GLIBC_ARTIFACT_DIR}/ /opt/${target}/${target}/sys-root/\nfi\n\n# include `falloc` header in `strace.c` (requires glibc 2.25)\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/qemu_falloc.patch\"\n\nif [[ \"${target}\" == *-*-musl ]]; then\n    # fix messy header situation on musl\n    atomic_patch -p1 \"${WORKSPACE}/srcdir/patches/qemu_syscall.patch\"\n\n    # include kernel headers for a definition of speculation control prctls (musl 1.1.20)\n    sed -i 's/#include <sys\\/prctl.h>/#include <linux\\/prctl.h>/g' linux-user/syscall.c\nfi\n\n# disable tests\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/qemu_disable_tests.patch\"\n\n# properly link to rt\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/qemu_link_rt.patch\"\n\n# hacks for macOS\n## adapter for `clock_gettime()` on macOS 10.12-\n#atomic_patch -p1 \"${WORKSPACE}/srcdir/patches/qemu_clock_gettime.patch\"\n## disable adding the icon to the binary\n#echo '#!/bin/true ' > /usr/bin/Rez\n#echo '#!/bin/true ' > /usr/bin/SetFile\n#chmod +x /usr/bin/Rez\n#chmod +x /usr/bin/SetFile\n\n## fix pointer mismatch between `size_t` and `uint64_t`\n#atomic_patch -p1 \"${WORKSPACE}/srcdir/patches/qemu_size_uint64.patch\"\n\n# Configure, ignoring some warnings that we don't need, etc...\n./configure --prefix=$prefix --host-cc=\"${HOSTCC}\" \\\n    --extra-cflags=\"-I${prefix}/include -Wno-unused-result\" \\\n    --disable-cocoa\n\nmake -j${nproc}\n\nmake install\n"""
+        version = "v7.1.0"
+
+            [["7.1.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Pixman_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["7.1.0+0".artifact_metadata.metadata.dependencies]]
+            compat = "2.68.1"
+            name = "Glib_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["7.1.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "PCRE_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["7.1.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Gettext_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["7.1.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "libcap_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["7.1.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Glibc_jll"
+            platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11"]
+            top_level = false
+            type = "builddependency"
+            version-major = 2
+            version-minor = 17
+            version-patch = 0
+
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-system-aarch64"]
+            type = "exe"
+            variable_name = "qemu_system_aarch64"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-system-alpha"]
+            type = "exe"
+            variable_name = "qemu_system_alpha"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-system-arm"]
+            type = "exe"
+            variable_name = "qemu_system_arm"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-system-avr"]
+            type = "exe"
+            variable_name = "qemu_system_avr"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-system-cris"]
+            type = "exe"
+            variable_name = "qemu_system_cris"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-system-hppa"]
+            type = "exe"
+            variable_name = "qemu_system_hppa"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-system-i386"]
+            type = "exe"
+            variable_name = "qemu_system_i386"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-system-m68k"]
+            type = "exe"
+            variable_name = "qemu_system_m68k"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-system-microblaze"]
+            type = "exe"
+            variable_name = "qemu_system_microblaze"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-system-microblazeel"]
+            type = "exe"
+            variable_name = "qemu_system_microblazeel"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-system-mips"]
+            type = "exe"
+            variable_name = "qemu_system_mips"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-system-mips64"]
+            type = "exe"
+            variable_name = "qemu_system_mips64"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-system-mips64el"]
+            type = "exe"
+            variable_name = "qemu_system_mips64el"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-system-mipsel"]
+            type = "exe"
+            variable_name = "qemu_system_mipsel"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-system-nios2"]
+            type = "exe"
+            variable_name = "qemu_system_nios2"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-system-or1k"]
+            type = "exe"
+            variable_name = "qemu_system_or1k"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-system-ppc"]
+            type = "exe"
+            variable_name = "qemu_system_ppc"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-system-ppc64"]
+            type = "exe"
+            variable_name = "qemu_system_ppc64"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-system-riscv32"]
+            type = "exe"
+            variable_name = "qemu_system_riscv32"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-system-riscv64"]
+            type = "exe"
+            variable_name = "qemu_system_riscv64"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-system-rx"]
+            type = "exe"
+            variable_name = "qemu_system_rx"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-system-s390x"]
+            type = "exe"
+            variable_name = "qemu_system_s390x"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-system-sh4"]
+            type = "exe"
+            variable_name = "qemu_system_sh4"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-system-sh4eb"]
+            type = "exe"
+            variable_name = "qemu_system_sh4eb"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-system-sparc"]
+            type = "exe"
+            variable_name = "qemu_system_sparc"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-system-sparc64"]
+            type = "exe"
+            variable_name = "qemu_system_sparc64"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-system-tricore"]
+            type = "exe"
+            variable_name = "qemu_system_tricore"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-system-x86_64"]
+            type = "exe"
+            variable_name = "qemu_system_x86_64"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-system-xtensa"]
+            type = "exe"
+            variable_name = "qemu_system_xtensa"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-system-xtensaeb"]
+            type = "exe"
+            variable_name = "qemu_system_xtensaeb"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-aarch64"]
+            type = "exe"
+            variable_name = "qemu_aarch64"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-aarch64_be"]
+            type = "exe"
+            variable_name = "qemu_aarch64_be"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-alpha"]
+            type = "exe"
+            variable_name = "qemu_alpha"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-arm"]
+            type = "exe"
+            variable_name = "qemu_arm"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-armeb"]
+            type = "exe"
+            variable_name = "qemu_armeb"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-cris"]
+            type = "exe"
+            variable_name = "qemu_cris"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-edid"]
+            type = "exe"
+            variable_name = "qemu_edid"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-ga"]
+            type = "exe"
+            variable_name = "qemu_ga"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-hexagon"]
+            type = "exe"
+            variable_name = "qemu_hexagon"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-hppa"]
+            type = "exe"
+            variable_name = "qemu_hppa"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-i386"]
+            type = "exe"
+            variable_name = "qemu_i386"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-img"]
+            type = "exe"
+            variable_name = "qemu_img"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-io"]
+            type = "exe"
+            variable_name = "qemu_io"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-m68k"]
+            type = "exe"
+            variable_name = "qemu_m68k"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-microblaze"]
+            type = "exe"
+            variable_name = "qemu_microblaze"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-microblazeel"]
+            type = "exe"
+            variable_name = "qemu_microblazeel"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-mips"]
+            type = "exe"
+            variable_name = "qemu_mips"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-mips64"]
+            type = "exe"
+            variable_name = "qemu_mips64"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-mips64el"]
+            type = "exe"
+            variable_name = "qemu_mips64el"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-mipsel"]
+            type = "exe"
+            variable_name = "qemu_mipsel"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-mipsn32"]
+            type = "exe"
+            variable_name = "qemu_mipsn32"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-mipsn32el"]
+            type = "exe"
+            variable_name = "qemu_mipsn32el"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-nbd"]
+            type = "exe"
+            variable_name = "qemu_nbd"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-nios2"]
+            type = "exe"
+            variable_name = "qemu_nios2"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-or1k"]
+            type = "exe"
+            variable_name = "qemu_or1k"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-ppc"]
+            type = "exe"
+            variable_name = "qemu_ppc"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-ppc64"]
+            type = "exe"
+            variable_name = "qemu_ppc64"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-ppc64le"]
+            type = "exe"
+            variable_name = "qemu_ppc64le"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-riscv32"]
+            type = "exe"
+            variable_name = "qemu_riscv32"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-riscv64"]
+            type = "exe"
+            variable_name = "qemu_riscv64"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-s390x"]
+            type = "exe"
+            variable_name = "qemu_s390x"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-sh4"]
+            type = "exe"
+            variable_name = "qemu_sh4"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-sh4eb"]
+            type = "exe"
+            variable_name = "qemu_sh4eb"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-sparc"]
+            type = "exe"
+            variable_name = "qemu_sparc"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-sparc32plus"]
+            type = "exe"
+            variable_name = "qemu_sparc32plus"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-sparc64"]
+            type = "exe"
+            variable_name = "qemu_sparc64"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-x86_64"]
+            type = "exe"
+            variable_name = "qemu_x86_64"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-xtensa"]
+            type = "exe"
+            variable_name = "qemu_xtensa"
+            [["7.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["qemu-xtensaeb"]
+            type = "exe"
+            variable_name = "qemu_xtensaeb"
+
+            [["7.1.0+0".artifact_metadata.metadata.sources]]
+            hash = "a0634e536bded57cf38ec8a751adb124b89c776fe0846f21ab6c6728f1cbbbe6"
+            type = "archive"
+            unpack_target = ""
+            url = "https://download.qemu.org/qemu-7.1.0.tar.xz"
+            [["7.1.0+0".artifact_metadata.metadata.sources]]
+            follow_symlinks = false
+            path = "./bundled"
+            target = ""
+            type = "directory"
+
 ["7.2.9+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/Qemu_jll.jl/releases/download/Qemu-v7.2.9+0/Qemu.v7.2.9.i686-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qemu_jll.jl/releases/download/Qemu-v7.2.9+0/Qemu.v7.2.9.i686-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Qemu_jll.jl/releases/download/Qemu-v7.2.9+0/Qemu.v7.2.9.x86_64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qemu_jll.jl/releases/download/Qemu-v7.2.9+0/Qemu.v7.2.9.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Qemu_jll.jl/releases/download/Qemu-v7.2.9+0/Qemu.v7.2.9.x86_64-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qemu_jll.jl/releases/download/Qemu-v7.2.9+0/Qemu.v7.2.9.x86_64-linux-musl-cxx11.tar.gz"]
 registered = 2024-05-13T14:48:52.000Z

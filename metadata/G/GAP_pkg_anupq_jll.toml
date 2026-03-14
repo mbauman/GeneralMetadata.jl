@@ -2,6 +2,44 @@
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/GAP_pkg_anupq_jll.jl/releases/download/GAP_pkg_anupq-v300.200.600+0/GAP_pkg_anupq.v300.200.600.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_anupq_jll.jl/releases/download/GAP_pkg_anupq-v300.200.600+0/GAP_pkg_anupq.v300.200.600.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_anupq_jll.jl/releases/download/GAP_pkg_anupq-v300.200.600+0/GAP_pkg_anupq.v300.200.600.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_anupq_jll.jl/releases/download/GAP_pkg_anupq-v300.200.600+0/GAP_pkg_anupq.v300.200.600.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_anupq_jll.jl/releases/download/GAP_pkg_anupq-v300.200.600+0/GAP_pkg_anupq.v300.200.600.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_anupq_jll.jl/releases/download/GAP_pkg_anupq-v300.200.600+0/GAP_pkg_anupq.v300.200.600.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_anupq_jll.jl/releases/download/GAP_pkg_anupq-v300.200.600+0/GAP_pkg_anupq.v300.200.600.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_anupq_jll.jl/releases/download/GAP_pkg_anupq-v300.200.600+0/GAP_pkg_anupq.v300.200.600.x86_64-unknown-freebsd.tar.gz"]
 registered = 2023-01-05T01:43:42.000Z
 
+    [["300.200.600+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/GAP_pkg_anupq_jll.jl/releases/download/GAP_pkg_anupq-v300.200.600+0/GAP_pkg_anupq.v300.200.600.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_anupq_jll.jl/releases/download/GAP_pkg_anupq-v300.200.600+0/GAP_pkg_anupq.v300.200.600.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_anupq_jll.jl/releases/download/GAP_pkg_anupq-v300.200.600+0/GAP_pkg_anupq.v300.200.600.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_anupq_jll.jl/releases/download/GAP_pkg_anupq-v300.200.600+0/GAP_pkg_anupq.v300.200.600.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_anupq_jll.jl/releases/download/GAP_pkg_anupq-v300.200.600+0/GAP_pkg_anupq.v300.200.600.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_anupq_jll.jl/releases/download/GAP_pkg_anupq-v300.200.600+0/GAP_pkg_anupq.v300.200.600.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_anupq_jll.jl/releases/download/GAP_pkg_anupq-v300.200.600+0/GAP_pkg_anupq.v300.200.600.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_anupq_jll.jl/releases/download/GAP_pkg_anupq-v300.200.600+0/GAP_pkg_anupq.v300.200.600.x86_64-unknown-freebsd.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/f3880a3b870b0b6eaac9ad617cb8f6b2035fc523/G/GAP_pkg/GAP_pkg_anupq/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.5.6"
+
+        ["300.200.600+0".artifact_metadata.metadata]
+        augment_platform_block = ""
+        init_block = ""
+        julia_compat = "1.6"
+        lazy_artifacts = false
+        name = "GAP_pkg_anupq"
+        platforms = ["x86_64-linux-gnu", "aarch64-linux-gnu", "powerpc64le-linux-gnu", "x86_64-linux-musl", "aarch64-linux-musl", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd"]
+        script = """cd anupq*\n\n# HACK to workaround need to pass --with-gaproot\nmkdir -p $prefix/lib/gap/ # HACK\necho \"GAParch=dummy\" > $prefix/lib/gap/sysinfo.gap # HACK\necho \"GAP_CPPFLAGS=dummy\" >> $prefix/lib/gap/sysinfo.gap # HACK\n\n# HACK: avoid \"undefined reference 'rpl_malloc'\" errors; this is fixed in version 3.3.0\nsed -i -e '/ALLOC/d' configure.ac\n./autogen.sh\n\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} --with-gmp=${prefix} --with-gaproot=${prefix}/lib/gap\nmake -j${nproc}\n\n# copy just the executable\nmkdir -p ${prefix}/bin/\ncp bin/*/pq ${prefix}/bin/\n\ninstall_license LICENSE\n\nrm $prefix/lib/gap/sysinfo.gap\n"""
+        version = "v300.200.600"
+
+            [["300.200.600+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "GMP_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["300.200.600+0".artifact_metadata.metadata.products]]
+            binnames = ["pq"]
+            type = "exe"
+            variable_name = "pq"
+
+            [["300.200.600+0".artifact_metadata.metadata.sources]]
+            hash = "9df9f662c4df3b32916c61e0becd2d04162b75150368b2dadc50f1c432ca8579"
+            type = "archive"
+            unpack_target = ""
+            url = "https://github.com/gap-packages/anupq/releases/download/v3.2.6/anupq-3.2.6.tar.gz"
+
 ["300.300.0+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/GAP_pkg_anupq_jll.jl/releases/download/GAP_pkg_anupq-v300.300.0+0/GAP_pkg_anupq.v300.300.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_anupq_jll.jl/releases/download/GAP_pkg_anupq-v300.300.0+0/GAP_pkg_anupq.v300.300.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_anupq_jll.jl/releases/download/GAP_pkg_anupq-v300.300.0+0/GAP_pkg_anupq.v300.300.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_anupq_jll.jl/releases/download/GAP_pkg_anupq-v300.300.0+0/GAP_pkg_anupq.v300.300.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_anupq_jll.jl/releases/download/GAP_pkg_anupq-v300.300.0+0/GAP_pkg_anupq.v300.300.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_anupq_jll.jl/releases/download/GAP_pkg_anupq-v300.300.0+0/GAP_pkg_anupq.v300.300.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_anupq_jll.jl/releases/download/GAP_pkg_anupq-v300.300.0+0/GAP_pkg_anupq.v300.300.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_anupq_jll.jl/releases/download/GAP_pkg_anupq-v300.300.0+0/GAP_pkg_anupq.v300.300.0.x86_64-unknown-freebsd.tar.gz"]
 registered = 2024-03-19T22:43:12.000Z

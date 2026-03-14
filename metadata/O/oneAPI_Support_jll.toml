@@ -14,6 +14,121 @@ registered = 2022-11-02T09:49:06.000Z
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/oneAPI_Support_jll.jl/releases/download/oneAPI_Support-v0.2.0+0/oneAPI_Support.v0.2.0.x86_64-linux-gnu.tar.gz"]
 registered = 2023-01-26T18:44:34.000Z
 
+    [["0.2.0+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/oneAPI_Support_jll.jl/releases/download/oneAPI_Support-v0.2.0+0/oneAPI_Support.v0.2.0.x86_64-linux-gnu.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/e2cd5166fbd73bf7f1b86ecc6e58c32596f52409/O/oneAPI_Support/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.5.6"
+
+        ["0.2.0+0".artifact_metadata.metadata]
+        augment_platform_block = ""
+        init_block = ""
+        julia_compat = "1.0"
+        lazy_artifacts = false
+        name = "oneAPI_Support"
+        platforms = ["x86_64-linux-gnu"]
+        script = """install_license \"info/licenses/license.txt\"\n\n# install dependencies in the prefix\n# NOTE: these dependencies _should_ be packaged as JLLs we can depend on,\n#       but that's just a lot of work and not worth it for this single build.\nmkdir -p ${libdir} ${includedir}\nmv lib/clang/*/include/CL ${includedir}\nrm -rf lib/clang\ncp -r include/* ${includedir}\nfor lib in mkl_sycl mkl_intel_ilp64 mkl_sequential mkl_core sycl \\\n           pi_level_zero pi_opencl OpenCL svml irng imf intlc; do\n    cp -a lib/lib${lib}*.so* ${libdir}\ndone\n\ncd oneAPI.jl/deps\n\nCMAKE_FLAGS=()\n# Release build for best performance\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=RelWithDebInfo)\n# Install things into $prefix\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix})\n# Explicitly use our cmake toolchain file and tell CMake we're cross-compiling\n# XXX: use the Clang version to work around an issue with the SYCL headers\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN%.*}_clang.cmake)\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING:BOOL=ON)\ncmake -B build -S . -GNinja ${CMAKE_FLAGS[@]}\n\nninja -C build -j ${nproc} install\n\n# remove build-time dependencies we don't need\nrm -rf ${includedir}\n"""
+        version = "v0.2.0"
+
+            [["0.2.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "oneAPI_Level_Zero_Headers_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["0.2.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "oneAPI_Level_Zero_Loader_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["0.2.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["liboneapi_support"]
+            type = "lib"
+            variable_name = "liboneapi_support"
+
+            [["0.2.0+0".artifact_metadata.metadata.sources]]
+            hash = "ebc7377eac45170066917dba037e0e12355eb83a"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/JuliaGPU/oneAPI.jl"
+            [["0.2.0+0".artifact_metadata.metadata.sources]]
+            hash = "8aa30359fd1c0939cdcf0c36fa76e2fb07c8384a1f51acc2ccd563289c845010"
+            type = "archive"
+            unpack_target = ""
+            url = "https://conda.anaconda.org/intel/linux-64/dpcpp-cpp-rt-2023.0.0-intel_25370.tar.bz2"
+            [["0.2.0+0".artifact_metadata.metadata.sources]]
+            hash = "e4d53ac4000f4a3774d1860561ba1305791b7254173e8b0057845aedc1a3aa99"
+            type = "archive"
+            unpack_target = ""
+            url = "https://conda.anaconda.org/intel/linux-64/dpcpp_impl_linux-64-2023.0.0-intel_25370.tar.bz2"
+            [["0.2.0+0".artifact_metadata.metadata.sources]]
+            hash = "b271aff70c99acc24f3ffccef4c246a943541dac98059c824a2f0f8b1c68df49"
+            type = "archive"
+            unpack_target = ""
+            url = "https://conda.anaconda.org/intel/linux-64/dpcpp_linux-64-2023.0.0-intel_25370.tar.bz2"
+            [["0.2.0+0".artifact_metadata.metadata.sources]]
+            hash = "189ec80a95810ca2d2f4d8659792d7cc662872b0aa5dabb1d803e684eca1f072"
+            type = "archive"
+            unpack_target = ""
+            url = "https://conda.anaconda.org/intel/linux-64/icc_rt-2023.0.0-intel_25370.tar.bz2"
+            [["0.2.0+0".artifact_metadata.metadata.sources]]
+            hash = "10ae52d6480ce511b1b345391d2246140ba92e3f34c9fb2fdb72b88a6f2d0f66"
+            type = "archive"
+            unpack_target = ""
+            url = "https://conda.anaconda.org/intel/linux-64/intel-cmplr-lib-rt-2023.0.0-intel_25370.tar.bz2"
+            [["0.2.0+0".artifact_metadata.metadata.sources]]
+            hash = "f3d4270cd182efd8c795c669d6fb95b046172acacf003921bd7baef70d595540"
+            type = "archive"
+            unpack_target = ""
+            url = "https://conda.anaconda.org/intel/linux-64/intel-cmplr-lic-rt-2023.0.0-intel_25370.tar.bz2"
+            [["0.2.0+0".artifact_metadata.metadata.sources]]
+            hash = "6f236af7c3c6e1b6026052b60799089f49548cdcd2abdaf56b2c335df0d7ab20"
+            type = "archive"
+            unpack_target = ""
+            url = "https://conda.anaconda.org/intel/linux-64/intel-opencl-rt-2023.0.0-intel_25370.tar.bz2"
+            [["0.2.0+0".artifact_metadata.metadata.sources]]
+            hash = "0eae400bf40e9c5d6cddf1750ce223602fa773864fdb05a794f78b07b97c54e3"
+            type = "archive"
+            unpack_target = ""
+            url = "https://conda.anaconda.org/intel/linux-64/intel-openmp-2023.0.0-intel_25370.tar.bz2"
+            [["0.2.0+0".artifact_metadata.metadata.sources]]
+            hash = "b7ccc9f8a5d1c6c41a1a13fce3a7af4226f1382920765284d5d64ba6f86db53d"
+            type = "archive"
+            unpack_target = ""
+            url = "https://conda.anaconda.org/intel/linux-64/mkl-2023.0.0-intel_25398.tar.bz2"
+            [["0.2.0+0".artifact_metadata.metadata.sources]]
+            hash = "d9c314768a67966c9cb6258653557daaa4bc42037a18f39ab7dd04cb3961f857"
+            type = "archive"
+            unpack_target = ""
+            url = "https://conda.anaconda.org/intel/linux-64/mkl-devel-2023.0.0-intel_25398.tar.bz2"
+            [["0.2.0+0".artifact_metadata.metadata.sources]]
+            hash = "4a53862549650dc5950884cf676a02d0a3334205419c0449eba3b375038b44c7"
+            type = "archive"
+            unpack_target = ""
+            url = "https://conda.anaconda.org/intel/linux-64/mkl-devel-dpcpp-2023.0.0-intel_25398.tar.bz2"
+            [["0.2.0+0".artifact_metadata.metadata.sources]]
+            hash = "d8029d7636f10e60bc66e93848561bb986df40c621b659a8e9346fdb24cb6851"
+            type = "archive"
+            unpack_target = ""
+            url = "https://conda.anaconda.org/intel/linux-64/mkl-dpcpp-2023.0.0-intel_25398.tar.bz2"
+            [["0.2.0+0".artifact_metadata.metadata.sources]]
+            hash = "ac06e55127ab6389d516fb07665862a315ae6dfc1331ee6e8248ce19a26cd7fd"
+            type = "archive"
+            unpack_target = ""
+            url = "https://conda.anaconda.org/intel/linux-64/mkl-include-2023.0.0-intel_25398.tar.bz2"
+
 ["0.2.1+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/oneAPI_Support_jll.jl/releases/download/oneAPI_Support-v0.2.1+0/oneAPI_Support.v0.2.1.x86_64-linux-gnu.tar.gz"]
 registered = 2023-03-24T08:30:06.000Z

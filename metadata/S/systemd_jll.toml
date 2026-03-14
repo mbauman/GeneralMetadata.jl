@@ -2,6 +2,126 @@
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/systemd_jll.jl/releases/download/systemd-v252.0.0+0/systemd.v252.0.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/systemd_jll.jl/releases/download/systemd-v252.0.0+0/systemd.v252.0.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/systemd_jll.jl/releases/download/systemd-v252.0.0+0/systemd.v252.0.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/systemd_jll.jl/releases/download/systemd-v252.0.0+0/systemd.v252.0.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/systemd_jll.jl/releases/download/systemd-v252.0.0+0/systemd.v252.0.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/systemd_jll.jl/releases/download/systemd-v252.0.0+0/systemd.v252.0.0.x86_64-linux-gnu.tar.gz"]
 registered = 2022-12-09T17:02:00.000Z
 
+    [["252.0.0+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/systemd_jll.jl/releases/download/systemd-v252.0.0+0/systemd.v252.0.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/systemd_jll.jl/releases/download/systemd-v252.0.0+0/systemd.v252.0.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/systemd_jll.jl/releases/download/systemd-v252.0.0+0/systemd.v252.0.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/systemd_jll.jl/releases/download/systemd-v252.0.0+0/systemd.v252.0.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/systemd_jll.jl/releases/download/systemd-v252.0.0+0/systemd.v252.0.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/systemd_jll.jl/releases/download/systemd-v252.0.0+0/systemd.v252.0.0.x86_64-linux-gnu.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/aced2c76ad7fd4f7fbbebb3f218dbaa7f82da63a/S/systemd/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.5.6"
+
+        ["252.0.0+0".artifact_metadata.metadata]
+        augment_platform_block = ""
+        init_block = ""
+        julia_compat = "1.6"
+        lazy_artifacts = false
+        name = "systemd"
+        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu"]
+        script = """# check if we need to use a more recent glibc\nif [[ -f \"$prefix/usr/include/sched.h\" ]]; then\n    GLIBC_ARTIFACT_DIR=$(dirname $(dirname $(dirname $(realpath $prefix/usr/include/sched.h))))\n    rsync --archive ${GLIBC_ARTIFACT_DIR}/ /opt/${target}/${target}/sys-root/\nfi\n\ncd systemd\ninstall_license LICENSE.GPL2\n\n# build-time dependencies that aren't packaged as JLLs\napk add coreutils\npip install jinja2\n\nmeson --cross-file=${MESON_TARGET_TOOLCHAIN} build \\\n    -Dmode=release \\\n    -Dresolve=false -Dnss-resolve=false \\\n    -Dmachined=false -Dnss-mymachines=false \\\n    -Dnss-myhostname=false -Dnss-systemd=false \\\n    -Dtests=false\nninja -C build -j${nproc}\n\n# we only care about libsystemd, so install to a temporary prefix and copy what we need\nmeson install -C build --destdir \"/tmp/prefix\"\ncd /tmp/prefix\ncp -ar lib/lib* $libdir\n# XXX: how is there a workspace/destdir dir there?\ncd workspace/destdir\ncp -ar include/* $includedir\ncp -ar share/pkgconfig $prefix/share\n"""
+        version = "v252.0.0"
+
+            [["252.0.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Glibc_jll"
+            platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "powerpc64le-linux-gnu"]
+            top_level = false
+            type = "builddependency"
+            version-major = 2
+            version-minor = 19
+            version-patch = 0
+            [["252.0.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "gperf_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "hostdependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["252.0.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "libcap_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["252.0.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Libgcrypt_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["252.0.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "P11Kit_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["252.0.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Lz4_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["252.0.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "XZ_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["252.0.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Zstd_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["252.0.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Libmount_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["252.0.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libsystemd"]
+            type = "lib"
+            variable_name = "libsystemd"
+            [["252.0.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libudev"]
+            type = "lib"
+            variable_name = "libudev"
+
+            [["252.0.0+0".artifact_metadata.metadata.sources]]
+            hash = "e8dc52766e1fdb4f8c09c3ab654d1270e1090c8d"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/systemd/systemd"
+
 ["256.7.0+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/systemd_jll.jl/releases/download/systemd-v256.7.0+0/systemd.v256.7.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/systemd_jll.jl/releases/download/systemd-v256.7.0+0/systemd.v256.7.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/systemd_jll.jl/releases/download/systemd-v256.7.0+0/systemd.v256.7.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/systemd_jll.jl/releases/download/systemd-v256.7.0+0/systemd.v256.7.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/systemd_jll.jl/releases/download/systemd-v256.7.0+0/systemd.v256.7.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/systemd_jll.jl/releases/download/systemd-v256.7.0+0/systemd.v256.7.0.x86_64-linux-gnu.tar.gz"]
 registered = 2024-10-24T23:16:20.000Z

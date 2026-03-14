@@ -14,6 +14,125 @@ registered = 2021-05-29T14:08:51.000Z
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/SuiteSparse_GPU_jll.jl/releases/download/SuiteSparse_GPU-v5.10.1+1/SuiteSparse_GPU.v5.10.1.x86_64-linux-gnu-cuda+10.2.tar.gz", "https://github.com/JuliaBinaryWrappers/SuiteSparse_GPU_jll.jl/releases/download/SuiteSparse_GPU-v5.10.1+1/SuiteSparse_GPU.v5.10.1.x86_64-linux-gnu-cuda+11.0.tar.gz", "https://github.com/JuliaBinaryWrappers/SuiteSparse_GPU_jll.jl/releases/download/SuiteSparse_GPU-v5.10.1+1/SuiteSparse_GPU.v5.10.1.x86_64-linux-gnu-cuda+12.0.tar.gz"]
 registered = 2023-02-01T10:37:12.000Z
 
+    [["5.10.1+1".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/SuiteSparse_GPU_jll.jl/releases/download/SuiteSparse_GPU-v5.10.1+1/SuiteSparse_GPU.v5.10.1.x86_64-linux-gnu-cuda+10.2.tar.gz", "https://github.com/JuliaBinaryWrappers/SuiteSparse_GPU_jll.jl/releases/download/SuiteSparse_GPU-v5.10.1+1/SuiteSparse_GPU.v5.10.1.x86_64-linux-gnu-cuda+11.0.tar.gz", "https://github.com/JuliaBinaryWrappers/SuiteSparse_GPU_jll.jl/releases/download/SuiteSparse_GPU-v5.10.1+1/SuiteSparse_GPU.v5.10.1.x86_64-linux-gnu-cuda+12.0.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/4ffc953e7e4d82099d378531612a4d79ee6742d8/S/SuiteSparse/SuiteSparse_GPU/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.5.6"
+
+        ["5.10.1+1".artifact_metadata.metadata]
+        augment_platform_block = """using Base.BinaryPlatforms\n\ntry\n    using CUDA_Runtime_jll\ncatch\n    # during initial package installation, CUDA_Runtime_jll may not be available.\n    # in that case, we just won't select an artifact.\nend\n\nfunction cuda_comparison_strategy(a::String, b::String, a_requested::Bool, b_requested::Bool)\n    if a == \"none\" || b == \"none\"\n        return false\n    end\n    if a == \"local\" || b == \"local\"\n        return a == b\n    end\n    a = VersionNumber(a)\n    b = VersionNumber(b)\n\n    # If both b and a requested, then we fall back to equality:\n    if a_requested && b_requested\n        return Base.thisminor(a) == Base.thisminor(b)\n    end\n\n    # Otherwise, do the comparison between the the single version cap and the single version:\n    function is_compatible(artifact::VersionNumber, host::VersionNumber)\n        if host >= v\"11.0\"\n            # enhanced compatibility, semver-style\n            artifact.major == host.major &&\n            Base.thisminor(artifact) <= Base.thisminor(host)\n        else\n            Base.thisminor(artifact) == Base.thisminor(host)\n        end\n    end\n    if a_requested\n        is_compatible(b, a)\n    else\n        is_compatible(a, b)\n    end\nend\n\nfunction augment_platform!(platform::Platform)\n    if !@isdefined(CUDA_Runtime_jll)\n        # don't set to nothing or Pkg will download any artifact\n        platform[\"cuda\"] = \"none\"\n    end\n\n    if !haskey(platform, \"cuda\")\n        CUDA_Runtime_jll.augment_platform!(platform)\n    end\n    BinaryPlatforms.set_compare_strategy!(platform, \"cuda\", cuda_comparison_strategy)\n    return platform\nend"""
+        init_block = ""
+        julia_compat = "1.7"
+        lazy_artifacts = true
+        name = "SuiteSparse_GPU"
+        platforms = ["x86_64-linux-gnu-cuda+10.2", "x86_64-linux-gnu-cuda+11.0"]
+        script = """cd $WORKSPACE/srcdir/SuiteSparse\n\n# Apply Jameson's shlib patch\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/SuiteSparse-shlib.patch\n\n# Disable OpenMP as it will probably interfere with blas threads and Julia threads\nFLAGS+=(INSTALL=\"${prefix}\" INSTALL_LIB=\"${libdir}\" INSTALL_INCLUDE=\"${prefix}/include\" CFOPENMP=)\n\nFLAGS+=(UNAME=\"$(uname)\")\nFLAGS+=(LDFLAGS=\"${LDFLAGS} -L${libdir}\")\n\nBLAS_NAME=blastrampoline\nif [[ ${nbits} == 64 ]]; then\n    SUN=\"-DSUN64 -DLONGBLAS='long long'\"\nfi\n\nFLAGS+=(BLAS=\"-l${BLAS_NAME}\" LAPACK=\"-l${BLAS_NAME}\")\n\n# Enable CUDA\nFLAGS+=(CUDA_PATH=\"$prefix/cuda\")\n\n# To disable METIS in CHOLMOD, pass -DNPARTITION and avoiding linking metis\nFLAGS+=(MY_METIS_LIB=\"-lmetis\" MY_METIS_INC=\"${prefix}/include\")\nFLAGS+=(UMFPACK_CONFIG=\"$SUN\" CHOLMOD_CONFIG+=\"$SUN\" SPQR_CONFIG=\"$SUN\")\n\nmake -j${nproc} -C SuiteSparse_config \"${FLAGS[@]}\" library config\n\nfor proj in SuiteSparse_config SuiteSparse_GPURuntime GPUQREngine CHOLMOD SPQR; do\n    make -j${nproc} -C $proj \"${FLAGS[@]}\" library CFOPENMP=\"$CFOPENMP\"\n    make -j${nproc} -C $proj \"${FLAGS[@]}\" install CFOPENMP=\"$CFOPENMP\"\ndone\n\n# For now, we'll have to adjust the name of the OpenBLAS library on macOS and FreeBSD.\n# Eventually, this should be fixed upstream\nif [[ ${target} == *-apple-* ]] || [[ ${target} == *freebsd* ]]; then\n    echo \"-- Modifying library name for BLAS\"\n\n    for nm in libcholmod libspqr libumfpack; do\n        # Figure out what version it probably latched on to:\n        if [[ ${target} == *-apple-* ]]; then\n            BLAS_LINK=$(otool -L ${libdir}/${nm}.dylib | grep lib${BLAS_NAME} | awk '{ print $1 }')\n            install_name_tool -change ${BLAS_LINK} @rpath/lib${BLAS_NAME}.dylib ${libdir}/${nm}.dylib\n        elif [[ ${target} == *freebsd* ]]; then\n            BLAS_LINK=$(readelf -d ${libdir}/${nm}.so | grep lib${BLAS_NAME} | sed -e 's/.*\\[\\(.*\\)\\].*/\\1/')\n            patchelf --replace-needed ${BLAS_LINK} lib${BLAS_NAME}.so ${libdir}/${nm}.so\n        fi\n    done\nfi\n\n# Delete the extra soversion libraries built. https://github.com/JuliaPackaging/Yggdrasil/issues/7\nif [[ \"${target}\" == *-mingw* ]]; then\n    rm -f ${libdir}/lib*.*.${dlext}\n    rm -f ${libdir}/lib*.*.*.${dlext}\nfi\n\ninstall_license LICENSE.txt\n"""
+        version = "v5.10.1"
+
+            [["5.10.1+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "libblastrampoline_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["5.10.1+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "SuiteSparse_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["5.10.1+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "METIS_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["5.10.1+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "CUDA_full_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 10
+            version-minor = 2
+            version-patch = 89
+            [["5.10.1+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "CUDA_Runtime_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "runtimedependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["5.10.1+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "CUDA_full_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 11
+            version-minor = 0
+            version-patch = 3
+
+            [["5.10.1+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libsuitesparseconfig"]
+            type = "lib"
+            variable_name = "libsuitesparseconfig"
+            [["5.10.1+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libcholmod"]
+            type = "lib"
+            variable_name = "libcholmod"
+            [["5.10.1+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libspqr"]
+            type = "lib"
+            variable_name = "libspqr"
+            [["5.10.1+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libGPUQREngine"]
+            type = "lib"
+            variable_name = "libGPUQREngine"
+            [["5.10.1+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libSuiteSparse_GPURuntime"]
+            type = "lib"
+            variable_name = "libSuiteSparse_GPURuntime"
+
+            [["5.10.1+1".artifact_metadata.metadata.sources]]
+            hash = "538273cfd53720a10e34a3d80d3779b607e1ac26"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/DrTimothyAldenDavis/SuiteSparse.git"
+            [["5.10.1+1".artifact_metadata.metadata.sources]]
+            follow_symlinks = false
+            path = "./bundled"
+            target = ""
+            type = "directory"
+
 ["7.5.0+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/SuiteSparse_GPU_jll.jl/releases/download/SuiteSparse_GPU-v7.5.0+0/SuiteSparse_GPU.v7.5.0.x86_64-linux-gnu-cuda+11.4.tar.gz", "https://github.com/JuliaBinaryWrappers/SuiteSparse_GPU_jll.jl/releases/download/SuiteSparse_GPU-v7.5.0+0/SuiteSparse_GPU.v7.5.0.x86_64-linux-gnu-cuda+11.5.tar.gz", "https://github.com/JuliaBinaryWrappers/SuiteSparse_GPU_jll.jl/releases/download/SuiteSparse_GPU-v7.5.0+0/SuiteSparse_GPU.v7.5.0.x86_64-linux-gnu-cuda+11.6.tar.gz", "https://github.com/JuliaBinaryWrappers/SuiteSparse_GPU_jll.jl/releases/download/SuiteSparse_GPU-v7.5.0+0/SuiteSparse_GPU.v7.5.0.x86_64-linux-gnu-cuda+11.7.tar.gz", "https://github.com/JuliaBinaryWrappers/SuiteSparse_GPU_jll.jl/releases/download/SuiteSparse_GPU-v7.5.0+0/SuiteSparse_GPU.v7.5.0.x86_64-linux-gnu-cuda+11.8.tar.gz", "https://github.com/JuliaBinaryWrappers/SuiteSparse_GPU_jll.jl/releases/download/SuiteSparse_GPU-v7.5.0+0/SuiteSparse_GPU.v7.5.0.x86_64-linux-gnu-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/SuiteSparse_GPU_jll.jl/releases/download/SuiteSparse_GPU-v7.5.0+0/SuiteSparse_GPU.v7.5.0.x86_64-linux-gnu-cuda+12.1.tar.gz", "https://github.com/JuliaBinaryWrappers/SuiteSparse_GPU_jll.jl/releases/download/SuiteSparse_GPU-v7.5.0+0/SuiteSparse_GPU.v7.5.0.x86_64-linux-gnu-cuda+12.2.tar.gz", "https://github.com/JuliaBinaryWrappers/SuiteSparse_GPU_jll.jl/releases/download/SuiteSparse_GPU-v7.5.0+0/SuiteSparse_GPU.v7.5.0.x86_64-linux-gnu-cuda+12.3.tar.gz"]
 registered = 2024-01-11T21:58:57.000Z
