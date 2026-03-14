@@ -90,6 +90,53 @@ registered = 2024-03-19T08:35:36.000Z
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/GAP_lib_jll.jl/releases/download/GAP_lib-v400.1300.100+0/GAP_lib.v400.1300.100.any.tar.gz"]
 registered = 2024-06-13T21:05:22.000Z
 
+    [["400.1300.100+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/GAP_lib_jll.jl/releases/download/GAP_lib-v400.1300.100+0/GAP_lib.v400.1300.100.any.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/a0855b6288b28c8ecb52696d6d28891c872cc5ab/G/GAP_lib/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.5.8"
+
+        ["400.1300.100+0".artifact_metadata.metadata]
+        augment_platform_block = ""
+        init_block = ""
+        julia_compat = "1.0"
+        lazy_artifacts = false
+        name = "GAP_lib"
+        products = []
+        script = """cd ${WORKSPACE}/srcdir/gap*\n\nif [ -d ${WORKSPACE}/srcdir/patches ] ; then\n  for f in ${WORKSPACE}/srcdir/patches/*.patch; do\n    atomic_patch -p1 ${f}\n  done\nfi\n\n# remove patch leftovers\nfind . -name '*.orig' -exec rm {} \\;\n\n# compress group database\ngzip -n grp/*.grp\n\nmv ../pkg .\n\n# must run autogen.sh if compiling from git snapshot and/or if configure was patched;\n# it doesn't hurt otherwise, too, so just always do it\n./autogen.sh\n\n# compile a native version of GAP so we can use it to generate the manual\n# (the manual is only in FULL gap release tarballs, not in the -core tarball\n# nor in git snapshots), and also so that we can invoke the\n# `install-gaproot` target (which is arch independent, so no need to use a\n# GAP built for the host arch.)\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${MACHTYPE} \\\n    --with-gmp=${prefix} \\\n    --without-readline \\\n    --with-zlib=${prefix} \\\n    CC=${CC_BUILD} CXX=${CXX_BUILD}\nmake -j${nproc}\n\n# build the manual if necessary (only HTML and txt; for PDF we'd need LaTeX)\nif [[ ! -f doc/ref/chap0.html ]] ; then\n  make html\nfi\n\n# the license\ninstall_license LICENSE\n\n# install documentation and library files\nmake install-doc install-gaproot\n\n# delete the PDF manuals (they take up a lot of space and few people use them,\n# and those can use the online versions)\nrm ${prefix}/share/gap/doc/*/*.pdf\n"""
+        version = "v400.1300.100"
+
+            [["400.1300.100+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Zlib_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["400.1300.100+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "GMP_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["400.1300.100+0".artifact_metadata.metadata.sources]]
+            hash = "3bd0b5e52ea6984c22d6f6003b2a5805a843659ddbfd8da6ee50609338703451"
+            type = "archive"
+            unpack_target = ""
+            url = "https://github.com/gap-system/gap/releases/download/v4.13.1/gap-4.13.1-core.tar.gz"
+            [["400.1300.100+0".artifact_metadata.metadata.sources]]
+            hash = "0d412462cfc75c7f2894004439af4863901f1d18c9e98ad326419418fddc3139"
+            type = "archive"
+            unpack_target = "pkg"
+            url = "https://github.com/gap-system/gap/releases/download/v4.13.1/packages-required-v4.13.1.tar.gz"
+
 ["400.1400.0+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/GAP_lib_jll.jl/releases/download/GAP_lib-v400.1400.0+0/GAP_lib.v400.1400.0.any.tar.gz"]
 registered = 2024-12-07T14:30:30.000Z

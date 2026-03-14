@@ -5,3 +5,85 @@ registered = 2023-09-04T10:55:57.000Z
 ["3.1.6+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/MuJoCo_jll.jl/releases/download/MuJoCo-v3.1.6+0/MuJoCo.v3.1.6.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/MuJoCo_jll.jl/releases/download/MuJoCo-v3.1.6+0/MuJoCo.v3.1.6.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MuJoCo_jll.jl/releases/download/MuJoCo-v3.1.6+0/MuJoCo.v3.1.6.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MuJoCo_jll.jl/releases/download/MuJoCo-v3.1.6+0/MuJoCo.v3.1.6.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/MuJoCo_jll.jl/releases/download/MuJoCo-v3.1.6+0/MuJoCo.v3.1.6.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MuJoCo_jll.jl/releases/download/MuJoCo-v3.1.6+0/MuJoCo.v3.1.6.x86_64-w64-mingw32.tar.gz"]
 registered = 2024-06-21T21:17:15.000Z
+
+    [["3.1.6+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/MuJoCo_jll.jl/releases/download/MuJoCo-v3.1.6+0/MuJoCo.v3.1.6.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/MuJoCo_jll.jl/releases/download/MuJoCo-v3.1.6+0/MuJoCo.v3.1.6.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MuJoCo_jll.jl/releases/download/MuJoCo-v3.1.6+0/MuJoCo.v3.1.6.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MuJoCo_jll.jl/releases/download/MuJoCo-v3.1.6+0/MuJoCo.v3.1.6.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/MuJoCo_jll.jl/releases/download/MuJoCo-v3.1.6+0/MuJoCo.v3.1.6.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MuJoCo_jll.jl/releases/download/MuJoCo-v3.1.6+0/MuJoCo.v3.1.6.x86_64-w64-mingw32.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/9ff970f6a7085660dd9749b51897cdfa41218e54/M/MuJoCo/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.5.8"
+
+        ["3.1.6+0".artifact_metadata.metadata]
+        augment_platform_block = ""
+        init_block = ""
+        julia_compat = "1.6"
+        lazy_artifacts = false
+        name = "MuJoCo"
+        platforms = ["aarch64-linux-gnu", "x86_64-linux-gnu", "powerpc64le-linux-gnu", "x86_64-w64-mingw32", "aarch64-apple-darwin", "x86_64-apple-darwin"]
+        script = """cd $WORKSPACE/srcdir/mujoco\nCXXFLAGS=\"-I${includedir}\"\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    atomic_patch -p1 ../patches/mingw.patch\nelif [[ \"${target}\" == *-apple-darwin* ]]; then\n    atomic_patch -p1 ../patches/macos.patch\n    export MACOSX_DEPLOYMENT_TARGET=11\nelse\n    atomic_patch -p1 ../patches/other.patch\nfi\n\nif [[ \"${target}\" == x86_64-apple-darwin* ]]; then\n    # Work around using links from https://github.com/JuliaPackaging/BinaryBuilder.jl/issues/1185\n    # We only need libc++ - so no need to download the entire SDK definitions, otherwise linker will get an error\n    cp -fr ../macoslibc/* \"/opt/${target}/${target}/sys-root/usr/lib/.\"\nfi\n\nmkdir build\ncd build\n\ncmake \\\n  -DCMAKE_INSTALL_PREFIX=$prefix \\\n  -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n  -DCMAKE_BUILD_TYPE=Release \\\n  -DMUJOCO_BUILD_EXAMPLES=OFF \\\n  -DMUJOCO_BUILD_SIMULATE=OFF \\\n  -DMUJOCO_BUILD_TESTS=OFF \\\n  -DMUJOCO_TEST_PYTHON_UTIL=OFF \\\n  ..\ncmake --build .\ncmake --install .\n\n# Copy license across manually\nmkdir -p $prefix/share/licenses/MuJoCo\ncp $WORKSPACE/srcdir/mujoco/LICENSE $prefix/share/licenses/MuJoCo/\n"""
+        version = "v3.1.6"
+
+            [["3.1.6+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libX11_jll"
+            platforms = ["aarch64-linux-gnu", "x86_64-linux-gnu", "powerpc64le-linux-gnu"]
+            top_level = false
+            type = "builddependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["3.1.6+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libXrandr_jll"
+            platforms = ["aarch64-linux-gnu", "x86_64-linux-gnu", "powerpc64le-linux-gnu"]
+            top_level = false
+            type = "builddependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["3.1.6+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libXi_jll"
+            platforms = ["aarch64-linux-gnu", "x86_64-linux-gnu", "powerpc64le-linux-gnu"]
+            top_level = false
+            type = "builddependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["3.1.6+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libXinerama_jll"
+            platforms = ["aarch64-linux-gnu", "x86_64-linux-gnu", "powerpc64le-linux-gnu"]
+            top_level = false
+            type = "builddependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["3.1.6+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libXcursor_jll"
+            platforms = ["aarch64-linux-gnu", "x86_64-linux-gnu", "powerpc64le-linux-gnu"]
+            top_level = false
+            type = "builddependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["3.1.6+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libmujoco"]
+            type = "lib"
+            variable_name = "libmujoco"
+
+            [["3.1.6+0".artifact_metadata.metadata.sources]]
+            hash = "21bc6e5ce41b09d80a8b8df30f6fc866b81a152b"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/google-deepmind/mujoco"
+            [["3.1.6+0".artifact_metadata.metadata.sources]]
+            follow_symlinks = false
+            path = "bundled"
+            target = ""
+            type = "directory"

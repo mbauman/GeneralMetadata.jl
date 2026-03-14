@@ -62,17 +62,1597 @@ registered = 2023-11-06T01:05:02.000Z
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.0+0/Qt6Base.v6.7.0.x86_64-linux-musl-cxx11.tar.gz"]
 registered = 2024-05-10T23:42:45.000Z
 
+    [["6.7.0+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.0+0/Qt6Base.v6.7.0.x86_64-linux-musl-cxx11.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/f2884128eb82ecc617aa9c9483483cf27ff2147c/Q/Qt6Base/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.5.8"
+
+        ["6.7.0+0".artifact_metadata.metadata]
+        augment_platform_block = ""
+        init_block = ""
+        julia_compat = "1.6"
+        lazy_artifacts = false
+        name = "Qt6Base"
+        platforms = ["x86_64-linux-musl-cxx11"]
+        script = """cd $WORKSPACE/srcdir\n\nBIN_DIR=\"/opt/bin/${bb_full_target}\"\n\nmkdir build\ncd build/\n\nqtsrcdir=`ls -d ../qtbase-everywhere-src-*`\n\natomic_patch -p1 -d \"${qtsrcdir}\" ../patches/mingw.patch\natomic_patch -p1 -d \"${qtsrcdir}\" ../patches/storageinfo.patch\n\ncommonoptions=\" \\\n-opensource -confirm-license \\\n-openssl-linked  -nomake examples -release \\\n\"\n\ncommoncmakeoptions=\"-DCMAKE_PREFIX_PATH=${prefix} -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} -DQT_HOST_PATH=$host_prefix -DQT_FEATURE_openssl_linked=ON\"\n\nexport LD_LIBRARY_PATH=$host_libdir:$host_prefix/lib64:$LD_LIBRARY_PATH\nexport OPENSSL_LIBS=\"-L${libdir} -lssl -lcrypto\"\n\n# temporarily allow march during configure\nsed -i 's/exit 1/#exit 1/' /opt/bin/$bb_full_target/$target-g++\n\ncase \"$bb_full_target\" in\n\n    x86_64-linux-musl-libgfortran5-cxx11)\n        sed -i 's/exit 1/#exit 1/' $HOSTCXX\n        ../qtbase-everywhere-src-*/configure -prefix $prefix $commonoptions -fontconfig -- -DCMAKE_PREFIX_PATH=${prefix} -DCMAKE_TOOLCHAIN_FILE=${CMAKE_HOST_TOOLCHAIN} -DQT_FEATURE_xcb=ON\n        sed -i 's/#exit 1/exit 1/' $HOSTCXX\n    ;;\n\n    *mingw*)        \n        cd $WORKSPACE/srcdir/mingw*/mingw-w64-headers\n        ./configure --prefix=/opt/$target/$target/sys-root --enable-sdk=all --host=$target\n        make install\n        \n        \n        cd ../mingw-w64-crt/\n        if [ ${target} == \"i686-w64-mingw32\" ]; then\n            _crt_configure_args=\"--disable-lib64 --enable-lib32\"\n        elif [ ${target} == \"x86_64-w64-mingw32\" ]; then\n            _crt_configure_args=\"--disable-lib32 --enable-lib64\"\n        fi\n        ./configure --prefix=/opt/$target/$target/sys-root --enable-sdk=all --host=$target --enable-wildcard ${_crt_configure_args}\n        make -j${nproc}\n        make install\n        \n        cd ../mingw-w64-libraries/winpthreads\n        ./configure --prefix=/opt/$target/$target/sys-root --host=$target --enable-static --enable-shared\n        make -j${nproc}\n        make install\n\n        cd $WORKSPACE/srcdir/build\n        ../qtbase-everywhere-src-*/configure -prefix $prefix -opensource -confirm-license -nomake examples -release -opengl dynamic -- -DCMAKE_PREFIX_PATH=${prefix} -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} -DQT_HOST_PATH=$host_prefix\n    ;;\n\n    *apple-darwin*)\n        apple_sdk_root=$WORKSPACE/srcdir/MacOSX13.3.sdk\n        sed -i \"s!/opt/x86_64-apple-darwin14/x86_64-apple-darwin14/sys-root!$apple_sdk_root!\" $CMAKE_TARGET_TOOLCHAIN\n        if [[ \"${target}\" == x86_64-* ]]; then\n            export LDFLAGS=\"-L${libdir}/darwin -lclang_rt.osx\"\n            deployarg=\"-DCMAKE_OSX_DEPLOYMENT_TARGET=11\"\n        fi\n        sed -i 's/exit 1/#exit 1/' /opt/bin/$bb_full_target/$target-clang++\n        ../qtbase-everywhere-src-*/configure -prefix $prefix $commonoptions -- $commoncmakeoptions -DQT_INTERNAL_APPLE_SDK_VERSION=13.3 -DCMAKE_SYSROOT=$apple_sdk_root -DCMAKE_FRAMEWORK_PATH=$apple_sdk_root/System/Library/Frameworks $deployarg -DCUPS_INCLUDE_DIR=$apple_sdk_root/usr/include -DCUPS_LIBRARIES=$apple_sdk_root/usr/lib/libcups.tbd -DQT_FEATURE_vulkan=OFF\n        sed -i 's/#exit 1/exit 1/' /opt/bin/$bb_full_target/$target-clang++\n    ;;\n\n    *freebsd*)\n        sed -i 's/-Wl,--no-undefined//' $qtsrcdir/mkspecs/freebsd-clang/qmake.conf\n        sed -i 's/-Wl,--no-undefined//' $qtsrcdir/cmake/QtFlagHandlingHelpers.cmake\n        sed -i 's/exit 1/#exit 1/' /opt/bin/$bb_full_target/$target-clang++\n        ../qtbase-everywhere-src-*/configure -prefix $prefix $commonoptions -fontconfig -- $commoncmakeoptions -DQT_PLATFORM_DEFINITION_DIR=$host_prefix/mkspecs/freebsd-clang -DQT_FEATURE_xcb=ON\n        sed -i 's/#exit 1/exit 1/' /opt/bin/$bb_full_target/$target-clang++\n    ;;\n\n    *)\n        echo \"#define ELFOSABI_GNU 3\" >> /opt/$target/$target/sys-root/usr/include/elf.h\n        echo \"#define EM_AARCH64 183\" >> /opt/$target/$target/sys-root/usr/include/elf.h\n        echo \"#define EM_BLACKFIN 106\" >> /opt/$target/$target/sys-root/usr/include/elf.h\n        ../qtbase-everywhere-src-*/configure -verbose -prefix $prefix $commonoptions -fontconfig -- $commoncmakeoptions -DQT_FEATURE_xcb=ON\n    ;;\nesac\n\n# reinstate march restriction for build\nsed -i 's/#exit 1/exit 1/' /opt/bin/$bb_full_target/$target-g++\n\ncmake --build . --parallel ${nproc}\ncmake --install .\ninstall_license $WORKSPACE/srcdir/qtbase-everywhere-src-*/LICENSES/LGPL-3.0-only.txt\n"""
+        version = "v6.7.0"
+
+            [["6.7.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "libinput_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libXext_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libxcb_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_xcb_util_wm_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_xcb_util_cursor_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_xcb_util_image_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_xcb_util_keysyms_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_xcb_util_renderutil_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libXrender_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libSM_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "xkbcommon_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Libglvnd_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Fontconfig_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.0+0".artifact_metadata.metadata.dependencies]]
+            compat = "2.59.0"
+            name = "Glib_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Zlib_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "CompilerSupportLibraries_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.0+0".artifact_metadata.metadata.dependencies]]
+            compat = "3.0.8"
+            name = "OpenSSL_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Vulkan_Loader_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "LLVM_full_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 13
+            version-minor = 0
+            version-patch = 1
+            [["6.7.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "LLVMCompilerRT_jll"
+            platforms = []
+            top_level = false
+            type = "builddependency"
+            uuid = "4e17d02c-6bf5-513e-be62-445f41c75a11"
+            version-major = 13
+            version-minor = 0
+            version-patch = 1
+            [["6.7.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libX11_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_kbproto_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_renderproto_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_xproto_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_glproto_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Vulkan_Headers_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["6.7.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["Qt6Concurrent", "libQt6Concurrent", "QtConcurrent"]
+            type = "lib"
+            variable_name = "libqt6concurrent"
+            [["6.7.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["Qt6Core", "libQt6Core", "QtCore"]
+            type = "lib"
+            variable_name = "libqt6core"
+            [["6.7.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["Qt6DBus", "libQt6DBus", "QtDBus"]
+            type = "lib"
+            variable_name = "libqt6dbus"
+            [["6.7.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["Qt6Gui", "libQt6Gui", "QtGui"]
+            type = "lib"
+            variable_name = "libqt6gui"
+            [["6.7.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["Qt6Network", "libQt6Network", "QtNetwork"]
+            type = "lib"
+            variable_name = "libqt6network"
+            [["6.7.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["Qt6OpenGL", "libQt6OpenGL", "QtOpenGL"]
+            type = "lib"
+            variable_name = "libqt6opengl"
+            [["6.7.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["Qt6PrintSupport", "libQt6PrintSupport", "QtPrintSupport"]
+            type = "lib"
+            variable_name = "libqt6printsupport"
+            [["6.7.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["Qt6Sql", "libQt6Sql", "QtSql"]
+            type = "lib"
+            variable_name = "libqt6sql"
+            [["6.7.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["Qt6Test", "libQt6Test", "QtTest"]
+            type = "lib"
+            variable_name = "libqt6test"
+            [["6.7.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["Qt6Widgets", "libQt6Widgets", "QtWidgets"]
+            type = "lib"
+            variable_name = "libqt6widgets"
+            [["6.7.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["Qt6Xml", "libQt6Xml", "QtXml"]
+            type = "lib"
+            variable_name = "libqt6xml"
+
+            [["6.7.0+0".artifact_metadata.metadata.sources]]
+            hash = "11b2e29e2e52fb0e3b453ea13bbe51a10fdff36e1c192d8868c5a40233b8b254"
+            type = "archive"
+            unpack_target = ""
+            url = "https://download.qt.io/official_releases/qt/6.7/6.7.0/submodules/qtbase-everywhere-src-6.7.0.tar.xz"
+            [["6.7.0+0".artifact_metadata.metadata.sources]]
+            hash = "e5d0f958a079106234b3a840f93653308a76d3dcea02d3aa8f2841f8df33050c"
+            type = "archive"
+            unpack_target = ""
+            url = "https://github.com/roblabla/MacOSX-SDKs/releases/download/13.3/MacOSX13.3.sdk.tar.xz"
+            [["6.7.0+0".artifact_metadata.metadata.sources]]
+            hash = "ba6b430aed72c63a3768531f6a3ffc2b0fde2c57a3b251450dcf489a894f0894"
+            type = "archive"
+            unpack_target = ""
+            url = "https://sourceforge.net/projects/mingw-w64/files/mingw-w64/mingw-w64-release/mingw-w64-v10.0.0.tar.bz2"
+            [["6.7.0+0".artifact_metadata.metadata.sources]]
+            follow_symlinks = false
+            path = "./bundled"
+            target = ""
+            type = "directory"
+
 ["6.7.0+1"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.0+1/Qt6Base.v6.7.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.0+1/Qt6Base.v6.7.0.aarch64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.0+1/Qt6Base.v6.7.0.aarch64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.0+1/Qt6Base.v6.7.0.aarch64-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.0+1/Qt6Base.v6.7.0.aarch64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.0+1/Qt6Base.v6.7.0.armv7l-linux-gnueabihf-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.0+1/Qt6Base.v6.7.0.armv7l-linux-gnueabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.0+1/Qt6Base.v6.7.0.armv7l-linux-musleabihf-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.0+1/Qt6Base.v6.7.0.armv7l-linux-musleabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.0+1/Qt6Base.v6.7.0.i686-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.0+1/Qt6Base.v6.7.0.i686-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.0+1/Qt6Base.v6.7.0.i686-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.0+1/Qt6Base.v6.7.0.i686-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.0+1/Qt6Base.v6.7.0.i686-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.0+1/Qt6Base.v6.7.0.i686-w64-mingw32-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.0+1/Qt6Base.v6.7.0.powerpc64le-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.0+1/Qt6Base.v6.7.0.powerpc64le-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.0+1/Qt6Base.v6.7.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.0+1/Qt6Base.v6.7.0.x86_64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.0+1/Qt6Base.v6.7.0.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.0+1/Qt6Base.v6.7.0.x86_64-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.0+1/Qt6Base.v6.7.0.x86_64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.0+1/Qt6Base.v6.7.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.0+1/Qt6Base.v6.7.0.x86_64-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.0+1/Qt6Base.v6.7.0.x86_64-w64-mingw32-cxx11.tar.gz"]
 registered = 2024-05-23T06:41:47.000Z
+
+    [["6.7.0+1".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.0+1/Qt6Base.v6.7.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.0+1/Qt6Base.v6.7.0.aarch64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.0+1/Qt6Base.v6.7.0.aarch64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.0+1/Qt6Base.v6.7.0.aarch64-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.0+1/Qt6Base.v6.7.0.aarch64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.0+1/Qt6Base.v6.7.0.armv7l-linux-gnueabihf-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.0+1/Qt6Base.v6.7.0.armv7l-linux-gnueabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.0+1/Qt6Base.v6.7.0.armv7l-linux-musleabihf-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.0+1/Qt6Base.v6.7.0.armv7l-linux-musleabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.0+1/Qt6Base.v6.7.0.i686-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.0+1/Qt6Base.v6.7.0.i686-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.0+1/Qt6Base.v6.7.0.i686-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.0+1/Qt6Base.v6.7.0.i686-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.0+1/Qt6Base.v6.7.0.i686-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.0+1/Qt6Base.v6.7.0.i686-w64-mingw32-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.0+1/Qt6Base.v6.7.0.powerpc64le-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.0+1/Qt6Base.v6.7.0.powerpc64le-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.0+1/Qt6Base.v6.7.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.0+1/Qt6Base.v6.7.0.x86_64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.0+1/Qt6Base.v6.7.0.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.0+1/Qt6Base.v6.7.0.x86_64-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.0+1/Qt6Base.v6.7.0.x86_64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.0+1/Qt6Base.v6.7.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.0+1/Qt6Base.v6.7.0.x86_64-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.0+1/Qt6Base.v6.7.0.x86_64-w64-mingw32-cxx11.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/09e1b55db14aa15a416d21411263a6650ec8655b/Q/Qt6Base/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.5.8"
+
+        ["6.7.0+1".artifact_metadata.metadata]
+        augment_platform_block = ""
+        init_block = ""
+        julia_compat = "1.6"
+        lazy_artifacts = false
+        name = "Qt6Base"
+        platforms = ["x86_64-apple-darwin", "aarch64-apple-darwin", "i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+        script = """cd $WORKSPACE/srcdir\n\nBIN_DIR=\"/opt/bin/${bb_full_target}\"\n\nmkdir build\ncd build/\n\nqtsrcdir=`ls -d ../qtbase-everywhere-src-*`\n\natomic_patch -p1 -d \"${qtsrcdir}\" ../patches/mingw-mac.patch\natomic_patch -p1 -d \"${qtsrcdir}\" ../patches/storageinfo.patch\n\ncommonoptions=\" \\\n-opensource -confirm-license \\\n-openssl-linked  -nomake examples -release \\\n\"\n\ncommoncmakeoptions=\"-DCMAKE_PREFIX_PATH=${prefix} -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} -DQT_HOST_PATH=$host_prefix -DQT_FEATURE_openssl_linked=ON\"\n\nexport LD_LIBRARY_PATH=$host_libdir:$host_prefix/lib64:$LD_LIBRARY_PATH\nexport OPENSSL_LIBS=\"-L${libdir} -lssl -lcrypto\"\n\n# temporarily allow march during configure\nsed -i 's/exit 1/#exit 1/' /opt/bin/$bb_full_target/$target-g++\n\ncase \"$bb_full_target\" in\n\n    x86_64-linux-musl-libgfortran5-cxx11)\n        sed -i 's/exit 1/#exit 1/' $HOSTCXX\n        ../qtbase-everywhere-src-*/configure -prefix $prefix $commonoptions -fontconfig -- -DCMAKE_PREFIX_PATH=${prefix} -DCMAKE_TOOLCHAIN_FILE=${CMAKE_HOST_TOOLCHAIN} -DQT_FEATURE_xcb=ON\n        sed -i 's/#exit 1/exit 1/' $HOSTCXX\n    ;;\n\n    *mingw*)        \n        cd $WORKSPACE/srcdir/mingw*/mingw-w64-headers\n        ./configure --prefix=/opt/$target/$target/sys-root --enable-sdk=all --host=$target\n        make install\n        \n        \n        cd ../mingw-w64-crt/\n        if [ ${target} == \"i686-w64-mingw32\" ]; then\n            _crt_configure_args=\"--disable-lib64 --enable-lib32\"\n        elif [ ${target} == \"x86_64-w64-mingw32\" ]; then\n            _crt_configure_args=\"--disable-lib32 --enable-lib64\"\n        fi\n        ./configure --prefix=/opt/$target/$target/sys-root --enable-sdk=all --host=$target --enable-wildcard ${_crt_configure_args}\n        make -j${nproc}\n        make install\n        \n        cd ../mingw-w64-libraries/winpthreads\n        ./configure --prefix=/opt/$target/$target/sys-root --host=$target --enable-static --enable-shared\n        make -j${nproc}\n        make install\n\n        cd $WORKSPACE/srcdir/build\n        ../qtbase-everywhere-src-*/configure -prefix $prefix -opensource -confirm-license -nomake examples -release -opengl dynamic -- -DCMAKE_PREFIX_PATH=${prefix} -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} -DQT_HOST_PATH=$host_prefix\n    ;;\n\n    *apple-darwin*)\n        apple_sdk_root=$WORKSPACE/srcdir/MacOSX13.3.sdk\n        sed -i \"s!/opt/x86_64-apple-darwin14/x86_64-apple-darwin14/sys-root!$apple_sdk_root!\" $CMAKE_TARGET_TOOLCHAIN\n        sed -i \"s!/opt/x86_64-apple-darwin14/x86_64-apple-darwin14/sys-root!$apple_sdk_root!\" /opt/bin/$bb_full_target/$target-clang++\n        deployarg=\"-DCMAKE_OSX_DEPLOYMENT_TARGET=11\"\n        export LDFLAGS=\"-L${libdir}/darwin -lclang_rt.osx\"\n        sed -i 's/exit 1/#exit 1/' /opt/bin/$bb_full_target/$target-clang++\n        ../qtbase-everywhere-src-*/configure -prefix $prefix $commonoptions -- $commoncmakeoptions -DQT_INTERNAL_APPLE_SDK_VERSION=13.3 -DCMAKE_SYSROOT=$apple_sdk_root -DCMAKE_FRAMEWORK_PATH=$apple_sdk_root/System/Library/Frameworks $deployarg -DCUPS_INCLUDE_DIR=$apple_sdk_root/usr/include -DCUPS_LIBRARIES=$apple_sdk_root/usr/lib/libcups.tbd -DQT_FEATURE_vulkan=OFF\n        sed -i 's/#exit 1/exit 1/' /opt/bin/$bb_full_target/$target-clang++\n    ;;\n\n    *freebsd*)\n        sed -i 's/-Wl,--no-undefined//' $qtsrcdir/mkspecs/freebsd-clang/qmake.conf\n        sed -i 's/-Wl,--no-undefined//' $qtsrcdir/cmake/QtFlagHandlingHelpers.cmake\n        sed -i 's/exit 1/#exit 1/' /opt/bin/$bb_full_target/$target-clang++\n        ../qtbase-everywhere-src-*/configure -prefix $prefix $commonoptions -fontconfig -- $commoncmakeoptions -DQT_PLATFORM_DEFINITION_DIR=$host_prefix/mkspecs/freebsd-clang -DQT_FEATURE_xcb=ON\n        sed -i 's/#exit 1/exit 1/' /opt/bin/$bb_full_target/$target-clang++\n    ;;\n\n    *)\n        echo \"#define ELFOSABI_GNU 3\" >> /opt/$target/$target/sys-root/usr/include/elf.h\n        echo \"#define EM_AARCH64 183\" >> /opt/$target/$target/sys-root/usr/include/elf.h\n        echo \"#define EM_BLACKFIN 106\" >> /opt/$target/$target/sys-root/usr/include/elf.h\n        ../qtbase-everywhere-src-*/configure -verbose -prefix $prefix $commonoptions -fontconfig -- $commoncmakeoptions -DQT_FEATURE_xcb=ON\n    ;;\nesac\n\n# reinstate march restriction for build\nsed -i 's/#exit 1/exit 1/' /opt/bin/$bb_full_target/$target-g++\n\ncmake --build . --parallel ${nproc}\ncmake --install .\ninstall_license $WORKSPACE/srcdir/qtbase-everywhere-src-*/LICENSES/LGPL-3.0-only.txt\n"""
+        version = "v6.7.0"
+
+            [["6.7.0+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "libinput_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.0+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libXext_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.0+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libxcb_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.0+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_xcb_util_wm_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.0+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_xcb_util_cursor_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.0+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_xcb_util_image_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.0+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_xcb_util_keysyms_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.0+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_xcb_util_renderutil_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.0+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libXrender_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.0+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libSM_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.0+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "xkbcommon_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.0+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Libglvnd_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.0+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Fontconfig_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.0+1".artifact_metadata.metadata.dependencies]]
+            compat = "2.59.0"
+            name = "Glib_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.0+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Zlib_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.0+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "CompilerSupportLibraries_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.0+1".artifact_metadata.metadata.dependencies]]
+            compat = "3.0.8"
+            name = "OpenSSL_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.0+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Vulkan_Loader_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.0+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "LLVM_full_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 16
+            version-minor = 0
+            version-patch = 6
+            [["6.7.0+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "LLVMCompilerRT_jll"
+            platforms = ["x86_64-apple-darwin", "aarch64-apple-darwin"]
+            top_level = false
+            type = "builddependency"
+            uuid = "4e17d02c-6bf5-513e-be62-445f41c75a11"
+            version-major = 16
+            version-minor = 0
+            version-patch = 6
+            [["6.7.0+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libX11_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.0+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_kbproto_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.0+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_renderproto_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.0+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_xproto_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.0+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_glproto_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.0+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Vulkan_Headers_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.0+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Qt6Base_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "hostdependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["6.7.0+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["QtConcurrent"]
+            type = "framework"
+            variable_name = "libqt6concurrent"
+            [["6.7.0+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["QtCore"]
+            type = "framework"
+            variable_name = "libqt6core"
+            [["6.7.0+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["QtDBus"]
+            type = "framework"
+            variable_name = "libqt6dbus"
+            [["6.7.0+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["QtGui"]
+            type = "framework"
+            variable_name = "libqt6gui"
+            [["6.7.0+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["QtNetwork"]
+            type = "framework"
+            variable_name = "libqt6network"
+            [["6.7.0+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["QtOpenGL"]
+            type = "framework"
+            variable_name = "libqt6opengl"
+            [["6.7.0+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["QtPrintSupport"]
+            type = "framework"
+            variable_name = "libqt6printsupport"
+            [["6.7.0+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["QtSql"]
+            type = "framework"
+            variable_name = "libqt6sql"
+            [["6.7.0+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["QtTest"]
+            type = "framework"
+            variable_name = "libqt6test"
+            [["6.7.0+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["QtWidgets"]
+            type = "framework"
+            variable_name = "libqt6widgets"
+            [["6.7.0+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["QtXml"]
+            type = "framework"
+            variable_name = "libqt6xml"
+            [["6.7.0+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["Qt6Concurrent", "libQt6Concurrent", "QtConcurrent"]
+            type = "lib"
+            variable_name = "libqt6concurrent"
+            [["6.7.0+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["Qt6Core", "libQt6Core", "QtCore"]
+            type = "lib"
+            variable_name = "libqt6core"
+            [["6.7.0+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["Qt6DBus", "libQt6DBus", "QtDBus"]
+            type = "lib"
+            variable_name = "libqt6dbus"
+            [["6.7.0+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["Qt6Gui", "libQt6Gui", "QtGui"]
+            type = "lib"
+            variable_name = "libqt6gui"
+            [["6.7.0+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["Qt6Network", "libQt6Network", "QtNetwork"]
+            type = "lib"
+            variable_name = "libqt6network"
+            [["6.7.0+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["Qt6OpenGL", "libQt6OpenGL", "QtOpenGL"]
+            type = "lib"
+            variable_name = "libqt6opengl"
+            [["6.7.0+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["Qt6PrintSupport", "libQt6PrintSupport", "QtPrintSupport"]
+            type = "lib"
+            variable_name = "libqt6printsupport"
+            [["6.7.0+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["Qt6Sql", "libQt6Sql", "QtSql"]
+            type = "lib"
+            variable_name = "libqt6sql"
+            [["6.7.0+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["Qt6Test", "libQt6Test", "QtTest"]
+            type = "lib"
+            variable_name = "libqt6test"
+            [["6.7.0+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["Qt6Widgets", "libQt6Widgets", "QtWidgets"]
+            type = "lib"
+            variable_name = "libqt6widgets"
+            [["6.7.0+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["Qt6Xml", "libQt6Xml", "QtXml"]
+            type = "lib"
+            variable_name = "libqt6xml"
+
+            [["6.7.0+1".artifact_metadata.metadata.sources]]
+            hash = "11b2e29e2e52fb0e3b453ea13bbe51a10fdff36e1c192d8868c5a40233b8b254"
+            type = "archive"
+            unpack_target = ""
+            url = "https://download.qt.io/official_releases/qt/6.7/6.7.0/submodules/qtbase-everywhere-src-6.7.0.tar.xz"
+            [["6.7.0+1".artifact_metadata.metadata.sources]]
+            hash = "e5d0f958a079106234b3a840f93653308a76d3dcea02d3aa8f2841f8df33050c"
+            type = "archive"
+            unpack_target = ""
+            url = "https://github.com/roblabla/MacOSX-SDKs/releases/download/13.3/MacOSX13.3.sdk.tar.xz"
+            [["6.7.0+1".artifact_metadata.metadata.sources]]
+            hash = "ba6b430aed72c63a3768531f6a3ffc2b0fde2c57a3b251450dcf489a894f0894"
+            type = "archive"
+            unpack_target = ""
+            url = "https://sourceforge.net/projects/mingw-w64/files/mingw-w64/mingw-w64-release/mingw-w64-v10.0.0.tar.bz2"
+            [["6.7.0+1".artifact_metadata.metadata.sources]]
+            follow_symlinks = false
+            path = "./bundled"
+            target = ""
+            type = "directory"
 
 ["6.7.1+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.1+0/Qt6Base.v6.7.1.x86_64-linux-musl-cxx11.tar.gz"]
 registered = 2024-05-25T09:21:09.000Z
 
+    [["6.7.1+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.1+0/Qt6Base.v6.7.1.x86_64-linux-musl-cxx11.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/24210020fdb971661d7eea7f4f2fd744cfe4186f/Q/Qt6Base/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.5.8"
+
+        ["6.7.1+0".artifact_metadata.metadata]
+        augment_platform_block = ""
+        init_block = ""
+        julia_compat = "1.6"
+        lazy_artifacts = false
+        name = "Qt6Base"
+        platforms = ["x86_64-linux-musl-cxx11"]
+        script = """cd $WORKSPACE/srcdir\n\nBIN_DIR=\"/opt/bin/${bb_full_target}\"\n\nmkdir build\ncd build/\n\nqtsrcdir=`ls -d ../qtbase-everywhere-src-*`\n\natomic_patch -p1 -d \"${qtsrcdir}\" ../patches/mingw-mac.patch\n\ncommonoptions=\" \\\n-opensource -confirm-license \\\n-openssl-linked  -nomake examples -release \\\n\"\n\ncommoncmakeoptions=\"-DCMAKE_PREFIX_PATH=${prefix} -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} -DQT_HOST_PATH=$host_prefix -DQT_FEATURE_openssl_linked=ON\"\n\nexport LD_LIBRARY_PATH=$host_libdir:$host_prefix/lib64:$LD_LIBRARY_PATH\nexport OPENSSL_LIBS=\"-L${libdir} -lssl -lcrypto\"\n\n# temporarily allow march during configure\nsed -i 's/exit 1/#exit 1/' /opt/bin/$bb_full_target/$target-g++\n\ncase \"$bb_full_target\" in\n\n    x86_64-linux-musl-libgfortran5-cxx11)\n        sed -i 's/exit 1/#exit 1/' $HOSTCXX\n        ../qtbase-everywhere-src-*/configure -prefix $prefix $commonoptions -fontconfig -- -DCMAKE_PREFIX_PATH=${prefix} -DCMAKE_TOOLCHAIN_FILE=${CMAKE_HOST_TOOLCHAIN} -DQT_FEATURE_xcb=ON\n        sed -i 's/#exit 1/exit 1/' $HOSTCXX\n    ;;\n\n    *mingw*)        \n        cd $WORKSPACE/srcdir/mingw*/mingw-w64-headers\n        ./configure --prefix=/opt/$target/$target/sys-root --enable-sdk=all --host=$target\n        make install\n        \n        \n        cd ../mingw-w64-crt/\n        if [ ${target} == \"i686-w64-mingw32\" ]; then\n            _crt_configure_args=\"--disable-lib64 --enable-lib32\"\n        elif [ ${target} == \"x86_64-w64-mingw32\" ]; then\n            _crt_configure_args=\"--disable-lib32 --enable-lib64\"\n        fi\n        ./configure --prefix=/opt/$target/$target/sys-root --enable-sdk=all --host=$target --enable-wildcard ${_crt_configure_args}\n        make -j${nproc}\n        make install\n        \n        cd ../mingw-w64-libraries/winpthreads\n        ./configure --prefix=/opt/$target/$target/sys-root --host=$target --enable-static --enable-shared\n        make -j${nproc}\n        make install\n\n        cd $WORKSPACE/srcdir/build\n        ../qtbase-everywhere-src-*/configure -prefix $prefix -opensource -confirm-license -nomake examples -release -opengl dynamic -- -DCMAKE_PREFIX_PATH=${prefix} -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} -DQT_HOST_PATH=$host_prefix\n    ;;\n\n    *apple-darwin*)\n        apple_sdk_root=$WORKSPACE/srcdir/MacOSX13.3.sdk\n        sed -i \"s!/opt/x86_64-apple-darwin14/x86_64-apple-darwin14/sys-root!$apple_sdk_root!\" $CMAKE_TARGET_TOOLCHAIN\n        sed -i \"s!/opt/x86_64-apple-darwin14/x86_64-apple-darwin14/sys-root!$apple_sdk_root!\" /opt/bin/$bb_full_target/$target-clang++\n        deployarg=\"-DCMAKE_OSX_DEPLOYMENT_TARGET=11\"\n        export LDFLAGS=\"-L${libdir}/darwin -lclang_rt.osx\"\n        sed -i 's/exit 1/#exit 1/' /opt/bin/$bb_full_target/$target-clang++\n        ../qtbase-everywhere-src-*/configure -prefix $prefix $commonoptions -- $commoncmakeoptions -DQT_INTERNAL_APPLE_SDK_VERSION=13.3 -DCMAKE_SYSROOT=$apple_sdk_root -DCMAKE_FRAMEWORK_PATH=$apple_sdk_root/System/Library/Frameworks $deployarg -DCUPS_INCLUDE_DIR=$apple_sdk_root/usr/include -DCUPS_LIBRARIES=$apple_sdk_root/usr/lib/libcups.tbd -DQT_FEATURE_vulkan=OFF\n        sed -i 's/#exit 1/exit 1/' /opt/bin/$bb_full_target/$target-clang++\n    ;;\n\n    *freebsd*)\n        sed -i 's/-Wl,--no-undefined//' $qtsrcdir/mkspecs/freebsd-clang/qmake.conf\n        sed -i 's/-Wl,--no-undefined//' $qtsrcdir/cmake/QtFlagHandlingHelpers.cmake\n        sed -i 's/exit 1/#exit 1/' /opt/bin/$bb_full_target/$target-clang++\n        ../qtbase-everywhere-src-*/configure -prefix $prefix $commonoptions -fontconfig -- $commoncmakeoptions -DQT_PLATFORM_DEFINITION_DIR=$host_prefix/mkspecs/freebsd-clang -DQT_FEATURE_xcb=ON\n        sed -i 's/#exit 1/exit 1/' /opt/bin/$bb_full_target/$target-clang++\n    ;;\n\n    *)\n        echo \"#define ELFOSABI_GNU 3\" >> /opt/$target/$target/sys-root/usr/include/elf.h\n        echo \"#define EM_AARCH64 183\" >> /opt/$target/$target/sys-root/usr/include/elf.h\n        echo \"#define EM_BLACKFIN 106\" >> /opt/$target/$target/sys-root/usr/include/elf.h\n        ../qtbase-everywhere-src-*/configure -verbose -prefix $prefix $commonoptions -fontconfig -- $commoncmakeoptions -DQT_FEATURE_xcb=ON\n    ;;\nesac\n\n# reinstate march restriction for build\nsed -i 's/#exit 1/exit 1/' /opt/bin/$bb_full_target/$target-g++\n\ncmake --build . --parallel ${nproc}\ncmake --install .\ninstall_license $WORKSPACE/srcdir/qtbase-everywhere-src-*/LICENSES/LGPL-3.0-only.txt\n"""
+        version = "v6.7.1"
+
+            [["6.7.1+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "libinput_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.1+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libXext_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.1+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libxcb_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.1+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_xcb_util_wm_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.1+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_xcb_util_cursor_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.1+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_xcb_util_image_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.1+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_xcb_util_keysyms_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.1+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_xcb_util_renderutil_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.1+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libXrender_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.1+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libSM_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.1+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "xkbcommon_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.1+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Libglvnd_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.1+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Fontconfig_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.1+0".artifact_metadata.metadata.dependencies]]
+            compat = "2.59.0"
+            name = "Glib_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.1+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Zlib_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.1+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "CompilerSupportLibraries_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.1+0".artifact_metadata.metadata.dependencies]]
+            compat = "3.0.8"
+            name = "OpenSSL_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.1+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Vulkan_Loader_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.1+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "LLVM_full_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 16
+            version-minor = 0
+            version-patch = 6
+            [["6.7.1+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "LLVMCompilerRT_jll"
+            platforms = []
+            top_level = false
+            type = "builddependency"
+            uuid = "4e17d02c-6bf5-513e-be62-445f41c75a11"
+            version-major = 16
+            version-minor = 0
+            version-patch = 6
+            [["6.7.1+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libX11_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.1+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_kbproto_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.1+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_renderproto_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.1+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_xproto_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.1+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_glproto_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.1+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Vulkan_Headers_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["6.7.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["Qt6Concurrent", "libQt6Concurrent", "QtConcurrent"]
+            type = "lib"
+            variable_name = "libqt6concurrent"
+            [["6.7.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["Qt6Core", "libQt6Core", "QtCore"]
+            type = "lib"
+            variable_name = "libqt6core"
+            [["6.7.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["Qt6DBus", "libQt6DBus", "QtDBus"]
+            type = "lib"
+            variable_name = "libqt6dbus"
+            [["6.7.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["Qt6Gui", "libQt6Gui", "QtGui"]
+            type = "lib"
+            variable_name = "libqt6gui"
+            [["6.7.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["Qt6Network", "libQt6Network", "QtNetwork"]
+            type = "lib"
+            variable_name = "libqt6network"
+            [["6.7.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["Qt6OpenGL", "libQt6OpenGL", "QtOpenGL"]
+            type = "lib"
+            variable_name = "libqt6opengl"
+            [["6.7.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["Qt6PrintSupport", "libQt6PrintSupport", "QtPrintSupport"]
+            type = "lib"
+            variable_name = "libqt6printsupport"
+            [["6.7.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["Qt6Sql", "libQt6Sql", "QtSql"]
+            type = "lib"
+            variable_name = "libqt6sql"
+            [["6.7.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["Qt6Test", "libQt6Test", "QtTest"]
+            type = "lib"
+            variable_name = "libqt6test"
+            [["6.7.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["Qt6Widgets", "libQt6Widgets", "QtWidgets"]
+            type = "lib"
+            variable_name = "libqt6widgets"
+            [["6.7.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["Qt6Xml", "libQt6Xml", "QtXml"]
+            type = "lib"
+            variable_name = "libqt6xml"
+
+            [["6.7.1+0".artifact_metadata.metadata.sources]]
+            hash = "b7338da1bdccb4d861e714efffaa83f174dfe37e194916bfd7ec82279a6ace19"
+            type = "archive"
+            unpack_target = ""
+            url = "https://download.qt.io/official_releases/qt/6.7/6.7.1/submodules/qtbase-everywhere-src-6.7.1.tar.xz"
+            [["6.7.1+0".artifact_metadata.metadata.sources]]
+            hash = "e5d0f958a079106234b3a840f93653308a76d3dcea02d3aa8f2841f8df33050c"
+            type = "archive"
+            unpack_target = ""
+            url = "https://github.com/roblabla/MacOSX-SDKs/releases/download/13.3/MacOSX13.3.sdk.tar.xz"
+            [["6.7.1+0".artifact_metadata.metadata.sources]]
+            hash = "ba6b430aed72c63a3768531f6a3ffc2b0fde2c57a3b251450dcf489a894f0894"
+            type = "archive"
+            unpack_target = ""
+            url = "https://sourceforge.net/projects/mingw-w64/files/mingw-w64/mingw-w64-release/mingw-w64-v10.0.0.tar.bz2"
+            [["6.7.1+0".artifact_metadata.metadata.sources]]
+            follow_symlinks = false
+            path = "./bundled"
+            target = ""
+            type = "directory"
+
 ["6.7.1+1"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.1+1/Qt6Base.v6.7.1.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.1+1/Qt6Base.v6.7.1.aarch64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.1+1/Qt6Base.v6.7.1.aarch64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.1+1/Qt6Base.v6.7.1.aarch64-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.1+1/Qt6Base.v6.7.1.aarch64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.1+1/Qt6Base.v6.7.1.armv7l-linux-gnueabihf-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.1+1/Qt6Base.v6.7.1.armv7l-linux-gnueabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.1+1/Qt6Base.v6.7.1.armv7l-linux-musleabihf-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.1+1/Qt6Base.v6.7.1.armv7l-linux-musleabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.1+1/Qt6Base.v6.7.1.i686-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.1+1/Qt6Base.v6.7.1.i686-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.1+1/Qt6Base.v6.7.1.i686-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.1+1/Qt6Base.v6.7.1.i686-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.1+1/Qt6Base.v6.7.1.i686-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.1+1/Qt6Base.v6.7.1.i686-w64-mingw32-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.1+1/Qt6Base.v6.7.1.powerpc64le-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.1+1/Qt6Base.v6.7.1.powerpc64le-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.1+1/Qt6Base.v6.7.1.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.1+1/Qt6Base.v6.7.1.x86_64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.1+1/Qt6Base.v6.7.1.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.1+1/Qt6Base.v6.7.1.x86_64-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.1+1/Qt6Base.v6.7.1.x86_64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.1+1/Qt6Base.v6.7.1.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.1+1/Qt6Base.v6.7.1.x86_64-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.1+1/Qt6Base.v6.7.1.x86_64-w64-mingw32-cxx11.tar.gz"]
 registered = 2024-05-25T18:09:33.000Z
+
+    [["6.7.1+1".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.1+1/Qt6Base.v6.7.1.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.1+1/Qt6Base.v6.7.1.aarch64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.1+1/Qt6Base.v6.7.1.aarch64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.1+1/Qt6Base.v6.7.1.aarch64-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.1+1/Qt6Base.v6.7.1.aarch64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.1+1/Qt6Base.v6.7.1.armv7l-linux-gnueabihf-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.1+1/Qt6Base.v6.7.1.armv7l-linux-gnueabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.1+1/Qt6Base.v6.7.1.armv7l-linux-musleabihf-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.1+1/Qt6Base.v6.7.1.armv7l-linux-musleabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.1+1/Qt6Base.v6.7.1.i686-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.1+1/Qt6Base.v6.7.1.i686-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.1+1/Qt6Base.v6.7.1.i686-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.1+1/Qt6Base.v6.7.1.i686-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.1+1/Qt6Base.v6.7.1.i686-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.1+1/Qt6Base.v6.7.1.i686-w64-mingw32-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.1+1/Qt6Base.v6.7.1.powerpc64le-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.1+1/Qt6Base.v6.7.1.powerpc64le-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.1+1/Qt6Base.v6.7.1.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.1+1/Qt6Base.v6.7.1.x86_64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.1+1/Qt6Base.v6.7.1.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.1+1/Qt6Base.v6.7.1.x86_64-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.1+1/Qt6Base.v6.7.1.x86_64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.1+1/Qt6Base.v6.7.1.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.1+1/Qt6Base.v6.7.1.x86_64-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.7.1+1/Qt6Base.v6.7.1.x86_64-w64-mingw32-cxx11.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/a8a79169755f1be3e434ec6b20068dde53ecbe57/Q/Qt6Base/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.5.8"
+
+        ["6.7.1+1".artifact_metadata.metadata]
+        augment_platform_block = ""
+        init_block = ""
+        julia_compat = "1.6"
+        lazy_artifacts = false
+        name = "Qt6Base"
+        platforms = ["x86_64-apple-darwin", "aarch64-apple-darwin", "i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+        script = """cd $WORKSPACE/srcdir\n\nBIN_DIR=\"/opt/bin/${bb_full_target}\"\n\nmkdir build\ncd build/\n\nqtsrcdir=`ls -d ../qtbase-everywhere-src-*`\n\natomic_patch -p1 -d \"${qtsrcdir}\" ../patches/mingw-mac.patch\n\ncommonoptions=\" \\\n-opensource -confirm-license \\\n-openssl-linked  -nomake examples -release \\\n\"\n\ncommoncmakeoptions=\"-DCMAKE_PREFIX_PATH=${prefix} -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} -DQT_HOST_PATH=$host_prefix -DQT_FEATURE_openssl_linked=ON\"\n\nexport LD_LIBRARY_PATH=$host_libdir:$host_prefix/lib64:$LD_LIBRARY_PATH\nexport OPENSSL_LIBS=\"-L${libdir} -lssl -lcrypto\"\n\n# temporarily allow march during configure\nsed -i 's/exit 1/#exit 1/' /opt/bin/$bb_full_target/$target-g++\n\ncase \"$bb_full_target\" in\n\n    x86_64-linux-musl-libgfortran5-cxx11)\n        sed -i 's/exit 1/#exit 1/' $HOSTCXX\n        ../qtbase-everywhere-src-*/configure -prefix $prefix $commonoptions -fontconfig -- -DCMAKE_PREFIX_PATH=${prefix} -DCMAKE_TOOLCHAIN_FILE=${CMAKE_HOST_TOOLCHAIN} -DQT_FEATURE_xcb=ON\n        sed -i 's/#exit 1/exit 1/' $HOSTCXX\n    ;;\n\n    *mingw*)        \n        cd $WORKSPACE/srcdir/mingw*/mingw-w64-headers\n        ./configure --prefix=/opt/$target/$target/sys-root --enable-sdk=all --host=$target\n        make install\n        \n        \n        cd ../mingw-w64-crt/\n        if [ ${target} == \"i686-w64-mingw32\" ]; then\n            _crt_configure_args=\"--disable-lib64 --enable-lib32\"\n        elif [ ${target} == \"x86_64-w64-mingw32\" ]; then\n            _crt_configure_args=\"--disable-lib32 --enable-lib64\"\n        fi\n        ./configure --prefix=/opt/$target/$target/sys-root --enable-sdk=all --host=$target --enable-wildcard ${_crt_configure_args}\n        make -j${nproc}\n        make install\n        \n        cd ../mingw-w64-libraries/winpthreads\n        ./configure --prefix=/opt/$target/$target/sys-root --host=$target --enable-static --enable-shared\n        make -j${nproc}\n        make install\n\n        cd $WORKSPACE/srcdir/build\n        ../qtbase-everywhere-src-*/configure -prefix $prefix -opensource -confirm-license -nomake examples -release -opengl dynamic -- -DCMAKE_PREFIX_PATH=${prefix} -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} -DQT_HOST_PATH=$host_prefix\n    ;;\n\n    *apple-darwin*)\n        apple_sdk_root=$WORKSPACE/srcdir/MacOSX13.3.sdk\n        sed -i \"s!/opt/x86_64-apple-darwin14/x86_64-apple-darwin14/sys-root!$apple_sdk_root!\" $CMAKE_TARGET_TOOLCHAIN\n        sed -i \"s!/opt/x86_64-apple-darwin14/x86_64-apple-darwin14/sys-root!$apple_sdk_root!\" /opt/bin/$bb_full_target/$target-clang++\n        deployarg=\"-DCMAKE_OSX_DEPLOYMENT_TARGET=11\"\n        export LDFLAGS=\"-L${libdir}/darwin -lclang_rt.osx\"\n        sed -i 's/exit 1/#exit 1/' /opt/bin/$bb_full_target/$target-clang++\n        ../qtbase-everywhere-src-*/configure -prefix $prefix $commonoptions -- $commoncmakeoptions -DQT_INTERNAL_APPLE_SDK_VERSION=13.3 -DCMAKE_SYSROOT=$apple_sdk_root -DCMAKE_FRAMEWORK_PATH=$apple_sdk_root/System/Library/Frameworks $deployarg -DCUPS_INCLUDE_DIR=$apple_sdk_root/usr/include -DCUPS_LIBRARIES=$apple_sdk_root/usr/lib/libcups.tbd -DQT_FEATURE_vulkan=OFF\n        sed -i 's/#exit 1/exit 1/' /opt/bin/$bb_full_target/$target-clang++\n    ;;\n\n    *freebsd*)\n        sed -i 's/-Wl,--no-undefined//' $qtsrcdir/mkspecs/freebsd-clang/qmake.conf\n        sed -i 's/-Wl,--no-undefined//' $qtsrcdir/cmake/QtFlagHandlingHelpers.cmake\n        sed -i 's/exit 1/#exit 1/' /opt/bin/$bb_full_target/$target-clang++\n        ../qtbase-everywhere-src-*/configure -prefix $prefix $commonoptions -fontconfig -- $commoncmakeoptions -DQT_PLATFORM_DEFINITION_DIR=$host_prefix/mkspecs/freebsd-clang -DQT_FEATURE_xcb=ON\n        sed -i 's/#exit 1/exit 1/' /opt/bin/$bb_full_target/$target-clang++\n    ;;\n\n    *)\n        echo \"#define ELFOSABI_GNU 3\" >> /opt/$target/$target/sys-root/usr/include/elf.h\n        echo \"#define EM_AARCH64 183\" >> /opt/$target/$target/sys-root/usr/include/elf.h\n        echo \"#define EM_BLACKFIN 106\" >> /opt/$target/$target/sys-root/usr/include/elf.h\n        ../qtbase-everywhere-src-*/configure -verbose -prefix $prefix $commonoptions -fontconfig -- $commoncmakeoptions -DQT_FEATURE_xcb=ON\n    ;;\nesac\n\n# reinstate march restriction for build\nsed -i 's/#exit 1/exit 1/' /opt/bin/$bb_full_target/$target-g++\n\ncmake --build . --parallel ${nproc}\ncmake --install .\ninstall_license $WORKSPACE/srcdir/qtbase-everywhere-src-*/LICENSES/LGPL-3.0-only.txt\n"""
+        version = "v6.7.1"
+
+            [["6.7.1+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "libinput_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.1+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libXext_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.1+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libxcb_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.1+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_xcb_util_wm_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.1+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_xcb_util_cursor_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.1+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_xcb_util_image_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.1+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_xcb_util_keysyms_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.1+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_xcb_util_renderutil_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.1+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libXrender_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.1+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libSM_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.1+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "xkbcommon_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.1+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Libglvnd_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.1+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Fontconfig_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.1+1".artifact_metadata.metadata.dependencies]]
+            compat = "2.59.0"
+            name = "Glib_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.1+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Zlib_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.1+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "CompilerSupportLibraries_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.1+1".artifact_metadata.metadata.dependencies]]
+            compat = "3.0.8"
+            name = "OpenSSL_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.1+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Vulkan_Loader_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.1+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "LLVM_full_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 16
+            version-minor = 0
+            version-patch = 6
+            [["6.7.1+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "LLVMCompilerRT_jll"
+            platforms = ["x86_64-apple-darwin", "aarch64-apple-darwin"]
+            top_level = false
+            type = "builddependency"
+            uuid = "4e17d02c-6bf5-513e-be62-445f41c75a11"
+            version-major = 16
+            version-minor = 0
+            version-patch = 6
+            [["6.7.1+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libX11_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.1+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_kbproto_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.1+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_renderproto_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.1+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_xproto_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.1+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_glproto_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.1+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Vulkan_Headers_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["6.7.1+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Qt6Base_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "hostdependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["6.7.1+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["QtConcurrent"]
+            type = "framework"
+            variable_name = "libqt6concurrent"
+            [["6.7.1+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["QtCore"]
+            type = "framework"
+            variable_name = "libqt6core"
+            [["6.7.1+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["QtDBus"]
+            type = "framework"
+            variable_name = "libqt6dbus"
+            [["6.7.1+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["QtGui"]
+            type = "framework"
+            variable_name = "libqt6gui"
+            [["6.7.1+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["QtNetwork"]
+            type = "framework"
+            variable_name = "libqt6network"
+            [["6.7.1+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["QtOpenGL"]
+            type = "framework"
+            variable_name = "libqt6opengl"
+            [["6.7.1+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["QtPrintSupport"]
+            type = "framework"
+            variable_name = "libqt6printsupport"
+            [["6.7.1+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["QtSql"]
+            type = "framework"
+            variable_name = "libqt6sql"
+            [["6.7.1+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["QtTest"]
+            type = "framework"
+            variable_name = "libqt6test"
+            [["6.7.1+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["QtWidgets"]
+            type = "framework"
+            variable_name = "libqt6widgets"
+            [["6.7.1+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["QtXml"]
+            type = "framework"
+            variable_name = "libqt6xml"
+            [["6.7.1+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["Qt6Concurrent", "libQt6Concurrent", "QtConcurrent"]
+            type = "lib"
+            variable_name = "libqt6concurrent"
+            [["6.7.1+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["Qt6Core", "libQt6Core", "QtCore"]
+            type = "lib"
+            variable_name = "libqt6core"
+            [["6.7.1+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["Qt6DBus", "libQt6DBus", "QtDBus"]
+            type = "lib"
+            variable_name = "libqt6dbus"
+            [["6.7.1+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["Qt6Gui", "libQt6Gui", "QtGui"]
+            type = "lib"
+            variable_name = "libqt6gui"
+            [["6.7.1+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["Qt6Network", "libQt6Network", "QtNetwork"]
+            type = "lib"
+            variable_name = "libqt6network"
+            [["6.7.1+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["Qt6OpenGL", "libQt6OpenGL", "QtOpenGL"]
+            type = "lib"
+            variable_name = "libqt6opengl"
+            [["6.7.1+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["Qt6PrintSupport", "libQt6PrintSupport", "QtPrintSupport"]
+            type = "lib"
+            variable_name = "libqt6printsupport"
+            [["6.7.1+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["Qt6Sql", "libQt6Sql", "QtSql"]
+            type = "lib"
+            variable_name = "libqt6sql"
+            [["6.7.1+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["Qt6Test", "libQt6Test", "QtTest"]
+            type = "lib"
+            variable_name = "libqt6test"
+            [["6.7.1+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["Qt6Widgets", "libQt6Widgets", "QtWidgets"]
+            type = "lib"
+            variable_name = "libqt6widgets"
+            [["6.7.1+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["Qt6Xml", "libQt6Xml", "QtXml"]
+            type = "lib"
+            variable_name = "libqt6xml"
+
+            [["6.7.1+1".artifact_metadata.metadata.sources]]
+            hash = "b7338da1bdccb4d861e714efffaa83f174dfe37e194916bfd7ec82279a6ace19"
+            type = "archive"
+            unpack_target = ""
+            url = "https://download.qt.io/official_releases/qt/6.7/6.7.1/submodules/qtbase-everywhere-src-6.7.1.tar.xz"
+            [["6.7.1+1".artifact_metadata.metadata.sources]]
+            hash = "e5d0f958a079106234b3a840f93653308a76d3dcea02d3aa8f2841f8df33050c"
+            type = "archive"
+            unpack_target = ""
+            url = "https://github.com/roblabla/MacOSX-SDKs/releases/download/13.3/MacOSX13.3.sdk.tar.xz"
+            [["6.7.1+1".artifact_metadata.metadata.sources]]
+            hash = "ba6b430aed72c63a3768531f6a3ffc2b0fde2c57a3b251450dcf489a894f0894"
+            type = "archive"
+            unpack_target = ""
+            url = "https://sourceforge.net/projects/mingw-w64/files/mingw-w64/mingw-w64-release/mingw-w64-v10.0.0.tar.bz2"
+            [["6.7.1+1".artifact_metadata.metadata.sources]]
+            follow_symlinks = false
+            path = "./bundled"
+            target = ""
+            type = "directory"
 
 ["6.8.1+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/Qt6Base_jll.jl/releases/download/Qt6Base-v6.8.1+0/Qt6Base.v6.8.1.x86_64-linux-musl-cxx11.tar.gz"]
