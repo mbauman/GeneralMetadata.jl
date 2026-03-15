@@ -1306,9 +1306,87 @@ registered = 2021-07-01T11:31:09.000Z
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/CUDA_full_jll.jl/releases/download/CUDA_full-v11.4.1+0/CUDA_full.v11.4.1.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDA_full_jll.jl/releases/download/CUDA_full-v11.4.1+0/CUDA_full.v11.4.1.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDA_full_jll.jl/releases/download/CUDA_full-v11.4.1+0/CUDA_full.v11.4.1.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDA_full_jll.jl/releases/download/CUDA_full-v11.4.1+0/CUDA_full.v11.4.1.x86_64-w64-mingw32.tar.gz"]
 registered = 2021-08-05T14:41:31.000Z
 
+    [["11.4.1+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/CUDA_full_jll.jl/releases/download/CUDA_full-v11.4.1+0/CUDA_full.v11.4.1.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDA_full_jll.jl/releases/download/CUDA_full-v11.4.1+0/CUDA_full.v11.4.1.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDA_full_jll.jl/releases/download/CUDA_full-v11.4.1+0/CUDA_full.v11.4.1.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDA_full_jll.jl/releases/download/CUDA_full-v11.4.1+0/CUDA_full.v11.4.1.x86_64-w64-mingw32.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/7981beb8a21b78c68e1a9d1f22c5d48618c9a316/C/CUDA/CUDA_full@11.4/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.4.0"
+
+        ["11.4.1+0".artifact_metadata.metadata]
+        dependencies = []
+        init_block = ""
+        julia_compat = "1.0"
+        lazy_artifacts = false
+        name = "CUDA_full"
+        platforms = ["x86_64-linux-gnu", "powerpc64le-linux-gnu", "aarch64-linux-gnu", "x86_64-w64-mingw32"]
+        products = []
+        script = """cd ${WORKSPACE}/srcdir\n\n# use a temporary directory to avoid running out of tmpfs\ntemp=${WORKSPACE}/tmpdir\nmkdir ${temp}\n\nmkdir ${prefix}/cuda\nif [[ ${target} == *-linux-gnu ]]; then\n    # don't run the embedded installer (libc issue, doesn't work on ppc),\n    # but instruct makeself to uncompress the embedded archive.\n    sh installer.run --noexec --target \"${temp}\"\n    cd ${temp}/builds\n    find .\n\n    cp cuda_documentation/EULA.txt ${prefix}/cuda\n\n    for project in cuda_cudart cuda_cuobjdump cuda_cupti cuda_gdb \\\n                   cuda_nvcc cuda_nvdisasm cuda_nvml_dev cuda_nvprof cuda_nvprune \\\n                   cuda_nvrtc cuda_nvtx cuda_sanitizer_api \\\n                   libcublas libcufft libcurand libcusolver libcusparse \\\n                   libnpp libnvjpeg; do\n        [[ -d ${project} ]] || { echo \"${project} does not exist!\"; exit 1; }\n        cp -a ${project}/* ${prefix}/cuda\n    done\n\n    cp -a integration/Sanitizer/* ${prefix}/cuda/bin\n\n    # HACK: remove static libraries to get past GitHub's 2GB limit\n    rm ${prefix}/cuda/lib64/*_static.a\nelif [[ ${target} == x86_64-w64-mingw32 ]]; then\n    apk add p7zip\n\n    7z x installer.exe -o${temp}\n    cd ${temp}\n    find .\n\n    mv cuda_documentation/Doc/EULA.txt ${prefix}/cuda\n\n    for project in cuda_cudart cuda_cuobjdump cuda_cupti \\\n                   cuda_nvcc cuda_nvdisasm cuda_nvml_dev cuda_nvprof cuda_nvprune \\\n                   cuda_nvrtc cuda_nvtx cuda_sanitizer_api \\\n                   libcublas libcufft libcurand libcusolver libcusparse  \\\n                   libnpp libnvjpeg; do\n        [[ -d ${project} ]] || { echo \"${project} does not exist!\"; exit 1; }\n        cp -a ${project}/*/* ${prefix}/cuda\n    done\n\n    # NVIDIA Tools Extension Library\n    7z x \"nsight_nvtx/nsight_nvtx/NVIDIA NVTX Installer.x86_64\".*.msi -o${temp}/nvtx_installer\n    find nvtx_installer\n    for file in nvtx_installer/*.*_*; do\n        mv $file $(echo $file | sed 's/\\.\\(\\w*\\)_.*/.\\1/')\n    done\n    mv nvtx_installer/*.dll ${prefix}/cuda/bin\n    mv nvtx_installer/*64_*.lib ${prefix}/cuda/lib/x64\n    mv nvtx_installer/*32_*.lib ${prefix}/cuda/lib/Win32\n    mv nvtx_installer/*.h ${prefix}/cuda/include\n\n    # fixup\n    chmod +x ${prefix}/cuda/bin/*.{exe,dll}\n\n    # clean-up\n    rm ${prefix}/cuda/*.nvi\nfi\n\nrm -rf ${temp}\n\ncd ${prefix}/cuda\ninstall_license EULA.txt\n"""
+        version = "v11.4.1"
+
+            [["11.4.1+0".artifact_metadata.metadata.sources]]
+            filename = "installer.run"
+            hash = "dd6c339a719989d2518f5d54eeac1ed707d0673f8664ba0c4d4b2af7c3ba0005"
+            type = "file"
+            url = "https://developer.download.nvidia.com/compute/cuda/11.4.1/local_installers/cuda_11.4.1_470.57.02_linux.run"
+            [["11.4.1+0".artifact_metadata.metadata.sources]]
+            filename = "installer.run"
+            hash = "dd92ca04f76ad938da3480e2901c0e52dbff6028ada63c09071ed9e3055dc361"
+            type = "file"
+            url = "https://developer.download.nvidia.com/compute/cuda/11.4.1/local_installers/cuda_11.4.1_470.57.02_linux_ppc64le.run"
+            [["11.4.1+0".artifact_metadata.metadata.sources]]
+            filename = "installer.run"
+            hash = "8efa725a41dfd3c0c0f453c2dd535d149154102bf2b791718859417b4f84f922"
+            type = "file"
+            url = "https://developer.download.nvidia.com/compute/cuda/11.4.1/local_installers/cuda_11.4.1_470.57.02_linux_sbsa.run"
+            [["11.4.1+0".artifact_metadata.metadata.sources]]
+            filename = "installer.exe"
+            hash = "2aea308dea1b19fa79eba061c7ca94d956d6e0478b07bf1eb8ff771ea77b0ce9"
+            type = "file"
+            url = "https://developer.download.nvidia.com/compute/cuda/11.4.1/local_installers/cuda_11.4.1_471.41_win10.exe"
+
 ["11.4.2+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/CUDA_full_jll.jl/releases/download/CUDA_full-v11.4.2+0/CUDA_full.v11.4.2.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDA_full_jll.jl/releases/download/CUDA_full-v11.4.2+0/CUDA_full.v11.4.2.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDA_full_jll.jl/releases/download/CUDA_full-v11.4.2+0/CUDA_full.v11.4.2.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDA_full_jll.jl/releases/download/CUDA_full-v11.4.2+0/CUDA_full.v11.4.2.x86_64-w64-mingw32.tar.gz"]
 registered = 2021-09-08T11:01:46.000Z
+
+    [["11.4.2+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/CUDA_full_jll.jl/releases/download/CUDA_full-v11.4.2+0/CUDA_full.v11.4.2.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDA_full_jll.jl/releases/download/CUDA_full-v11.4.2+0/CUDA_full.v11.4.2.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDA_full_jll.jl/releases/download/CUDA_full-v11.4.2+0/CUDA_full.v11.4.2.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDA_full_jll.jl/releases/download/CUDA_full-v11.4.2+0/CUDA_full.v11.4.2.x86_64-w64-mingw32.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/1cda25f6bc881f0a65fca9c1646b0fd68d2f745b/C/CUDA/CUDA_full@11.4/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.4.1"
+
+        ["11.4.2+0".artifact_metadata.metadata]
+        dependencies = []
+        init_block = ""
+        julia_compat = "1.0"
+        lazy_artifacts = false
+        name = "CUDA_full"
+        platforms = ["x86_64-linux-gnu", "powerpc64le-linux-gnu", "aarch64-linux-gnu", "x86_64-w64-mingw32"]
+        products = []
+        script = """cd ${WORKSPACE}/srcdir\n\n# use a temporary directory to avoid running out of tmpfs\ntemp=${WORKSPACE}/tmpdir\nmkdir ${temp}\n\nmkdir ${prefix}/cuda\nif [[ ${target} == *-linux-gnu ]]; then\n    # don't run the embedded installer (libc issue, doesn't work on ppc),\n    # but instruct makeself to uncompress the embedded archive.\n    sh installer.run --noexec --target \"${temp}\"\n    cd ${temp}/builds\n    find .\n\n    cp cuda_documentation/EULA.txt ${prefix}/cuda\n\n    for project in cuda_cudart cuda_cuobjdump cuda_cupti cuda_gdb \\\n                   cuda_nvcc cuda_nvdisasm cuda_nvml_dev cuda_nvprof cuda_nvprune \\\n                   cuda_nvrtc cuda_nvtx cuda_sanitizer_api \\\n                   libcublas libcufft libcurand libcusolver libcusparse \\\n                   libnpp libnvjpeg; do\n        [[ -d ${project} ]] || { echo \"${project} does not exist!\"; exit 1; }\n        cp -a ${project}/* ${prefix}/cuda\n    done\n\n    cp -a integration/Sanitizer/* ${prefix}/cuda/bin\n\n    # HACK: remove static libraries to get past GitHub's 2GB limit\n    rm ${prefix}/cuda/lib64/*_static.a\nelif [[ ${target} == x86_64-w64-mingw32 ]]; then\n    apk add p7zip\n\n    7z x installer.exe -o${temp}\n    cd ${temp}\n    find .\n\n    mv cuda_documentation/Doc/EULA.txt ${prefix}/cuda\n\n    for project in cuda_cudart cuda_cuobjdump cuda_cupti \\\n                   cuda_nvcc cuda_nvdisasm cuda_nvml_dev cuda_nvprof cuda_nvprune \\\n                   cuda_nvrtc cuda_nvtx cuda_sanitizer_api \\\n                   libcublas libcufft libcurand libcusolver libcusparse  \\\n                   libnpp libnvjpeg; do\n        [[ -d ${project} ]] || { echo \"${project} does not exist!\"; exit 1; }\n        cp -a ${project}/*/* ${prefix}/cuda\n    done\n\n    # NVIDIA Tools Extension Library\n    7z x \"nsight_nvtx/nsight_nvtx/NVIDIA NVTX Installer.x86_64\".*.msi -o${temp}/nvtx_installer\n    find nvtx_installer\n    for file in nvtx_installer/*.*_*; do\n        mv $file $(echo $file | sed 's/\\.\\(\\w*\\)_.*/.\\1/')\n    done\n    mv nvtx_installer/*.dll ${prefix}/cuda/bin\n    mv nvtx_installer/*64_*.lib ${prefix}/cuda/lib/x64\n    mv nvtx_installer/*32_*.lib ${prefix}/cuda/lib/Win32\n    mv nvtx_installer/*.h ${prefix}/cuda/include\n\n    # fixup\n    chmod +x ${prefix}/cuda/bin/*.{exe,dll}\n\n    # clean-up\n    rm ${prefix}/cuda/*.nvi\nfi\n\nrm -rf ${temp}\n\ncd ${prefix}/cuda\ninstall_license EULA.txt\n"""
+        version = "v11.4.2"
+
+            [["11.4.2+0".artifact_metadata.metadata.sources]]
+            filename = "installer.run"
+            hash = "bbd87ca0e913f837454a796367473513cddef555082e4d86ed9a38659cc81f0a"
+            type = "file"
+            url = "https://developer.download.nvidia.com/compute/cuda/11.4.2/local_installers/cuda_11.4.2_470.57.02_linux.run"
+            [["11.4.2+0".artifact_metadata.metadata.sources]]
+            filename = "installer.run"
+            hash = "a917c2e53dc13fdda7def71fd40920bf3809d5a2caa3e9acfe377fb9fb22f12d"
+            type = "file"
+            url = "https://developer.download.nvidia.com/compute/cuda/11.4.2/local_installers/cuda_11.4.2_470.57.02_linux_ppc64le.run"
+            [["11.4.2+0".artifact_metadata.metadata.sources]]
+            filename = "installer.run"
+            hash = "f2c4a52e06329606c8dfb7c5ea3f4cb4c0b28f9d3fdffeeb734fcc98daf580d8"
+            type = "file"
+            url = "https://developer.download.nvidia.com/compute/cuda/11.4.2/local_installers/cuda_11.4.2_470.57.02_linux_sbsa.run"
+            [["11.4.2+0".artifact_metadata.metadata.sources]]
+            filename = "installer.exe"
+            hash = "3519821726e22a2b544e697f9a956c4ad08afa412b147e13aac91b517e804ff3"
+            type = "file"
+            url = "https://developer.download.nvidia.com/compute/cuda/11.4.2/local_installers/cuda_11.4.2_471.41_win10.exe"
 
 ["11.4.2+1"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/CUDA_full_jll.jl/releases/download/CUDA_full-v11.4.2+1/CUDA_full.v11.4.2.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDA_full_jll.jl/releases/download/CUDA_full-v11.4.2+1/CUDA_full.v11.4.2.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDA_full_jll.jl/releases/download/CUDA_full-v11.4.2+1/CUDA_full.v11.4.2.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDA_full_jll.jl/releases/download/CUDA_full-v11.4.2+1/CUDA_full.v11.4.2.x86_64-w64-mingw32.tar.gz"]

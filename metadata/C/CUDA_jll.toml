@@ -401,9 +401,429 @@ registered = 2021-07-01T12:45:32.000Z
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/CUDA_jll.jl/releases/download/CUDA-v11.4.1+0/CUDA.v11.4.1.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDA_jll.jl/releases/download/CUDA-v11.4.1+0/CUDA.v11.4.1.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDA_jll.jl/releases/download/CUDA-v11.4.1+0/CUDA.v11.4.1.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDA_jll.jl/releases/download/CUDA-v11.4.1+0/CUDA.v11.4.1.x86_64-w64-mingw32.tar.gz"]
 registered = 2021-08-05T19:40:54.000Z
 
+    [["11.4.1+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/CUDA_jll.jl/releases/download/CUDA-v11.4.1+0/CUDA.v11.4.1.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDA_jll.jl/releases/download/CUDA-v11.4.1+0/CUDA.v11.4.1.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDA_jll.jl/releases/download/CUDA-v11.4.1+0/CUDA.v11.4.1.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDA_jll.jl/releases/download/CUDA-v11.4.1+0/CUDA.v11.4.1.x86_64-w64-mingw32.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/dee0d1ac2a970361560a861018f0da5af68e866e/C/CUDA/CUDA@11.4/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.4.0"
+
+        ["11.4.1+0".artifact_metadata.metadata]
+        init_block = ""
+        julia_compat = "1.0"
+        lazy_artifacts = false
+        name = "CUDA"
+        platforms = ["x86_64-linux-gnu", "powerpc64le-linux-gnu", "aarch64-linux-gnu", "x86_64-w64-mingw32"]
+        script = """# First, find (true) CUDA toolkit directory in ~/.artifacts somewhere\nCUDA_ARTIFACT_DIR=$(dirname $(dirname $(realpath $prefix/cuda/bin/ptxas${exeext})))\ncd ${CUDA_ARTIFACT_DIR}\n\n# Clear out our prefix\nrm -rf ${prefix}/*\n\n# license\ninstall_license EULA.txt\n\n# headers\nmkdir -p ${prefix}/include\nmv include/* ${prefix}/include\nrm -rf ${prefix}/include/thrust\n\n# binaries\nmkdir -p ${bindir} ${libdir} ${prefix}/lib ${prefix}/share\nif [[ ${target} == *-linux-gnu ]]; then\n    # CUDA Runtime\n    mv lib64/libcudart.so* lib64/libcudadevrt.a ${libdir}\n\n    # CUDA FFT Library\n    mv lib64/libcufft.so* lib64/libcufftw.so* ${libdir}\n\n    # CUDA BLAS Library\n    mv lib64/libcublas.so* lib64/libcublasLt.so* ${libdir}\n\n    # NVIDIA \"Drop-in\" BLAS Library\n    mv lib64/libnvblas.so* ${libdir}\n\n    # CUDA Sparse Matrix Library\n    mv lib64/libcusparse.so* ${libdir}\n\n    # CUDA Linear Solver Library\n    mv lib64/libcusolver.so* ${libdir}\n\n    # CUDA Linear Solver Multi GPU Library\n    mv lib64/libcusolverMg.so* ${libdir}\n\n    # CUDA Random Number Generation Library\n    mv lib64/libcurand.so* ${libdir}\n\n    # NVIDIA Performance Primitives Library\n    mv lib64/libnpp*.so* ${libdir}\n\n    # NVIDIA Optimizing Compiler Library\n    mv nvvm/lib64/libnvvm.so* ${libdir}\n\n    # NVIDIA Common Device Math Functions Library\n    mkdir ${prefix}/share/libdevice\n    mv nvvm/libdevice/libdevice.10.bc ${prefix}/share/libdevice\n\n    # CUDA Profiling Tools Interface (CUPTI) Library\n    mv extras/CUPTI/lib64/libcupti.so* ${libdir}\n\n    # NVIDIA Tools Extension Library\n    mv lib64/libnvToolsExt.so* ${libdir}\n\n    # Compute Sanitizer\n    rm -r compute-sanitizer/{docs,include}\n    mv compute-sanitizer/* ${bindir}\n\n    # Additional binaries\n    mv bin/nvdisasm ${bindir}\nelif [[ ${target} == x86_64-w64-mingw32 ]]; then\n    # CUDA Runtime\n    mv bin/cudart64_*.dll ${bindir}\n    mv lib/x64/cudadevrt.lib ${prefix}/lib\n\n    # CUDA FFT Library\n    mv bin/cufft64_*.dll bin/cufftw64_*.dll ${bindir}\n\n    # CUDA BLAS Library\n    mv bin/cublas64_*.dll bin/cublasLt64_*.dll ${bindir}\n\n    # NVIDIA \"Drop-in\" BLAS Library\n    mv bin/nvblas64_*.dll ${bindir}\n\n    # CUDA Sparse Matrix Library\n    mv bin/cusparse64_*.dll ${bindir}\n\n    # CUDA Linear Solver Library\n    mv bin/cusolver64_*.dll ${bindir}\n\n    # CUDA Linear Solver Multi GPU Library\n    mv bin/cusolverMg64_*.dll ${bindir}\n\n    # CUDA Random Number Generation Library\n    mv bin/curand64_*.dll ${bindir}\n\n    # NVIDIA Performance Primitives Library\n    mv bin/npp*64_*.dll ${bindir}\n\n    # NVIDIA Optimizing Compiler Library\n    mv nvvm/bin/nvvm64_*.dll ${bindir}\n\n    # NVIDIA Common Device Math Functions Library\n    mkdir ${prefix}/share/libdevice\n    mv nvvm/libdevice/libdevice.10.bc ${prefix}/share/libdevice\n\n    # CUDA Profiling Tools Interface (CUPTI) Library\n    mv extras/CUPTI/lib64/cupti64_*.dll ${bindir}\n\n    # NVIDIA Tools Extension Library\n    mv bin/nvToolsExt64_1.dll ${bindir}\n\n    # Compute Sanitizer\n    rm -r compute-sanitizer/{docs,include}\n    mv compute-sanitizer/* ${bindir}\n\n    # Additional binaries\n    mv bin/nvdisasm.exe ${bindir}\n\n    # Fix permissions\n    chmod +x ${bindir}/*.{exe,dll}\nfi\n"""
+        sources = []
+        version = "v11.4.1"
+
+            [["11.4.1+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "CUDA_full_jll"
+            type = "builddependency"
+            version-major = 11
+            version-minor = 4
+            version-patch = 1
+
+            [["11.4.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libcudart", "cudart64_110"]
+            type = "lib"
+            variable_name = "libcudart"
+            [["11.4.1+0".artifact_metadata.metadata.products]]
+            paths = ["lib/libcudadevrt.a", "lib/cudadevrt.lib"]
+            type = "file"
+            variable_name = "libcudadevrt"
+            [["11.4.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libcufft", "cufft64_10"]
+            type = "lib"
+            variable_name = "libcufft"
+            [["11.4.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libcufftw", "cufftw64_10"]
+            type = "lib"
+            variable_name = "libcufftw"
+            [["11.4.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libcublas", "cublas64_11"]
+            type = "lib"
+            variable_name = "libcublas"
+            [["11.4.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libcublasLt", "cublasLt64_11"]
+            type = "lib"
+            variable_name = "libcublasLt"
+            [["11.4.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libnvblas", "nvblas64_11"]
+            type = "lib"
+            variable_name = "libnvblas"
+            [["11.4.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libcusparse", "cusparse64_11"]
+            type = "lib"
+            variable_name = "libcusparse"
+            [["11.4.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libcusolver", "cusolver64_11"]
+            type = "lib"
+            variable_name = "libcusolver"
+            [["11.4.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libcusolverMg", "cusolverMg64_11"]
+            type = "lib"
+            variable_name = "libcusolverMg"
+            [["11.4.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libcurand", "curand64_10"]
+            type = "lib"
+            variable_name = "libcurand"
+            [["11.4.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libnppc", "nppc64_11"]
+            type = "lib"
+            variable_name = "libnppc"
+            [["11.4.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libnppial", "nppial64_11"]
+            type = "lib"
+            variable_name = "libnppial"
+            [["11.4.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libnppicc", "nppicc64_11"]
+            type = "lib"
+            variable_name = "libnppicc"
+            [["11.4.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libnppidei", "nppidei64_11"]
+            type = "lib"
+            variable_name = "libnppidei"
+            [["11.4.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libnppif", "nppif64_11"]
+            type = "lib"
+            variable_name = "libnppif"
+            [["11.4.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libnppig", "nppig64_11"]
+            type = "lib"
+            variable_name = "libnppig"
+            [["11.4.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libnppim", "nppim64_11"]
+            type = "lib"
+            variable_name = "libnppim"
+            [["11.4.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libnppist", "nppist64_11"]
+            type = "lib"
+            variable_name = "libnppist"
+            [["11.4.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libnppisu", "nppisu64_11"]
+            type = "lib"
+            variable_name = "libnppisu"
+            [["11.4.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libnppitc", "nppitc64_11"]
+            type = "lib"
+            variable_name = "libnppitc"
+            [["11.4.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libnpps", "npps64_11"]
+            type = "lib"
+            variable_name = "libnpps"
+            [["11.4.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libnvvm", "nvvm64_40_0"]
+            type = "lib"
+            variable_name = "libnvvm"
+            [["11.4.1+0".artifact_metadata.metadata.products]]
+            paths = ["share/libdevice/libdevice.10.bc"]
+            type = "file"
+            variable_name = "libdevice"
+            [["11.4.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libcupti", "cupti64_2021.2.1"]
+            type = "lib"
+            variable_name = "libcupti"
+            [["11.4.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libnvToolsExt", "nvToolsExt64_1"]
+            type = "lib"
+            variable_name = "libnvtoolsext"
+            [["11.4.1+0".artifact_metadata.metadata.products]]
+            binnames = ["nvdisasm"]
+            type = "exe"
+            variable_name = "nvdisasm"
+            [["11.4.1+0".artifact_metadata.metadata.products]]
+            binnames = ["compute-sanitizer"]
+            type = "exe"
+            variable_name = "compute_sanitizer"
+
 ["11.4.2+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/CUDA_jll.jl/releases/download/CUDA-v11.4.2+0/CUDA.v11.4.2.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDA_jll.jl/releases/download/CUDA-v11.4.2+0/CUDA.v11.4.2.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDA_jll.jl/releases/download/CUDA-v11.4.2+0/CUDA.v11.4.2.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDA_jll.jl/releases/download/CUDA-v11.4.2+0/CUDA.v11.4.2.x86_64-w64-mingw32.tar.gz"]
 registered = 2021-09-09T14:18:51.000Z
+
+    [["11.4.2+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/CUDA_jll.jl/releases/download/CUDA-v11.4.2+0/CUDA.v11.4.2.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDA_jll.jl/releases/download/CUDA-v11.4.2+0/CUDA.v11.4.2.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDA_jll.jl/releases/download/CUDA-v11.4.2+0/CUDA.v11.4.2.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDA_jll.jl/releases/download/CUDA-v11.4.2+0/CUDA.v11.4.2.x86_64-w64-mingw32.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/586234358e7ebecafaa3496773112c23abceb496/C/CUDA/CUDA@11.4/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.4.1"
+
+        ["11.4.2+0".artifact_metadata.metadata]
+        init_block = ""
+        julia_compat = "1.0"
+        lazy_artifacts = false
+        name = "CUDA"
+        platforms = ["x86_64-linux-gnu", "powerpc64le-linux-gnu", "aarch64-linux-gnu", "x86_64-w64-mingw32"]
+        script = """# First, find (true) CUDA toolkit directory in ~/.artifacts somewhere\nCUDA_ARTIFACT_DIR=$(dirname $(dirname $(realpath $prefix/cuda/bin/ptxas${exeext})))\ncd ${CUDA_ARTIFACT_DIR}\n\n# Clear out our prefix\nrm -rf ${prefix}/*\n\n# license\ninstall_license EULA.txt\n\n# headers\nmkdir -p ${prefix}/include\nmv include/* ${prefix}/include\nrm -rf ${prefix}/include/thrust\n\n# binaries\nmkdir -p ${bindir} ${libdir} ${prefix}/lib ${prefix}/share\nif [[ ${target} == *-linux-gnu ]]; then\n    # CUDA Runtime\n    mv lib64/libcudart.so* lib64/libcudadevrt.a ${libdir}\n\n    # CUDA FFT Library\n    mv lib64/libcufft.so* lib64/libcufftw.so* ${libdir}\n\n    # CUDA BLAS Library\n    mv lib64/libcublas.so* lib64/libcublasLt.so* ${libdir}\n\n    # NVIDIA \"Drop-in\" BLAS Library\n    mv lib64/libnvblas.so* ${libdir}\n\n    # CUDA Sparse Matrix Library\n    mv lib64/libcusparse.so* ${libdir}\n\n    # CUDA Linear Solver Library\n    mv lib64/libcusolver.so* ${libdir}\n\n    # CUDA Linear Solver Multi GPU Library\n    mv lib64/libcusolverMg.so* ${libdir}\n\n    # CUDA Random Number Generation Library\n    mv lib64/libcurand.so* ${libdir}\n\n    # NVIDIA Performance Primitives Library\n    mv lib64/libnpp*.so* ${libdir}\n\n    # NVIDIA Optimizing Compiler Library\n    mv nvvm/lib64/libnvvm.so* ${libdir}\n\n    # NVIDIA Common Device Math Functions Library\n    mkdir ${prefix}/share/libdevice\n    mv nvvm/libdevice/libdevice.10.bc ${prefix}/share/libdevice\n\n    # CUDA Profiling Tools Interface (CUPTI) Library\n    mv extras/CUPTI/lib64/libcupti.so* ${libdir}\n\n    # NVIDIA Tools Extension Library\n    mv lib64/libnvToolsExt.so* ${libdir}\n\n    # Compute Sanitizer\n    rm -r compute-sanitizer/{docs,include}\n    mv compute-sanitizer/* ${bindir}\n\n    # Additional binaries\n    mv bin/nvdisasm ${bindir}\nelif [[ ${target} == x86_64-w64-mingw32 ]]; then\n    # CUDA Runtime\n    mv bin/cudart64_*.dll ${bindir}\n    mv lib/x64/cudadevrt.lib ${prefix}/lib\n\n    # CUDA FFT Library\n    mv bin/cufft64_*.dll bin/cufftw64_*.dll ${bindir}\n\n    # CUDA BLAS Library\n    mv bin/cublas64_*.dll bin/cublasLt64_*.dll ${bindir}\n\n    # NVIDIA \"Drop-in\" BLAS Library\n    mv bin/nvblas64_*.dll ${bindir}\n\n    # CUDA Sparse Matrix Library\n    mv bin/cusparse64_*.dll ${bindir}\n\n    # CUDA Linear Solver Library\n    mv bin/cusolver64_*.dll ${bindir}\n\n    # CUDA Linear Solver Multi GPU Library\n    mv bin/cusolverMg64_*.dll ${bindir}\n\n    # CUDA Random Number Generation Library\n    mv bin/curand64_*.dll ${bindir}\n\n    # NVIDIA Performance Primitives Library\n    mv bin/npp*64_*.dll ${bindir}\n\n    # NVIDIA Optimizing Compiler Library\n    mv nvvm/bin/nvvm64_*.dll ${bindir}\n\n    # NVIDIA Common Device Math Functions Library\n    mkdir ${prefix}/share/libdevice\n    mv nvvm/libdevice/libdevice.10.bc ${prefix}/share/libdevice\n\n    # CUDA Profiling Tools Interface (CUPTI) Library\n    mv extras/CUPTI/lib64/cupti64_*.dll ${bindir}\n\n    # NVIDIA Tools Extension Library\n    mv bin/nvToolsExt64_1.dll ${bindir}\n\n    # Compute Sanitizer\n    rm -r compute-sanitizer/{docs,include}\n    mv compute-sanitizer/* ${bindir}\n\n    # Additional binaries\n    mv bin/nvdisasm.exe ${bindir}\n\n    # Fix permissions\n    chmod +x ${bindir}/*.{exe,dll}\nfi\n"""
+        sources = []
+        version = "v11.4.2"
+
+            [["11.4.2+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "CUDA_full_jll"
+            type = "builddependency"
+            version-major = 11
+            version-minor = 4
+            version-patch = 2
+
+            [["11.4.2+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libcudart", "cudart64_110"]
+            type = "lib"
+            variable_name = "libcudart"
+            [["11.4.2+0".artifact_metadata.metadata.products]]
+            paths = ["lib/libcudadevrt.a", "lib/cudadevrt.lib"]
+            type = "file"
+            variable_name = "libcudadevrt"
+            [["11.4.2+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libcufft", "cufft64_10"]
+            type = "lib"
+            variable_name = "libcufft"
+            [["11.4.2+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libcufftw", "cufftw64_10"]
+            type = "lib"
+            variable_name = "libcufftw"
+            [["11.4.2+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libcublas", "cublas64_11"]
+            type = "lib"
+            variable_name = "libcublas"
+            [["11.4.2+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libcublasLt", "cublasLt64_11"]
+            type = "lib"
+            variable_name = "libcublasLt"
+            [["11.4.2+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libnvblas", "nvblas64_11"]
+            type = "lib"
+            variable_name = "libnvblas"
+            [["11.4.2+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libcusparse", "cusparse64_11"]
+            type = "lib"
+            variable_name = "libcusparse"
+            [["11.4.2+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libcusolver", "cusolver64_11"]
+            type = "lib"
+            variable_name = "libcusolver"
+            [["11.4.2+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libcusolverMg", "cusolverMg64_11"]
+            type = "lib"
+            variable_name = "libcusolverMg"
+            [["11.4.2+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libcurand", "curand64_10"]
+            type = "lib"
+            variable_name = "libcurand"
+            [["11.4.2+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libnppc", "nppc64_11"]
+            type = "lib"
+            variable_name = "libnppc"
+            [["11.4.2+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libnppial", "nppial64_11"]
+            type = "lib"
+            variable_name = "libnppial"
+            [["11.4.2+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libnppicc", "nppicc64_11"]
+            type = "lib"
+            variable_name = "libnppicc"
+            [["11.4.2+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libnppidei", "nppidei64_11"]
+            type = "lib"
+            variable_name = "libnppidei"
+            [["11.4.2+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libnppif", "nppif64_11"]
+            type = "lib"
+            variable_name = "libnppif"
+            [["11.4.2+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libnppig", "nppig64_11"]
+            type = "lib"
+            variable_name = "libnppig"
+            [["11.4.2+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libnppim", "nppim64_11"]
+            type = "lib"
+            variable_name = "libnppim"
+            [["11.4.2+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libnppist", "nppist64_11"]
+            type = "lib"
+            variable_name = "libnppist"
+            [["11.4.2+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libnppisu", "nppisu64_11"]
+            type = "lib"
+            variable_name = "libnppisu"
+            [["11.4.2+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libnppitc", "nppitc64_11"]
+            type = "lib"
+            variable_name = "libnppitc"
+            [["11.4.2+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libnpps", "npps64_11"]
+            type = "lib"
+            variable_name = "libnpps"
+            [["11.4.2+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libnvvm", "nvvm64_40_0"]
+            type = "lib"
+            variable_name = "libnvvm"
+            [["11.4.2+0".artifact_metadata.metadata.products]]
+            paths = ["share/libdevice/libdevice.10.bc"]
+            type = "file"
+            variable_name = "libdevice"
+            [["11.4.2+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libcupti", "cupti64_2021.2.2"]
+            type = "lib"
+            variable_name = "libcupti"
+            [["11.4.2+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libnvToolsExt", "nvToolsExt64_1"]
+            type = "lib"
+            variable_name = "libnvtoolsext"
+            [["11.4.2+0".artifact_metadata.metadata.products]]
+            binnames = ["nvdisasm"]
+            type = "exe"
+            variable_name = "nvdisasm"
+            [["11.4.2+0".artifact_metadata.metadata.products]]
+            binnames = ["compute-sanitizer"]
+            type = "exe"
+            variable_name = "compute_sanitizer"
 
 ["11.4.4+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/CUDA_jll.jl/releases/download/CUDA-v11.4.4+0/CUDA.v11.4.4.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDA_jll.jl/releases/download/CUDA-v11.4.4+0/CUDA.v11.4.4.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDA_jll.jl/releases/download/CUDA-v11.4.4+0/CUDA.v11.4.4.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDA_jll.jl/releases/download/CUDA-v11.4.4+0/CUDA.v11.4.4.x86_64-w64-mingw32.tar.gz"]
