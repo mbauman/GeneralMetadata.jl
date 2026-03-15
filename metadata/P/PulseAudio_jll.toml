@@ -2,6 +2,223 @@
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/PulseAudio_jll.jl/releases/download/PulseAudio-v14.2.0+0/PulseAudio.v14.2.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/PulseAudio_jll.jl/releases/download/PulseAudio-v14.2.0+0/PulseAudio.v14.2.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/PulseAudio_jll.jl/releases/download/PulseAudio-v14.2.0+0/PulseAudio.v14.2.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/PulseAudio_jll.jl/releases/download/PulseAudio-v14.2.0+0/PulseAudio.v14.2.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/PulseAudio_jll.jl/releases/download/PulseAudio-v14.2.0+0/PulseAudio.v14.2.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/PulseAudio_jll.jl/releases/download/PulseAudio-v14.2.0+0/PulseAudio.v14.2.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/PulseAudio_jll.jl/releases/download/PulseAudio-v14.2.0+0/PulseAudio.v14.2.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/PulseAudio_jll.jl/releases/download/PulseAudio-v14.2.0+0/PulseAudio.v14.2.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/PulseAudio_jll.jl/releases/download/PulseAudio-v14.2.0+0/PulseAudio.v14.2.0.x86_64-linux-musl.tar.gz"]
 registered = 2021-03-25T22:07:50.000Z
 
+    [["14.2.0+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/PulseAudio_jll.jl/releases/download/PulseAudio-v14.2.0+0/PulseAudio.v14.2.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/PulseAudio_jll.jl/releases/download/PulseAudio-v14.2.0+0/PulseAudio.v14.2.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/PulseAudio_jll.jl/releases/download/PulseAudio-v14.2.0+0/PulseAudio.v14.2.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/PulseAudio_jll.jl/releases/download/PulseAudio-v14.2.0+0/PulseAudio.v14.2.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/PulseAudio_jll.jl/releases/download/PulseAudio-v14.2.0+0/PulseAudio.v14.2.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/PulseAudio_jll.jl/releases/download/PulseAudio-v14.2.0+0/PulseAudio.v14.2.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/PulseAudio_jll.jl/releases/download/PulseAudio-v14.2.0+0/PulseAudio.v14.2.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/PulseAudio_jll.jl/releases/download/PulseAudio-v14.2.0+0/PulseAudio.v14.2.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/PulseAudio_jll.jl/releases/download/PulseAudio-v14.2.0+0/PulseAudio.v14.2.0.x86_64-linux-musl.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/be61ae086c984e9a323dc3b3c87818519ae9d238/P/PulseAudio/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.3.0"
+
+        ["14.2.0+0".artifact_metadata.metadata]
+        init_block = ""
+        julia_compat = "1.0"
+        lazy_artifacts = false
+        name = "PulseAudio"
+        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf"]
+        script = """cd $WORKSPACE/srcdir\napk add gettext\napk add glib\napk add orc-compiler\napk add perl-xml-parser\napk add bash-completion\n# make sure meson can find everything\nsed -i -e \"s~c_args = .*~c_args = ['-I${includedir}', '-L${libdir}']~\" ${MESON_TARGET_TOOLCHAIN}\n# I guess pulseaudio doesn't set install_rpath correctly?\nfind pulseaudio-* -type f | xargs sed -i \"s~install_rpath : privlibdir~install_rpath : '\\$ORIGIN/pulseaudio'~\"\n# For some reason, librt fails to get linked correctly, so add a flag\nsed -i -e \"s~c_link_args = .*~c_link_args = ['-lrt']~\" ${MESON_TARGET_TOOLCHAIN}\ncd pulseaudio-*\n# Disable ffast-math; I repented\nsed -i -e \"s/link_args : \\['-ffast-math'],//\" src/daemon/meson.build\n# pulseaudio seems to check for iconv_open but use libiconv_open?\nsed -i -e \"s/cc.has_function('iconv_open')/cc.has_function('libiconv_open')/\" meson.build\n# Force meson to use some libraries\nif [[ \"${target}\" == powerpc64le-* ]]; then     sed -i -e \"s~'sys/capability.h',~~\"  meson.build; fi\nmkdir build\ncd build\n# I can't figure out how to build tdb, see https://github.com/JuliaPackaging/BinaryBuilder.jl/issues/887\n# BlueZ is in progress, see https://github.com/JuliaPackaging/Yggdrasil/pull/2582\nmeson ..  -Ddatabase=\"gdbm\" -Dbluez5=\"false\" --cross-file=${MESON_TARGET_TOOLCHAIN}\nninja\nninja install\n"""
+        version = "v14.2.0"
+
+            [["14.2.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "alsa_jll"
+            type = "dependency"
+            uuid = "45378030-f8ea-5b20-a7c7-1a9d95efb90e"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["14.2.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Check_jll"
+            type = "dependency"
+            uuid = "491db154-c145-5abe-9c32-446728d60cce"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["14.2.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Dbus_jll"
+            type = "dependency"
+            uuid = "ee1fde0b-3d02-5ea6-8484-8dfef6360eab"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["14.2.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "eudev_jll"
+            type = "dependency"
+            uuid = "35ca27e7-8b34-5b7f-bca9-bdc33f59eb06"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["14.2.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "FFTW_jll"
+            type = "dependency"
+            uuid = "f5851436-0d7a-5f13-b9de-f02708fd171a"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["14.2.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Gdbm_jll"
+            type = "dependency"
+            uuid = "54ca2031-c8dd-5cab-9ed4-295edde1660f"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["14.2.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Gettext_jll"
+            type = "dependency"
+            uuid = "78b55507-aeef-58d4-861c-77aaff3498b1"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["14.2.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Glib_jll"
+            type = "dependency"
+            uuid = "7746bdde-850d-59dc-9ae8-88ece973131d"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["14.2.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "GStreamer_jll"
+            type = "dependency"
+            uuid = "aaaaf01e-2457-52c6-9fe8-886f7267d736"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["14.2.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "libsndfile_jll"
+            type = "dependency"
+            uuid = "5bf562c0-5a39-5b4f-b979-f64ac885830c"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["14.2.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "libasyncns_jll"
+            type = "dependency"
+            uuid = "ed080073-db63-57db-a029-74e11ae80737"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["14.2.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "libcap_jll"
+            type = "dependency"
+            uuid = "eef66a8b-8d7a-5724-a8d2-7c31ae1e29ed"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["14.2.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Libiconv_jll"
+            type = "dependency"
+            uuid = "94ce4f54-9a6c-5748-9c1c-f9c7231a4531"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["14.2.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Libtool_jll"
+            type = "dependency"
+            uuid = "a76c16ae-fb8f-5ff0-8826-da3b7a640f0b"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["14.2.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "OpenSSL_jll"
+            type = "dependency"
+            uuid = "458c3c95-2e84-50aa-8efc-19380b2a3a95"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["14.2.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "ORC_jll"
+            type = "dependency"
+            uuid = "fb41591b-4dee-5dae-bf56-d83afd04fbc0"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["14.2.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "SBC_jll"
+            type = "dependency"
+            uuid = "da37f231-8920-5702-a09a-bdd970cb6ddc"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["14.2.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "SoXResampler_jll"
+            type = "dependency"
+            uuid = "fbe68eb6-6641-54c6-99e3-f7c7c4d73a57"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["14.2.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "SpeexDSP_jll"
+            type = "dependency"
+            uuid = "f2f9631b-9a4e-5b48-9975-88f638ec36a7"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["14.2.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libpulse-simple"]
+            type = "lib"
+            variable_name = "libpulse_simple"
+            [["14.2.0+0".artifact_metadata.metadata.products]]
+            binnames = ["pasuspender"]
+            type = "exe"
+            variable_name = "pasuspender"
+            [["14.2.0+0".artifact_metadata.metadata.products]]
+            binnames = ["pacmd"]
+            type = "exe"
+            variable_name = "pacmd"
+            [["14.2.0+0".artifact_metadata.metadata.products]]
+            binnames = ["pactl"]
+            type = "exe"
+            variable_name = "pactl"
+            [["14.2.0+0".artifact_metadata.metadata.products]]
+            binnames = ["pulseaudio"]
+            type = "exe"
+            variable_name = "pulseaudio"
+            [["14.2.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libpulse"]
+            type = "lib"
+            variable_name = "libpulse"
+            [["14.2.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libpulse-mainloop-glib"]
+            type = "lib"
+            variable_name = "libpulse_mainloop_glib"
+            [["14.2.0+0".artifact_metadata.metadata.products]]
+            binnames = ["pacat"]
+            type = "exe"
+            variable_name = "pacat"
+
+            [["14.2.0+0".artifact_metadata.metadata.sources]]
+            hash = "902dd1928801bb5dc7b121754aa4110ce55768b5dff94a700e7bd58d3f597970"
+            type = "archive"
+            unpack_target = ""
+            url = "https://freedesktop.org/software/pulseaudio/releases/pulseaudio-14.2.tar.gz"
+
 ["15.0.0+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/PulseAudio_jll.jl/releases/download/PulseAudio-v15.0.0+0/PulseAudio.v15.0.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/PulseAudio_jll.jl/releases/download/PulseAudio-v15.0.0+0/PulseAudio.v15.0.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/PulseAudio_jll.jl/releases/download/PulseAudio-v15.0.0+0/PulseAudio.v15.0.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/PulseAudio_jll.jl/releases/download/PulseAudio-v15.0.0+0/PulseAudio.v15.0.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/PulseAudio_jll.jl/releases/download/PulseAudio-v15.0.0+0/PulseAudio.v15.0.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/PulseAudio_jll.jl/releases/download/PulseAudio-v15.0.0+0/PulseAudio.v15.0.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/PulseAudio_jll.jl/releases/download/PulseAudio-v15.0.0+0/PulseAudio.v15.0.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/PulseAudio_jll.jl/releases/download/PulseAudio-v15.0.0+0/PulseAudio.v15.0.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/PulseAudio_jll.jl/releases/download/PulseAudio-v15.0.0+0/PulseAudio.v15.0.0.x86_64-linux-musl.tar.gz"]
 registered = 2021-09-07T19:10:30.000Z
