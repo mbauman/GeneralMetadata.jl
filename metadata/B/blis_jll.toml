@@ -6,9 +6,91 @@ registered = 2020-09-23T10:23:25.000Z
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/blis_jll.jl/releases/download/blis-v0.8.0+0/blis.v0.8.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/blis_jll.jl/releases/download/blis-v0.8.0+0/blis.v0.8.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/blis_jll.jl/releases/download/blis-v0.8.0+0/blis.v0.8.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/blis_jll.jl/releases/download/blis-v0.8.0+0/blis.v0.8.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/blis_jll.jl/releases/download/blis-v0.8.0+0/blis.v0.8.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/blis_jll.jl/releases/download/blis-v0.8.0+0/blis.v0.8.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/blis_jll.jl/releases/download/blis-v0.8.0+0/blis.v0.8.0.x86_64-w64-mingw32.tar.gz"]
 registered = 2021-01-25T16:04:12.000Z
 
+    [["0.8.0+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/blis_jll.jl/releases/download/blis-v0.8.0+0/blis.v0.8.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/blis_jll.jl/releases/download/blis-v0.8.0+0/blis.v0.8.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/blis_jll.jl/releases/download/blis-v0.8.0+0/blis.v0.8.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/blis_jll.jl/releases/download/blis-v0.8.0+0/blis.v0.8.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/blis_jll.jl/releases/download/blis-v0.8.0+0/blis.v0.8.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/blis_jll.jl/releases/download/blis-v0.8.0+0/blis.v0.8.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/blis_jll.jl/releases/download/blis-v0.8.0+0/blis.v0.8.0.x86_64-w64-mingw32.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/5ee9513ddb2b7146367b78268488a74d04df6f93/B/blis/build_tarballs.jl"
+    metadata_source = "retrospective (by timestamp)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.3.0"
+
+        ["0.8.0+0".artifact_metadata.metadata]
+        init_block = ""
+        julia_compat = "1.0"
+        lazy_artifacts = false
+        name = "blis"
+        platforms = ["x86_64-linux-musl", "armv7l-linux-gnueabihf", "x86_64-w64-mingw32", "x86_64-apple-darwin", "x86_64-linux-gnu", "aarch64-linux-gnu", "x86_64-unknown-freebsd"]
+        script = """cd $WORKSPACE/srcdir\ncd blis/\n\nfor i in ./config/*/*.mk; do\n\n    # Building in container forbids -march options\n    sed -i \"s/-march[^ ]*//g\" $i\n    # Building in container forbids unsafe optimization.\n    sed -i \"s/-ffast-math//g\" $i\n    sed -i \"s/-funsafe-math-optimizations//g\" $i\n\ndone\n\ncase ${target} in\n\n    *\"x86_64\"*\"linux\"*) \n        export BLI_CONFIG=x86_64\n        export BLI_THREAD=openmp\n        ;;\n    *\"x86_64\"*\"w64\"*) \n        # MinGW doesn't support savexmm instructions\n        # Build only for AMD processors.\n        export BLI_CONFIG=amd64\n        export BLI_THREAD=openmp\n        ;;\n    *\"x86_64\"*\"apple\"*) \n        export BLI_CONFIG=x86_64\n        export BLI_THREAD=openmp\n        export CC=gcc\n        export CXX=g++\n        ;;\n    *\"x86_64\"*\"freebsd\"*) \n        export BLI_CONFIG=x86_64\n        export BLI_THREAD=openmp\n        export CC=gcc\n        export CXX=g++\n        ;;\n    *\"aarch64\"*\"linux\"*) \n        # Aarch64 has no metaconfiguration support yet.\n        # Use Cortex-A57 for the moment.\n        export BLI_CONFIG=cortexa57\n        export BLI_THREAD=openmp\n        ;;\n    *\"arm\"*\"linux\"*) \n        export BLI_CONFIG=cortexa9\n        export BLI_THREAD=none\n        ;;\n    *)\n        ;; \n\nesac\n\n./configure -p ${prefix} -t ${BLI_THREAD} ${BLI_CONFIG}\nmake -j${nproc}\nmake install\n\n# Rename .dll for Windows targets.\nif [[ \"${target}\" == *\"x86_64\"*\"w64\"* ]]; then\n    mkdir -p ${prefix}/bin\n    mv ${prefix}/lib/libblis.3.dll ${prefix}/bin/libblis.dll\nfi\n"""
+        version = "v0.8.0"
+
+            [["0.8.0+0".artifact_metadata.metadata.dependencies]]
+            name = "CompilerSupportLibraries_jll"
+            type = "dependency"
+            uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["0.8.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libblis"]
+            type = "lib"
+            variable_name = "blis"
+
+            [["0.8.0+0".artifact_metadata.metadata.sources]]
+            hash = "9b387f6d5a010969727ec583c0cdd067a5274ed8"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/flame/blis.git"
+
 ["0.8.0+1"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/blis_jll.jl/releases/download/blis-v0.8.0+1/blis.v0.8.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/blis_jll.jl/releases/download/blis-v0.8.0+1/blis.v0.8.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/blis_jll.jl/releases/download/blis-v0.8.0+1/blis.v0.8.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/blis_jll.jl/releases/download/blis-v0.8.0+1/blis.v0.8.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/blis_jll.jl/releases/download/blis-v0.8.0+1/blis.v0.8.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/blis_jll.jl/releases/download/blis-v0.8.0+1/blis.v0.8.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/blis_jll.jl/releases/download/blis-v0.8.0+1/blis.v0.8.0.x86_64-w64-mingw32.tar.gz"]
 registered = 2021-03-14T16:49:11.000Z
+
+    [["0.8.0+1".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/blis_jll.jl/releases/download/blis-v0.8.0+1/blis.v0.8.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/blis_jll.jl/releases/download/blis-v0.8.0+1/blis.v0.8.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/blis_jll.jl/releases/download/blis-v0.8.0+1/blis.v0.8.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/blis_jll.jl/releases/download/blis-v0.8.0+1/blis.v0.8.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/blis_jll.jl/releases/download/blis-v0.8.0+1/blis.v0.8.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/blis_jll.jl/releases/download/blis-v0.8.0+1/blis.v0.8.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/blis_jll.jl/releases/download/blis-v0.8.0+1/blis.v0.8.0.x86_64-w64-mingw32.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/0b49be014829838560b1cae493568e0de1e1b7a3/B/blis/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.3.0"
+
+        ["0.8.0+1".artifact_metadata.metadata]
+        init_block = ""
+        julia_compat = "1.0"
+        lazy_artifacts = false
+        name = "blis"
+        platforms = ["x86_64-linux-musl", "armv7l-linux-gnueabihf", "x86_64-w64-mingw32", "x86_64-apple-darwin", "x86_64-linux-gnu", "aarch64-linux-gnu", "x86_64-unknown-freebsd"]
+        script = """cd $WORKSPACE/srcdir\ncd blis/\n\nfor i in ./config/*/*.mk; do\n\n    # Building in container forbids -march options\n    sed -i \"s/-march[^ ]*//g\" $i\n    # Building in container forbids unsafe optimization.\n    sed -i \"s/-ffast-math//g\" $i\n    sed -i \"s/-funsafe-math-optimizations//g\" $i\n\ndone\n\ncase ${target} in\n\n    *\"x86_64\"*\"linux\"*) \n        export BLI_CONFIG=x86_64\n        export BLI_THREAD=openmp\n        ;;\n    *\"x86_64\"*\"w64\"*) \n        # MinGW doesn't support savexmm instructions\n        # Build only for AMD processors.\n        export BLI_CONFIG=amd64\n        export BLI_THREAD=openmp\n        ;;\n    *\"x86_64\"*\"apple\"*) \n        export BLI_CONFIG=x86_64\n        export BLI_THREAD=openmp\n        export CC=gcc\n        export CXX=g++\n        ;;\n    *\"x86_64\"*\"freebsd\"*) \n        export BLI_CONFIG=x86_64\n        export BLI_THREAD=openmp\n        export CC=gcc\n        export CXX=g++\n        ;;\n    *\"aarch64\"*\"linux\"*) \n        # Aarch64 has no metaconfiguration support yet.\n        # Use Cortex-A57 for the moment.\n        export BLI_CONFIG=cortexa57\n        export BLI_THREAD=openmp\n        ;;\n    *\"arm\"*\"linux\"*) \n        export BLI_CONFIG=cortexa9\n        export BLI_THREAD=none\n        ;;\n    *)\n        # Default (Generic) configuration without optimized kernel.\n        export BLI_CONFIG=generic\n        export BLI_THREAD=none\n        ;; \n\nesac\n\n# For 64-bit builds, add _64 suffix to exported BLAS routines.\n# This corresponds to ILP64 handling of OpenBLAS thus Julia.\nif [ ${nbits} = 64 ]; then\n    patch frame/include/bli_macro_defs.h < ${WORKSPACE}/srcdir/patches/bli_macro_defs.h.f77suffix64.patch\nfi\n\nexport BLI_F77BITS=${nbits}\n./configure -p ${prefix} -t ${BLI_THREAD} -b ${BLI_F77BITS} ${BLI_CONFIG}\nmake -j${nproc}\nmake install\n\n# Static library is not needed.\nrm ${prefix}/lib/libblis.a\n\n# Rename .dll for Windows targets.\nif [[ \"${target}\" == *\"x86_64\"*\"w64\"* ]]; then\n    mkdir -p ${libdir}\n    mv ${prefix}/lib/libblis.3.dll ${libdir}/libblis.dll\nfi\n"""
+        version = "v0.8.0"
+
+            [["0.8.0+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "CompilerSupportLibraries_jll"
+            type = "dependency"
+            uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["0.8.0+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libblis"]
+            type = "lib"
+            variable_name = "blis"
+
+            [["0.8.0+1".artifact_metadata.metadata.sources]]
+            hash = "8a3066c315358d45d4f5b710c54594455f9e8fc6"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/flame/blis.git"
+            [["0.8.0+1".artifact_metadata.metadata.sources]]
+            follow_symlinks = false
+            path = "./bundled"
+            target = ""
+            type = "directory"
 
 ["0.8.1+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/blis_jll.jl/releases/download/blis-v0.8.1+0/blis.v0.8.1.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/blis_jll.jl/releases/download/blis-v0.8.1+0/blis.v0.8.1.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/blis_jll.jl/releases/download/blis-v0.8.1+0/blis.v0.8.1.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/blis_jll.jl/releases/download/blis-v0.8.1+0/blis.v0.8.1.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/blis_jll.jl/releases/download/blis-v0.8.1+0/blis.v0.8.1.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/blis_jll.jl/releases/download/blis-v0.8.1+0/blis.v0.8.1.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/blis_jll.jl/releases/download/blis-v0.8.1+0/blis.v0.8.1.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/blis_jll.jl/releases/download/blis-v0.8.1+0/blis.v0.8.1.x86_64-w64-mingw32.tar.gz"]
