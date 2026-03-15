@@ -22,25 +22,433 @@ registered = 2021-01-22T11:53:54.000Z
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1100.100+0/GAP.v400.1100.100.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1100.100+0/GAP.v400.1100.100.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1100.100+0/GAP.v400.1100.100.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1100.100+0/GAP.v400.1100.100.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1100.100+0/GAP.v400.1100.100.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1100.100+0/GAP.v400.1100.100.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1100.100+0/GAP.v400.1100.100.x86_64-unknown-freebsd.tar.gz"]
 registered = 2021-05-17T23:40:36.000Z
 
+    [["400.1100.100+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1100.100+0/GAP.v400.1100.100.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1100.100+0/GAP.v400.1100.100.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1100.100+0/GAP.v400.1100.100.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1100.100+0/GAP.v400.1100.100.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1100.100+0/GAP.v400.1100.100.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1100.100+0/GAP.v400.1100.100.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1100.100+0/GAP.v400.1100.100.x86_64-unknown-freebsd.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/5c3c34bb4c7eb489f2ed428f7ecfd4c634afcaac/G/GAP/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.3.5"
+
+        ["400.1100.100+0".artifact_metadata.metadata]
+        init_block = """\n    sym = dlsym(libgap_handle, :GAP_InitJuliaMemoryInterface)\n    ccall(sym, Nothing, (Any, Ptr{Nothing}), @__MODULE__, C_NULL)\n"""
+        julia_compat = "1.0"
+        lazy_artifacts = false
+        name = "GAP"
+        platforms = ["x86_64-linux-gnu", "aarch64-linux-gnu", "powerpc64le-linux-gnu", "x86_64-linux-musl", "aarch64-linux-musl", "x86_64-apple-darwin", "x86_64-unknown-freebsd"]
+        script = """cd ${WORKSPACE}/srcdir/gap*\n\nfor f in ${WORKSPACE}/srcdir/patches/*.patch; do\n    atomic_patch -p1 ${f}\ndone\n\n# run autogen.sh if compiling from it source and/or if configure was patched\n./autogen.sh\n\n# compile GAP\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \\\n    --with-gmp=${prefix} \\\n    --with-readline=${prefix} \\\n    --with-zlib=${prefix} \\\n    --with-gc=julia \\\n    --with-julia\nmake -j${nproc}\n\n# install GAP binaries\nmake install-bin install-headers install-libgap\n\n# also install config.h\ncp gen/config.h ${prefix}/include/gap\n\n# get rid of *.la files, they just cause trouble\nrm ${prefix}/lib/*.la\n\n# get rid of the wrapper shell script, which is useless for us\nmv ${prefix}/bin/gap.real ${prefix}/bin/gap\n\n# install gac and sysinfo.gap\nmkdir -p ${prefix}/share/gap/\ncp gac sysinfo.gap ${prefix}/share/gap/\n\n# We deliberately do NOT install the GAP library, documentation, etc. because\n# they are identical across all platforms; instead, we use another platform\n# independent artifact to ship them to the user.\n"""
+        version = "v400.1100.100"
+
+            [["400.1100.100+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "GMP_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["400.1100.100+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Readline_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["400.1100.100+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Zlib_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["400.1100.100+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "libjulia_jll"
+            type = "builddependency"
+            version-major = 1
+            version-minor = 5
+            version-patch = 3
+
+            [["400.1100.100+0".artifact_metadata.metadata.products]]
+            binnames = ["gap"]
+            type = "exe"
+            variable_name = "gap"
+            [["400.1100.100+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libgap"]
+            type = "lib"
+            variable_name = "libgap"
+
+            [["400.1100.100+0".artifact_metadata.metadata.sources]]
+            hash = "2b6e2ed90fcae4deb347284136427105361123ac96d30d699db7e97d094685ce"
+            type = "archive"
+            unpack_target = ""
+            url = "https://github.com/gap-system/gap/releases/download/v4.11.1/gap-4.11.1-core.tar.gz"
+            [["400.1100.100+0".artifact_metadata.metadata.sources]]
+            follow_symlinks = false
+            path = "./bundled"
+            target = ""
+            type = "directory"
+
 ["400.1190.0+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.0+0/GAP.v400.1190.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.0+0/GAP.v400.1190.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.0+0/GAP.v400.1190.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.0+0/GAP.v400.1190.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.0+0/GAP.v400.1190.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.0+0/GAP.v400.1190.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.0+0/GAP.v400.1190.0.x86_64-unknown-freebsd.tar.gz"]
 registered = 2021-06-25T23:35:09.000Z
+
+    [["400.1190.0+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.0+0/GAP.v400.1190.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.0+0/GAP.v400.1190.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.0+0/GAP.v400.1190.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.0+0/GAP.v400.1190.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.0+0/GAP.v400.1190.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.0+0/GAP.v400.1190.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.0+0/GAP.v400.1190.0.x86_64-unknown-freebsd.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/75b883454b7b484dbc15060f172f437c05c5ec21/G/GAP/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.4.0"
+
+        ["400.1190.0+0".artifact_metadata.metadata]
+        init_block = """\n    sym = dlsym(libgap_handle, :GAP_InitJuliaMemoryInterface)\n    ccall(sym, Nothing, (Any, Ptr{Nothing}), @__MODULE__, C_NULL)\n"""
+        julia_compat = "1.0"
+        lazy_artifacts = false
+        name = "GAP"
+        platforms = ["x86_64-linux-gnu", "aarch64-linux-gnu", "powerpc64le-linux-gnu", "x86_64-linux-musl", "aarch64-linux-musl", "x86_64-apple-darwin", "x86_64-unknown-freebsd"]
+        script = """cd ${WORKSPACE}/srcdir/gap*\n\nfor f in ${WORKSPACE}/srcdir/patches/*.patch; do\n    atomic_patch -p1 ${f}\ndone\n\n# run autogen.sh if compiling from it source and/or if configure was patched\n./autogen.sh\n\n# provide some generated code\ncp ${WORKSPACE}/srcdir/generated/c_*.c src/\n\n# compile GAP\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \\\n    --with-gmp=${prefix} \\\n    --with-readline=${prefix} \\\n    --with-zlib=${prefix} \\\n    --with-gc=julia \\\n    --with-julia\nmake -j${nproc}\n\n# install GAP binaries\nmake install-bin install-headers install-libgap\n\n# also install config.h\ncp build/config.h ${prefix}/include/gap\n\n# the license\ninstall_license LICENSE\n\n# get rid of *.la files, they just cause trouble\nrm ${prefix}/lib/*.la\n\n# get rid of the wrapper shell script, which is useless for us\nmv ${prefix}/bin/gap.real ${prefix}/bin/gap\n\n# install gac and sysinfo.gap\nmkdir -p ${prefix}/share/gap/\ncp gac sysinfo.gap ${prefix}/share/gap/\n\n# We deliberately do NOT install the GAP library, documentation, etc. because\n# they are identical across all platforms; instead, we use another platform\n# independent artifact to ship them to the user.\n"""
+        version = "v400.1190.0"
+
+            [["400.1190.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "GMP_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["400.1190.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Readline_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["400.1190.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Zlib_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["400.1190.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "libjulia_jll"
+            type = "builddependency"
+            version-major = 1
+            version-minor = 5
+            version-patch = 3
+
+            [["400.1190.0+0".artifact_metadata.metadata.products]]
+            binnames = ["gap"]
+            type = "exe"
+            variable_name = "gap"
+            [["400.1190.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libgap"]
+            type = "lib"
+            variable_name = "libgap"
+
+            [["400.1190.0+0".artifact_metadata.metadata.sources]]
+            hash = "a9b5db7c1361d336363e2f6bdf6ee83fc248c10b"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/gap-system/gap.git"
+            [["400.1190.0+0".artifact_metadata.metadata.sources]]
+            follow_symlinks = false
+            path = "./bundled"
+            target = ""
+            type = "directory"
 
 ["400.1190.1+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.1+0/GAP.v400.1190.1.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.1+0/GAP.v400.1190.1.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.1+0/GAP.v400.1190.1.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.1+0/GAP.v400.1190.1.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.1+0/GAP.v400.1190.1.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.1+0/GAP.v400.1190.1.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.1+0/GAP.v400.1190.1.x86_64-unknown-freebsd.tar.gz"]
 registered = 2021-06-26T08:52:03.000Z
 
+    [["400.1190.1+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.1+0/GAP.v400.1190.1.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.1+0/GAP.v400.1190.1.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.1+0/GAP.v400.1190.1.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.1+0/GAP.v400.1190.1.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.1+0/GAP.v400.1190.1.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.1+0/GAP.v400.1190.1.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.1+0/GAP.v400.1190.1.x86_64-unknown-freebsd.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/9cc20fa6c4a17d670f6435540d485dca27012d52/G/GAP/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.4.0"
+
+        ["400.1190.1+0".artifact_metadata.metadata]
+        init_block = """\n    sym = dlsym(libgap_handle, :GAP_InitJuliaMemoryInterface)\n    ccall(sym, Nothing, (Any, Ptr{Nothing}), @__MODULE__, C_NULL)\n"""
+        julia_compat = "1.0"
+        lazy_artifacts = false
+        name = "GAP"
+        platforms = ["x86_64-linux-gnu", "aarch64-linux-gnu", "powerpc64le-linux-gnu", "x86_64-linux-musl", "aarch64-linux-musl", "x86_64-apple-darwin", "x86_64-unknown-freebsd"]
+        script = """cd ${WORKSPACE}/srcdir/gap*\n\nfor f in ${WORKSPACE}/srcdir/patches/*.patch; do\n    atomic_patch -p1 ${f}\ndone\n\n# run autogen.sh if compiling from it source and/or if configure was patched\n./autogen.sh\n\n# provide some generated code\ncp ${WORKSPACE}/srcdir/generated/c_*.c src/\n\n# compile GAP\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \\\n    --with-gmp=${prefix} \\\n    --with-readline=${prefix} \\\n    --with-zlib=${prefix} \\\n    --with-gc=julia \\\n    --with-julia\nmake -j${nproc}\n\n# install GAP binaries\nmake install-bin install-headers install-libgap\n\n# also install config.h\ncp build/config.h ${prefix}/include/gap\n\n# the license\ninstall_license LICENSE\n\n# get rid of *.la files, they just cause trouble\nrm ${prefix}/lib/*.la\n\n# get rid of the wrapper shell script, which is useless for us\nmv ${prefix}/bin/gap.real ${prefix}/bin/gap\n\n# install gac and sysinfo.gap\nmkdir -p ${prefix}/share/gap/\ncp gac sysinfo.gap ${prefix}/share/gap/\n\n# We deliberately do NOT install the GAP library, documentation, etc. because\n# they are identical across all platforms; instead, we use another platform\n# independent artifact to ship them to the user.\n"""
+        version = "v400.1190.1"
+
+            [["400.1190.1+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "GMP_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["400.1190.1+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Readline_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["400.1190.1+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Zlib_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["400.1190.1+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "libjulia_jll"
+            type = "builddependency"
+            version-major = 1
+            version-minor = 5
+            version-patch = 3
+
+            [["400.1190.1+0".artifact_metadata.metadata.products]]
+            binnames = ["gap"]
+            type = "exe"
+            variable_name = "gap"
+            [["400.1190.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libgap"]
+            type = "lib"
+            variable_name = "libgap"
+
+            [["400.1190.1+0".artifact_metadata.metadata.sources]]
+            hash = "a9b5db7c1361d336363e2f6bdf6ee83fc248c10b"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/gap-system/gap.git"
+            [["400.1190.1+0".artifact_metadata.metadata.sources]]
+            follow_symlinks = false
+            path = "./bundled"
+            target = ""
+            type = "directory"
+
 ["400.1190.2+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.2+0/GAP.v400.1190.2.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.2+0/GAP.v400.1190.2.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.2+0/GAP.v400.1190.2.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.2+0/GAP.v400.1190.2.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.2+0/GAP.v400.1190.2.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.2+0/GAP.v400.1190.2.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.2+0/GAP.v400.1190.2.x86_64-unknown-freebsd.tar.gz"]
 registered = 2021-06-28T22:04:04.000Z
+
+    [["400.1190.2+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.2+0/GAP.v400.1190.2.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.2+0/GAP.v400.1190.2.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.2+0/GAP.v400.1190.2.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.2+0/GAP.v400.1190.2.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.2+0/GAP.v400.1190.2.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.2+0/GAP.v400.1190.2.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.2+0/GAP.v400.1190.2.x86_64-unknown-freebsd.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/248e45cf9e2ae0a6f38819c103463a49b88cc893/G/GAP/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.4.0"
+
+        ["400.1190.2+0".artifact_metadata.metadata]
+        init_block = """\n    sym = dlsym(libgap_handle, :GAP_InitJuliaMemoryInterface)\n    ccall(sym, Nothing, (Any, Ptr{Nothing}), @__MODULE__, C_NULL)\n"""
+        julia_compat = "1.0"
+        lazy_artifacts = false
+        name = "GAP"
+        platforms = ["x86_64-linux-gnu", "aarch64-linux-gnu", "powerpc64le-linux-gnu", "x86_64-linux-musl", "aarch64-linux-musl", "x86_64-apple-darwin", "x86_64-unknown-freebsd"]
+        script = """cd ${WORKSPACE}/srcdir/gap*\n\nfor f in ${WORKSPACE}/srcdir/patches/*.patch; do\n    atomic_patch -p1 ${f}\ndone\n\n# run autogen.sh if compiling from it source and/or if configure was patched\n./autogen.sh\n\n# provide some generated code\ncp ${WORKSPACE}/srcdir/generated/c_*.c src/\n\n# compile GAP\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \\\n    --with-gmp=${prefix} \\\n    --with-readline=${prefix} \\\n    --with-zlib=${prefix} \\\n    --with-gc=julia \\\n    --with-julia\nmake -j${nproc}\n\n# install GAP binaries\nmake install-bin install-headers install-libgap\n\n# also install config.h\ncp build/config.h ${prefix}/include/gap\n\n# the license\ninstall_license LICENSE\n\n# get rid of *.la files, they just cause trouble\nrm ${prefix}/lib/*.la\n\n# get rid of the wrapper shell script, which is useless for us\nmv ${prefix}/bin/gap.real ${prefix}/bin/gap\n\n# install gac and sysinfo.gap\nmkdir -p ${prefix}/share/gap/\ncp gac sysinfo.gap ${prefix}/share/gap/\n\n# We deliberately do NOT install the GAP library, documentation, etc. because\n# they are identical across all platforms; instead, we use another platform\n# independent artifact to ship them to the user.\n"""
+        version = "v400.1190.2"
+
+            [["400.1190.2+0".artifact_metadata.metadata.dependencies]]
+            compat = "6.1.2"
+            name = "GMP_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["400.1190.2+0".artifact_metadata.metadata.dependencies]]
+            compat = "8.0.4"
+            name = "Readline_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["400.1190.2+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Zlib_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["400.1190.2+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "libjulia_jll"
+            type = "builddependency"
+            version-major = 1
+            version-minor = 5
+            version-patch = 3
+
+            [["400.1190.2+0".artifact_metadata.metadata.products]]
+            binnames = ["gap"]
+            type = "exe"
+            variable_name = "gap"
+            [["400.1190.2+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libgap"]
+            type = "lib"
+            variable_name = "libgap"
+
+            [["400.1190.2+0".artifact_metadata.metadata.sources]]
+            hash = "07838a262265a24ee55eb508bbe4ed9ec64c473f"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/gap-system/gap.git"
+            [["400.1190.2+0".artifact_metadata.metadata.sources]]
+            follow_symlinks = false
+            path = "./bundled"
+            target = ""
+            type = "directory"
 
 ["400.1190.3+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.3+0/GAP.v400.1190.3.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.3+0/GAP.v400.1190.3.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.3+0/GAP.v400.1190.3.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.3+0/GAP.v400.1190.3.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.3+0/GAP.v400.1190.3.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.3+0/GAP.v400.1190.3.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.3+0/GAP.v400.1190.3.x86_64-unknown-freebsd.tar.gz"]
 registered = 2021-07-01T18:49:04.000Z
 
+    [["400.1190.3+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.3+0/GAP.v400.1190.3.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.3+0/GAP.v400.1190.3.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.3+0/GAP.v400.1190.3.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.3+0/GAP.v400.1190.3.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.3+0/GAP.v400.1190.3.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.3+0/GAP.v400.1190.3.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.3+0/GAP.v400.1190.3.x86_64-unknown-freebsd.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/c97418cb129f058ba7b8a09bdec8f27aa641e1f4/G/GAP/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.4.0"
+
+        ["400.1190.3+0".artifact_metadata.metadata]
+        init_block = """\n    sym = dlsym(libgap_handle, :GAP_InitJuliaMemoryInterface)\n    ccall(sym, Nothing, (Any, Ptr{Nothing}), @__MODULE__, C_NULL)\n"""
+        julia_compat = "1.0"
+        lazy_artifacts = false
+        name = "GAP"
+        platforms = ["x86_64-linux-gnu", "aarch64-linux-gnu", "powerpc64le-linux-gnu", "x86_64-linux-musl", "aarch64-linux-musl", "x86_64-apple-darwin", "x86_64-unknown-freebsd"]
+        script = """cd ${WORKSPACE}/srcdir/gap*\n\nfor f in ${WORKSPACE}/srcdir/patches/*.patch; do\n    atomic_patch -p1 ${f}\ndone\n\n# run autogen.sh if compiling from it source and/or if configure was patched\n./autogen.sh\n\n# provide some generated code\ncp ${WORKSPACE}/srcdir/generated/c_*.c src/\n\n# compile GAP\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \\\n    --with-gmp=${prefix} \\\n    --with-readline=${prefix} \\\n    --with-zlib=${prefix} \\\n    --with-gc=julia \\\n    --with-julia\nmake -j${nproc}\n\n# install GAP binaries\nmake install-bin install-headers install-libgap\n\n# also install config.h\ncp build/config.h ${prefix}/include/gap\n\n# the license\ninstall_license LICENSE\n\n# get rid of *.la files, they just cause trouble\nrm ${prefix}/lib/*.la\n\n# get rid of the wrapper shell script, which is useless for us\nmv ${prefix}/bin/gap.real ${prefix}/bin/gap\n\n# install gac and sysinfo.gap\nmkdir -p ${prefix}/share/gap/\ncp gac sysinfo.gap ${prefix}/share/gap/\n\n# We deliberately do NOT install the GAP library, documentation, etc. because\n# they are identical across all platforms; instead, we use another platform\n# independent artifact to ship them to the user.\n"""
+        version = "v400.1190.3"
+
+            [["400.1190.3+0".artifact_metadata.metadata.dependencies]]
+            compat = "6.1.2"
+            name = "GMP_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["400.1190.3+0".artifact_metadata.metadata.dependencies]]
+            compat = "8.0.4"
+            name = "Readline_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["400.1190.3+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Zlib_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["400.1190.3+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "libjulia_jll"
+            type = "builddependency"
+            version-major = 1
+            version-minor = 5
+            version-patch = 3
+
+            [["400.1190.3+0".artifact_metadata.metadata.products]]
+            binnames = ["gap"]
+            type = "exe"
+            variable_name = "gap"
+            [["400.1190.3+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libgap"]
+            type = "lib"
+            variable_name = "libgap"
+
+            [["400.1190.3+0".artifact_metadata.metadata.sources]]
+            hash = "ab43b5637fd21ac00f0ae131439e5888be69514c"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/gap-system/gap.git"
+            [["400.1190.3+0".artifact_metadata.metadata.sources]]
+            follow_symlinks = false
+            path = "./bundled"
+            target = ""
+            type = "directory"
+
 ["400.1190.4+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.4+0/GAP.v400.1190.4.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.4+0/GAP.v400.1190.4.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.4+0/GAP.v400.1190.4.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.4+0/GAP.v400.1190.4.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.4+0/GAP.v400.1190.4.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.4+0/GAP.v400.1190.4.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.4+0/GAP.v400.1190.4.x86_64-unknown-freebsd.tar.gz"]
 registered = 2021-07-06T12:06:33.000Z
+
+    [["400.1190.4+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.4+0/GAP.v400.1190.4.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.4+0/GAP.v400.1190.4.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.4+0/GAP.v400.1190.4.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.4+0/GAP.v400.1190.4.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.4+0/GAP.v400.1190.4.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.4+0/GAP.v400.1190.4.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.4+0/GAP.v400.1190.4.x86_64-unknown-freebsd.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/bb692fc90ecc0f41482bb439f24ac56ea90dfdb9/G/GAP/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.4.0"
+
+        ["400.1190.4+0".artifact_metadata.metadata]
+        init_block = """\n    sym = dlsym(libgap_handle, :GAP_InitJuliaMemoryInterface)\n    ccall(sym, Nothing, (Any, Ptr{Nothing}), @__MODULE__, C_NULL)\n"""
+        julia_compat = "1.0"
+        lazy_artifacts = false
+        name = "GAP"
+        platforms = ["x86_64-linux-gnu", "aarch64-linux-gnu", "powerpc64le-linux-gnu", "x86_64-linux-musl", "aarch64-linux-musl", "x86_64-apple-darwin", "x86_64-unknown-freebsd"]
+        script = """cd ${WORKSPACE}/srcdir/gap*\n\nfor f in ${WORKSPACE}/srcdir/patches/*.patch; do\n    atomic_patch -p1 ${f}\ndone\n\n# run autogen.sh if compiling from it source and/or if configure was patched\n./autogen.sh\n\n# provide some generated code\ncp ${WORKSPACE}/srcdir/generated/c_*.c src/\n\n# compile GAP\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \\\n    --with-gmp=${prefix} \\\n    --with-readline=${prefix} \\\n    --with-zlib=${prefix} \\\n    --with-gc=julia \\\n    --with-julia\nmake -j${nproc}\n\n# install GAP binaries\nmake install-bin install-headers install-libgap\n\n# also install config.h\ncp build/config.h ${prefix}/include/gap\n\n# the license\ninstall_license LICENSE\n\n# get rid of *.la files, they just cause trouble\nrm ${prefix}/lib/*.la\n\n# get rid of the wrapper shell script, which is useless for us\nmv ${prefix}/bin/gap.real ${prefix}/bin/gap\n\n# install gac and sysinfo.gap\nmkdir -p ${prefix}/share/gap/\ncp gac sysinfo.gap ${prefix}/share/gap/\n\n# We deliberately do NOT install the GAP library, documentation, etc. because\n# they are identical across all platforms; instead, we use another platform\n# independent artifact to ship them to the user.\n"""
+        version = "v400.1190.4"
+
+            [["400.1190.4+0".artifact_metadata.metadata.dependencies]]
+            compat = "6.1.2"
+            name = "GMP_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["400.1190.4+0".artifact_metadata.metadata.dependencies]]
+            compat = "8.0.4"
+            name = "Readline_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["400.1190.4+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Zlib_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["400.1190.4+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "libjulia_jll"
+            type = "builddependency"
+            version-major = 1
+            version-minor = 5
+            version-patch = 3
+
+            [["400.1190.4+0".artifact_metadata.metadata.products]]
+            binnames = ["gap"]
+            type = "exe"
+            variable_name = "gap"
+            [["400.1190.4+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libgap"]
+            type = "lib"
+            variable_name = "libgap"
+
+            [["400.1190.4+0".artifact_metadata.metadata.sources]]
+            hash = "5dc76ddf1c854c40384964c7683a5e2ff8c8b785"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/gap-system/gap.git"
+            [["400.1190.4+0".artifact_metadata.metadata.sources]]
+            follow_symlinks = false
+            path = "./bundled"
+            target = ""
+            type = "directory"
 
 ["400.1190.105+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.105+0/GAP.v400.1190.105.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.105+0/GAP.v400.1190.105.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.105+0/GAP.v400.1190.105.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.105+0/GAP.v400.1190.105.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.105+0/GAP.v400.1190.105.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.105+0/GAP.v400.1190.105.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_jll.jl/releases/download/GAP-v400.1190.105+0/GAP.v400.1190.105.x86_64-unknown-freebsd.tar.gz"]
