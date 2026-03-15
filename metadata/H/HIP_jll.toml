@@ -10,6 +10,87 @@ registered = 2021-07-17T21:19:55.000Z
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/HIP_jll.jl/releases/download/HIP-v4.2.0+0/HIP.v4.2.0.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/HIP_jll.jl/releases/download/HIP-v4.2.0+0/HIP.v4.2.0.x86_64-linux-musl-cxx11.tar.gz"]
 registered = 2022-01-13T21:34:05.000Z
 
+    [["4.2.0+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/HIP_jll.jl/releases/download/HIP-v4.2.0+0/HIP.v4.2.0.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/HIP_jll.jl/releases/download/HIP-v4.2.0+0/HIP.v4.2.0.x86_64-linux-musl-cxx11.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/d02a2e9288162a9e2c290c11015cd596138af798/H/HIP/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.4.8"
+
+        ["4.2.0+0".artifact_metadata.metadata]
+        init_block = ""
+        julia_compat = "1.7"
+        lazy_artifacts = false
+        name = "HIP"
+        platforms = ["x86_64-linux-gnu-cxx11", "x86_64-linux-musl-cxx11"]
+        script = """cd ${WORKSPACE}/srcdir/HIP*/\n\n# disable broken Pre-Compiled Headers (PCH)\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/disable-pch.patch\"\n\n# force hipcc to pass paths to clang\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/hipcc-force-paths.patch\"\n\n# help hipcc to find BB C++ headers+libs+crt\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/hipcc-bb-paths.patch\"\n\napk add coreutils dateutils\n\nmkdir build && cd build\nln -s ${prefix}/bin/clang ${prefix}/tools/clang\nexport HIP_CLANG_PATH=${prefix}/tools\ncmake -DCMAKE_INSTALL_PREFIX=${prefix}/hip \\\n      -DCMAKE_PREFIX_PATH=${prefix} \\\n      -DCMAKE_BUILD_TYPE=Release \\\n      -DHIP_COMPILER=clang \\\n      -DHIP_PLATFORM=amd \\\n      -DHIP_RUNTIME=rocclr \\\n      -DROCM_PATH=${prefix} \\\n      -DHSA_PATH=${prefix} \\\n      -DLLVM_DIR=\"${libdir}/cmake/llvm\" \\\n      -DClang_DIR=\"${libdir}/cmake/clang\" \\\n      -DLLD_DIR=\"${libdir}/cmake/ldd\" \\\n      ..\nmake -j${nproc}\nmake install\n\n# Cleanup\nrm ${prefix}/tools/clang\n\n# link to .hipVersion so clang can find it\nln -s ../hip/bin/.hipVersion ${bindir}/.hipVersion\n"""
+        version = "v4.2.0"
+
+            [["4.2.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "ROCmLLVM_jll"
+            platforms = ["any"]
+            type = "builddependency"
+            version-major = 4
+            version-minor = 2
+            version-patch = 0
+            [["4.2.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "hsa_rocr_jll"
+            platforms = ["any"]
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["4.2.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "ROCmDeviceLibs_jll"
+            platforms = ["any"]
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["4.2.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "ROCmCompilerSupport_jll"
+            platforms = ["any"]
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["4.2.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "ROCmOpenCLRuntime_jll"
+            platforms = ["any"]
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["4.2.0+0".artifact_metadata.metadata.products]]
+            dir_paths = ["hip/lib"]
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libamdhip64"]
+            type = "lib"
+            variable_name = "libamdhip64"
+            [["4.2.0+0".artifact_metadata.metadata.products]]
+            binnames = ["hipcc"]
+            dir_path = "hip/bin"
+            type = "exe"
+            variable_name = "hipcc"
+
+            [["4.2.0+0".artifact_metadata.metadata.sources]]
+            hash = "ecb929e0fc2eaaf7bbd16a1446a876a15baf72419c723734f456ee62e70b4c24"
+            type = "archive"
+            unpack_target = ""
+            url = "https://github.com/ROCm-Developer-Tools/HIP/archive/rocm-4.2.0.tar.gz"
+            [["4.2.0+0".artifact_metadata.metadata.sources]]
+            follow_symlinks = false
+            path = "./bundled"
+            target = ""
+            type = "directory"
+
 ["4.2.0+1"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/HIP_jll.jl/releases/download/HIP-v4.2.0+1/HIP.v4.2.0.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/HIP_jll.jl/releases/download/HIP-v4.2.0+1/HIP.v4.2.0.x86_64-linux-musl-cxx11.tar.gz"]
 registered = 2022-07-12T22:06:57.000Z
