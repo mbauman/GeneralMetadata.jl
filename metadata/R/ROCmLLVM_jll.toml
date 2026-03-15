@@ -6,9 +6,211 @@ registered = 2021-12-16T22:10:27.000Z
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/ROCmLLVM_jll.jl/releases/download/ROCmLLVM-v4.2.0+1/ROCmLLVM.v4.2.0.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/ROCmLLVM_jll.jl/releases/download/ROCmLLVM-v4.2.0+1/ROCmLLVM.v4.2.0.x86_64-linux-musl-cxx11.tar.gz"]
 registered = 2022-08-04T16:20:08.000Z
 
+    [["4.2.0+1".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/ROCmLLVM_jll.jl/releases/download/ROCmLLVM-v4.2.0+1/ROCmLLVM.v4.2.0.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/ROCmLLVM_jll.jl/releases/download/ROCmLLVM-v4.2.0+1/ROCmLLVM.v4.2.0.x86_64-linux-musl-cxx11.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/c14d170d7c993f48294b95e4e45f6f38cf5d59a4/R/ROCmLLVM/ROCmLLVM@4.2.0/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.5.5"
+
+        ["4.2.0+1".artifact_metadata.metadata]
+        augment_platform_block = ""
+        init_block = ""
+        julia_compat = "1.7"
+        lazy_artifacts = false
+        name = "ROCmLLVM"
+        platforms = ["x86_64-linux-gnu-cxx11", "x86_64-linux-musl-cxx11"]
+        script = """LLVM_MAJ_VER=12\nLLVM_MIN_VER=0\nLLVM_PATCH_VER=0\n# We want to exit the program if errors occur.\nset -o errexit\n\ncd ${WORKSPACE}/srcdir/llvm-project/llvm\nLLVM_SRCDIR=$(pwd)\n\n# Apply all our patches\nif [ -d $WORKSPACE/srcdir/llvm_patches ]; then\nfor f in $WORKSPACE/srcdir/llvm_patches/*.patch; do\n    echo \"Applying patch ${f}\"\n    atomic_patch -p1 ${f}\ndone\nfi\n\nif [ -d $WORKSPACE/srcdir/clang_patches ]; then\ncd ${WORKSPACE}/srcdir/llvm-project/clang\nfor f in $WORKSPACE/srcdir/clang_patches/*.patch; do\n    echo \"Applying patch ${f}\"\n    atomic_patch -p1 ${f}\ndone\nfi\n\nif [ -d $WORKSPACE/srcdir/crt_patches ]; then\ncd ${WORKSPACE}/srcdir/llvm-project/compiler-rt\nfor f in $WORKSPACE/srcdir/crt_patches/*.patch; do\n    echo \"Applying patch ${f}\"\n    atomic_patch -p1 ${f}\ndone\nfi\n\nif [ -d $WORKSPACE/srcdir/libcxx_patches ]; then\ncd ${WORKSPACE}/srcdir/llvm-project/libcxx\nfor f in $WORKSPACE/srcdir/libcxx_patches/*.patch; do\n    echo \"Applying patch ${f}\"\n    atomic_patch -p1 ${f}\ndone\nfi\n\n# Patches from the monorepo\nif [ -d $WORKSPACE/srcdir/patches ]; then\ncd ${WORKSPACE}/srcdir/llvm-project\nfor f in $WORKSPACE/srcdir/patches/*.patch; do\n    echo \"Applying patch ${f}\"\n    atomic_patch -p1 ${f}\ndone\nfi\n\n# The very first thing we need to do is to build llvm-tblgen for x86_64-linux-muslc\n# This is because LLVM's cross-compile setup is kind of borked, so we just\n# build the tools natively ourselves, directly.  :/\n\n# Build llvm-tblgen, clang-tblgen, and llvm-config\nmkdir ${WORKSPACE}/bootstrap\npushd ${WORKSPACE}/bootstrap\nCMAKE_FLAGS=()\nCMAKE_FLAGS+=(-DLLVM_TARGETS_TO_BUILD:STRING=host)\nCMAKE_FLAGS+=(-DLLVM_HOST_TRIPLE=${MACHTYPE})\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\nCMAKE_FLAGS+=(-DLLVM_ENABLE_PROJECTS='clang;lld;compiler-rt;clang-tools-extra')\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING=False)\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_HOST_TOOLCHAIN})\n\ncmake -GNinja ${LLVM_SRCDIR} ${CMAKE_FLAGS[@]}\nninja -j${nproc} llvm-tblgen clang-tblgen llvm-config\npopd\n\n# Let's do the actual build within the `build` subdirectory\nmkdir ${WORKSPACE}/build && cd ${WORKSPACE}/build\n\n# Accumulate these flags outside CMAKE_FLAGS,\n# they will be added at the end.\nCMAKE_CPP_FLAGS=\"\"\nCMAKE_CXX_FLAGS=\"\"\nCMAKE_C_FLAGS=\"\"\n\nCMAKE_FLAGS=()\n\n# Release build for best performance\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\nif [[ \"${ASSERTS}\" == \"1\" ]]; then\n    CMAKE_FLAGS+=(-DLLVM_ENABLE_ASSERTIONS:BOOL=ON)\nfi\n\n# build for our host arch and our GPU targets NVidia and AMD\nTARGETS=(host AMDGPU)\nLLVM_TARGETS=$(IFS=';' ; echo \"${TARGETS[*]}\")\nCMAKE_FLAGS+=(-DLLVM_TARGETS_TO_BUILD:STRING=$LLVM_TARGETS)\n\nPROJECTS=(clang lld clang-tools-extra compiler-rt)\nLLVM_PROJECTS=$(IFS=';' ; echo \"${PROJECTS[*]}\")\nCMAKE_FLAGS+=(-DLLVM_ENABLE_PROJECTS:STRING=$LLVM_PROJECTS)\n\n# We want a build with no bindings\nCMAKE_FLAGS+=(-DLLVM_BINDINGS_LIST=\"\" )\n\n# Turn on ZLIB\nCMAKE_FLAGS+=(-DLLVM_ENABLE_ZLIB=ON)\n# Turn off XML2\nCMAKE_FLAGS+=(-DLLVM_ENABLE_LIBXML2=OFF)\n\n# Disable useless things like docs, terminfo, etc....\nCMAKE_FLAGS+=(-DLLVM_INCLUDE_DOCS=Off)\nCMAKE_FLAGS+=(-DLLVM_ENABLE_TERMINFO=Off)\nCMAKE_FLAGS+=(-DHAVE_HISTEDIT_H=Off)\nCMAKE_FLAGS+=(-DHAVE_LIBEDIT=Off)\n\nif [[ \"${target}\" == *linux* ]]; then\n    # https://bugs.llvm.org/show_bug.cgi?id=48221\n    CMAKE_CXX_FLAGS+=\"-fno-gnu-unique\"\nfi\n\n# Install things into $prefix, and make sure it knows we're cross-compiling\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix}/llvm)\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING=True)\n\n# Tell LLVM where our pre-built tblgen tools are\nCMAKE_FLAGS+=(-DLLVM_TABLEGEN=${WORKSPACE}/bootstrap/bin/llvm-tblgen)\nCMAKE_FLAGS+=(-DCLANG_TABLEGEN=${WORKSPACE}/bootstrap/bin/clang-tblgen)\nCMAKE_FLAGS+=(-DLLVM_CONFIG_PATH=${WORKSPACE}/bootstrap/bin/llvm-config)\n\n# Explicitly use our cmake toolchain file\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\n\n# Manually set the host triplet, as otherwise on some platforms it tries to guess using\n# `ld -v`, which is hilariously wrong.\nCMAKE_FLAGS+=(-DLLVM_HOST_TRIPLE=${target})\n\n# Most targets use the actual target string, but we disagree on `aarch64-darwin` and `arm64-darwin`\nCMAKE_TARGET=${target}\n\nCMAKE_FLAGS+=(-DCOMPILER_RT_INCLUDE_TESTS=OFF)\nif [[ \"${target}\" == *musl* ]]; then\n    # Taken from https://git.alpinelinux.org/cgit/aports/tree/main/compiler-rt/APKBUILD\n    CMAKE_FLAGS+=(-DCOMPILER_RT_BUILD_SANITIZERS=OFF)\n    CMAKE_FLAGS+=(-DCOMPILER_RT_BUILD_XRAY=OFF)\nfi\n\n# Tell LLVM which compiler target to use, because it loses track for some reason\nCMAKE_FLAGS+=(-DCMAKE_C_COMPILER_TARGET=${CMAKE_TARGET})\nCMAKE_FLAGS+=(-DCMAKE_CXX_COMPILER_TARGET=${CMAKE_TARGET})\nCMAKE_FLAGS+=(-DCMAKE_ASM_COMPILER_TARGET=${CMAKE_TARGET})\n\ncmake -GNinja ${LLVM_SRCDIR} ${CMAKE_FLAGS[@]} -DCMAKE_CXX_FLAGS=\"${CMAKE_CPP_FLAGS} ${CMAKE_CXX_FLAGS}\" -DCMAKE_C_FLAGS=\"${CMAKE_CPP_FLAGS} ${CMAKE_CXX_FLAGS}\"\nninja -j${nproc} -vv\n\n# Install!\nninja install\n\ninstall_license ${WORKSPACE}/srcdir/llvm-project/llvm/LICENSE.TXT\n"""
+        version = "v4.2.0"
+
+            [["4.2.0+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Zlib_jll"
+            platforms = ["any"]
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["4.2.0+1".artifact_metadata.metadata.products]]
+            paths = ["llvm/lib/libLLVMCore.a"]
+            type = "file"
+            variable_name = "libllvmcore"
+            [["4.2.0+1".artifact_metadata.metadata.products]]
+            paths = ["llvm/lib/liblldCore.a"]
+            type = "file"
+            variable_name = "liblldcore"
+            [["4.2.0+1".artifact_metadata.metadata.products]]
+            paths = ["llvm/lib/libclangBasic.a"]
+            type = "file"
+            variable_name = "libclangbasic"
+            [["4.2.0+1".artifact_metadata.metadata.products]]
+            dir_paths = ["llvm/lib"]
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libclang"]
+            type = "lib"
+            variable_name = "libclang"
+            [["4.2.0+1".artifact_metadata.metadata.products]]
+            dir_paths = ["llvm/lib"]
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libclang-cpp"]
+            type = "lib"
+            variable_name = "libclang_cpp"
+            [["4.2.0+1".artifact_metadata.metadata.products]]
+            dir_paths = ["llvm/lib"]
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["LTO", "libLTO"]
+            type = "lib"
+            variable_name = "liblto"
+            [["4.2.0+1".artifact_metadata.metadata.products]]
+            binnames = ["llvm-config"]
+            dir_path = "llvm/bin"
+            type = "exe"
+            variable_name = "llvm_config"
+            [["4.2.0+1".artifact_metadata.metadata.products]]
+            binnames = ["clang", "clang-12"]
+            dir_path = "llvm/bin"
+            type = "exe"
+            variable_name = "clang"
+            [["4.2.0+1".artifact_metadata.metadata.products]]
+            binnames = ["opt"]
+            dir_path = "llvm/bin"
+            type = "exe"
+            variable_name = "opt"
+            [["4.2.0+1".artifact_metadata.metadata.products]]
+            binnames = ["llc"]
+            dir_path = "llvm/bin"
+            type = "exe"
+            variable_name = "llc"
+            [["4.2.0+1".artifact_metadata.metadata.products]]
+            binnames = ["lld"]
+            dir_path = "llvm/bin"
+            type = "exe"
+            variable_name = "lld"
+            [["4.2.0+1".artifact_metadata.metadata.products]]
+            binnames = ["ld.lld"]
+            dir_path = "llvm/bin"
+            type = "exe"
+            variable_name = "ld_lld"
+
+            [["4.2.0+1".artifact_metadata.metadata.sources]]
+            hash = "b204d7f0cae65b6cd4446eec50fc1fb675d582af"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/RadeonOpenCompute/llvm-project"
+            [["4.2.0+1".artifact_metadata.metadata.sources]]
+            follow_symlinks = false
+            path = "./bundled"
+            target = ""
+            type = "directory"
+
 ["4.5.2+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/ROCmLLVM_jll.jl/releases/download/ROCmLLVM-v4.5.2+0/ROCmLLVM.v4.5.2.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/ROCmLLVM_jll.jl/releases/download/ROCmLLVM-v4.5.2+0/ROCmLLVM.v4.5.2.x86_64-linux-musl-cxx11.tar.gz"]
 registered = 2022-08-05T14:31:15.000Z
+
+    [["4.5.2+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/ROCmLLVM_jll.jl/releases/download/ROCmLLVM-v4.5.2+0/ROCmLLVM.v4.5.2.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/ROCmLLVM_jll.jl/releases/download/ROCmLLVM-v4.5.2+0/ROCmLLVM.v4.5.2.x86_64-linux-musl-cxx11.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/c14d170d7c993f48294b95e4e45f6f38cf5d59a4/R/ROCmLLVM/ROCmLLVM@4.5.2/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.5.5"
+
+        ["4.5.2+0".artifact_metadata.metadata]
+        augment_platform_block = ""
+        init_block = ""
+        julia_compat = "1.8"
+        lazy_artifacts = false
+        name = "ROCmLLVM"
+        platforms = ["x86_64-linux-gnu-cxx11", "x86_64-linux-musl-cxx11"]
+        script = """LLVM_MAJ_VER=13\nLLVM_MIN_VER=0\nLLVM_PATCH_VER=0\n# We want to exit the program if errors occur.\nset -o errexit\n\ncd ${WORKSPACE}/srcdir/llvm-project/llvm\nLLVM_SRCDIR=$(pwd)\n\n# Apply all our patches\nif [ -d $WORKSPACE/srcdir/llvm_patches ]; then\nfor f in $WORKSPACE/srcdir/llvm_patches/*.patch; do\n    echo \"Applying patch ${f}\"\n    atomic_patch -p1 ${f}\ndone\nfi\n\nif [ -d $WORKSPACE/srcdir/clang_patches ]; then\ncd ${WORKSPACE}/srcdir/llvm-project/clang\nfor f in $WORKSPACE/srcdir/clang_patches/*.patch; do\n    echo \"Applying patch ${f}\"\n    atomic_patch -p1 ${f}\ndone\nfi\n\nif [ -d $WORKSPACE/srcdir/crt_patches ]; then\ncd ${WORKSPACE}/srcdir/llvm-project/compiler-rt\nfor f in $WORKSPACE/srcdir/crt_patches/*.patch; do\n    echo \"Applying patch ${f}\"\n    atomic_patch -p1 ${f}\ndone\nfi\n\nif [ -d $WORKSPACE/srcdir/libcxx_patches ]; then\ncd ${WORKSPACE}/srcdir/llvm-project/libcxx\nfor f in $WORKSPACE/srcdir/libcxx_patches/*.patch; do\n    echo \"Applying patch ${f}\"\n    atomic_patch -p1 ${f}\ndone\nfi\n\n# Patches from the monorepo\nif [ -d $WORKSPACE/srcdir/patches ]; then\ncd ${WORKSPACE}/srcdir/llvm-project\nfor f in $WORKSPACE/srcdir/patches/*.patch; do\n    echo \"Applying patch ${f}\"\n    atomic_patch -p1 ${f}\ndone\nfi\n\n# The very first thing we need to do is to build llvm-tblgen for x86_64-linux-muslc\n# This is because LLVM's cross-compile setup is kind of borked, so we just\n# build the tools natively ourselves, directly.  :/\n\n# Build llvm-tblgen, clang-tblgen, and llvm-config\nmkdir ${WORKSPACE}/bootstrap\npushd ${WORKSPACE}/bootstrap\nCMAKE_FLAGS=()\nCMAKE_FLAGS+=(-DLLVM_TARGETS_TO_BUILD:STRING=host)\nCMAKE_FLAGS+=(-DLLVM_HOST_TRIPLE=${MACHTYPE})\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\nCMAKE_FLAGS+=(-DLLVM_ENABLE_PROJECTS='clang;lld;compiler-rt;clang-tools-extra')\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING=False)\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_HOST_TOOLCHAIN})\n\ncmake -GNinja ${LLVM_SRCDIR} ${CMAKE_FLAGS[@]}\nninja -j${nproc} llvm-tblgen clang-tblgen llvm-config\npopd\n\n# Let's do the actual build within the `build` subdirectory\nmkdir ${WORKSPACE}/build && cd ${WORKSPACE}/build\n\n# Accumulate these flags outside CMAKE_FLAGS,\n# they will be added at the end.\nCMAKE_CPP_FLAGS=\"\"\nCMAKE_CXX_FLAGS=\"\"\nCMAKE_C_FLAGS=\"\"\n\nCMAKE_FLAGS=()\n\n# Release build for best performance\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\nif [[ \"${ASSERTS}\" == \"1\" ]]; then\n    CMAKE_FLAGS+=(-DLLVM_ENABLE_ASSERTIONS:BOOL=ON)\nfi\n\n# build for our host arch and our GPU targets NVidia and AMD\nTARGETS=(host AMDGPU)\nLLVM_TARGETS=$(IFS=';' ; echo \"${TARGETS[*]}\")\nCMAKE_FLAGS+=(-DLLVM_TARGETS_TO_BUILD:STRING=$LLVM_TARGETS)\n\nPROJECTS=(clang lld clang-tools-extra compiler-rt)\nLLVM_PROJECTS=$(IFS=';' ; echo \"${PROJECTS[*]}\")\nCMAKE_FLAGS+=(-DLLVM_ENABLE_PROJECTS:STRING=$LLVM_PROJECTS)\n\n# We want a build with no bindings\nCMAKE_FLAGS+=(-DLLVM_BINDINGS_LIST=\"\" )\n\n# Turn on ZLIB\nCMAKE_FLAGS+=(-DLLVM_ENABLE_ZLIB=ON)\n# Turn off XML2\nCMAKE_FLAGS+=(-DLLVM_ENABLE_LIBXML2=OFF)\n\n# Disable useless things like docs, terminfo, etc....\nCMAKE_FLAGS+=(-DLLVM_INCLUDE_DOCS=Off)\nCMAKE_FLAGS+=(-DLLVM_ENABLE_TERMINFO=Off)\nCMAKE_FLAGS+=(-DHAVE_HISTEDIT_H=Off)\nCMAKE_FLAGS+=(-DHAVE_LIBEDIT=Off)\n\nif [[ \"${target}\" == *linux* ]]; then\n    # https://bugs.llvm.org/show_bug.cgi?id=48221\n    CMAKE_CXX_FLAGS+=\"-fno-gnu-unique\"\nfi\n\n# Install things into $prefix, and make sure it knows we're cross-compiling\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix}/llvm)\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING=True)\n\n# Tell LLVM where our pre-built tblgen tools are\nCMAKE_FLAGS+=(-DLLVM_TABLEGEN=${WORKSPACE}/bootstrap/bin/llvm-tblgen)\nCMAKE_FLAGS+=(-DCLANG_TABLEGEN=${WORKSPACE}/bootstrap/bin/clang-tblgen)\nCMAKE_FLAGS+=(-DLLVM_CONFIG_PATH=${WORKSPACE}/bootstrap/bin/llvm-config)\n\n# Explicitly use our cmake toolchain file\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\n\n# Manually set the host triplet, as otherwise on some platforms it tries to guess using\n# `ld -v`, which is hilariously wrong.\nCMAKE_FLAGS+=(-DLLVM_HOST_TRIPLE=${target})\n\n# Most targets use the actual target string, but we disagree on `aarch64-darwin` and `arm64-darwin`\nCMAKE_TARGET=${target}\n\nCMAKE_FLAGS+=(-DCOMPILER_RT_INCLUDE_TESTS=OFF)\nif [[ \"${target}\" == *musl* ]]; then\n    # Taken from https://git.alpinelinux.org/cgit/aports/tree/main/compiler-rt/APKBUILD\n    CMAKE_FLAGS+=(-DCOMPILER_RT_BUILD_SANITIZERS=OFF)\n    CMAKE_FLAGS+=(-DCOMPILER_RT_BUILD_XRAY=OFF)\nfi\n\n# Tell LLVM which compiler target to use, because it loses track for some reason\nCMAKE_FLAGS+=(-DCMAKE_C_COMPILER_TARGET=${CMAKE_TARGET})\nCMAKE_FLAGS+=(-DCMAKE_CXX_COMPILER_TARGET=${CMAKE_TARGET})\nCMAKE_FLAGS+=(-DCMAKE_ASM_COMPILER_TARGET=${CMAKE_TARGET})\n\ncmake -GNinja ${LLVM_SRCDIR} ${CMAKE_FLAGS[@]} -DCMAKE_CXX_FLAGS=\"${CMAKE_CPP_FLAGS} ${CMAKE_CXX_FLAGS}\" -DCMAKE_C_FLAGS=\"${CMAKE_CPP_FLAGS} ${CMAKE_CXX_FLAGS}\"\nninja -j${nproc} -vv\n\n# Install!\nninja install\n\ninstall_license ${WORKSPACE}/srcdir/llvm-project/llvm/LICENSE.TXT\n"""
+        version = "v4.5.2"
+
+            [["4.5.2+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Zlib_jll"
+            platforms = ["any"]
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["4.5.2+0".artifact_metadata.metadata.products]]
+            paths = ["llvm/lib/libLLVMCore.a"]
+            type = "file"
+            variable_name = "libllvmcore"
+            [["4.5.2+0".artifact_metadata.metadata.products]]
+            paths = ["llvm/lib/liblldCore.a"]
+            type = "file"
+            variable_name = "liblldcore"
+            [["4.5.2+0".artifact_metadata.metadata.products]]
+            paths = ["llvm/lib/libclangBasic.a"]
+            type = "file"
+            variable_name = "libclangbasic"
+            [["4.5.2+0".artifact_metadata.metadata.products]]
+            dir_paths = ["llvm/lib"]
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libclang"]
+            type = "lib"
+            variable_name = "libclang"
+            [["4.5.2+0".artifact_metadata.metadata.products]]
+            dir_paths = ["llvm/lib"]
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libclang-cpp"]
+            type = "lib"
+            variable_name = "libclang_cpp"
+            [["4.5.2+0".artifact_metadata.metadata.products]]
+            dir_paths = ["llvm/lib"]
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["LTO", "libLTO"]
+            type = "lib"
+            variable_name = "liblto"
+            [["4.5.2+0".artifact_metadata.metadata.products]]
+            binnames = ["llvm-config"]
+            dir_path = "llvm/bin"
+            type = "exe"
+            variable_name = "llvm_config"
+            [["4.5.2+0".artifact_metadata.metadata.products]]
+            binnames = ["clang", "clang-13"]
+            dir_path = "llvm/bin"
+            type = "exe"
+            variable_name = "clang"
+            [["4.5.2+0".artifact_metadata.metadata.products]]
+            binnames = ["opt"]
+            dir_path = "llvm/bin"
+            type = "exe"
+            variable_name = "opt"
+            [["4.5.2+0".artifact_metadata.metadata.products]]
+            binnames = ["llc"]
+            dir_path = "llvm/bin"
+            type = "exe"
+            variable_name = "llc"
+            [["4.5.2+0".artifact_metadata.metadata.products]]
+            binnames = ["lld"]
+            dir_path = "llvm/bin"
+            type = "exe"
+            variable_name = "lld"
+            [["4.5.2+0".artifact_metadata.metadata.products]]
+            binnames = ["ld.lld"]
+            dir_path = "llvm/bin"
+            type = "exe"
+            variable_name = "ld_lld"
+
+            [["4.5.2+0".artifact_metadata.metadata.sources]]
+            hash = "9bbd96fd1936641cd47defd8022edafd063019d5"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/RadeonOpenCompute/llvm-project"
+            [["4.5.2+0".artifact_metadata.metadata.sources]]
+            follow_symlinks = false
+            path = "./bundled"
+            target = ""
+            type = "directory"
 
 ["5.2.3+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/ROCmLLVM_jll.jl/releases/download/ROCmLLVM-v5.2.3+0/ROCmLLVM.v5.2.3.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/ROCmLLVM_jll.jl/releases/download/ROCmLLVM-v5.2.3+0/ROCmLLVM.v5.2.3.x86_64-linux-musl-cxx11.tar.gz"]

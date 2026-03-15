@@ -18,6 +18,129 @@ registered = 2022-01-06T21:54:46.000Z
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/ROCmOpenCLRuntime_jll.jl/releases/download/ROCmOpenCLRuntime-v4.2.0+2/ROCmOpenCLRuntime.v4.2.0.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/ROCmOpenCLRuntime_jll.jl/releases/download/ROCmOpenCLRuntime-v4.2.0+2/ROCmOpenCLRuntime.v4.2.0.x86_64-linux-musl-cxx11.tar.gz"]
 registered = 2022-09-06T14:57:03.000Z
 
+    [["4.2.0+2".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/ROCmOpenCLRuntime_jll.jl/releases/download/ROCmOpenCLRuntime-v4.2.0+2/ROCmOpenCLRuntime.v4.2.0.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/ROCmOpenCLRuntime_jll.jl/releases/download/ROCmOpenCLRuntime-v4.2.0+2/ROCmOpenCLRuntime.v4.2.0.x86_64-linux-musl-cxx11.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/0c4aa89dcdea18205b3c126085d1b7c311bfae28/R/ROCmOpenCLRuntime/ROCmOpenCLRuntime@4.2.0/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.5.5"
+
+        ["4.2.0+2".artifact_metadata.metadata]
+        augment_platform_block = ""
+        init_block = ""
+        julia_compat = "1.7"
+        lazy_artifacts = false
+        name = "ROCmOpenCLRuntime"
+        platforms = ["x86_64-linux-gnu-cxx11", "x86_64-linux-musl-cxx11"]
+        script = """export ROCclr_DIR=$(realpath ${WORKSPACE}/srcdir/ROCclr-*)\nexport OPENCL_SRC=$(realpath ${WORKSPACE}/srcdir/ROCm-OpenCL-Runtime-*)\n\n# Build ROCclr\ncd ${ROCclr_DIR}\n# Link rt. OpenCL needs it, otherwise we get `undefined symbol: clock_gettime`.\natomic_patch -p1 $WORKSPACE/srcdir/patches/rocclr-link-lrt.patch\natomic_patch -p1 $WORKSPACE/srcdir/patches/musl-rocclr.patch\nmkdir build && cd build\nCC=${WORKSPACE}/srcdir/rocm-clang CXX=${WORKSPACE}/srcdir/rocm-clang++ \\\ncmake \\\n    -DCMAKE_PREFIX_PATH=${prefix} \\\n    -DCMAKE_INSTALL_PREFIX=${prefix}/rocclr \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DOPENCL_DIR=${OPENCL_SRC} \\\n    ..\nmake -j${nproc}\nmake install\n# Build OpenCL.\ncd ${OPENCL_SRC}\natomic_patch -p1 $WORKSPACE/srcdir/patches/musl-opencl.patch\nmkdir build && cd build\nCC=${WORKSPACE}/srcdir/rocm-clang CXX=${WORKSPACE}/srcdir/rocm-clang++ \\\ncmake \\\n    -DCMAKE_PREFIX_PATH=\"${ROCclr_DIR}/build;${prefix}\" \\\n    -DCMAKE_INSTALL_PREFIX=${prefix}/opencl \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DUSE_COMGR_LIBRARY=ON \\\n    -DBUILD_TESTS:BOOL=OFF \\\n    -DBUILD_TESTING:BOOL=OFF \\\n    ..\nmake -j${nproc}\nmake install\ninstall_license ${OPENCL_SRC}/LICENSE.txt\n"""
+        version = "v4.2.0"
+
+            [["4.2.0+2".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "ROCmLLVM_jll"
+            platforms = ["any"]
+            type = "builddependency"
+            version-major = 4
+            version-minor = 2
+            version-patch = 0
+            [["4.2.0+2".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "rocm_cmake_jll"
+            platforms = ["any"]
+            type = "builddependency"
+            version-major = 4
+            version-minor = 2
+            version-patch = 0
+            [["4.2.0+2".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "hsakmt_roct_jll"
+            platforms = ["any"]
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["4.2.0+2".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "hsa_rocr_jll"
+            platforms = ["any"]
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["4.2.0+2".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "ROCmDeviceLibs_jll"
+            platforms = ["any"]
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["4.2.0+2".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "ROCmCompilerSupport_jll"
+            platforms = ["any"]
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["4.2.0+2".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Libglvnd_jll"
+            platforms = ["any"]
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["4.2.0+2".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libX11_jll"
+            platforms = ["any"]
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["4.2.0+2".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_xorgproto_jll"
+            platforms = ["any"]
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["4.2.0+2".artifact_metadata.metadata.products]]
+            dir_paths = ["opencl/lib"]
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libOpenCL"]
+            type = "lib"
+            variable_name = "libOpenCL"
+            [["4.2.0+2".artifact_metadata.metadata.products]]
+            paths = ["rocclr/lib/libamdrocclr_static.a"]
+            type = "file"
+            variable_name = "libamdrocclr_static"
+
+            [["4.2.0+2".artifact_metadata.metadata.sources]]
+            hash = "18133451948a83055ca5ebfb5ba1bd536ed0bcb611df98829f1251a98a38f730"
+            type = "archive"
+            unpack_target = ""
+            url = "https://github.com/RadeonOpenCompute/ROCm-OpenCL-Runtime/archive/rocm-4.2.0.tar.gz"
+            [["4.2.0+2".artifact_metadata.metadata.sources]]
+            hash = "c57525af32c59becf56fd83cdd61f5320a95024d9baa7fb729a01e7a9fcdfd78"
+            type = "archive"
+            unpack_target = ""
+            url = "https://github.com/ROCm-Developer-Tools/ROCclr/archive/rocm-4.2.0.tar.gz"
+            [["4.2.0+2".artifact_metadata.metadata.sources]]
+            follow_symlinks = false
+            path = "./bundled"
+            target = ""
+            type = "directory"
+            [["4.2.0+2".artifact_metadata.metadata.sources]]
+            follow_symlinks = false
+            path = "../scripts"
+            target = ""
+            type = "directory"
+
 ["4.2.0+3"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/ROCmOpenCLRuntime_jll.jl/releases/download/ROCmOpenCLRuntime-v4.2.0+3/ROCmOpenCLRuntime.v4.2.0.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/ROCmOpenCLRuntime_jll.jl/releases/download/ROCmOpenCLRuntime-v4.2.0+3/ROCmOpenCLRuntime.v4.2.0.x86_64-linux-musl-cxx11.tar.gz"]
 registered = 2022-09-20T13:40:34.000Z
@@ -148,6 +271,125 @@ registered = 2022-09-20T13:40:34.000Z
 ["4.5.2+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/ROCmOpenCLRuntime_jll.jl/releases/download/ROCmOpenCLRuntime-v4.5.2+0/ROCmOpenCLRuntime.v4.5.2.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/ROCmOpenCLRuntime_jll.jl/releases/download/ROCmOpenCLRuntime-v4.5.2+0/ROCmOpenCLRuntime.v4.5.2.x86_64-linux-musl-cxx11.tar.gz"]
 registered = 2022-09-07T11:54:59.000Z
+
+    [["4.5.2+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/ROCmOpenCLRuntime_jll.jl/releases/download/ROCmOpenCLRuntime-v4.5.2+0/ROCmOpenCLRuntime.v4.5.2.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/ROCmOpenCLRuntime_jll.jl/releases/download/ROCmOpenCLRuntime-v4.5.2+0/ROCmOpenCLRuntime.v4.5.2.x86_64-linux-musl-cxx11.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/fd751d06d02a25fa3e50373619085e8617462551/R/ROCmOpenCLRuntime/ROCmOpenCLRuntime@4.5.2/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.5.5"
+
+        ["4.5.2+0".artifact_metadata.metadata]
+        augment_platform_block = ""
+        init_block = ""
+        julia_compat = "1.8"
+        lazy_artifacts = false
+        name = "ROCmOpenCLRuntime"
+        platforms = ["x86_64-linux-gnu-cxx11", "x86_64-linux-musl-cxx11"]
+        script = """export ROCclr_DIR=$(realpath ${WORKSPACE}/srcdir/ROCclr-*)\nexport OPENCL_SRC=$(realpath ${WORKSPACE}/srcdir/ROCm-OpenCL-Runtime-*)\n\n# Build ROCclr\ncd ${ROCclr_DIR}\natomic_patch -p1 $WORKSPACE/srcdir/patches/musl-rocclr.patch\nmkdir build && cd build\nCC=${WORKSPACE}/srcdir/rocm-clang CXX=${WORKSPACE}/srcdir/rocm-clang++ \\\ncmake \\\n    -DCMAKE_PREFIX_PATH=${prefix} \\\n    -DCMAKE_INSTALL_PREFIX=${prefix}/rocclr \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DAMD_OPENCL_PATH=${OPENCL_SRC} \\\n    ..\nmake -j${nproc} # no install target\n# Build OpenCL.\ncd ${OPENCL_SRC}\nmkdir build && cd build\nCC=${WORKSPACE}/srcdir/rocm-clang CXX=${WORKSPACE}/srcdir/rocm-clang++ \\\ncmake \\\n    -DCMAKE_PREFIX_PATH=\"${ROCclr_DIR}/build;${prefix}\" \\\n    -DCMAKE_INSTALL_PREFIX=${prefix}/opencl \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DROCM_PATH=${prefix} \\\n    -DAMD_OPENCL_PATH=${OPENCL_SRC} \\\n    -DROCCLR_INCLUDE_DIR=${ROCclr_DIR}/include \\\n    -DBUILD_TESTS:BOOL=OFF \\\n    -DBUILD_TESTING:BOOL=OFF \\\n    ..\nmake -j${nproc}\nmake install\ninstall_license ${OPENCL_SRC}/LICENSE.txt\n"""
+        version = "v4.5.2"
+
+            [["4.5.2+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "ROCmLLVM_jll"
+            platforms = ["any"]
+            type = "builddependency"
+            version-major = 4
+            version-minor = 5
+            version-patch = 2
+            [["4.5.2+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "rocm_cmake_jll"
+            platforms = ["any"]
+            type = "builddependency"
+            version-major = 4
+            version-minor = 5
+            version-patch = 2
+            [["4.5.2+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "hsakmt_roct_jll"
+            platforms = ["any"]
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["4.5.2+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "hsa_rocr_jll"
+            platforms = ["any"]
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["4.5.2+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "ROCmDeviceLibs_jll"
+            platforms = ["any"]
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["4.5.2+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "ROCmCompilerSupport_jll"
+            platforms = ["any"]
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["4.5.2+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Libglvnd_jll"
+            platforms = ["any"]
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["4.5.2+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_libX11_jll"
+            platforms = ["any"]
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["4.5.2+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Xorg_xorgproto_jll"
+            platforms = ["any"]
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["4.5.2+0".artifact_metadata.metadata.products]]
+            dir_paths = ["opencl/lib"]
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libOpenCL"]
+            type = "lib"
+            variable_name = "libOpenCL"
+
+            [["4.5.2+0".artifact_metadata.metadata.sources]]
+            hash = "96b43f314899707810db92149caf518bdb7cf39f7c0ad86e98ad687ffb0d396d"
+            type = "archive"
+            unpack_target = ""
+            url = "https://github.com/RadeonOpenCompute/ROCm-OpenCL-Runtime/archive/rocm-4.5.2.tar.gz"
+            [["4.5.2+0".artifact_metadata.metadata.sources]]
+            hash = "6581916a3303a31f76454f12f86e020fb5e5c019f3dbb0780436a8f73792c4d1"
+            type = "archive"
+            unpack_target = ""
+            url = "https://github.com/ROCm-Developer-Tools/ROCclr/archive/rocm-4.5.2.tar.gz"
+            [["4.5.2+0".artifact_metadata.metadata.sources]]
+            follow_symlinks = false
+            path = "./bundled"
+            target = ""
+            type = "directory"
+            [["4.5.2+0".artifact_metadata.metadata.sources]]
+            follow_symlinks = false
+            path = "../scripts"
+            target = ""
+            type = "directory"
 
 ["5.2.3+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/ROCmOpenCLRuntime_jll.jl/releases/download/ROCmOpenCLRuntime-v5.2.3+0/ROCmOpenCLRuntime.v5.2.3.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/ROCmOpenCLRuntime_jll.jl/releases/download/ROCmOpenCLRuntime-v5.2.3+0/ROCmOpenCLRuntime.v5.2.3.x86_64-linux-musl-cxx11.tar.gz"]
