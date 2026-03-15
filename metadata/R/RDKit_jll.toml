@@ -22,6 +22,75 @@ registered = 2021-10-22T09:18:52.000Z
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/RDKit_jll.jl/releases/download/RDKit-v2022.3.1+0/RDKit.v2022.3.1.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/RDKit_jll.jl/releases/download/RDKit-v2022.3.1+0/RDKit.v2022.3.1.aarch64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/RDKit_jll.jl/releases/download/RDKit-v2022.3.1+0/RDKit.v2022.3.1.aarch64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/RDKit_jll.jl/releases/download/RDKit-v2022.3.1+0/RDKit.v2022.3.1.i686-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/RDKit_jll.jl/releases/download/RDKit-v2022.3.1+0/RDKit.v2022.3.1.i686-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/RDKit_jll.jl/releases/download/RDKit-v2022.3.1+0/RDKit.v2022.3.1.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/RDKit_jll.jl/releases/download/RDKit-v2022.3.1+0/RDKit.v2022.3.1.x86_64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/RDKit_jll.jl/releases/download/RDKit-v2022.3.1+0/RDKit.v2022.3.1.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/RDKit_jll.jl/releases/download/RDKit-v2022.3.1+0/RDKit.v2022.3.1.x86_64-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/RDKit_jll.jl/releases/download/RDKit-v2022.3.1+0/RDKit.v2022.3.1.x86_64-w64-mingw32-cxx11.tar.gz"]
 registered = 2022-04-09T15:38:15.000Z
 
+    [["2022.3.1+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/RDKit_jll.jl/releases/download/RDKit-v2022.3.1+0/RDKit.v2022.3.1.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/RDKit_jll.jl/releases/download/RDKit-v2022.3.1+0/RDKit.v2022.3.1.aarch64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/RDKit_jll.jl/releases/download/RDKit-v2022.3.1+0/RDKit.v2022.3.1.aarch64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/RDKit_jll.jl/releases/download/RDKit-v2022.3.1+0/RDKit.v2022.3.1.i686-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/RDKit_jll.jl/releases/download/RDKit-v2022.3.1+0/RDKit.v2022.3.1.i686-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/RDKit_jll.jl/releases/download/RDKit-v2022.3.1+0/RDKit.v2022.3.1.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/RDKit_jll.jl/releases/download/RDKit-v2022.3.1+0/RDKit.v2022.3.1.x86_64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/RDKit_jll.jl/releases/download/RDKit-v2022.3.1+0/RDKit.v2022.3.1.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/RDKit_jll.jl/releases/download/RDKit-v2022.3.1+0/RDKit.v2022.3.1.x86_64-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/RDKit_jll.jl/releases/download/RDKit-v2022.3.1+0/RDKit.v2022.3.1.x86_64-w64-mingw32-cxx11.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/168e7a3cf2fc5eaa3c32da6eee89b1db0a29d363/R/RDKit/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.5.2"
+
+        ["2022.3.1+0".artifact_metadata.metadata]
+        augment_platform_block = ""
+        init_block = ""
+        julia_compat = "1.6"
+        lazy_artifacts = false
+        name = "RDKit"
+        platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+        script = """cd ${WORKSPACE}/srcdir/rdkit\n\n# Fix name of static libraries dependencies of `librdkitcffi` when building for Windows.\natomic_patch -p1 ../patches/static-libraries-windows.patch\n# To check whether to optimise popcnt you must check the _*TARGET*_ system, not\n# the host one.\natomic_patch -p1 ../patches/popcnt-target-system.patch\n# Windows build fails to link a test, despite the fact we don't want tests.\natomic_patch -p1 ../patches/do-not-build-cffi-test.patch\n\nFLAGS=()\nif [[ \"${target}\" == *-mingw* ]]; then\n    FLAGS+=(-DRDK_BUILD_THREADSAFE_SSS=OFF)\nfi\n\nmkdir build\ncd build\ncmake \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DRDK_INSTALL_INTREE=OFF \\\n    -DRDK_BUILD_INCHI_SUPPORT=ON \\\n    -DRDK_BUILD_PYTHON_WRAPPERS=OFF \\\n    -DRDK_BUILD_CFFI_LIB=ON \\\n    -DRDK_BUILD_FREETYPE_SUPPORT=ON \\\n    -DRDK_BUILD_CPP_TESTS=OFF \\\n    -DRDK_BUILD_SLN_SUPPORT=OFF \\\n    -DRDK_TEST_MULTITHREADED=OFF \\\n    \"${FLAGS[@]}\" \\\n    ..\nmake -j${nproc}\nmake install\n"""
+        version = "v2022.3.1"
+
+            [["2022.3.1+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "FreeType2_jll"
+            platforms = ["any"]
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["2022.3.1+0".artifact_metadata.metadata.dependencies]]
+            compat = "=1.76.0"
+            name = "boost_jll"
+            platforms = ["any"]
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["2022.3.1+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Eigen_jll"
+            platforms = ["any"]
+            type = "builddependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["2022.3.1+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Zlib_jll"
+            platforms = ["any"]
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["2022.3.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["librdkitcffi"]
+            type = "lib"
+            variable_name = "librdkitcffi"
+
+            [["2022.3.1+0".artifact_metadata.metadata.sources]]
+            hash = "7e205e0d93a3046c1eaab37120c9f6971194ddf2"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/rdkit/rdkit.git"
+            [["2022.3.1+0".artifact_metadata.metadata.sources]]
+            follow_symlinks = false
+            path = "./bundled"
+            target = ""
+            type = "directory"
+
 ["2022.9.1+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/RDKit_jll.jl/releases/download/RDKit-v2022.9.1+0/RDKit.v2022.9.1.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/RDKit_jll.jl/releases/download/RDKit-v2022.9.1+0/RDKit.v2022.9.1.aarch64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/RDKit_jll.jl/releases/download/RDKit-v2022.9.1+0/RDKit.v2022.9.1.aarch64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/RDKit_jll.jl/releases/download/RDKit-v2022.9.1+0/RDKit.v2022.9.1.i686-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/RDKit_jll.jl/releases/download/RDKit-v2022.9.1+0/RDKit.v2022.9.1.i686-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/RDKit_jll.jl/releases/download/RDKit-v2022.9.1+0/RDKit.v2022.9.1.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/RDKit_jll.jl/releases/download/RDKit-v2022.9.1+0/RDKit.v2022.9.1.x86_64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/RDKit_jll.jl/releases/download/RDKit-v2022.9.1+0/RDKit.v2022.9.1.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/RDKit_jll.jl/releases/download/RDKit-v2022.9.1+0/RDKit.v2022.9.1.x86_64-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/RDKit_jll.jl/releases/download/RDKit-v2022.9.1+0/RDKit.v2022.9.1.x86_64-w64-mingw32-cxx11.tar.gz"]
 registered = 2022-10-28T22:59:42.000Z
