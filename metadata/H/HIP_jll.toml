@@ -26,21 +26,659 @@ registered = 2022-09-08T17:35:53.000Z
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/HIP_jll.jl/releases/download/HIP-v4.5.2+1/HIP.v4.5.2.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/HIP_jll.jl/releases/download/HIP-v4.5.2+1/HIP.v4.5.2.x86_64-linux-musl-cxx11.tar.gz"]
 registered = 2022-09-16T11:12:24.000Z
 
+    [["4.5.2+1".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/HIP_jll.jl/releases/download/HIP-v4.5.2+1/HIP.v4.5.2.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/HIP_jll.jl/releases/download/HIP-v4.5.2+1/HIP.v4.5.2.x86_64-linux-musl-cxx11.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/2627b7a6b00fc83988d36e3ed22fb108e7b958ff/H/HIP/HIP@4.5.2/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.5.5"
+
+        ["4.5.2+1".artifact_metadata.metadata]
+        augment_platform_block = ""
+        init_block = ""
+        julia_compat = "1.8"
+        lazy_artifacts = false
+        name = "HIP"
+        platforms = ["x86_64-linux-gnu-cxx11", "x86_64-linux-musl-cxx11"]
+        script = """export ROCclr_DIR=$(realpath ${WORKSPACE}/srcdir/ROCclr-*)\nexport OPENCL_SRC=$(realpath ${WORKSPACE}/srcdir/ROCm-OpenCL-Runtime-*)\n\ncd ${ROCclr_DIR}\natomic_patch -p1 $WORKSPACE/srcdir/patches/musl-rocclr.patch\n\nmkdir build && cd build\nCC=${WORKSPACE}/srcdir/rocm-clang CXX=${WORKSPACE}/srcdir/rocm-clang++ \\\ncmake \\\n    -DCMAKE_PREFIX_PATH=${prefix} \\\n    -DCMAKE_INSTALL_PREFIX=${prefix}/rocclr \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DAMD_OPENCL_PATH=${OPENCL_SRC} \\\n    ..\nmake -j${nproc} # no install target\ncd ${WORKSPACE}/srcdir/hipamd*/\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/no-init-abort.patch\"\n\nmkdir build && cd build\nexport HIP_DIR=$(realpath ${WORKSPACE}/srcdir/HIP-*)\n\nCC=${WORKSPACE}/srcdir/rocm-clang CXX=${WORKSPACE}/srcdir/rocm-clang++ \\\ncmake \\\n    -DCMAKE_INSTALL_PREFIX=${prefix}/hip \\\n    -DCMAKE_PREFIX_PATH=\"${ROCclr_DIR}/build;${prefix}\" \\\n    -DROCM_PATH=${prefix} \\\n    -DHIP_PLATFORM=amd \\\n    -DHIP_RUNTIME=rocclr \\\n    -DHIP_COMPILER=clang \\\n    -D__HIP_ENABLE_PCH=OFF \\\n    -DROCCLR_INCLUDE_DIR=${ROCclr_DIR}/include \\\n    -DROCCLR_PATH=${ROCclr_DIR} \\\n    -DHIP_COMMON_DIR=${HIP_DIR} \\\n    -DAMD_OPENCL_PATH=${OPENCL_SRC} \\\n    -DCMAKE_HIP_ARCHITECTURES=\"gfx906:xnack-\" \\\n    -DLLVM_DIR=\"${prefix}/llvm/lib/cmake/llvm\" \\\n    -DClang_DIR=\"${prefix}/llvm/lib/cmake/clang\" \\\n    ..\nmake -j${nproc}\nmake install\n\ninstall_license ${WORKSPACE}/srcdir/hipamd*/LICENSE.txt\n"""
+        version = "v4.5.2"
+
+            [["4.5.2+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "ROCmLLVM_jll"
+            platforms = ["any"]
+            type = "builddependency"
+            version-major = 4
+            version-minor = 5
+            version-patch = 2
+            [["4.5.2+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "rocm_cmake_jll"
+            platforms = ["any"]
+            type = "builddependency"
+            version-major = 4
+            version-minor = 5
+            version-patch = 2
+            [["4.5.2+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "hsakmt_roct_jll"
+            platforms = ["any"]
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["4.5.2+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "hsa_rocr_jll"
+            platforms = ["any"]
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["4.5.2+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "rocminfo_jll"
+            platforms = ["any"]
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["4.5.2+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "ROCmDeviceLibs_jll"
+            platforms = ["any"]
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["4.5.2+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "ROCmCompilerSupport_jll"
+            platforms = ["any"]
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["4.5.2+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "ROCmOpenCLRuntime_jll"
+            platforms = ["any"]
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["4.5.2+1".artifact_metadata.metadata.products]]
+            dir_paths = ["hip/lib"]
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libamdhip64"]
+            type = "lib"
+            variable_name = "libamdhip64"
+            [["4.5.2+1".artifact_metadata.metadata.products]]
+            binnames = ["hipcc"]
+            dir_path = "hip/bin"
+            type = "exe"
+            variable_name = "hipcc"
+
+            [["4.5.2+1".artifact_metadata.metadata.sources]]
+            hash = "c2113dc3c421b8084cd507d91b6fbc0170765a464b71fb0d96bb875df368f160"
+            type = "archive"
+            unpack_target = ""
+            url = "https://github.com/ROCm-Developer-Tools/HIP/archive/rocm-4.5.2.tar.gz"
+            [["4.5.2+1".artifact_metadata.metadata.sources]]
+            follow_symlinks = false
+            path = "./bundled"
+            target = ""
+            type = "directory"
+            [["4.5.2+1".artifact_metadata.metadata.sources]]
+            follow_symlinks = false
+            path = "../scripts"
+            target = ""
+            type = "directory"
+            [["4.5.2+1".artifact_metadata.metadata.sources]]
+            hash = "b6f35b1a1d0c466b5af28e26baf646ae63267eccc4852204db1e0c7222a39ce2"
+            type = "archive"
+            unpack_target = ""
+            url = "https://github.com/ROCm-Developer-Tools/hipamd/archive/rocm-4.5.2.tar.gz"
+            [["4.5.2+1".artifact_metadata.metadata.sources]]
+            hash = "96b43f314899707810db92149caf518bdb7cf39f7c0ad86e98ad687ffb0d396d"
+            type = "archive"
+            unpack_target = ""
+            url = "https://github.com/RadeonOpenCompute/ROCm-OpenCL-Runtime/archive/rocm-4.5.2.tar.gz"
+            [["4.5.2+1".artifact_metadata.metadata.sources]]
+            hash = "6581916a3303a31f76454f12f86e020fb5e5c019f3dbb0780436a8f73792c4d1"
+            type = "archive"
+            unpack_target = ""
+            url = "https://github.com/ROCm-Developer-Tools/ROCclr/archive/rocm-4.5.2.tar.gz"
+
 ["4.5.2+2"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/HIP_jll.jl/releases/download/HIP-v4.5.2+2/HIP.v4.5.2.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/HIP_jll.jl/releases/download/HIP-v4.5.2+2/HIP.v4.5.2.x86_64-linux-musl-cxx11.tar.gz"]
 registered = 2022-09-17T12:59:51.000Z
+
+    [["4.5.2+2".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/HIP_jll.jl/releases/download/HIP-v4.5.2+2/HIP.v4.5.2.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/HIP_jll.jl/releases/download/HIP-v4.5.2+2/HIP.v4.5.2.x86_64-linux-musl-cxx11.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/66c561a61f18f5de4441bf6df4f182720823142d/H/HIP/HIP@4.5.2/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.5.5"
+
+        ["4.5.2+2".artifact_metadata.metadata]
+        augment_platform_block = ""
+        init_block = ""
+        julia_compat = "1.8"
+        lazy_artifacts = false
+        name = "HIP"
+        platforms = ["x86_64-linux-gnu-cxx11", "x86_64-linux-musl-cxx11"]
+        script = """export HIPAMD_DIR=$(realpath ${WORKSPACE}/srcdir/hipamd-*)\nexport HIP_DIR=$(realpath ${WORKSPACE}/srcdir/HIP-*)\nexport ROCclr_DIR=$(realpath ${WORKSPACE}/srcdir/ROCclr-*)\nexport OPENCL_SRC=$(realpath ${WORKSPACE}/srcdir/ROCm-OpenCL-Runtime-*)\n\n# Needed for /bin/hipconfig.pl\nexport HIP_CLANG_PATH=\"${prefix}/llvm/bin\"\n\ncd ${ROCclr_DIR}\natomic_patch -p1 $WORKSPACE/srcdir/patches/musl-rocclr.patch\natomic_patch -p1 $WORKSPACE/srcdir/patches/musl-disable-tls.patch\n\ncd ${WORKSPACE}/srcdir/hipamd*/\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/improve-compilation-disable-tests.patch\"\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/no-init-abort.patch\"\nmkdir build && cd build\nCC=${WORKSPACE}/srcdir/rocm-clang CXX=${WORKSPACE}/srcdir/rocm-clang++ \\\ncmake \\\n    -DCMAKE_PREFIX_PATH=${prefix} \\\n    -DCMAKE_SKIP_BUILD_RPATH=TRUE \\\n    -DCMAKE_INSTALL_PREFIX=\"${prefix}/hip\" \\\n    -DLLVM_DIR=\"${prefix}/llvm/lib/cmake/llvm\" \\\n    -DClang_DIR=\"${prefix}/llvm/lib/cmake/clang\" \\\n    -DHSA_PATH=\"${prefix}/hsa\" \\\n    -DROCM_PATH=${prefix} \\\n    -DHIP_PLATFORM=amd \\\n    -DHIP_RUNTIME=rocclr \\\n    -DHIP_COMPILER=clang \\\n    -DHIPCC_VERBOSE=7 \\\n    -D__HIP_ENABLE_PCH=OFF \\\n-DROCCLR_INCLUDE_DIR=\"${ROCclr_DIR}/include\" \\\n-DROCCLR_PATH=${ROCclr_DIR} \\\n-DHIP_COMMON_DIR=${HIP_DIR} \\\n-DHIP_SRC_PATH=${HIPAMD_DIR} \\\n-DAMD_OPENCL_PATH=${OPENCL_SRC} \\\n..\nmake -j${nproc}\nmake install\ninstall_license ${WORKSPACE}/srcdir/hipamd*/LICENSE.txt\n"""
+        version = "v4.5.2"
+
+            [["4.5.2+2".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "ROCmLLVM_jll"
+            platforms = ["any"]
+            type = "builddependency"
+            version-major = 4
+            version-minor = 5
+            version-patch = 2
+            [["4.5.2+2".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "rocm_cmake_jll"
+            platforms = ["any"]
+            type = "builddependency"
+            version-major = 4
+            version-minor = 5
+            version-patch = 2
+            [["4.5.2+2".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "hsakmt_roct_jll"
+            platforms = ["any"]
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["4.5.2+2".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "hsa_rocr_jll"
+            platforms = ["any"]
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["4.5.2+2".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "rocminfo_jll"
+            platforms = ["any"]
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["4.5.2+2".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "ROCmDeviceLibs_jll"
+            platforms = ["any"]
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["4.5.2+2".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "ROCmCompilerSupport_jll"
+            platforms = ["any"]
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["4.5.2+2".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "ROCmOpenCLRuntime_jll"
+            platforms = ["any"]
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["4.5.2+2".artifact_metadata.metadata.products]]
+            dir_paths = ["hip/lib"]
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libamdhip64"]
+            type = "lib"
+            variable_name = "libamdhip64"
+            [["4.5.2+2".artifact_metadata.metadata.products]]
+            binnames = ["hipcc"]
+            dir_path = "hip/bin"
+            type = "exe"
+            variable_name = "hipcc"
+
+            [["4.5.2+2".artifact_metadata.metadata.sources]]
+            hash = "c2113dc3c421b8084cd507d91b6fbc0170765a464b71fb0d96bb875df368f160"
+            type = "archive"
+            unpack_target = ""
+            url = "https://github.com/ROCm-Developer-Tools/HIP/archive/rocm-4.5.2.tar.gz"
+            [["4.5.2+2".artifact_metadata.metadata.sources]]
+            follow_symlinks = false
+            path = "./bundled"
+            target = ""
+            type = "directory"
+            [["4.5.2+2".artifact_metadata.metadata.sources]]
+            follow_symlinks = false
+            path = "../scripts"
+            target = ""
+            type = "directory"
+            [["4.5.2+2".artifact_metadata.metadata.sources]]
+            hash = "b6f35b1a1d0c466b5af28e26baf646ae63267eccc4852204db1e0c7222a39ce2"
+            type = "archive"
+            unpack_target = ""
+            url = "https://github.com/ROCm-Developer-Tools/hipamd/archive/rocm-4.5.2.tar.gz"
+            [["4.5.2+2".artifact_metadata.metadata.sources]]
+            hash = "96b43f314899707810db92149caf518bdb7cf39f7c0ad86e98ad687ffb0d396d"
+            type = "archive"
+            unpack_target = ""
+            url = "https://github.com/RadeonOpenCompute/ROCm-OpenCL-Runtime/archive/rocm-4.5.2.tar.gz"
+            [["4.5.2+2".artifact_metadata.metadata.sources]]
+            hash = "6581916a3303a31f76454f12f86e020fb5e5c019f3dbb0780436a8f73792c4d1"
+            type = "archive"
+            unpack_target = ""
+            url = "https://github.com/ROCm-Developer-Tools/ROCclr/archive/rocm-4.5.2.tar.gz"
 
 ["5.2.3+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/HIP_jll.jl/releases/download/HIP-v5.2.3+0/HIP.v5.2.3.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/HIP_jll.jl/releases/download/HIP-v5.2.3+0/HIP.v5.2.3.x86_64-linux-musl-cxx11.tar.gz"]
 registered = 2022-09-17T18:52:31.000Z
 
+    [["5.2.3+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/HIP_jll.jl/releases/download/HIP-v5.2.3+0/HIP.v5.2.3.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/HIP_jll.jl/releases/download/HIP-v5.2.3+0/HIP.v5.2.3.x86_64-linux-musl-cxx11.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/ea2e9a9bbb7e43bc9e91ca08ff01e5af9337fc09/H/HIP/HIP@5.2.3/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.5.5"
+
+        ["5.2.3+0".artifact_metadata.metadata]
+        augment_platform_block = ""
+        init_block = ""
+        julia_compat = "1.0"
+        lazy_artifacts = false
+        name = "HIP"
+        platforms = ["x86_64-linux-gnu-cxx11", "x86_64-linux-musl-cxx11"]
+        script = """export HIPAMD_DIR=$(realpath ${WORKSPACE}/srcdir/hipamd-*)\nexport HIP_DIR=$(realpath ${WORKSPACE}/srcdir/HIP-*)\nexport ROCclr_DIR=$(realpath ${WORKSPACE}/srcdir/ROCclr-*)\nexport OPENCL_SRC=$(realpath ${WORKSPACE}/srcdir/ROCm-OpenCL-Runtime-*)\n\n# Needed for /bin/hipconfig.pl\nexport HIP_CLANG_PATH=\"${prefix}/llvm/bin\"\n\ncd ${ROCclr_DIR}\natomic_patch -p1 $WORKSPACE/srcdir/patches/musl-rocclr.patch\natomic_patch -p1 $WORKSPACE/srcdir/patches/musl-disable-tls.patch\n\ncd ${WORKSPACE}/srcdir/hipamd*/\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/improve-compilation-disable-tests.patch\"\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/no-init-abort.patch\"\nmkdir build && cd build\nCC=${WORKSPACE}/srcdir/rocm-clang CXX=${WORKSPACE}/srcdir/rocm-clang++ \\\ncmake \\\n    -DCMAKE_PREFIX_PATH=${prefix} \\\n    -DCMAKE_SKIP_BUILD_RPATH=TRUE \\\n    -DCMAKE_INSTALL_PREFIX=\"${prefix}/hip\" \\\n    -DLLVM_DIR=\"${prefix}/llvm/lib/cmake/llvm\" \\\n    -DClang_DIR=\"${prefix}/llvm/lib/cmake/clang\" \\\n    -DHSA_PATH=\"${prefix}/hsa\" \\\n    -DROCM_PATH=${prefix} \\\n    -DHIP_PLATFORM=amd \\\n    -DHIP_RUNTIME=rocclr \\\n    -DHIP_COMPILER=clang \\\n    -DHIPCC_VERBOSE=7 \\\n    -D__HIP_ENABLE_PCH=OFF \\\n-DROCCLR_INCLUDE_DIR=\"${ROCclr_DIR}/include\" \\\n-DROCCLR_PATH=${ROCclr_DIR} \\\n-DHIP_COMMON_DIR=${HIP_DIR} \\\n-DHIP_SRC_PATH=${HIPAMD_DIR} \\\n-DAMD_OPENCL_PATH=${OPENCL_SRC} \\\n..\nmake -j${nproc}\nmake install\ninstall_license ${WORKSPACE}/srcdir/hipamd*/LICENSE.txt\n"""
+        version = "v5.2.3"
+
+            [["5.2.3+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "ROCmLLVM_jll"
+            platforms = ["any"]
+            type = "builddependency"
+            version-major = 5
+            version-minor = 2
+            version-patch = 3
+            [["5.2.3+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "rocm_cmake_jll"
+            platforms = ["any"]
+            type = "builddependency"
+            version-major = 5
+            version-minor = 2
+            version-patch = 3
+            [["5.2.3+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "hsakmt_roct_jll"
+            platforms = ["any"]
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["5.2.3+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "hsa_rocr_jll"
+            platforms = ["any"]
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["5.2.3+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "rocminfo_jll"
+            platforms = ["any"]
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["5.2.3+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "ROCmDeviceLibs_jll"
+            platforms = ["any"]
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["5.2.3+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "ROCmCompilerSupport_jll"
+            platforms = ["any"]
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["5.2.3+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "ROCmOpenCLRuntime_jll"
+            platforms = ["any"]
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["5.2.3+0".artifact_metadata.metadata.products]]
+            dir_paths = ["hip/lib"]
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libamdhip64"]
+            type = "lib"
+            variable_name = "libamdhip64"
+            [["5.2.3+0".artifact_metadata.metadata.products]]
+            binnames = ["hipcc"]
+            dir_path = "hip/bin"
+            type = "exe"
+            variable_name = "hipcc"
+
+            [["5.2.3+0".artifact_metadata.metadata.sources]]
+            hash = "5b83d1513ea4003bfad5fe8fa741434104e3e49a87e1d7fad49e5a8c1d06e57b"
+            type = "archive"
+            unpack_target = ""
+            url = "https://github.com/ROCm-Developer-Tools/HIP/archive/rocm-5.2.3.tar.gz"
+            [["5.2.3+0".artifact_metadata.metadata.sources]]
+            follow_symlinks = false
+            path = "./bundled"
+            target = ""
+            type = "directory"
+            [["5.2.3+0".artifact_metadata.metadata.sources]]
+            follow_symlinks = false
+            path = "../scripts"
+            target = ""
+            type = "directory"
+            [["5.2.3+0".artifact_metadata.metadata.sources]]
+            hash = "5031d07554ce07620e24e44d482cbc269fa972e3e35377e935d2694061ff7c04"
+            type = "archive"
+            unpack_target = ""
+            url = "https://github.com/ROCm-Developer-Tools/hipamd/archive/rocm-5.2.3.tar.gz"
+            [["5.2.3+0".artifact_metadata.metadata.sources]]
+            hash = "932ea3cd268410010c0830d977a30ef9c14b8c37617d3572a062b5d4595e2b94"
+            type = "archive"
+            unpack_target = ""
+            url = "https://github.com/RadeonOpenCompute/ROCm-OpenCL-Runtime/archive/rocm-5.2.3.tar.gz"
+            [["5.2.3+0".artifact_metadata.metadata.sources]]
+            hash = "0493c414d4db1af8e1eb30a651d9512044644244488ebb13478c2138a7612998"
+            type = "archive"
+            unpack_target = ""
+            url = "https://github.com/ROCm-Developer-Tools/ROCclr/archive/rocm-5.2.3.tar.gz"
+
 ["5.2.3+1"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/HIP_jll.jl/releases/download/HIP-v5.2.3+1/HIP.v5.2.3.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/HIP_jll.jl/releases/download/HIP-v5.2.3+1/HIP.v5.2.3.x86_64-linux-musl-cxx11.tar.gz"]
 registered = 2022-09-20T14:44:26.000Z
 
+    [["5.2.3+1".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/HIP_jll.jl/releases/download/HIP-v5.2.3+1/HIP.v5.2.3.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/HIP_jll.jl/releases/download/HIP-v5.2.3+1/HIP.v5.2.3.x86_64-linux-musl-cxx11.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/df62d7a37e5d6387c351238da6202b7a3e5a3e90/H/HIP/HIP@5.2.3/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.5.5"
+
+        ["5.2.3+1".artifact_metadata.metadata]
+        augment_platform_block = ""
+        init_block = ""
+        julia_compat = "1.0"
+        lazy_artifacts = false
+        name = "HIP"
+        platforms = ["x86_64-linux-gnu-cxx11", "x86_64-linux-musl-cxx11"]
+        script = """export HIPAMD_DIR=$(realpath ${WORKSPACE}/srcdir/hipamd-*)\nexport HIP_DIR=$(realpath ${WORKSPACE}/srcdir/HIP-*)\nexport ROCclr_DIR=$(realpath ${WORKSPACE}/srcdir/ROCclr-*)\nexport OPENCL_SRC=$(realpath ${WORKSPACE}/srcdir/ROCm-OpenCL-Runtime-*)\n\n# Needed for /bin/hipconfig.pl\nexport HIP_CLANG_PATH=\"${prefix}/llvm/bin\"\n\ncd ${ROCclr_DIR}\natomic_patch -p1 $WORKSPACE/srcdir/patches/musl-rocclr.patch\natomic_patch -p1 $WORKSPACE/srcdir/patches/musl-disable-tls.patch\n\ncd ${WORKSPACE}/srcdir/hipamd*/\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/improve-compilation-disable-tests.patch\"\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/no-init-abort.patch\"\nmkdir build && cd build\nCC=${WORKSPACE}/srcdir/rocm-clang CXX=${WORKSPACE}/srcdir/rocm-clang++ \\\ncmake \\\n    -DCMAKE_PREFIX_PATH=${prefix} \\\n    -DCMAKE_SKIP_BUILD_RPATH=TRUE \\\n    -DCMAKE_INSTALL_PREFIX=\"${prefix}/hip\" \\\n    -DLLVM_DIR=\"${prefix}/llvm/lib/cmake/llvm\" \\\n    -DClang_DIR=\"${prefix}/llvm/lib/cmake/clang\" \\\n    -DHSA_PATH=\"${prefix}/hsa\" \\\n    -DROCM_PATH=${prefix} \\\n    -DHIP_PLATFORM=amd \\\n    -DHIP_RUNTIME=rocclr \\\n    -DHIP_COMPILER=clang \\\n    -DHIPCC_VERBOSE=7 \\\n    -D__HIP_ENABLE_PCH=OFF \\\n-DROCCLR_INCLUDE_DIR=\"${ROCclr_DIR}/include\" \\\n-DROCCLR_PATH=${ROCclr_DIR} \\\n-DHIP_COMMON_DIR=${HIP_DIR} \\\n-DHIP_SRC_PATH=${HIPAMD_DIR} \\\n-DAMD_OPENCL_PATH=${OPENCL_SRC} \\\n-DFILE_REORG_BACKWARD_COMPATIBILITY=OFF \\\n..\nmake -j${nproc}\nmake install\ninstall_license ${WORKSPACE}/srcdir/hipamd*/LICENSE.txt\n"""
+        version = "v5.2.3"
+
+            [["5.2.3+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "ROCmLLVM_jll"
+            platforms = ["any"]
+            type = "builddependency"
+            version-major = 5
+            version-minor = 2
+            version-patch = 3
+            [["5.2.3+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "rocm_cmake_jll"
+            platforms = ["any"]
+            type = "builddependency"
+            version-major = 5
+            version-minor = 2
+            version-patch = 3
+            [["5.2.3+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "hsakmt_roct_jll"
+            platforms = ["any"]
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["5.2.3+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "hsa_rocr_jll"
+            platforms = ["any"]
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["5.2.3+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "rocminfo_jll"
+            platforms = ["any"]
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["5.2.3+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "ROCmDeviceLibs_jll"
+            platforms = ["any"]
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["5.2.3+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "ROCmCompilerSupport_jll"
+            platforms = ["any"]
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["5.2.3+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "ROCmOpenCLRuntime_jll"
+            platforms = ["any"]
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["5.2.3+1".artifact_metadata.metadata.products]]
+            dir_paths = ["hip/lib"]
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libamdhip64"]
+            type = "lib"
+            variable_name = "libamdhip64"
+            [["5.2.3+1".artifact_metadata.metadata.products]]
+            binnames = ["hipcc"]
+            dir_path = "hip/bin"
+            type = "exe"
+            variable_name = "hipcc"
+
+            [["5.2.3+1".artifact_metadata.metadata.sources]]
+            hash = "5b83d1513ea4003bfad5fe8fa741434104e3e49a87e1d7fad49e5a8c1d06e57b"
+            type = "archive"
+            unpack_target = ""
+            url = "https://github.com/ROCm-Developer-Tools/HIP/archive/rocm-5.2.3.tar.gz"
+            [["5.2.3+1".artifact_metadata.metadata.sources]]
+            follow_symlinks = false
+            path = "./bundled"
+            target = ""
+            type = "directory"
+            [["5.2.3+1".artifact_metadata.metadata.sources]]
+            follow_symlinks = false
+            path = "../scripts"
+            target = ""
+            type = "directory"
+            [["5.2.3+1".artifact_metadata.metadata.sources]]
+            hash = "5031d07554ce07620e24e44d482cbc269fa972e3e35377e935d2694061ff7c04"
+            type = "archive"
+            unpack_target = ""
+            url = "https://github.com/ROCm-Developer-Tools/hipamd/archive/rocm-5.2.3.tar.gz"
+            [["5.2.3+1".artifact_metadata.metadata.sources]]
+            hash = "932ea3cd268410010c0830d977a30ef9c14b8c37617d3572a062b5d4595e2b94"
+            type = "archive"
+            unpack_target = ""
+            url = "https://github.com/RadeonOpenCompute/ROCm-OpenCL-Runtime/archive/rocm-5.2.3.tar.gz"
+            [["5.2.3+1".artifact_metadata.metadata.sources]]
+            hash = "0493c414d4db1af8e1eb30a651d9512044644244488ebb13478c2138a7612998"
+            type = "archive"
+            unpack_target = ""
+            url = "https://github.com/ROCm-Developer-Tools/ROCclr/archive/rocm-5.2.3.tar.gz"
+
 ["5.2.3+2"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/HIP_jll.jl/releases/download/HIP-v5.2.3+2/HIP.v5.2.3.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/HIP_jll.jl/releases/download/HIP-v5.2.3+2/HIP.v5.2.3.x86_64-linux-musl-cxx11.tar.gz"]
 registered = 2022-11-05T12:32:36.000Z
+
+    [["5.2.3+2".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/HIP_jll.jl/releases/download/HIP-v5.2.3+2/HIP.v5.2.3.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/HIP_jll.jl/releases/download/HIP-v5.2.3+2/HIP.v5.2.3.x86_64-linux-musl-cxx11.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/2eaa446277515c7e0d51e0d103aa0291bbf63b52/H/HIP/HIP@5.2.3/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.5.6"
+
+        ["5.2.3+2".artifact_metadata.metadata]
+        augment_platform_block = ""
+        init_block = ""
+        julia_compat = "1.9"
+        lazy_artifacts = false
+        name = "HIP"
+        platforms = ["x86_64-linux-gnu-cxx11", "x86_64-linux-musl-cxx11"]
+        script = """export HIPAMD_DIR=$(realpath ${WORKSPACE}/srcdir/hipamd-*)\nexport HIP_DIR=$(realpath ${WORKSPACE}/srcdir/HIP-*)\nexport ROCclr_DIR=$(realpath ${WORKSPACE}/srcdir/ROCclr-*)\nexport OPENCL_SRC=$(realpath ${WORKSPACE}/srcdir/ROCm-OpenCL-Runtime-*)\n\n# Needed for /bin/hipconfig.pl\nexport HIP_CLANG_PATH=\"${prefix}/llvm/bin\"\n\ncd ${ROCclr_DIR}\natomic_patch -p1 $WORKSPACE/srcdir/patches/musl-rocclr.patch\natomic_patch -p1 $WORKSPACE/srcdir/patches/musl-disable-tls.patch\n\ncd ${WORKSPACE}/srcdir/hipamd*/\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/improve-compilation-disable-tests.patch\"\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/no-init-abort.patch\"\nmkdir build && cd build\nCC=${WORKSPACE}/srcdir/rocm-clang CXX=${WORKSPACE}/srcdir/rocm-clang++ \\\ncmake \\\n    -DCMAKE_PREFIX_PATH=${prefix} \\\n    -DCMAKE_SKIP_BUILD_RPATH=TRUE \\\n    -DCMAKE_INSTALL_PREFIX=\"${prefix}/hip\" \\\n    -DLLVM_DIR=\"${prefix}/llvm/lib/cmake/llvm\" \\\n    -DClang_DIR=\"${prefix}/llvm/lib/cmake/clang\" \\\n    -DHSA_PATH=\"${prefix}/hsa\" \\\n    -DROCM_PATH=${prefix} \\\n    -DHIP_PLATFORM=amd \\\n    -DHIP_RUNTIME=rocclr \\\n    -DHIP_COMPILER=clang \\\n    -DHIPCC_VERBOSE=7 \\\n    -D__HIP_ENABLE_PCH=OFF \\\n-DROCCLR_INCLUDE_DIR=\"${ROCclr_DIR}/include\" \\\n-DROCCLR_PATH=${ROCclr_DIR} \\\n-DHIP_COMMON_DIR=${HIP_DIR} \\\n-DHIP_SRC_PATH=${HIPAMD_DIR} \\\n-DAMD_OPENCL_PATH=${OPENCL_SRC} \\\n-DFILE_REORG_BACKWARD_COMPATIBILITY=OFF \\\n..\nmake -j${nproc}\nmake install\ninstall_license ${WORKSPACE}/srcdir/hipamd*/LICENSE.txt\n"""
+        version = "v5.2.3"
+
+            [["5.2.3+2".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "ROCmLLVM_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 5
+            version-minor = 2
+            version-patch = 3
+            [["5.2.3+2".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "rocm_cmake_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "builddependency"
+            version-major = 5
+            version-minor = 2
+            version-patch = 3
+            [["5.2.3+2".artifact_metadata.metadata.dependencies]]
+            compat = "5.2.3"
+            name = "hsakmt_roct_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["5.2.3+2".artifact_metadata.metadata.dependencies]]
+            compat = "5.2.3"
+            name = "hsa_rocr_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["5.2.3+2".artifact_metadata.metadata.dependencies]]
+            compat = "5.2.3"
+            name = "rocminfo_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["5.2.3+2".artifact_metadata.metadata.dependencies]]
+            compat = "5.2.3"
+            name = "ROCmDeviceLibs_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["5.2.3+2".artifact_metadata.metadata.dependencies]]
+            compat = "5.2.3"
+            name = "ROCmCompilerSupport_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["5.2.3+2".artifact_metadata.metadata.dependencies]]
+            compat = "5.2.3"
+            name = "ROCmOpenCLRuntime_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["5.2.3+2".artifact_metadata.metadata.products]]
+            dir_paths = ["hip/lib"]
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libamdhip64"]
+            type = "lib"
+            variable_name = "libamdhip64"
+            [["5.2.3+2".artifact_metadata.metadata.products]]
+            binnames = ["hipcc"]
+            dir_path = "hip/bin"
+            type = "exe"
+            variable_name = "hipcc"
+
+            [["5.2.3+2".artifact_metadata.metadata.sources]]
+            hash = "5b83d1513ea4003bfad5fe8fa741434104e3e49a87e1d7fad49e5a8c1d06e57b"
+            type = "archive"
+            unpack_target = ""
+            url = "https://github.com/ROCm-Developer-Tools/HIP/archive/rocm-5.2.3.tar.gz"
+            [["5.2.3+2".artifact_metadata.metadata.sources]]
+            follow_symlinks = false
+            path = "./bundled"
+            target = ""
+            type = "directory"
+            [["5.2.3+2".artifact_metadata.metadata.sources]]
+            follow_symlinks = false
+            path = "../scripts"
+            target = ""
+            type = "directory"
+            [["5.2.3+2".artifact_metadata.metadata.sources]]
+            hash = "5031d07554ce07620e24e44d482cbc269fa972e3e35377e935d2694061ff7c04"
+            type = "archive"
+            unpack_target = ""
+            url = "https://github.com/ROCm-Developer-Tools/hipamd/archive/rocm-5.2.3.tar.gz"
+            [["5.2.3+2".artifact_metadata.metadata.sources]]
+            hash = "932ea3cd268410010c0830d977a30ef9c14b8c37617d3572a062b5d4595e2b94"
+            type = "archive"
+            unpack_target = ""
+            url = "https://github.com/RadeonOpenCompute/ROCm-OpenCL-Runtime/archive/rocm-5.2.3.tar.gz"
+            [["5.2.3+2".artifact_metadata.metadata.sources]]
+            hash = "0493c414d4db1af8e1eb30a651d9512044644244488ebb13478c2138a7612998"
+            type = "archive"
+            unpack_target = ""
+            url = "https://github.com/ROCm-Developer-Tools/ROCclr/archive/rocm-5.2.3.tar.gz"
 
 ["5.2.3+3"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/HIP_jll.jl/releases/download/HIP-v5.2.3+3/HIP.v5.2.3.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/HIP_jll.jl/releases/download/HIP-v5.2.3+3/HIP.v5.2.3.x86_64-linux-musl-cxx11.tar.gz"]

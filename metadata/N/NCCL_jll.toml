@@ -10,6 +10,72 @@ registered = 2022-03-21T15:42:08.000Z
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/NCCL_jll.jl/releases/download/NCCL-v2.15.1+0/NCCL.v2.15.1.aarch64-linux-gnu-cuda+11.8.tar.gz", "https://github.com/JuliaBinaryWrappers/NCCL_jll.jl/releases/download/NCCL-v2.15.1+0/NCCL.v2.15.1.powerpc64le-linux-gnu-cuda+10.2.tar.gz", "https://github.com/JuliaBinaryWrappers/NCCL_jll.jl/releases/download/NCCL-v2.15.1+0/NCCL.v2.15.1.powerpc64le-linux-gnu-cuda+11.8.tar.gz", "https://github.com/JuliaBinaryWrappers/NCCL_jll.jl/releases/download/NCCL-v2.15.1+0/NCCL.v2.15.1.x86_64-linux-gnu-cuda+10.2.tar.gz", "https://github.com/JuliaBinaryWrappers/NCCL_jll.jl/releases/download/NCCL-v2.15.1+0/NCCL.v2.15.1.x86_64-linux-gnu-cuda+11.0.tar.gz", "https://github.com/JuliaBinaryWrappers/NCCL_jll.jl/releases/download/NCCL-v2.15.1+0/NCCL.v2.15.1.x86_64-linux-gnu-cuda+11.8.tar.gz"]
 registered = 2022-10-20T09:16:44.000Z
 
+    [["2.15.1+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/NCCL_jll.jl/releases/download/NCCL-v2.15.1+0/NCCL.v2.15.1.aarch64-linux-gnu-cuda+11.8.tar.gz", "https://github.com/JuliaBinaryWrappers/NCCL_jll.jl/releases/download/NCCL-v2.15.1+0/NCCL.v2.15.1.powerpc64le-linux-gnu-cuda+10.2.tar.gz", "https://github.com/JuliaBinaryWrappers/NCCL_jll.jl/releases/download/NCCL-v2.15.1+0/NCCL.v2.15.1.powerpc64le-linux-gnu-cuda+11.8.tar.gz", "https://github.com/JuliaBinaryWrappers/NCCL_jll.jl/releases/download/NCCL-v2.15.1+0/NCCL.v2.15.1.x86_64-linux-gnu-cuda+10.2.tar.gz", "https://github.com/JuliaBinaryWrappers/NCCL_jll.jl/releases/download/NCCL-v2.15.1+0/NCCL.v2.15.1.x86_64-linux-gnu-cuda+11.0.tar.gz", "https://github.com/JuliaBinaryWrappers/NCCL_jll.jl/releases/download/NCCL-v2.15.1+0/NCCL.v2.15.1.x86_64-linux-gnu-cuda+11.8.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/a439746fa402ce59da5d4af254b69d7e1a7cbb2b/N/NCCL/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.5.6"
+
+        ["2.15.1+0".artifact_metadata.metadata]
+        augment_platform_block = """using Base.BinaryPlatforms\n\ntry\n    using CUDA_Runtime_jll\ncatch\n    # during initial package installation, CUDA_Runtime_jll may not be available.\n    # in that case, we just won't select an artifact.\nend\n\nfunction cuda_comparison_strategy(a::String, b::String, a_requested::Bool, b_requested::Bool)\n    if a == \"none\" || b == \"none\"\n        return false\n    end\n    a = VersionNumber(a)\n    b = VersionNumber(b)\n\n    # If both b and a requested, then we fall back to equality:\n    if a_requested && b_requested\n        return Base.thisminor(a) == Base.thisminor(b)\n    end\n\n    # Otherwise, do the comparison between the the single version cap and the single version:\n    function is_compatible(artifact::VersionNumber, host::VersionNumber)\n        if host >= v\"11.0\"\n            # enhanced compatibility, semver-style\n            artifact.major == host.major &&\n            Base.thisminor(artifact) <= Base.thisminor(host)\n        else\n            Base.thisminor(artifact) == Base.thisminor(host)\n        end\n    end\n    if a_requested\n        is_compatible(b, a)\n    else\n        is_compatible(a, b)\n    end\nend\n\nfunction augment_platform!(platform::Platform)\n    if !@isdefined(CUDA_Runtime_jll)\n        # don't set to nothing or Pkg will download any artifact\n        platform[\"cuda\"] = \"none\"\n    end\n\n    if !haskey(platform, \"cuda\")\n        CUDA_Runtime_jll.augment_platform!(platform)\n    end\n    BinaryPlatforms.set_compare_strategy!(platform, \"cuda\", cuda_comparison_strategy)\n    return platform\nend"""
+        init_block = ""
+        julia_compat = "1.6"
+        lazy_artifacts = true
+        name = "NCCL"
+        platforms = ["x86_64-linux-gnu-cuda+10.2", "powerpc64le-linux-gnu-cuda+10.2", "x86_64-linux-gnu-cuda+11.0", "x86_64-linux-gnu-cuda+11.8", "powerpc64le-linux-gnu-cuda+11.8", "aarch64-linux-gnu-cuda+11.8"]
+        script = """mkdir -p ${libdir} ${prefix}/include\n\ncd ${WORKSPACE}/srcdir/nccl*\nfind .\n\ninstall_license LICENSE.txt\n\nmv lib/libnccl*.so* ${libdir}\nmv include/* ${prefix}/include\n"""
+        version = "v2.15.1"
+
+            [["2.15.1+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "CUDA_Runtime_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "runtimedependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["2.15.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libnccl"]
+            type = "lib"
+            variable_name = "libnccl"
+
+            [["2.15.1+0".artifact_metadata.metadata.sources]]
+            hash = "32cc36aa908978a00f74f4e7a829e4bc8d27bb2a46ac43bed9e81f31dd784cde"
+            type = "archive"
+            unpack_target = ""
+            url = "https://developer.download.nvidia.com/compute/machine-learning/nccl/secure/2.15.1/agnostic/x64/nccl_2.15.1-1+cuda10.2_x86_64.txz"
+            [["2.15.1+0".artifact_metadata.metadata.sources]]
+            hash = "d7fac7c40275f368088b8edd97efd0b47e783a4c2f26a1c3f4b34c5680259330"
+            type = "archive"
+            unpack_target = ""
+            url = "https://developer.download.nvidia.com/compute/machine-learning/nccl/secure/2.15.1/agnostic/ppc64le/nccl_2.15.1-1+cuda10.2_ppc64le.txz"
+            [["2.15.1+0".artifact_metadata.metadata.sources]]
+            hash = "6b8174b1a6ca90f1e0b615df855e27321f02927301fd94aea5d0999e71d7b896"
+            type = "archive"
+            unpack_target = ""
+            url = "https://developer.download.nvidia.com/compute/machine-learning/nccl/secure/2.15.1/agnostic/x64/nccl_2.15.1-1+cuda11.0_x86_64.txz"
+            [["2.15.1+0".artifact_metadata.metadata.sources]]
+            hash = "c819d7fa1f476812f87df80ca612df1920702cd6347bfbfd73a151eaced439e9"
+            type = "archive"
+            unpack_target = ""
+            url = "https://developer.download.nvidia.com/compute/machine-learning/nccl/secure/2.15.1/agnostic/x64/nccl_2.15.1-1+cuda11.8_x86_64.txz"
+            [["2.15.1+0".artifact_metadata.metadata.sources]]
+            hash = "db405916e24b274f90da52fb91b6c60b795d09ba9e41d021ecf678b422eef09c"
+            type = "archive"
+            unpack_target = ""
+            url = "https://developer.download.nvidia.com/compute/machine-learning/nccl/secure/2.15.1/agnostic/ppc64le/nccl_2.15.1-1+cuda11.8_ppc64le.txz"
+            [["2.15.1+0".artifact_metadata.metadata.sources]]
+            hash = "2dd62289f045fda4ffbbc3c4cb3a54c6b95673ab0d48bb472b72ca1335527b7e"
+            type = "archive"
+            unpack_target = ""
+            url = "https://developer.download.nvidia.com/compute/machine-learning/nccl/secure/2.15.1/agnostic/aarch64sbsa/nccl_2.15.1-1+cuda11.8_aarch64.txz"
+
 ["2.18.5+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/NCCL_jll.jl/releases/download/NCCL-v2.18.5+0/NCCL.v2.18.5.aarch64-linux-gnu-cuda+11.0.tar.gz", "https://github.com/JuliaBinaryWrappers/NCCL_jll.jl/releases/download/NCCL-v2.18.5+0/NCCL.v2.18.5.aarch64-linux-gnu-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/NCCL_jll.jl/releases/download/NCCL-v2.18.5+0/NCCL.v2.18.5.aarch64-linux-gnu-cuda+12.2.tar.gz", "https://github.com/JuliaBinaryWrappers/NCCL_jll.jl/releases/download/NCCL-v2.18.5+0/NCCL.v2.18.5.powerpc64le-linux-gnu-cuda+11.0.tar.gz", "https://github.com/JuliaBinaryWrappers/NCCL_jll.jl/releases/download/NCCL-v2.18.5+0/NCCL.v2.18.5.powerpc64le-linux-gnu-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/NCCL_jll.jl/releases/download/NCCL-v2.18.5+0/NCCL.v2.18.5.powerpc64le-linux-gnu-cuda+12.2.tar.gz", "https://github.com/JuliaBinaryWrappers/NCCL_jll.jl/releases/download/NCCL-v2.18.5+0/NCCL.v2.18.5.x86_64-linux-gnu-cuda+11.0.tar.gz", "https://github.com/JuliaBinaryWrappers/NCCL_jll.jl/releases/download/NCCL-v2.18.5+0/NCCL.v2.18.5.x86_64-linux-gnu-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/NCCL_jll.jl/releases/download/NCCL-v2.18.5+0/NCCL.v2.18.5.x86_64-linux-gnu-cuda+12.2.tar.gz"]
 registered = 2023-10-24T06:42:55.000Z

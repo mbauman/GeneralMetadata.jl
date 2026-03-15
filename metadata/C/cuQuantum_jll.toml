@@ -6,13 +6,196 @@ registered = 2022-03-23T10:59:55.000Z
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/cuQuantum_jll.jl/releases/download/cuQuantum-v0.1.30+1/cuQuantum.v0.1.30.aarch64-linux-gnu-cuda+11.0.tar.gz", "https://github.com/JuliaBinaryWrappers/cuQuantum_jll.jl/releases/download/cuQuantum-v0.1.30+1/cuQuantum.v0.1.30.powerpc64le-linux-gnu-cuda+11.0.tar.gz", "https://github.com/JuliaBinaryWrappers/cuQuantum_jll.jl/releases/download/cuQuantum-v0.1.30+1/cuQuantum.v0.1.30.x86_64-linux-gnu-cuda+11.0.tar.gz"]
 registered = 2022-10-20T08:20:52.000Z
 
+    [["0.1.30+1".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/cuQuantum_jll.jl/releases/download/cuQuantum-v0.1.30+1/cuQuantum.v0.1.30.aarch64-linux-gnu-cuda+11.0.tar.gz", "https://github.com/JuliaBinaryWrappers/cuQuantum_jll.jl/releases/download/cuQuantum-v0.1.30+1/cuQuantum.v0.1.30.powerpc64le-linux-gnu-cuda+11.0.tar.gz", "https://github.com/JuliaBinaryWrappers/cuQuantum_jll.jl/releases/download/cuQuantum-v0.1.30+1/cuQuantum.v0.1.30.x86_64-linux-gnu-cuda+11.0.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/ee37bf608728f983b4eddcfe2d7a7fe978189e52/C/cuQuantum/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.5.6"
+
+        ["0.1.30+1".artifact_metadata.metadata]
+        augment_platform_block = """using Base.BinaryPlatforms\n\ntry\n    using CUDA_Runtime_jll\ncatch\n    # during initial package installation, CUDA_Runtime_jll may not be available.\n    # in that case, we just won't select an artifact.\nend\n\nfunction cuda_comparison_strategy(a::String, b::String, a_requested::Bool, b_requested::Bool)\n    if a == \"none\" || b == \"none\"\n        return false\n    end\n    a = VersionNumber(a)\n    b = VersionNumber(b)\n\n    # If both b and a requested, then we fall back to equality:\n    if a_requested && b_requested\n        return Base.thisminor(a) == Base.thisminor(b)\n    end\n\n    # Otherwise, do the comparison between the the single version cap and the single version:\n    function is_compatible(artifact::VersionNumber, host::VersionNumber)\n        if host >= v\"11.0\"\n            # enhanced compatibility, semver-style\n            artifact.major == host.major &&\n            Base.thisminor(artifact) <= Base.thisminor(host)\n        else\n            Base.thisminor(artifact) == Base.thisminor(host)\n        end\n    end\n    if a_requested\n        is_compatible(b, a)\n    else\n        is_compatible(a, b)\n    end\nend\n\nfunction augment_platform!(platform::Platform)\n    if !@isdefined(CUDA_Runtime_jll)\n        # don't set to nothing or Pkg will download any artifact\n        platform[\"cuda\"] = \"none\"\n    end\n\n    if !haskey(platform, \"cuda\")\n        CUDA_Runtime_jll.augment_platform!(platform)\n    end\n    BinaryPlatforms.set_compare_strategy!(platform, \"cuda\", cuda_comparison_strategy)\n    return platform\nend"""
+        init_block = ""
+        julia_compat = "1.6"
+        lazy_artifacts = true
+        name = "cuQuantum"
+        platforms = ["x86_64-linux-gnu-cuda+11.0", "powerpc64le-linux-gnu-cuda+11.0", "aarch64-linux-gnu-cuda+11.0"]
+        script = """cd ${WORKSPACE}/srcdir/cuquantum-*\n\nmkdir -p ${prefix}\ncp -var lib/ include/ ${prefix}\ncp -var pkg-config/ ${prefix}/lib\n\n# Fixup pkg-config files\nsed -i \\\n    -e \"s?^cudaroot=.*?cudaroot=${prefix}?\" \\\n    -e \"s?^libdir=.*?libdir=${libdir}?\" \\\n    -e \"s?^includedir=.*?includedir=${includedir}?\" \\\n    ${libdir}/pkg-config/*.pc\n\n# Remove static libraries\nrm ${libdir}/*.a\n\n# Install license files\ninstall_license LICENSE docs/*\n"""
+        version = "v0.1.30"
+
+            [["0.1.30+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "CUDA_Runtime_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "runtimedependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["0.1.30+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "CUTENSOR_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "runtimedependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["0.1.30+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libcustatevec"]
+            type = "lib"
+            variable_name = "libcustatevec"
+            [["0.1.30+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libcutensornet"]
+            type = "lib"
+            variable_name = "libcutensornet"
+
+            [["0.1.30+1".artifact_metadata.metadata.sources]]
+            hash = "8ad8e98f14275ffe0de02574be5c86224af1c657c41baf02c16440301ffe0aae"
+            type = "archive"
+            unpack_target = ""
+            url = "https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum/linux-x86_64/cuquantum-linux-x86_64-0.1.0.30-archive.tar.xz"
+            [["0.1.30+1".artifact_metadata.metadata.sources]]
+            hash = "0eb84eef619a1cfab5870fb585200a9869a197866685252e4ca8187322809554"
+            type = "archive"
+            unpack_target = ""
+            url = "https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum/linux-ppc64le/cuquantum-linux-ppc64le-0.1.0.30-archive.tar.xz"
+            [["0.1.30+1".artifact_metadata.metadata.sources]]
+            hash = "3dd04cf08f1323318e0e63a7e28bc904c426ced3367aca809fba7e7beef94063"
+            type = "archive"
+            unpack_target = ""
+            url = "https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum/linux-sbsa/cuquantum-linux-sbsa-0.1.0.30-archive.tar.xz"
+
 ["22.7.114+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/cuQuantum_jll.jl/releases/download/cuQuantum-v22.7.114+0/cuQuantum.v22.7.114.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/cuQuantum_jll.jl/releases/download/cuQuantum-v22.7.114+0/cuQuantum.v22.7.114.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/cuQuantum_jll.jl/releases/download/cuQuantum-v22.7.114+0/cuQuantum.v22.7.114.x86_64-linux-gnu.tar.gz"]
 registered = 2022-10-11T10:02:21.000Z
 
+    [["22.7.114+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/cuQuantum_jll.jl/releases/download/cuQuantum-v22.7.114+0/cuQuantum.v22.7.114.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/cuQuantum_jll.jl/releases/download/cuQuantum-v22.7.114+0/cuQuantum.v22.7.114.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/cuQuantum_jll.jl/releases/download/cuQuantum-v22.7.114+0/cuQuantum.v22.7.114.x86_64-linux-gnu.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/3c9bc6ec7eaa58092353aaf4c9877c0af7d1fbe4/C/cuQuantum/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.5.5"
+
+        ["22.7.114+0".artifact_metadata.metadata]
+        augment_platform_block = ""
+        dependencies = []
+        init_block = ""
+        julia_compat = "1.0"
+        lazy_artifacts = true
+        name = "cuQuantum"
+        platforms = ["x86_64-linux-gnu", "powerpc64le-linux-gnu", "aarch64-linux-gnu"]
+        script = """cd ${WORKSPACE}/srcdir/cuquantum-*\n\nmkdir -p ${prefix}\ncp -var lib/ include/ ${prefix}\ncp -var pkg-config/ ${prefix}/lib\n\n# Fixup pkg-config files\nsed -i \\\n    -e \"s?^cudaroot=.*?cudaroot=${prefix}?\" \\\n    -e \"s?^libdir=.*?libdir=${libdir}?\" \\\n    -e \"s?^includedir=.*?includedir=${includedir}?\" \\\n    ${libdir}/pkg-config/*.pc\n\n# Remove static libraries\nrm ${libdir}/*.a\n\n# Install license files\ninstall_license LICENSE docs/*\n"""
+        version = "v22.7.114"
+
+            [["22.7.114+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libcustatevec"]
+            type = "lib"
+            variable_name = "libcustatevec"
+            [["22.7.114+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libcutensornet"]
+            type = "lib"
+            variable_name = "libcutensornet"
+
+            [["22.7.114+0".artifact_metadata.metadata.sources]]
+            hash = "4c4931096498451593ad553b6cb7a107bb6d6cedea65c80d5376d0cfbb647f8e"
+            type = "archive"
+            unpack_target = ""
+            url = "https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum/linux-x86_64/cuquantum-linux-x86_64-22.07.1.14-archive.tar.xz"
+            [["22.7.114+0".artifact_metadata.metadata.sources]]
+            hash = "2d35dba3c739e8de51591bcd2d7edf1a3c9995850af6525ae08e9b5c3798cf9a"
+            type = "archive"
+            unpack_target = ""
+            url = "https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum/linux-ppc64le/cuquantum-linux-ppc64le-22.07.1.14-archive.tar.xz"
+            [["22.7.114+0".artifact_metadata.metadata.sources]]
+            hash = "0c8fb14bf8916170e15a2ae7cfa950e23af13c9cb0915bad88d754221ad60116"
+            type = "archive"
+            unpack_target = ""
+            url = "https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum/linux-sbsa/cuquantum-linux-sbsa-22.07.1.14-archive.tar.xz"
+
 ["22.7.114+1"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/cuQuantum_jll.jl/releases/download/cuQuantum-v22.7.114+1/cuQuantum.v22.7.114.aarch64-linux-gnu-cuda+11.0.tar.gz", "https://github.com/JuliaBinaryWrappers/cuQuantum_jll.jl/releases/download/cuQuantum-v22.7.114+1/cuQuantum.v22.7.114.powerpc64le-linux-gnu-cuda+11.0.tar.gz", "https://github.com/JuliaBinaryWrappers/cuQuantum_jll.jl/releases/download/cuQuantum-v22.7.114+1/cuQuantum.v22.7.114.x86_64-linux-gnu-cuda+11.0.tar.gz"]
 registered = 2022-10-20T09:54:14.000Z
+
+    [["22.7.114+1".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/cuQuantum_jll.jl/releases/download/cuQuantum-v22.7.114+1/cuQuantum.v22.7.114.aarch64-linux-gnu-cuda+11.0.tar.gz", "https://github.com/JuliaBinaryWrappers/cuQuantum_jll.jl/releases/download/cuQuantum-v22.7.114+1/cuQuantum.v22.7.114.powerpc64le-linux-gnu-cuda+11.0.tar.gz", "https://github.com/JuliaBinaryWrappers/cuQuantum_jll.jl/releases/download/cuQuantum-v22.7.114+1/cuQuantum.v22.7.114.x86_64-linux-gnu-cuda+11.0.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/fccb4de6fdfdebf1a1e046415a11416b37f887f8/C/cuQuantum/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.5.6"
+
+        ["22.7.114+1".artifact_metadata.metadata]
+        augment_platform_block = """using Base.BinaryPlatforms\n\ntry\n    using CUDA_Runtime_jll\ncatch\n    # during initial package installation, CUDA_Runtime_jll may not be available.\n    # in that case, we just won't select an artifact.\nend\n\nfunction cuda_comparison_strategy(a::String, b::String, a_requested::Bool, b_requested::Bool)\n    if a == \"none\" || b == \"none\"\n        return false\n    end\n    a = VersionNumber(a)\n    b = VersionNumber(b)\n\n    # If both b and a requested, then we fall back to equality:\n    if a_requested && b_requested\n        return Base.thisminor(a) == Base.thisminor(b)\n    end\n\n    # Otherwise, do the comparison between the the single version cap and the single version:\n    function is_compatible(artifact::VersionNumber, host::VersionNumber)\n        if host >= v\"11.0\"\n            # enhanced compatibility, semver-style\n            artifact.major == host.major &&\n            Base.thisminor(artifact) <= Base.thisminor(host)\n        else\n            Base.thisminor(artifact) == Base.thisminor(host)\n        end\n    end\n    if a_requested\n        is_compatible(b, a)\n    else\n        is_compatible(a, b)\n    end\nend\n\nfunction augment_platform!(platform::Platform)\n    if !@isdefined(CUDA_Runtime_jll)\n        # don't set to nothing or Pkg will download any artifact\n        platform[\"cuda\"] = \"none\"\n    end\n\n    if !haskey(platform, \"cuda\")\n        CUDA_Runtime_jll.augment_platform!(platform)\n    end\n    BinaryPlatforms.set_compare_strategy!(platform, \"cuda\", cuda_comparison_strategy)\n    return platform\nend"""
+        init_block = ""
+        julia_compat = "1.6"
+        lazy_artifacts = true
+        name = "cuQuantum"
+        platforms = ["x86_64-linux-gnu-cuda+11.0", "powerpc64le-linux-gnu-cuda+11.0", "aarch64-linux-gnu-cuda+11.0"]
+        script = """cd ${WORKSPACE}/srcdir/cuquantum-*\n\nmkdir -p ${prefix}\ncp -var lib/ include/ ${prefix}\ncp -var pkg-config/ ${prefix}/lib\n\n# Fixup pkg-config files\nsed -i \\\n    -e \"s?^cudaroot=.*?cudaroot=${prefix}?\" \\\n    -e \"s?^libdir=.*?libdir=${libdir}?\" \\\n    -e \"s?^includedir=.*?includedir=${includedir}?\" \\\n    ${libdir}/pkg-config/*.pc\n\n# Remove static libraries\nrm ${libdir}/*.a\n\n# Install license files\ninstall_license LICENSE docs/*\n"""
+        version = "v22.7.114"
+
+            [["22.7.114+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "CUDA_Runtime_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "runtimedependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["22.7.114+1".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "CUTENSOR_jll"
+            platforms = ["any"]
+            top_level = false
+            type = "runtimedependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["22.7.114+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libcustatevec"]
+            type = "lib"
+            variable_name = "libcustatevec"
+            [["22.7.114+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libcutensornet"]
+            type = "lib"
+            variable_name = "libcutensornet"
+
+            [["22.7.114+1".artifact_metadata.metadata.sources]]
+            hash = "4c4931096498451593ad553b6cb7a107bb6d6cedea65c80d5376d0cfbb647f8e"
+            type = "archive"
+            unpack_target = ""
+            url = "https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum/linux-x86_64/cuquantum-linux-x86_64-22.07.1.14-archive.tar.xz"
+            [["22.7.114+1".artifact_metadata.metadata.sources]]
+            hash = "2d35dba3c739e8de51591bcd2d7edf1a3c9995850af6525ae08e9b5c3798cf9a"
+            type = "archive"
+            unpack_target = ""
+            url = "https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum/linux-ppc64le/cuquantum-linux-ppc64le-22.07.1.14-archive.tar.xz"
+            [["22.7.114+1".artifact_metadata.metadata.sources]]
+            hash = "0c8fb14bf8916170e15a2ae7cfa950e23af13c9cb0915bad88d754221ad60116"
+            type = "archive"
+            unpack_target = ""
+            url = "https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum/linux-sbsa/cuquantum-linux-sbsa-22.07.1.14-archive.tar.xz"
 
 ["22.11.13+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/cuQuantum_jll.jl/releases/download/cuQuantum-v22.11.13+0/cuQuantum.v22.11.13.aarch64-linux-gnu-cuda+11.0.tar.gz", "https://github.com/JuliaBinaryWrappers/cuQuantum_jll.jl/releases/download/cuQuantum-v22.11.13+0/cuQuantum.v22.11.13.powerpc64le-linux-gnu-cuda+11.0.tar.gz", "https://github.com/JuliaBinaryWrappers/cuQuantum_jll.jl/releases/download/cuQuantum-v22.11.13+0/cuQuantum.v22.11.13.x86_64-linux-gnu-cuda+11.0.tar.gz"]
