@@ -54,9 +54,189 @@ registered = 2020-10-23T15:29:54.000Z
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/libigc_jll.jl/releases/download/libigc-v1.0.5353+0/libigc.v1.0.5353.i686-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libigc_jll.jl/releases/download/libigc-v1.0.5353+0/libigc.v1.0.5353.i686-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/libigc_jll.jl/releases/download/libigc-v1.0.5353+0/libigc.v1.0.5353.x86_64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libigc_jll.jl/releases/download/libigc-v1.0.5353+0/libigc.v1.0.5353.x86_64-linux-gnu-cxx11.tar.gz"]
 registered = 2020-11-09T09:58:52.000Z
 
+    [["1.0.5353+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/libigc_jll.jl/releases/download/libigc-v1.0.5353+0/libigc.v1.0.5353.i686-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libigc_jll.jl/releases/download/libigc-v1.0.5353+0/libigc.v1.0.5353.i686-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/libigc_jll.jl/releases/download/libigc-v1.0.5353+0/libigc.v1.0.5353.x86_64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libigc_jll.jl/releases/download/libigc-v1.0.5353+0/libigc.v1.0.5353.x86_64-linux-gnu-cxx11.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/76275a7ae3ffffa8abe55ddc66fb08bd38275745/L/libigc/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.3.0"
+
+        ["1.0.5353+0".artifact_metadata.metadata]
+        dependencies = []
+        init_block = ""
+        julia_compat = "1.0"
+        lazy_artifacts = false
+        name = "libigc"
+        platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11"]
+        script = """# the build system uses git\nexport HOME=$(pwd)\ngit config --global user.name \"Binary Builder\"\ngit config --global user.email \"your@email.com\"\n\n# apply opencl-clang's patches ourself, which is more robust than letting the build system do it\nif [[ -d opencl-clang/patches/clang ]]; then\n    pushd llvm-project\n    for patch in ${WORKSPACE}/srcdir/opencl-clang/patches/clang/*.patch; do\n        atomic_patch -p1 $patch\n        rm $patch\n    done\n    popd\nfi\nif [[ -d opencl-clang/patches/spirv ]]; then\n    pushd SPIRV-LLVM-Translator\n    for patch in ${WORKSPACE}/srcdir/opencl-clang/patches/spirv/*.patch; do\n        atomic_patch -p1 $patch\n        rm $patch\n    done\n    popd\nfi\n\n# move everything in places where it will get detected by the IGC build system\nmv llvm-project/clang llvm-project/llvm/tools/\nmv opencl-clang llvm-project/llvm/projects/opencl-clang\nmv SPIRV-LLVM-Translator llvm-project/llvm/projects/llvm-spirv\nmv llvm-patches llvm_patches\n\n# Work around compilation failures\natomic_patch -p0 patches/cmake.patch\n# https://gcc.gnu.org/bugzilla/show_bug.cgi?id=86678\natomic_patch -p0 patches/gcc-constexpr_assert_bug.patch\n\ncd intel-graphics-compiler\ninstall_license LICENSE.md\n\nCMAKE_FLAGS=()\n\n# Release build for best performance\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\n\n# Install things into $prefix\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix})\n\n# NOTE: igc currently can't cross compile due to a variety of issues:\n# - https://github.com/intel/intel-graphics-compiler/issues/131\n# - https://github.com/intel/opencl-clang/issues/91\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING:BOOL=OFF)\n\n# Explicitly use our cmake toolchain file\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\n\n# Silence developer warnings\nCMAKE_FLAGS+=(-Wno-dev)\n\ncmake -B build -S . -GNinja ${CMAKE_FLAGS[@]}\nninja -C build -j ${nproc} install\n"""
+        version = "v1.0.5353"
+
+            [["1.0.5353+0".artifact_metadata.metadata.products]]
+            binnames = ["GenX_IR"]
+            type = "exe"
+            variable_name = "GenX_IR"
+            [["1.0.5353+0".artifact_metadata.metadata.products]]
+            binnames = ["iga32", "iga64"]
+            type = "exe"
+            variable_name = "iga"
+            [["1.0.5353+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libiga32", "libiga64"]
+            type = "lib"
+            variable_name = "libiga"
+            [["1.0.5353+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libigc"]
+            type = "lib"
+            variable_name = "libigc"
+            [["1.0.5353+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libigdfcl"]
+            type = "lib"
+            variable_name = "libigdfcl"
+            [["1.0.5353+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libopencl-clang"]
+            type = "lib"
+            variable_name = "libopencl_clang"
+
+            [["1.0.5353+0".artifact_metadata.metadata.sources]]
+            hash = "411ba3aa9373136ffd6e475005f94ba7c10a4f3a"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/intel/intel-graphics-compiler.git"
+            [["1.0.5353+0".artifact_metadata.metadata.sources]]
+            hash = "cfc800519a71522194efcaa9a5dd67ecbff43ffa"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/intel/llvm-patches.git"
+            [["1.0.5353+0".artifact_metadata.metadata.sources]]
+            hash = "fdcfda343f493efdd262f0b6f2fae99809030c2f"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/intel/opencl-clang.git"
+            [["1.0.5353+0".artifact_metadata.metadata.sources]]
+            hash = "0db501ebb43a5eec03469a226dc1822940e640b1"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/KhronosGroup/SPIRV-LLVM-Translator.git"
+            [["1.0.5353+0".artifact_metadata.metadata.sources]]
+            hash = "eabcd2022cf868a658b257b8ea6ad62acbbe7dc5"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/intel/vc-intrinsics.git"
+            [["1.0.5353+0".artifact_metadata.metadata.sources]]
+            hash = "d32170dbd5b0d54436537b6b75beaf44324e0c28"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/llvm/llvm-project.git"
+            [["1.0.5353+0".artifact_metadata.metadata.sources]]
+            follow_symlinks = false
+            path = "./bundled"
+            target = ""
+            type = "directory"
+
 ["1.0.5699+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/libigc_jll.jl/releases/download/libigc-v1.0.5699+0/libigc.v1.0.5699.i686-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libigc_jll.jl/releases/download/libigc-v1.0.5699+0/libigc.v1.0.5699.i686-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/libigc_jll.jl/releases/download/libigc-v1.0.5699+0/libigc.v1.0.5699.x86_64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libigc_jll.jl/releases/download/libigc-v1.0.5699+0/libigc.v1.0.5699.x86_64-linux-gnu-cxx11.tar.gz"]
 registered = 2020-12-04T14:58:43.000Z
+
+    [["1.0.5699+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/libigc_jll.jl/releases/download/libigc-v1.0.5699+0/libigc.v1.0.5699.i686-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libigc_jll.jl/releases/download/libigc-v1.0.5699+0/libigc.v1.0.5699.i686-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/libigc_jll.jl/releases/download/libigc-v1.0.5699+0/libigc.v1.0.5699.x86_64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libigc_jll.jl/releases/download/libigc-v1.0.5699+0/libigc.v1.0.5699.x86_64-linux-gnu-cxx11.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/b6d478db06ce09a5b58c58000f58ec87896ae697/L/libigc/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.3.0"
+
+        ["1.0.5699+0".artifact_metadata.metadata]
+        dependencies = []
+        init_block = ""
+        julia_compat = "1.0"
+        lazy_artifacts = false
+        name = "libigc"
+        platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11"]
+        script = """# the build system uses git\nexport HOME=$(pwd)\ngit config --global user.name \"Binary Builder\"\ngit config --global user.email \"your@email.com\"\n\n# move everything in places where it will get detected by the IGC build system\nmv opencl-clang llvm-project/llvm/projects/opencl-clang\nmv SPIRV-LLVM-Translator llvm-project/llvm/projects/llvm-spirv\nmv llvm-patches llvm_patches\n\n# Work around compilation failures\n# https://gcc.gnu.org/bugzilla/show_bug.cgi?id=86678\natomic_patch -p0 patches/gcc-constexpr_assert_bug.patch\n\ncd intel-graphics-compiler\ninstall_license LICENSE.md\n\nCMAKE_FLAGS=()\n\n# Release build for best performance\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\n\n# Install things into $prefix\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix})\n\n# NOTE: igc currently can't cross compile due to a variety of issues:\n# - https://github.com/intel/intel-graphics-compiler/issues/131\n# - https://github.com/intel/opencl-clang/issues/91\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING:BOOL=OFF)\n\n# Explicitly use our cmake toolchain file\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\n\n# Silence developer warnings\nCMAKE_FLAGS+=(-Wno-dev)\n\ncmake -B build -S . -GNinja ${CMAKE_FLAGS[@]}\nninja -C build -j ${nproc} install\n"""
+        version = "v1.0.5699"
+
+            [["1.0.5699+0".artifact_metadata.metadata.products]]
+            binnames = ["GenX_IR"]
+            type = "exe"
+            variable_name = "GenX_IR"
+            [["1.0.5699+0".artifact_metadata.metadata.products]]
+            binnames = ["iga32", "iga64"]
+            type = "exe"
+            variable_name = "iga"
+            [["1.0.5699+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libiga32", "libiga64"]
+            type = "lib"
+            variable_name = "libiga"
+            [["1.0.5699+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libigc"]
+            type = "lib"
+            variable_name = "libigc"
+            [["1.0.5699+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libigdfcl"]
+            type = "lib"
+            variable_name = "libigdfcl"
+            [["1.0.5699+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libopencl-clang"]
+            type = "lib"
+            variable_name = "libopencl_clang"
+
+            [["1.0.5699+0".artifact_metadata.metadata.sources]]
+            hash = "c59cb6f02b12fd4cc2549707985c6015b4928c1a"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/intel/intel-graphics-compiler.git"
+            [["1.0.5699+0".artifact_metadata.metadata.sources]]
+            hash = "9cbc7cfb9bc374be22e1bb2418c5e9385000d755"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/intel/llvm-patches.git"
+            [["1.0.5699+0".artifact_metadata.metadata.sources]]
+            hash = "4e83bbfb67047d0a836739982264a007a4d418ef"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/intel/opencl-clang.git"
+            [["1.0.5699+0".artifact_metadata.metadata.sources]]
+            hash = "424e375edc4b915218ab5d1f08670a8d1e92c9d3"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/KhronosGroup/SPIRV-LLVM-Translator.git"
+            [["1.0.5699+0".artifact_metadata.metadata.sources]]
+            hash = "a08fe5bc81963c569c3920557c1fbe0caa40840c"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/intel/vc-intrinsics.git"
+            [["1.0.5699+0".artifact_metadata.metadata.sources]]
+            hash = "d32170dbd5b0d54436537b6b75beaf44324e0c28"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/llvm/llvm-project.git"
+            [["1.0.5699+0".artifact_metadata.metadata.sources]]
+            follow_symlinks = false
+            path = "./bundled"
+            target = ""
+            type = "directory"
 
 ["1.0.6712+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/libigc_jll.jl/releases/download/libigc-v1.0.6712+0/libigc.v1.0.6712.i686-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libigc_jll.jl/releases/download/libigc-v1.0.6712+0/libigc.v1.0.6712.i686-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/libigc_jll.jl/releases/download/libigc-v1.0.6712+0/libigc.v1.0.6712.x86_64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libigc_jll.jl/releases/download/libigc-v1.0.6712+0/libigc.v1.0.6712.x86_64-linux-gnu-cxx11.tar.gz"]

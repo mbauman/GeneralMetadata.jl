@@ -34,9 +34,211 @@ registered = 2020-10-27T17:41:37.000Z
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/HDF5_jll.jl/releases/download/HDF5-v1.12.0+0/HDF5.v1.12.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/HDF5_jll.jl/releases/download/HDF5-v1.12.0+0/HDF5.v1.12.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/HDF5_jll.jl/releases/download/HDF5-v1.12.0+0/HDF5.v1.12.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/HDF5_jll.jl/releases/download/HDF5-v1.12.0+0/HDF5.v1.12.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/HDF5_jll.jl/releases/download/HDF5-v1.12.0+0/HDF5.v1.12.0.x86_64-w64-mingw32.tar.gz"]
 registered = 2020-11-16T22:46:53.000Z
 
+    [["1.12.0+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/HDF5_jll.jl/releases/download/HDF5-v1.12.0+0/HDF5.v1.12.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/HDF5_jll.jl/releases/download/HDF5-v1.12.0+0/HDF5.v1.12.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/HDF5_jll.jl/releases/download/HDF5-v1.12.0+0/HDF5.v1.12.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/HDF5_jll.jl/releases/download/HDF5-v1.12.0+0/HDF5.v1.12.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/HDF5_jll.jl/releases/download/HDF5-v1.12.0+0/HDF5.v1.12.0.x86_64-w64-mingw32.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/0dee9072d85bc5234860adde7558c2fd39b59791/H/HDF5/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.3.0"
+
+        ["1.12.0+0".artifact_metadata.metadata]
+        init_block = ""
+        julia_compat = "1.0"
+        lazy_artifacts = false
+        name = "HDF5"
+        platforms = ["x86_64-linux-gnu", "aarch64-linux-gnu", "x86_64-apple-darwin", "x86_64-w64-mingw32", "i686-w64-mingw32"]
+        script = """cd ${WORKSPACE}/srcdir/\nmkdir -p ${libdir} ${includedir}\n\nif [[ ${target} == *mingw* ]]; then\n    cd ${target}/mingw${nbits}\n\n    rm -f bin/{*_cpp*,*fortran*,*f90*} # we do not need these\n    mv bin/*.dll ${libdir}\n    mv include/* ${includedir}\n\n    install_license share/doc/hdf5/COPYING\nelif [[ ${target} == aarch64-* ]]; then\n    cd ${target}\n\n    rm -f lib/{*_cpp*,*_fortran*} # we do not need these\n    mv lib/* ${libdir}\n    mv include/* ${includedir}\n\n    install_license info/licenses/COPYING\nelse\n    if [[ ${target} == x86_64-linux-gnu ]]; then\n        WHL_FILE=\"*h5py-*manylinux1_x86_64*.whl\"\n        LIBSDIR=h5py.libs\n    elif [[ ${target} == x86_64-apple-darwin* ]]; then\n        WHL_FILE=\"*h5py-*macosx*.whl\"\n        LIBSDIR=h5py/.dylibs\n    else\n        echo \"ERROR: Unsupported platform ${target}\" >&2\n        exit 1\n    fi\n\n    unzip ${WHL_FILE}\n    mv ${LIBSDIR}/* ${libdir}\n\n    # Use headers and license from aarch64-linux-gnu with the hope that they'll be fine\n    mv aarch64-*/include/* ${includedir}\n    install_license aarch64-*/info/licenses/COPYING\nfi\n\n# We need to be able to access `libhdf5` and `libhdf5_hl` directly, so symlink it from the hashed filename from manylinux pypi\nif [[ ${target} == *86*linux* ]]; then\n    libhdf5name=$(basename ${libdir}/libhdf5-*.${dlext}*)\n    base=\"${libhdf5name%%.*}\"\n    ext=\"${libhdf5name#$base}\"\n    ln -s ${libhdf5name} ${libdir}/libhdf5${ext}\n\n    libhdf5_hlname=$(basename ${libdir}/libhdf5_hl-*.${dlext}*)\n    base=\"${libhdf5_hlname%%.*}\"\n    ext=\"${libhdf5_hlname#$base}\"\n    ln -s ${libhdf5_hlname} ${libdir}/libhdf5_hl${ext}\nfi\n\n\n"""
+        version = "v1.12.0"
+
+            [["1.12.0+0".artifact_metadata.metadata.dependencies]]
+            name = "Zlib_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["1.12.0+0".artifact_metadata.metadata.dependencies]]
+            name = "OpenSSL_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["1.12.0+0".artifact_metadata.metadata.dependencies]]
+            name = "LibCURL_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["1.12.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libhdf5"]
+            type = "lib"
+            variable_name = "libhdf5"
+            [["1.12.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libhdf5_hl"]
+            type = "lib"
+            variable_name = "libhdf5_hl"
+
+            [["1.12.0+0".artifact_metadata.metadata.sources]]
+            filename = "h5py-3.1.0-cp39-cp39-macosx_10_9_x86_64.whl"
+            hash = "cb74df83709d6d03d11e60b9480812f58da34f194beafa8c8314dbbeeedfe0a6"
+            type = "file"
+            url = "https://files.pythonhosted.org/packages/d5/f9/676c6a5c13806289da6177c538ce772e3e5b04ea10d76e6e72e9f0d042de/h5py-3.1.0-cp39-cp39-macosx_10_9_x86_64.whl"
+            [["1.12.0+0".artifact_metadata.metadata.sources]]
+            filename = "h5py-3.1.0-cp39-cp39-manylinux1_x86_64.whl"
+            hash = "80c623be10479e81b64fa713b7ed4c0bbe9f02e8e7d2a2e5382336087b615ce4"
+            type = "file"
+            url = "https://files.pythonhosted.org/packages/40/1b/dd36e8aa1b7c9d82a1f0aaabece4393797ded0ff613437dfb8c0780b33a9/h5py-3.1.0-cp39-cp39-manylinux1_x86_64.whl"
+            [["1.12.0+0".artifact_metadata.metadata.sources]]
+            hash = "d9ade0d0fddfdeca3ea9de00b066e330e1573c547609a12b81c6a080b2c19f3e"
+            type = "archive"
+            unpack_target = "i686-w64-mingw32"
+            url = "http://repo.msys2.org/mingw/i686/mingw-w64-i686-hdf5-1.12.0-2-any.pkg.tar.zst"
+            [["1.12.0+0".artifact_metadata.metadata.sources]]
+            hash = "58b5efe1420a2bfd6e92cf94112d29b03ec588f54f4a995a1b26034076f0d369"
+            type = "archive"
+            unpack_target = "i686-w64-mingw32"
+            url = "http://repo.msys2.org/mingw/i686/mingw-w64-i686-szip-2.1.1-2-any.pkg.tar.xz"
+            [["1.12.0+0".artifact_metadata.metadata.sources]]
+            hash = "addf6c52134027407640f1cbdf4efc5b64430f3a286cb4e4c4f5dbb44ce55a42"
+            type = "archive"
+            unpack_target = "i686-w64-mingw32"
+            url = "http://repo.msys2.org/mingw/i686/mingw-w64-i686-zlib-1.2.11-7-any.pkg.tar.xz"
+            [["1.12.0+0".artifact_metadata.metadata.sources]]
+            hash = "e03a63b24695951a1e80def754d6bd128744eaf1e562308ded31e989636e7651"
+            type = "archive"
+            unpack_target = "i686-w64-mingw32"
+            url = "http://repo.msys2.org/mingw/i686/mingw-w64-i686-gcc-libs-10.2.0-5-any.pkg.tar.zst"
+            [["1.12.0+0".artifact_metadata.metadata.sources]]
+            hash = "549462ad99a079ff725ac4bd1f662d3594515320ea324a7263a647578b258d86"
+            type = "archive"
+            unpack_target = "x86_64-w64-mingw32"
+            url = "http://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-hdf5-1.12.0-2-any.pkg.tar.zst"
+            [["1.12.0+0".artifact_metadata.metadata.sources]]
+            hash = "ec8fe26370b0673c4b91f5ccf3404907dc7c24cb9d75c7b8830aa93a7c13ace7"
+            type = "archive"
+            unpack_target = "x86_64-w64-mingw32"
+            url = "http://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-szip-2.1.1-2-any.pkg.tar.xz"
+            [["1.12.0+0".artifact_metadata.metadata.sources]]
+            hash = "1decf05b8ae6ab10ddc9035929014837c18dd76da825329023da835aec53cec2"
+            type = "archive"
+            unpack_target = "x86_64-w64-mingw32"
+            url = "http://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-zlib-1.2.11-7-any.pkg.tar.xz"
+            [["1.12.0+0".artifact_metadata.metadata.sources]]
+            hash = "605aff906fd0fca9a52da6ad9b48607fab5cb26e2615d3827a1f318d6e103c4a"
+            type = "archive"
+            unpack_target = "aarch64-linux-gnu"
+            url = "https://anaconda.org/conda-forge/hdf5/1.12.0/download/linux-aarch64/hdf5-1.12.0-nompi_h1022a3e_102.tar.bz2"
+
 ["1.12.0+1"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/HDF5_jll.jl/releases/download/HDF5-v1.12.0+1/HDF5.v1.12.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/HDF5_jll.jl/releases/download/HDF5-v1.12.0+1/HDF5.v1.12.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/HDF5_jll.jl/releases/download/HDF5-v1.12.0+1/HDF5.v1.12.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/HDF5_jll.jl/releases/download/HDF5-v1.12.0+1/HDF5.v1.12.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/HDF5_jll.jl/releases/download/HDF5-v1.12.0+1/HDF5.v1.12.0.x86_64-w64-mingw32.tar.gz"]
 registered = 2020-11-22T18:56:02.000Z
+
+    [["1.12.0+1".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/HDF5_jll.jl/releases/download/HDF5-v1.12.0+1/HDF5.v1.12.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/HDF5_jll.jl/releases/download/HDF5-v1.12.0+1/HDF5.v1.12.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/HDF5_jll.jl/releases/download/HDF5-v1.12.0+1/HDF5.v1.12.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/HDF5_jll.jl/releases/download/HDF5-v1.12.0+1/HDF5.v1.12.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/HDF5_jll.jl/releases/download/HDF5-v1.12.0+1/HDF5.v1.12.0.x86_64-w64-mingw32.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/39838bbfe874d9bcb0132087a4e29f873fb11aaa/H/HDF5/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.3.0"
+
+        ["1.12.0+1".artifact_metadata.metadata]
+        init_block = ""
+        julia_compat = "1.0"
+        lazy_artifacts = false
+        name = "HDF5"
+        platforms = ["x86_64-linux-gnu", "aarch64-linux-gnu", "x86_64-apple-darwin", "x86_64-w64-mingw32", "i686-w64-mingw32"]
+        script = """cd ${WORKSPACE}/srcdir/\nmkdir -p ${libdir} ${includedir}\n\nif [[ ${target} == *mingw* ]]; then\n    cd ${target}/mingw${nbits}\n\n    rm -f bin/{*_cpp*,*fortran*,*f90*} # we do not need these\n    mv bin/*.dll ${libdir}\n    mv include/* ${includedir}\n\n    install_license share/doc/hdf5/COPYING\nelif [[ ${target} == aarch64-* ]]; then\n    cd ${target}\n\n    rm -f lib/{*_cpp*,*_fortran*} # we do not need these\n    mv lib/* ${libdir}\n    mv include/* ${includedir}\n\n    install_license info/licenses/COPYING\nelse\n    if [[ ${target} == x86_64-linux-gnu ]]; then\n        WHL_FILE=\"*h5py-*manylinux1_x86_64*.whl\"\n        LIBSDIR=h5py.libs\n    elif [[ ${target} == x86_64-apple-darwin* ]]; then\n        WHL_FILE=\"*h5py-*macosx*.whl\"\n        LIBSDIR=h5py/.dylibs\n    else\n        echo \"ERROR: Unsupported platform ${target}\" >&2\n        exit 1\n    fi\n\n    unzip ${WHL_FILE}\n    mv ${LIBSDIR}/* ${libdir}\n\n    # Use headers and license from aarch64-linux-gnu with the hope that they'll be fine\n    mv aarch64-*/include/* ${includedir}\n    install_license aarch64-*/info/licenses/COPYING\nfi\n\n# We want to have the files with the simple name lib.extension, without\n# soversion, to make linking to these libraries easier\nif [[ ! ${target} == *-mingw* ]]; then\n    for lib in libhdf5 libhdf5_hl; do\n        # We also need to be able to access `libhdf5` and `libhdf5_hl` directly,\n        # so symlink it from the hashed filename from manylinux pypi\n        if [[ ${target} == *86*linux* ]]; then\n            name=$(basename ${libdir}/${lib}-*.${dlext}*)\n            base=\"${name%%.*}\"\n            ext=\"${name#$base}\"\n            ln -s \"${name}\" \"${libdir}/${lib}${ext}\"\n        fi\n\n        dest=\"${libdir}/${lib}.${dlext}\"\n        if [[ ! -f \"${dest}\" ]]; then\n            link_target=$(find ${libdir} -name \"${lib}.*.${dlext}\" -or -name \"${lib}.${dlext}.*\")\n            ln -s $(basename \"${link_target}\") \"${dest}\"\n        fi\n        # Double check that the file links to an existing file\n        [ -f $(realpath \"${dest}\") ]\n    done\nfi\n"""
+        version = "v1.12.0"
+
+            [["1.12.0+1".artifact_metadata.metadata.dependencies]]
+            name = "Zlib_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["1.12.0+1".artifact_metadata.metadata.dependencies]]
+            name = "OpenSSL_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["1.12.0+1".artifact_metadata.metadata.dependencies]]
+            name = "LibCURL_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["1.12.0+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libhdf5"]
+            type = "lib"
+            variable_name = "libhdf5"
+            [["1.12.0+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libhdf5_hl"]
+            type = "lib"
+            variable_name = "libhdf5_hl"
+
+            [["1.12.0+1".artifact_metadata.metadata.sources]]
+            filename = "h5py-3.1.0-cp39-cp39-macosx_10_9_x86_64.whl"
+            hash = "cb74df83709d6d03d11e60b9480812f58da34f194beafa8c8314dbbeeedfe0a6"
+            type = "file"
+            url = "https://files.pythonhosted.org/packages/d5/f9/676c6a5c13806289da6177c538ce772e3e5b04ea10d76e6e72e9f0d042de/h5py-3.1.0-cp39-cp39-macosx_10_9_x86_64.whl"
+            [["1.12.0+1".artifact_metadata.metadata.sources]]
+            filename = "h5py-3.1.0-cp39-cp39-manylinux1_x86_64.whl"
+            hash = "80c623be10479e81b64fa713b7ed4c0bbe9f02e8e7d2a2e5382336087b615ce4"
+            type = "file"
+            url = "https://files.pythonhosted.org/packages/40/1b/dd36e8aa1b7c9d82a1f0aaabece4393797ded0ff613437dfb8c0780b33a9/h5py-3.1.0-cp39-cp39-manylinux1_x86_64.whl"
+            [["1.12.0+1".artifact_metadata.metadata.sources]]
+            hash = "d9ade0d0fddfdeca3ea9de00b066e330e1573c547609a12b81c6a080b2c19f3e"
+            type = "archive"
+            unpack_target = "i686-w64-mingw32"
+            url = "http://repo.msys2.org/mingw/i686/mingw-w64-i686-hdf5-1.12.0-2-any.pkg.tar.zst"
+            [["1.12.0+1".artifact_metadata.metadata.sources]]
+            hash = "58b5efe1420a2bfd6e92cf94112d29b03ec588f54f4a995a1b26034076f0d369"
+            type = "archive"
+            unpack_target = "i686-w64-mingw32"
+            url = "http://repo.msys2.org/mingw/i686/mingw-w64-i686-szip-2.1.1-2-any.pkg.tar.xz"
+            [["1.12.0+1".artifact_metadata.metadata.sources]]
+            hash = "addf6c52134027407640f1cbdf4efc5b64430f3a286cb4e4c4f5dbb44ce55a42"
+            type = "archive"
+            unpack_target = "i686-w64-mingw32"
+            url = "http://repo.msys2.org/mingw/i686/mingw-w64-i686-zlib-1.2.11-7-any.pkg.tar.xz"
+            [["1.12.0+1".artifact_metadata.metadata.sources]]
+            hash = "e03a63b24695951a1e80def754d6bd128744eaf1e562308ded31e989636e7651"
+            type = "archive"
+            unpack_target = "i686-w64-mingw32"
+            url = "http://repo.msys2.org/mingw/i686/mingw-w64-i686-gcc-libs-10.2.0-5-any.pkg.tar.zst"
+            [["1.12.0+1".artifact_metadata.metadata.sources]]
+            hash = "549462ad99a079ff725ac4bd1f662d3594515320ea324a7263a647578b258d86"
+            type = "archive"
+            unpack_target = "x86_64-w64-mingw32"
+            url = "http://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-hdf5-1.12.0-2-any.pkg.tar.zst"
+            [["1.12.0+1".artifact_metadata.metadata.sources]]
+            hash = "ec8fe26370b0673c4b91f5ccf3404907dc7c24cb9d75c7b8830aa93a7c13ace7"
+            type = "archive"
+            unpack_target = "x86_64-w64-mingw32"
+            url = "http://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-szip-2.1.1-2-any.pkg.tar.xz"
+            [["1.12.0+1".artifact_metadata.metadata.sources]]
+            hash = "1decf05b8ae6ab10ddc9035929014837c18dd76da825329023da835aec53cec2"
+            type = "archive"
+            unpack_target = "x86_64-w64-mingw32"
+            url = "http://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-zlib-1.2.11-7-any.pkg.tar.xz"
+            [["1.12.0+1".artifact_metadata.metadata.sources]]
+            hash = "605aff906fd0fca9a52da6ad9b48607fab5cb26e2615d3827a1f318d6e103c4a"
+            type = "archive"
+            unpack_target = "aarch64-linux-gnu"
+            url = "https://anaconda.org/conda-forge/hdf5/1.12.0/download/linux-aarch64/hdf5-1.12.0-nompi_h1022a3e_102.tar.bz2"
 
 ["1.12.1+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/HDF5_jll.jl/releases/download/HDF5-v1.12.1+0/HDF5.v1.12.1.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/HDF5_jll.jl/releases/download/HDF5-v1.12.1+0/HDF5.v1.12.1.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/HDF5_jll.jl/releases/download/HDF5-v1.12.1+0/HDF5.v1.12.1.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/HDF5_jll.jl/releases/download/HDF5-v1.12.1+0/HDF5.v1.12.1.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/HDF5_jll.jl/releases/download/HDF5-v1.12.1+0/HDF5.v1.12.1.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/HDF5_jll.jl/releases/download/HDF5-v1.12.1+0/HDF5.v1.12.1.x86_64-w64-mingw32.tar.gz"]
