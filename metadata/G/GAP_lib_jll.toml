@@ -42,6 +42,48 @@ registered = 2021-08-27T12:59:24.000Z
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/GAP_lib_jll.jl/releases/download/GAP_lib-v400.1191.0+0/GAP_lib.v400.1191.0.any.tar.gz"]
 registered = 2021-10-15T17:04:43.000Z
 
+    [["400.1191.0+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/GAP_lib_jll.jl/releases/download/GAP_lib-v400.1191.0+0/GAP_lib.v400.1191.0.any.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/6cd9212d9d96ae034920488462da54c2799d598b/G/GAP_lib/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.4.1"
+
+        ["400.1191.0+0".artifact_metadata.metadata]
+        init_block = ""
+        julia_compat = "1.0"
+        lazy_artifacts = false
+        name = "GAP_lib"
+        products = []
+        script = """cd ${WORKSPACE}/srcdir/gap*\n\nmv ../pkg .\nfind pkg -name '._*' -exec rm \\{\\} \\; # unwanted files\n\n# run autogen.sh if compiling from it source and/or if configure was patched\n./autogen.sh\n\n# compile a native version of GAP so we can use it to generate the manual\n# (the manual is only in FULL gap release tarballs, not in the -core tarball\n# nor in git snapshots)\nmkdir native-build\ncd native-build\n#apk add gmp-dev zlib-dev\n../configure --build=${MACHTYPE} --host=${MACHTYPE} CC=${CC_BUILD} CXX=${CXX_BUILD} --with-zlib=${prefix} --with-gmp=${prefix}\nmake -j${nproc}\nmake html   # build the manual (only HTML and txt; for PDF we'd need LaTeX)\ncd ..\n\n# remove the native build, it has done its job\nrm -rf native-build\n\n# the license\ninstall_license LICENSE\n\n# \"install\" most of the files\nrm -rf autom4te.cache dev etc extern hpcgap/extern pkg\nmkdir -p ${prefix}/share/gap/\nmv * ${prefix}/share/gap/\n"""
+        version = "v400.1191.0"
+
+            [["400.1191.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "Zlib_jll"
+            type = "builddependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["400.1191.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "GMP_jll"
+            type = "builddependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["400.1191.0+0".artifact_metadata.metadata.sources]]
+            hash = "401c797476b787e748a3890be4ce95ae4e5d52ae"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/gap-system/gap.git"
+            [["400.1191.0+0".artifact_metadata.metadata.sources]]
+            hash = "5f66ac4053db34e4c0ebca25dd7666b891c812c084082db6cc28c551c57a3792"
+            type = "archive"
+            unpack_target = "pkg"
+            url = "https://github.com/gap-system/gap/releases/download/v4.11.1/packages-required-v4.11.1.tar.gz"
+
 ["400.1192.0+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/GAP_lib_jll.jl/releases/download/GAP_lib-v400.1192.0+0/GAP_lib.v400.1192.0.any.tar.gz"]
 registered = 2022-02-21T12:07:43.000Z

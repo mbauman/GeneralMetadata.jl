@@ -10,6 +10,63 @@ registered = 2021-07-15T18:56:14.000Z
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/ROCmCompilerSupport_jll.jl/releases/download/ROCmCompilerSupport-v4.2.0+0/ROCmCompilerSupport.v4.2.0.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/ROCmCompilerSupport_jll.jl/releases/download/ROCmCompilerSupport-v4.2.0+0/ROCmCompilerSupport.v4.2.0.x86_64-linux-musl-cxx11.tar.gz"]
 registered = 2021-12-17T15:44:50.000Z
 
+    [["4.2.0+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/ROCmCompilerSupport_jll.jl/releases/download/ROCmCompilerSupport-v4.2.0+0/ROCmCompilerSupport.v4.2.0.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/ROCmCompilerSupport_jll.jl/releases/download/ROCmCompilerSupport-v4.2.0+0/ROCmCompilerSupport.v4.2.0.x86_64-linux-musl-cxx11.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/7ddcfe2a9bfeb531727a9df54c5c6fb48fe2f4d0/R/ROCmCompilerSupport/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.4.4"
+
+        ["4.2.0+0".artifact_metadata.metadata]
+        init_block = ""
+        julia_compat = "1.7"
+        lazy_artifacts = false
+        name = "ROCmCompilerSupport"
+        platforms = ["x86_64-linux-gnu-cxx11", "x86_64-linux-musl-cxx11"]
+        script = """ln -s ${bindir}/../tools/* ${bindir}/\n\ncd ${WORKSPACE}/srcdir/ROCm-CompilerSupport*/lib/comgr\n\n# first manually build bc2h utility\ncd cmake && mkdir bc2h && cd bc2h\ncp ../bc2h.cmake CMakeLists.txt\nCC=$HOSTCC cmake -DCMAKE_C_COMPILER=$HOSTCC .\nmake\ncd ../..\n\n# then build everything else\natomic_patch -p1 $WORKSPACE/srcdir/patches/disable-bc2h.patch\natomic_patch -p1 $WORKSPACE/srcdir/patches/fix-objdump-clopt.patch\nmkdir build && cd build\ncp ../cmake/bc2h/bc2h .\n# TODO: -DROCM_DIR=${prefix}\ncmake -DCMAKE_PREFIX_PATH=${prefix} \\\n      -DCMAKE_INSTALL_PREFIX=${prefix} \\\n      -DCMAKE_BUILD_TYPE=Release \\\n      -DLLVM_DIR=\"${prefix}/lib/cmake/llvm\" \\\n      -DClang_DIR=\"${prefix}/lib/cmake/clang\" \\\n      -DLLD_DIR=\"${prefix}/lib/cmake/ldd\" \\\n      -DBUILD_TESTING:BOOL=OFF \\\n      ..\nPATH=../cmake/bc2h:$PATH make -j${nproc}\nmake install\n\nfind $WORKSPACE/destdir/bin -type l -delete\n"""
+        version = "v4.2.0"
+
+            [["4.2.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "hsa_rocr_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["4.2.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "ROCmDeviceLibs_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["4.2.0+0".artifact_metadata.metadata.dependencies]]
+            compat = ""
+            name = "ROCmLLVM_jll"
+            type = "builddependency"
+            version-major = 4
+            version-minor = 2
+            version-patch = 0
+
+            [["4.2.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libamd_comgr"]
+            type = "lib"
+            variable_name = "libamd_comgr"
+
+            [["4.2.0+0".artifact_metadata.metadata.sources]]
+            hash = "40a1ea50d2aea0cf75c4d17cdd6a7fe44ae999bf0147d24a756ca4675ce24e36"
+            type = "archive"
+            unpack_target = ""
+            url = "https://github.com/RadeonOpenCompute/ROCm-CompilerSupport/archive/rocm-4.2.0.tar.gz"
+            [["4.2.0+0".artifact_metadata.metadata.sources]]
+            follow_symlinks = false
+            path = "./bundled"
+            target = ""
+            type = "directory"
+
 ["4.2.0+1"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/ROCmCompilerSupport_jll.jl/releases/download/ROCmCompilerSupport-v4.2.0+1/ROCmCompilerSupport.v4.2.0.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/ROCmCompilerSupport_jll.jl/releases/download/ROCmCompilerSupport-v4.2.0+1/ROCmCompilerSupport.v4.2.0.x86_64-linux-musl-cxx11.tar.gz"]
 registered = 2022-09-05T12:40:04.000Z

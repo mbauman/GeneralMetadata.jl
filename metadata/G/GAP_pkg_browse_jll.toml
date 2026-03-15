@@ -2,13 +2,154 @@
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1200+0/GAP_pkg_browse.v100.800.1200.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1200+0/GAP_pkg_browse.v100.800.1200.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1200+0/GAP_pkg_browse.v100.800.1200.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1200+0/GAP_pkg_browse.v100.800.1200.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1200+0/GAP_pkg_browse.v100.800.1200.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1200+0/GAP_pkg_browse.v100.800.1200.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1200+0/GAP_pkg_browse.v100.800.1200.x86_64-unknown-freebsd.tar.gz"]
 registered = 2021-10-22T17:39:03.000Z
 
+    [["100.800.1200+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1200+0/GAP_pkg_browse.v100.800.1200.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1200+0/GAP_pkg_browse.v100.800.1200.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1200+0/GAP_pkg_browse.v100.800.1200.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1200+0/GAP_pkg_browse.v100.800.1200.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1200+0/GAP_pkg_browse.v100.800.1200.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1200+0/GAP_pkg_browse.v100.800.1200.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1200+0/GAP_pkg_browse.v100.800.1200.x86_64-unknown-freebsd.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/a713b572a3a6659c9e3e3952c86c05e3c59dc9e0/G/GAP_pkg/GAP_pkg_browse/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.4.1"
+
+        ["100.800.1200+0".artifact_metadata.metadata]
+        init_block = ""
+        julia_compat = "1.6"
+        lazy_artifacts = false
+        name = "GAP_pkg_browse"
+        platforms = ["x86_64-linux-gnu", "aarch64-linux-gnu", "powerpc64le-linux-gnu", "x86_64-linux-musl", "aarch64-linux-musl", "x86_64-apple-darwin", "x86_64-unknown-freebsd"]
+        script = """# HACK WORKAROUND GAP_jll deficiencies\n# TODO: tweak for mac build\nif [[ \"${target}\" == *darwin* ]]; then\n  cp gac-darwin ${prefix}/share/gap/gac\nelse\n  cp gac ${prefix}/share/gap/gac\nfi\nchmod a+x ${prefix}/share/gap/gac\ncp sysinfo.gap ${prefix}/share/gap/\n\n# ensure #including src/compiled.h or src/profile.h from GAP_jll works\nln -s . ${prefix}/include/gap/src\ncd Browse*\n\n# HACK to fool the Browse build system\nln -s sysinfo.gap ${prefix}/share/gap/sysinfo.gap-default64\n\n./configure ${prefix}/share/gap\nmake -j${nproc} CFLAGS=\"-I$prefix/include/ncurses\"\n\n# revert the HACK\nrm -f ${prefix}/share/gap/sysinfo.gap-default64\n\n# copy the loadable module\nmkdir -p ${prefix}/lib/gap/\ncp bin/*/*.so ${prefix}/lib/gap/\n\ninstall_license /usr/share/licenses/GPL3\nrm -rf ${prefix}/include\nrm -rf ${prefix}/share/gap\n"""
+        version = "v100.800.1200"
+
+            [["100.800.1200+0".artifact_metadata.metadata.dependencies]]
+            compat = "~400.1191.1"
+            name = "GAP_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["100.800.1200+0".artifact_metadata.metadata.dependencies]]
+            compat = "~400.1191.0"
+            name = "GAP_lib_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["100.800.1200+0".artifact_metadata.metadata.products]]
+            paths = ["lib/gap/ncurses.so"]
+            type = "file"
+            variable_name = "ncurses"
+
+            [["100.800.1200+0".artifact_metadata.metadata.sources]]
+            follow_symlinks = false
+            path = "../bundled"
+            target = ""
+            type = "directory"
+            [["100.800.1200+0".artifact_metadata.metadata.sources]]
+            hash = "6ee674b3f1877e550bacb302335fca7c707f4eb742428d8be7781f8aa77c8b9b"
+            type = "archive"
+            unpack_target = ""
+            url = "https://www.math.rwth-aachen.de/~Browse/Browse-1.8.12.tar.bz2"
+
 ["100.800.1200+1"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1200+1/GAP_pkg_browse.v100.800.1200.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1200+1/GAP_pkg_browse.v100.800.1200.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1200+1/GAP_pkg_browse.v100.800.1200.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1200+1/GAP_pkg_browse.v100.800.1200.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1200+1/GAP_pkg_browse.v100.800.1200.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1200+1/GAP_pkg_browse.v100.800.1200.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1200+1/GAP_pkg_browse.v100.800.1200.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1200+1/GAP_pkg_browse.v100.800.1200.x86_64-unknown-freebsd.tar.gz"]
 registered = 2021-10-23T10:34:32.000Z
 
+    [["100.800.1200+1".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1200+1/GAP_pkg_browse.v100.800.1200.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1200+1/GAP_pkg_browse.v100.800.1200.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1200+1/GAP_pkg_browse.v100.800.1200.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1200+1/GAP_pkg_browse.v100.800.1200.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1200+1/GAP_pkg_browse.v100.800.1200.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1200+1/GAP_pkg_browse.v100.800.1200.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1200+1/GAP_pkg_browse.v100.800.1200.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1200+1/GAP_pkg_browse.v100.800.1200.x86_64-unknown-freebsd.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/c14742c03516d39d9e2b2a6375bebcc2bdf2cf6a/G/GAP_pkg/GAP_pkg_browse/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.4.1"
+
+        ["100.800.1200+1".artifact_metadata.metadata]
+        init_block = ""
+        julia_compat = "1.6"
+        lazy_artifacts = false
+        name = "GAP_pkg_browse"
+        platforms = ["x86_64-linux-gnu", "aarch64-linux-gnu", "powerpc64le-linux-gnu", "x86_64-linux-musl", "aarch64-linux-musl", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-apple-darwin"]
+        script = """# HACK WORKAROUND GAP_jll deficiencies\n# TODO: tweak for mac build\nif [[ \"${target}\" == *darwin* ]]; then\n  cp gac-darwin ${prefix}/share/gap/gac\nelse\n  cp gac ${prefix}/share/gap/gac\nfi\nchmod a+x ${prefix}/share/gap/gac\ncp sysinfo.gap ${prefix}/share/gap/\n\n# ensure #including src/compiled.h or src/profile.h from GAP_jll works\nln -s . ${prefix}/include/gap/src\ncd Browse*\n\n# HACK to fool the Browse build system\nln -s sysinfo.gap ${prefix}/share/gap/sysinfo.gap-default64\n\n./configure ${prefix}/share/gap\nmake -j${nproc} CFLAGS=\"-I$prefix/include/ncurses\"\n\n# revert the HACK\nrm -f ${prefix}/share/gap/sysinfo.gap-default64\n\n# copy the loadable module\nmkdir -p ${prefix}/lib/gap\ncp bin/*/*.so ${prefix}/lib/gap/\n\ninstall_license /usr/share/licenses/GPL3\nrm -rf ${prefix}/include\nrm -rf ${prefix}/share/gap\n"""
+        version = "v100.800.1200"
+
+            [["100.800.1200+1".artifact_metadata.metadata.dependencies]]
+            compat = "~400.1191.1"
+            name = "GAP_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["100.800.1200+1".artifact_metadata.metadata.dependencies]]
+            compat = "~400.1191.0"
+            name = "GAP_lib_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["100.800.1200+1".artifact_metadata.metadata.products]]
+            paths = ["lib/gap/ncurses.so"]
+            type = "file"
+            variable_name = "ncurses"
+
+            [["100.800.1200+1".artifact_metadata.metadata.sources]]
+            follow_symlinks = false
+            path = "../bundled"
+            target = ""
+            type = "directory"
+            [["100.800.1200+1".artifact_metadata.metadata.sources]]
+            hash = "6ee674b3f1877e550bacb302335fca7c707f4eb742428d8be7781f8aa77c8b9b"
+            type = "archive"
+            unpack_target = ""
+            url = "https://www.math.rwth-aachen.de/~Browse/Browse-1.8.12.tar.bz2"
+
 ["100.800.1300+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1300+0/GAP_pkg_browse.v100.800.1300.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1300+0/GAP_pkg_browse.v100.800.1300.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1300+0/GAP_pkg_browse.v100.800.1300.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1300+0/GAP_pkg_browse.v100.800.1300.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1300+0/GAP_pkg_browse.v100.800.1300.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1300+0/GAP_pkg_browse.v100.800.1300.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1300+0/GAP_pkg_browse.v100.800.1300.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1300+0/GAP_pkg_browse.v100.800.1300.x86_64-unknown-freebsd.tar.gz"]
 registered = 2021-11-24T22:08:07.000Z
+
+    [["100.800.1300+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1300+0/GAP_pkg_browse.v100.800.1300.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1300+0/GAP_pkg_browse.v100.800.1300.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1300+0/GAP_pkg_browse.v100.800.1300.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1300+0/GAP_pkg_browse.v100.800.1300.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1300+0/GAP_pkg_browse.v100.800.1300.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1300+0/GAP_pkg_browse.v100.800.1300.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1300+0/GAP_pkg_browse.v100.800.1300.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1300+0/GAP_pkg_browse.v100.800.1300.x86_64-unknown-freebsd.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/f322e485ead9421d10d6fec1dd578805c45b57cd/G/GAP_pkg/GAP_pkg_browse/build_tarballs.jl"
+    metadata_source = "retrospective (by README link)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.4.2"
+
+        ["100.800.1300+0".artifact_metadata.metadata]
+        init_block = ""
+        julia_compat = "1.6"
+        lazy_artifacts = false
+        name = "GAP_pkg_browse"
+        platforms = ["x86_64-linux-gnu", "aarch64-linux-gnu", "powerpc64le-linux-gnu", "x86_64-linux-musl", "aarch64-linux-musl", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-apple-darwin"]
+        script = """# HACK WORKAROUND GAP_jll deficiencies\n# TODO: tweak for mac build\nif [[ \"${target}\" == *darwin* ]]; then\n  cp gac-darwin ${prefix}/share/gap/gac\nelse\n  cp gac ${prefix}/share/gap/gac\nfi\nchmod a+x ${prefix}/share/gap/gac\ncp sysinfo.gap ${prefix}/share/gap/\n\n# ensure #including src/compiled.h or src/profile.h from GAP_jll works\nln -s . ${prefix}/include/gap/src\ncd Browse*\n\n./configure ${prefix}/share/gap\nmake -j${nproc} CFLAGS=\"-I$includedir -I$includedir/ncurses\"\n\n# copy the loadable module\nmkdir -p ${prefix}/lib/gap\ncp bin/*/*.so ${prefix}/lib/gap/\n\ninstall_license /usr/share/licenses/GPL3\nrm -rf ${prefix}/include\nrm -rf ${prefix}/share/gap\n"""
+        version = "v100.800.1300"
+
+            [["100.800.1300+0".artifact_metadata.metadata.dependencies]]
+            compat = "~400.1191.1"
+            name = "GAP_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["100.800.1300+0".artifact_metadata.metadata.dependencies]]
+            compat = "~400.1191.0"
+            name = "GAP_lib_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["100.800.1300+0".artifact_metadata.metadata.products]]
+            paths = ["lib/gap/ncurses.so"]
+            type = "file"
+            variable_name = "ncurses"
+
+            [["100.800.1300+0".artifact_metadata.metadata.sources]]
+            follow_symlinks = false
+            path = "../bundled"
+            target = ""
+            type = "directory"
+            [["100.800.1300+0".artifact_metadata.metadata.sources]]
+            hash = "118d1f7fb67044c103cf44673ade8de57e4289a906dd01e15d7562dd0aface5b"
+            type = "archive"
+            unpack_target = ""
+            url = "https://www.math.rwth-aachen.de/~Browse/Browse-1.8.13.tar.bz2"
 
 ["100.800.1301+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1301+0/GAP_pkg_browse.v100.800.1301.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1301+0/GAP_pkg_browse.v100.800.1301.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1301+0/GAP_pkg_browse.v100.800.1301.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1301+0/GAP_pkg_browse.v100.800.1301.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1301+0/GAP_pkg_browse.v100.800.1301.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1301+0/GAP_pkg_browse.v100.800.1301.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1301+0/GAP_pkg_browse.v100.800.1301.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/GAP_pkg_browse_jll.jl/releases/download/GAP_pkg_browse-v100.800.1301+0/GAP_pkg_browse.v100.800.1301.x86_64-unknown-freebsd.tar.gz"]
