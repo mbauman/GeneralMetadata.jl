@@ -2,9 +2,131 @@
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/HelFEM_jll.jl/releases/download/HelFEM-v0.0.1+0/HelFEM.v0.0.1.aarch64-linux-gnu-libgfortran4-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/HelFEM_jll.jl/releases/download/HelFEM-v0.0.1+0/HelFEM.v0.0.1.armv7l-linux-gnueabihf-libgfortran4-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/HelFEM_jll.jl/releases/download/HelFEM-v0.0.1+0/HelFEM.v0.0.1.i686-linux-gnu-libgfortran4-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/HelFEM_jll.jl/releases/download/HelFEM-v0.0.1+0/HelFEM.v0.0.1.i686-w64-mingw32-libgfortran4-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/HelFEM_jll.jl/releases/download/HelFEM-v0.0.1+0/HelFEM.v0.0.1.x86_64-apple-darwin-libgfortran4.tar.gz", "https://github.com/JuliaBinaryWrappers/HelFEM_jll.jl/releases/download/HelFEM-v0.0.1+0/HelFEM.v0.0.1.x86_64-linux-gnu-libgfortran4-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/HelFEM_jll.jl/releases/download/HelFEM-v0.0.1+0/HelFEM.v0.0.1.x86_64-unknown-freebsd-libgfortran4.tar.gz", "https://github.com/JuliaBinaryWrappers/HelFEM_jll.jl/releases/download/HelFEM-v0.0.1+0/HelFEM.v0.0.1.x86_64-w64-mingw32-libgfortran4-cxx11.tar.gz"]
 registered = 2020-10-24T09:41:03.000Z
 
+    [["0.0.1+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/HelFEM_jll.jl/releases/download/HelFEM-v0.0.1+0/HelFEM.v0.0.1.aarch64-linux-gnu-libgfortran4-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/HelFEM_jll.jl/releases/download/HelFEM-v0.0.1+0/HelFEM.v0.0.1.armv7l-linux-gnueabihf-libgfortran4-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/HelFEM_jll.jl/releases/download/HelFEM-v0.0.1+0/HelFEM.v0.0.1.i686-linux-gnu-libgfortran4-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/HelFEM_jll.jl/releases/download/HelFEM-v0.0.1+0/HelFEM.v0.0.1.i686-w64-mingw32-libgfortran4-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/HelFEM_jll.jl/releases/download/HelFEM-v0.0.1+0/HelFEM.v0.0.1.x86_64-apple-darwin-libgfortran4.tar.gz", "https://github.com/JuliaBinaryWrappers/HelFEM_jll.jl/releases/download/HelFEM-v0.0.1+0/HelFEM.v0.0.1.x86_64-linux-gnu-libgfortran4-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/HelFEM_jll.jl/releases/download/HelFEM-v0.0.1+0/HelFEM.v0.0.1.x86_64-unknown-freebsd-libgfortran4.tar.gz", "https://github.com/JuliaBinaryWrappers/HelFEM_jll.jl/releases/download/HelFEM-v0.0.1+0/HelFEM.v0.0.1.x86_64-w64-mingw32-libgfortran4-cxx11.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/015caeaeba8e892eb6dd57beab8d5934e969a595/H/HelFEM/build_tarballs.jl"
+    metadata_source = "retrospective (by timestamp)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.3.0"
+
+        ["0.0.1+0".artifact_metadata.metadata]
+        init_block = ""
+        julia_compat = "1.0"
+        lazy_artifacts = false
+        name = "HelFEM"
+        platforms = ["x86_64-linux-gnu-libgfortran4-cxx11", "i686-linux-gnu-libgfortran4-cxx11", "armv7l-linux-gnueabihf-libgfortran4-cxx11", "aarch64-linux-gnu-libgfortran4-cxx11", "x86_64-apple-darwin-libgfortran4", "x86_64-w64-mingw32-libgfortran4-cxx11", "i686-w64-mingw32-libgfortran4-cxx11", "x86_64-unknown-freebsd-libgfortran4"]
+        script = """cp -v ${WORKSPACE}/srcdir/HelFEM/julia/CMake.system ${WORKSPACE}/srcdir/HelFEM/CMake.system\n\n# Set up some platform specific CMake configuration. This is more or less borrowed from\n# the Armadillo build_tarballs.jl script:\n#   https://github.com/JuliaPackaging/Yggdrasil/blob/48d7a89b4aa46b1a8c91269bb138a660f4ee4ece/A/armadillo/build_tarballs.jl#L23-L52\n#\n# We need to manually set up OpenBLAS because FindOpenBLAS.cmake does not work with BB:\nif [[ \"${nbits}\" == 64 ]] && [[ \"${target}\" != aarch64* ]]; then\n    OPENBLAS=\"${libdir}/libopenblas64_.${dlext}\"\nelse\n    OPENBLAS=\"${libdir}/libopenblas.${dlext}\"\nfi\n\n# On i686, it seems that we need to explicitly tell GCC that we want SSE2. Refs:\n#   https://github.com/JuliaLang/julia/blob/v1.4.1/src/atomics.h#L8-L10\n#   https://stackoverflow.com/questions/16410149/error-sse2-instruction-set-not-enabled-when-including-emmintrin-h\nif [[ \"${target}\" == i686* ]]; then\n    export CXXFLAGS=\"-msse -msse2\"\nfi\n\n# Compile libhelfem as a static library\ncd ${WORKSPACE}/srcdir/HelFEM/\ncmake \\\n    -DCMAKE_INSTALL_PREFIX=$prefix -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} -DCMAKE_BUILD_TYPE=Release \\\n    -DCMAKE_POSITION_INDEPENDENT_CODE=ON \\\n    -DUSE_OPENMP=OFF \\\n    -DHELFEM_BINARIES=OFF -DHELFEM_FIND_DEPS=ON \\\n    -B build/ -S .\nmake -C build/ -j${nproc} helfem\nmake -C build/ install\n# Copy the HelFEM license\ninstall_license LICENSE\n\n# Compile the CxxWrap wrapper as a shared library\ncd ${WORKSPACE}/srcdir/HelFEM/julia\ncmake \\\n    -DCMAKE_INSTALL_PREFIX=$prefix -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} -DCMAKE_BUILD_TYPE=Release \\\n    -DBLAS_LIBRARIES=${OPENBLAS} \\\n    -DJulia_PREFIX=$prefix -DCMAKE_FIND_ROOT_PATH=$prefix -DJlCxx_DIR=$prefix/lib/cmake/JlCxx \\\n    -B build/ -S .\nmake -C build/ -j${nproc}\nmake -C build/ install\n"""
+        version = "v0.0.1"
+
+            [["0.0.1+0".artifact_metadata.metadata.dependencies]]
+            name = "Julia_jll"
+            type = "builddependency"
+            version-major = 1
+            version-minor = 4
+            version-patch = 1
+            [["0.0.1+0".artifact_metadata.metadata.dependencies]]
+            name = "libcxxwrap_julia_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 8
+            version-patch = 0
+            [["0.0.1+0".artifact_metadata.metadata.dependencies]]
+            name = "armadillo_jll"
+            type = "dependency"
+            version-major = 9
+            version-minor = 850
+            version-patch = 1
+            [["0.0.1+0".artifact_metadata.metadata.dependencies]]
+            name = "GSL_jll"
+            type = "dependency"
+            version-major = 2
+            version-minor = 6
+            version-patch = 0
+            [["0.0.1+0".artifact_metadata.metadata.dependencies]]
+            name = "OpenBLAS_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 3
+            version-patch = 9
+
+            [["0.0.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libhelfem-cxxwrap"]
+            type = "lib"
+            variable_name = "libhelfem"
+
+            [["0.0.1+0".artifact_metadata.metadata.sources]]
+            hash = "d3b9ce4d34fcce3296a80aef0ed9b60ce45319c9"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/mortenpi/HelFEM.git"
+
 ["0.0.1+1"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/HelFEM_jll.jl/releases/download/HelFEM-v0.0.1+1/HelFEM.v0.0.1.aarch64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/HelFEM_jll.jl/releases/download/HelFEM-v0.0.1+1/HelFEM.v0.0.1.armv7l-linux-gnueabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/HelFEM_jll.jl/releases/download/HelFEM-v0.0.1+1/HelFEM.v0.0.1.i686-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/HelFEM_jll.jl/releases/download/HelFEM-v0.0.1+1/HelFEM.v0.0.1.i686-w64-mingw32-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/HelFEM_jll.jl/releases/download/HelFEM-v0.0.1+1/HelFEM.v0.0.1.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/HelFEM_jll.jl/releases/download/HelFEM-v0.0.1+1/HelFEM.v0.0.1.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/HelFEM_jll.jl/releases/download/HelFEM-v0.0.1+1/HelFEM.v0.0.1.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/HelFEM_jll.jl/releases/download/HelFEM-v0.0.1+1/HelFEM.v0.0.1.x86_64-w64-mingw32-cxx11.tar.gz"]
 registered = 2020-10-28T01:57:31.000Z
+
+    [["0.0.1+1".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/HelFEM_jll.jl/releases/download/HelFEM-v0.0.1+1/HelFEM.v0.0.1.aarch64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/HelFEM_jll.jl/releases/download/HelFEM-v0.0.1+1/HelFEM.v0.0.1.armv7l-linux-gnueabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/HelFEM_jll.jl/releases/download/HelFEM-v0.0.1+1/HelFEM.v0.0.1.i686-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/HelFEM_jll.jl/releases/download/HelFEM-v0.0.1+1/HelFEM.v0.0.1.i686-w64-mingw32-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/HelFEM_jll.jl/releases/download/HelFEM-v0.0.1+1/HelFEM.v0.0.1.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/HelFEM_jll.jl/releases/download/HelFEM-v0.0.1+1/HelFEM.v0.0.1.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/HelFEM_jll.jl/releases/download/HelFEM-v0.0.1+1/HelFEM.v0.0.1.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/HelFEM_jll.jl/releases/download/HelFEM-v0.0.1+1/HelFEM.v0.0.1.x86_64-w64-mingw32-cxx11.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/dfe3f69d132e8c4f92462960544da2c38fc19349/H/HelFEM/build_tarballs.jl"
+    metadata_source = "retrospective (by timestamp)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.3.0"
+
+        ["0.0.1+1".artifact_metadata.metadata]
+        init_block = ""
+        julia_compat = "1.0"
+        lazy_artifacts = false
+        name = "HelFEM"
+        platforms = ["x86_64-linux-gnu-cxx11", "i686-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx11", "aarch64-linux-gnu-cxx11", "x86_64-apple-darwin", "x86_64-w64-mingw32-cxx11", "i686-w64-mingw32-cxx11", "x86_64-unknown-freebsd"]
+        script = """cp -v ${WORKSPACE}/srcdir/HelFEM/julia/CMake.system ${WORKSPACE}/srcdir/HelFEM/CMake.system\n\n# Set up some platform specific CMake configuration. This is more or less borrowed from\n# the Armadillo build_tarballs.jl script:\n#   https://github.com/JuliaPackaging/Yggdrasil/blob/48d7a89b4aa46b1a8c91269bb138a660f4ee4ece/A/armadillo/build_tarballs.jl#L23-L52\n#\n# We need to manually set up OpenBLAS because FindOpenBLAS.cmake does not work with BB:\nif [[ \"${nbits}\" == 64 ]] && [[ \"${target}\" != aarch64* ]]; then\n    OPENBLAS=\"${libdir}/libopenblas64_.${dlext}\"\nelse\n    OPENBLAS=\"${libdir}/libopenblas.${dlext}\"\nfi\n\n# On i686, it seems that we need to explicitly tell GCC that we want SSE2. Refs:\n#   https://github.com/JuliaLang/julia/blob/v1.4.1/src/atomics.h#L8-L10\n#   https://stackoverflow.com/questions/16410149/error-sse2-instruction-set-not-enabled-when-including-emmintrin-h\nif [[ \"${target}\" == i686* ]]; then\n    export CXXFLAGS=\"-msse -msse2\"\nfi\n\n# Compile libhelfem as a static library\ncd ${WORKSPACE}/srcdir/HelFEM/\ncmake \\\n    -DCMAKE_INSTALL_PREFIX=$prefix -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} -DCMAKE_BUILD_TYPE=Release \\\n    -DCMAKE_POSITION_INDEPENDENT_CODE=ON \\\n    -DUSE_OPENMP=OFF \\\n    -DHELFEM_BINARIES=OFF -DHELFEM_FIND_DEPS=ON \\\n    -B build/ -S .\nmake -C build/ -j${nproc} helfem\nmake -C build/ install\n# Copy the HelFEM license\ninstall_license LICENSE\n\n# Compile the CxxWrap wrapper as a shared library\ncd ${WORKSPACE}/srcdir/HelFEM/julia\ncmake \\\n    -DCMAKE_INSTALL_PREFIX=$prefix -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} -DCMAKE_BUILD_TYPE=Release \\\n    -DBLAS_LIBRARIES=${OPENBLAS} \\\n    -DJulia_PREFIX=$prefix -DCMAKE_FIND_ROOT_PATH=$prefix -DJlCxx_DIR=$prefix/lib/cmake/JlCxx \\\n    -B build/ -S .\nmake -C build/ -j${nproc}\nmake -C build/ install\n"""
+        version = "v0.0.1"
+
+            [["0.0.1+1".artifact_metadata.metadata.dependencies]]
+            name = "Julia_jll"
+            type = "builddependency"
+            version-major = 1
+            version-minor = 4
+            version-patch = 1
+            [["0.0.1+1".artifact_metadata.metadata.dependencies]]
+            name = "libcxxwrap_julia_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 8
+            version-patch = 0
+            [["0.0.1+1".artifact_metadata.metadata.dependencies]]
+            name = "armadillo_jll"
+            type = "dependency"
+            version-major = 9
+            version-minor = 850
+            version-patch = 1
+            [["0.0.1+1".artifact_metadata.metadata.dependencies]]
+            name = "GSL_jll"
+            type = "dependency"
+            version-major = 2
+            version-minor = 6
+            version-patch = 0
+            [["0.0.1+1".artifact_metadata.metadata.dependencies]]
+            name = "OpenBLAS_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 3
+            version-patch = 9
+
+            [["0.0.1+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libhelfem-cxxwrap"]
+            type = "lib"
+            variable_name = "libhelfem"
+
+            [["0.0.1+1".artifact_metadata.metadata.sources]]
+            hash = "d3b9ce4d34fcce3296a80aef0ed9b60ce45319c9"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/mortenpi/HelFEM.git"
 
 ["0.0.2+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/HelFEM_jll.jl/releases/download/HelFEM-v0.0.2+0/HelFEM.v0.0.2.aarch64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/HelFEM_jll.jl/releases/download/HelFEM-v0.0.2+0/HelFEM.v0.0.2.armv7l-linux-gnueabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/HelFEM_jll.jl/releases/download/HelFEM-v0.0.2+0/HelFEM.v0.0.2.i686-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/HelFEM_jll.jl/releases/download/HelFEM-v0.0.2+0/HelFEM.v0.0.2.i686-w64-mingw32-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/HelFEM_jll.jl/releases/download/HelFEM-v0.0.2+0/HelFEM.v0.0.2.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/HelFEM_jll.jl/releases/download/HelFEM-v0.0.2+0/HelFEM.v0.0.2.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/HelFEM_jll.jl/releases/download/HelFEM-v0.0.2+0/HelFEM.v0.0.2.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/HelFEM_jll.jl/releases/download/HelFEM-v0.0.2+0/HelFEM.v0.0.2.x86_64-w64-mingw32-cxx11.tar.gz"]

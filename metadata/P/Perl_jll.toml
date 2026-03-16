@@ -6,6 +6,90 @@ registered = 2020-07-08T23:14:43.000Z
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/Perl_jll.jl/releases/download/Perl-v5.30.3+0/Perl.v5.30.3.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Perl_jll.jl/releases/download/Perl-v5.30.3+0/Perl.v5.30.3.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Perl_jll.jl/releases/download/Perl-v5.30.3+0/Perl.v5.30.3.x86_64-apple-darwin14.tar.gz", "https://github.com/JuliaBinaryWrappers/Perl_jll.jl/releases/download/Perl-v5.30.3+0/Perl.v5.30.3.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Perl_jll.jl/releases/download/Perl-v5.30.3+0/Perl.v5.30.3.x86_64-linux-musl.tar.gz"]
 registered = 2020-10-19T12:53:24.000Z
 
+    [["5.30.3+1".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/Perl_jll.jl/releases/download/Perl-v5.30.3+0/Perl.v5.30.3.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Perl_jll.jl/releases/download/Perl-v5.30.3+0/Perl.v5.30.3.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Perl_jll.jl/releases/download/Perl-v5.30.3+0/Perl.v5.30.3.x86_64-apple-darwin14.tar.gz", "https://github.com/JuliaBinaryWrappers/Perl_jll.jl/releases/download/Perl-v5.30.3+0/Perl.v5.30.3.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Perl_jll.jl/releases/download/Perl-v5.30.3+0/Perl.v5.30.3.x86_64-linux-musl.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/9fb2e1707da26954243843aa7663b6cce7268538/P/Perl/build_tarballs.jl"
+    metadata_source = "retrospective (by timestamp)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.2.5"
+
+        ["5.30.3+1".artifact_metadata.metadata]
+        init_block = ""
+        lazy_artifacts = false
+        name = "Perl"
+        platforms = ["x86_64-apple-darwin14", "x86_64-linux-gnu", "i686-linux-gnu", "x86_64-linux-musl", "i686-linux-musl"]
+        script = """perldir=`ls -1d perl-*`\ncd $WORKSPACE/srcdir/\nfor dir in *;\ndo\n   [[ \"$dir\" == \"perl-\"* ]] && continue;\n   [[ \"$dir\" == \"patches\" ]] && continue;\n   # build extra perl modules in-tree\n   # the names of the extra modules also need to appear in the\n   # config.sh for all cross-compilation architectures\n   sed -i '1s/^/$ENV{PERL_CORE}=0;/' $dir/Makefile.PL\n   mv $dir $perldir/cpan/${dir%-*};\ndone\n\ncd $perldir/\n\n# allow combining relocation with shared library\n# add patch to find binary location from shared library\natomic_patch -p1 ../patches/allow-relocate.patch\n\n# replace some library checks that wont work in the cross-compile environment\n# with the required values\natomic_patch -p1 ../patches/cross-nolibchecks.patch\n\nif [[ $target != x86_64-linux* ]] && [[ $target != i686-linux* ]]; then\n   # cross build with supplied config.sh\n   # build native miniperl\n   src=`pwd`\n   mkdir host\n   pushd host\n   ../Configure -des -Dusedevel -Duserelocatableinc -Dmksymlinks -Dosname=linux -Dcc=$CC_FOR_BUILD -Dld=$LD_FOR_BUILD -Dar=$AR_FOR_BUILD -Dnm=$NM_FOR_BUILD -Dlibs=-lm\n   make -j${nproc} miniperl\n   make -j${nproc} generate_uudmap\n   cp -p miniperl $prefix/bin/miniperl-for-build\n   popd\n\n   # copy and use prepared configure information\n   cp ../patches/config-$target.sh config.sh\n   ./Configure -K -S\nelse\n   # native\n\n   # config overrides\n   if [[ $target = *-gnu ]]; then\n      # disable xlocale.h usage (which was removed in recent glibc)\n      cp ../patches/config.arch.gnu config.arch\n   fi\n\n   ./Configure -des -Dcc=\"$CC\" -Dprefix=$prefix -Duserelocatableinc -Dprocselfexe -Duseshrplib -Dsysroot=/opt/$target/$target/sys-root -Dccflags=\"-I${prefix}/include\" -Dldflags=\"-L${libdir} -Wl,-rpath,${libdir}\" -Dlddlflags=\"-shared -L${libdir} -Wl,-rpath,${libdir}\"\nfi\n\nmake -j${nproc} depend\nmake -j${nproc}\n\nmake install\n\n# put a libperl directly in lib\ncd $libdir\nln -s perl5/*/*/CORE/libperl.${dlext} libperl.${dlext}\n\n# resolve case-ambiguity:\ncd $libdir/perl5/5.*.*\nmv Pod/* pod\nrmdir Pod\n\n# remove sysroot and target flags from stored compiler flags:\nsed -i -e \"s#--sysroot[ =]\\S\\+##g\" \\\n       -e \"s#-target[ =]\\S\\+##g\" \\\n       ${prefix}/*/perl5/*/*/Config_heavy.pl\n\n"""
+        version = "v5.30.3"
+
+            [["5.30.3+1".artifact_metadata.metadata.dependencies]]
+            name = "Readline_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["5.30.3+1".artifact_metadata.metadata.products]]
+            binnames = ["perl"]
+            type = "exe"
+            variable_name = "perl"
+            [["5.30.3+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libperl"]
+            type = "lib"
+            variable_name = "libperl"
+
+            [["5.30.3+1".artifact_metadata.metadata.sources]]
+            hash = "32e04c8bb7b1aecb2742a7f7ac0eabac100f38247352a73ad7fa104e39e7406f"
+            type = "archive"
+            unpack_target = ""
+            url = "https://www.cpan.org/src/5.0/perl-5.30.3.tar.gz"
+            [["5.30.3+1".artifact_metadata.metadata.sources]]
+            hash = "444a88755a89ffa2a5424ab4ed1d11dca61808ebef57e81243424619a9e8627c"
+            type = "archive"
+            unpack_target = ""
+            url = "https://cpan.metacpan.org/authors/id/I/IS/ISHIGAKI/JSON-4.02.tar.gz"
+            [["5.30.3+1".artifact_metadata.metadata.sources]]
+            hash = "e080522c6ce050397af482665f3965a93c5d16f5e81d93f6e2fe98084ed15fbe"
+            type = "archive"
+            unpack_target = ""
+            url = "https://cpan.metacpan.org/authors/id/J/JO/JOSEPHW/XML-Writer-0.625.tar.gz"
+            [["5.30.3+1".artifact_metadata.metadata.sources]]
+            hash = "5a645878dc570ac33661581fbb090ff24ebce17d43ea53fd22e105a856a47290"
+            type = "archive"
+            unpack_target = ""
+            url = "https://cpan.metacpan.org/authors/id/J/JS/JSTOWE/TermReadKey-2.38.tar.gz"
+            [["5.30.3+1".artifact_metadata.metadata.sources]]
+            hash = "9a08f7a4013c9b865541c10dbba1210779eb9128b961250b746d26702bab6925"
+            type = "archive"
+            unpack_target = ""
+            url = "https://cpan.metacpan.org/authors/id/H/HA/HAYASHI/Term-ReadLine-Gnu-1.36.tar.gz"
+            [["5.30.3+1".artifact_metadata.metadata.sources]]
+            hash = "4506c387043aa6a77b455f00f57409f3720aa7e553495ab2535263b4ed1ea12a"
+            type = "archive"
+            unpack_target = ""
+            url = "https://cpan.metacpan.org/authors/id/G/GR/GRANTM/XML-SAX-1.02.tar.gz"
+            [["5.30.3+1".artifact_metadata.metadata.sources]]
+            hash = "47e995859f8dd0413aa3f22d350c4a62da652e854267aa0586ae544ae2bae5ef"
+            type = "archive"
+            unpack_target = ""
+            url = "https://cpan.metacpan.org/authors/id/P/PE/PERIGRIN/XML-NamespaceSupport-1.12.tar.gz"
+            [["5.30.3+1".artifact_metadata.metadata.sources]]
+            hash = "66cb355ba4ef47c10ca738bd35999723644386ac853abbeb5132841f5e8a2ad0"
+            type = "archive"
+            unpack_target = ""
+            url = "https://cpan.metacpan.org/authors/id/G/GR/GRANTM/XML-SAX-Base-1.09.tar.gz"
+            [["5.30.3+1".artifact_metadata.metadata.sources]]
+            hash = "ec3d6ddde7a46fa507eaa616b94d217296fdc0d8fbf88741367a9821206f28af"
+            type = "archive"
+            unpack_target = ""
+            url = "https://cpan.metacpan.org/authors/id/M/MA/MANWAR/SVG-2.84.tar.gz"
+            [["5.30.3+1".artifact_metadata.metadata.sources]]
+            path = "./bundled"
+            target = ""
+            type = "directory"
+
 ["5.30.3+2"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/Perl_jll.jl/releases/download/Perl-v5.30.3+2/Perl.v5.30.3.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Perl_jll.jl/releases/download/Perl-v5.30.3+2/Perl.v5.30.3.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Perl_jll.jl/releases/download/Perl-v5.30.3+2/Perl.v5.30.3.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Perl_jll.jl/releases/download/Perl-v5.30.3+2/Perl.v5.30.3.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Perl_jll.jl/releases/download/Perl-v5.30.3+2/Perl.v5.30.3.x86_64-linux-musl.tar.gz"]
 registered = 2020-11-25T22:58:34.000Z
