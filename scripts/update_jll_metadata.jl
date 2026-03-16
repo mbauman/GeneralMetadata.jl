@@ -255,7 +255,13 @@ function metadata_for_jll_release(org, repo, tag)
             commit = strip(read(`git rev-list --first-parent -n 1 --before=$(release_published_at) master`, String))
             method = "timestamp"
         end
-        run(pipeline(`git checkout $commit`, stdout=Base.devnull, stderr=Base.devnull))
+        try
+            run(pipeline(`git checkout $commit`, stdout=Base.devnull, stderr=Base.devnull))
+        catch _
+            # Sometimes a README link points to a commit that's on a fork or somesuch; sometimes origin knows this
+            run(pipeline(`git fetch origin $commit`, stdout=Base.devnull, stderr=Base.devnull))
+            run(pipeline(`git checkout $commit`, stdout=Base.devnull, stderr=Base.devnull))
+        end
         buildscript = @something path_from_readme joinpath(yggy, uppercase(jllname[1:1]), jllname, "build_tarballs.jl")
         if !isfile(buildscript)
             # First look for a potentially-deeper nested path, without worrying about case, then consider version numbers
@@ -264,7 +270,11 @@ function metadata_for_jll_release(org, repo, tag)
                                 "*/$jllname@$jllversion/build_tarballs.jl",
                                 "*/$jllname@$(majorminorpatch(VersionNumber(jllversion)))/build_tarballs.jl",
                                 "*/$jllname@$(majorminor(VersionNumber(jllversion)))/build_tarballs.jl",
-                                "*/$jllname@$(major(VersionNumber(jllversion)))/build_tarballs.jl")
+                                "*/$jllname@$(major(VersionNumber(jllversion)))/build_tarballs.jl",
+                                "*/$jllname@v$jllversion/build_tarballs.jl",
+                                "*/$jllname@v$(majorminorpatch(VersionNumber(jllversion)))/build_tarballs.jl",
+                                "*/$jllname@v$(majorminor(VersionNumber(jllversion)))/build_tarballs.jl",
+                                "*/$jllname@v$(major(VersionNumber(jllversion)))/build_tarballs.jl")
                 pathmatches = split(readchomp(`find . -ipath $searchpath`), "\n", keepempty=false)
                 if length(pathmatches) == 1
                     buildscript = joinpath(yggy, pathmatches[1])
@@ -375,6 +385,11 @@ function update_jll_metadata(; force = false, timelimit=Dates.Minute(90))
             continue
         end
         if haskey(entry, "artifact_metadata") && !force
+            continue
+        end
+        if DateTime(2020, 9, 9) < entry["registered"] < DateTime(2020, 10, 19)
+            # Skip versions registered during the dark ages when Yggdrasil was pulling some -latest that doesn't work with v1.5 or v1.6-beta1
+            # TODO: find a good version here!
             continue
         end
         (Dates.now() - start_time) > timelimit && ( @info "timelimit of $timelimit reached, stopping here"; break)
