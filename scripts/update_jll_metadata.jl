@@ -222,7 +222,7 @@ function separate_reconstructed_artifact_metadata!(jllmeta)
     jllmeta["metadata"] isa String && return jllmeta # already a string pointing to some location
     # Extract the metadata blob itself and place it into the reconstructed_artifact_metadata directory
     repo, commit, path = match(r"^https://github.com/(?:[^/]+)/([^/]+)/tree/([^/]+)/(.*)$", jllmeta["buildscript"])
-    jllmeta_metapath = joinpath("reconstructed_artifact_metadata", repo, path, commit * ".toml")
+    jllmeta_metapath = joinpath("reconstructed_artifact_metadata", repo, lowercase(path), commit * ".toml")
     jllmeta_file = joinpath(@__DIR__, "..", jllmeta_metapath)
     if isfile(jllmeta_file) &&
         replace(sprint((io,x)->TOML.print(io, x, sorted=true), jllmeta["metadata"]), r"\"/tmp/jl_[^/]+/" => "\"") !=
