@@ -294,9 +294,19 @@ function metadata_for_jll_release(org, repo, tag)
                 #     JULIA_URL="julialangnightlies-s3.julialang.org/assert_pretesting/linux/x64/1.4/julia-3a22e2fdcf-linux64.tar.gz"
                 julia_match = match(r"^\s*JULIA_URL=\".*?/julia-(.*)-linux"m, readchomp(".ci/azp_agent/install_agents.sh"))
                 julia_version = if !isnothing(julia_match)
-                    if julia_match[1] == "latest" || julia_match[1] == "1.6.0-rc1"
-                        # lol. https://github.com/JuliaPackaging/Yggdrasil/blob/e0c5ee45cb0b6aea8006ad25f388ad116da22a01/.ci/azp_agent/install_agents.sh#L54-L57
+                    if julia_match[1] == "1.6.0-rc1"
                         "1.6.0"
+                    elseif julia_match[1] == "latest"
+                        # ugh. https://github.com/JuliaPackaging/Yggdrasil/blob/e0c5ee45cb0b6aea8006ad25f388ad116da22a01/.ci/azp_agent/install_agents.sh#L54-L57
+                        # We have to guess based on the behaviors here; we don't have easy access to every nightly. Fortunately this only
+                        # happened during the 1.6-DEV period, but there are periods where neither release 1.6 nor 1.5 work
+                        if release_published_at > DateTime(2021, 2, 18, 23, 18, 14)
+                            # 1.6.0 begins working after https://github.com/JuliaPackaging/Yggdrasil/pull/2593 (ARGS not defined error)
+                            "1.6.0"
+                        else
+                            # 1.6.0-beta1 still had the old scoping behaviors that worked prior to that
+                            "1.6.0-beta1"
+                        end
                     elseif julia_match[1] == "3a22e2fdcf"
                         # This was https://github.com/JuliaLang/julia/commit/3a22e2fdcf, a v1.4-rc2 pre-release
                         "1.4.0"
