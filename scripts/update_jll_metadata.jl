@@ -250,6 +250,7 @@ function add_jll_artifact_metadata!(meta_version_entry)
         org == "JuliaBinaryWrappers" || continue
         jllmeta = metadata_for_jll_release(org, repo, tag)
         jllmeta["artifact_urls"] = urls
+        separate_reconstructed_artifact_metadata!(jllmeta)
         push!(get!(meta_version_entry, "artifact_metadata", []), jllmeta)
     end
     return meta_version_entry
