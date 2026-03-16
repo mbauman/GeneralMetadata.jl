@@ -89,6 +89,89 @@ registered = 2020-08-17T19:18:29.000Z
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v7.3.8+1/SDPA.v7.3.8.aarch64-linux-gnu-libgfortran4-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v7.3.8+1/SDPA.v7.3.8.armv7l-linux-gnueabihf-libgfortran4-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v7.3.8+1/SDPA.v7.3.8.i686-linux-gnu-libgfortran4-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v7.3.8+1/SDPA.v7.3.8.i686-w64-mingw32-libgfortran4-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v7.3.8+1/SDPA.v7.3.8.x86_64-apple-darwin14-libgfortran4-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v7.3.8+1/SDPA.v7.3.8.x86_64-linux-gnu-libgfortran4-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v7.3.8+1/SDPA.v7.3.8.x86_64-unknown-freebsd11.1-libgfortran4-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v7.3.8+1/SDPA.v7.3.8.x86_64-w64-mingw32-libgfortran4-cxx11.tar.gz"]
 registered = 2020-08-21T22:19:14.000Z
 
+    [["7.3.8+1".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v7.3.8+1/SDPA.v7.3.8.aarch64-linux-gnu-libgfortran4-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v7.3.8+1/SDPA.v7.3.8.armv7l-linux-gnueabihf-libgfortran4-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v7.3.8+1/SDPA.v7.3.8.i686-linux-gnu-libgfortran4-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v7.3.8+1/SDPA.v7.3.8.i686-w64-mingw32-libgfortran4-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v7.3.8+1/SDPA.v7.3.8.x86_64-apple-darwin14-libgfortran4-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v7.3.8+1/SDPA.v7.3.8.x86_64-linux-gnu-libgfortran4-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v7.3.8+1/SDPA.v7.3.8.x86_64-unknown-freebsd11.1-libgfortran4-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v7.3.8+1/SDPA.v7.3.8.x86_64-w64-mingw32-libgfortran4-cxx11.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/2e077c7f73ec98448f6e918ce15d462294560870/S/SDPA/build_tarballs.jl"
+    metadata_source = "retrospective (by timestamp)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.2.5"
+
+        ["7.3.8+1".artifact_metadata.metadata]
+        init_block = ""
+        lazy_artifacts = false
+        name = "SDPA"
+        platforms = ["x86_64-unknown-freebsd11.1-libgfortran4-cxx11", "armv7l-linux-gnueabihf-libgfortran4-cxx11", "aarch64-linux-gnu-libgfortran4-cxx11", "x86_64-linux-gnu-libgfortran4-cxx11", "i686-linux-gnu-libgfortran4-cxx11", "x86_64-apple-darwin14-libgfortran4-cxx11", "x86_64-w64-mingw32-libgfortran4-cxx11", "i686-w64-mingw32-libgfortran4-cxx11"]
+        script = """cd $WORKSPACE/srcdir/sdpa-*\n\n# Remove misleading libtool files\nrm -f ${prefix}/lib/*.la\nrm -f /opt/${target}/${target}/lib*/*.la\nupdate_configure_scripts\n\n# Apply patches\natomic_patch -p1 $WORKSPACE/srcdir/patches/shared.diff\nmv configure.in configure.ac\natomic_patch -p1 $WORKSPACE/srcdir/patches/lt_init.diff\nautoreconf -vi\n\nexport CPPFLAGS=\"${CPPFLAGS} -I${prefix}/include -I$prefix/include/coin\"\nexport CXXFLAGS=\"${CXXFLAGS} -std=c++11\"\nif [[ ${target} == *mingw* ]]; then\n    export LDFLAGS=\"-L$prefix/bin\"\nelif [[ ${target} == *linux* ]]; then\n    export LDFLAGS=\"-ldl -lrt\"\nfi\n\n./configure --prefix=$prefix --with-pic --disable-pkg-config --build=${MACHTYPE} --host=${target} \\\n--enable-shared lt_cv_deplibs_check_method=pass_all \\\n--with-blas=\"-lopenblas\" --with-lapack=\"-lopenblas\" \\\n--with-mumps-libs=\"-L${prefix}/lib -ldmumps -lzmumps -lcmumps -lsmumps -lmumps_common -lmpiseq -lpord -lmetis -lopenblas -lgfortran -lpthread\" \\\n--with-mumps-include=\"-I${prefix}/include/mumps_seq\"\n\nmake -j${nproc}\nmake install\n\n## Then build the libcxxwrap-julia wrapper\ncd $WORKSPACE/srcdir/sdpawrap\n\nmkdir build\ncd build/\n\nif [[ $target == i686-* ]] || [[ $target == arm-* ]]; then\n    export processor=pentium4\nelse\n    export processor=x86-64\nfi\n\n# Override compiler ID to silence the horrible \"No features found\" cmake error\nif [[ $target == *\"apple-darwin\"* ]]; then\n  macos_extra_flags=\"-DCMAKE_CXX_COMPILER_ID=AppleClang -DCMAKE_CXX_COMPILER_VERSION=10.0.0 -DCMAKE_CXX_STANDARD_COMPUTED_DEFAULT=11\"\nfi\n\ncmake $macos_extra_flags -DCMAKE_INSTALL_PREFIX=${prefix} \\\n      -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n      -DSDPA_DIR=$prefix \\\n      -DMUMPS_INCLUDE_DIR=\"../../destdir/include/mumps_seq\" \\\n      -DCMAKE_FIND_ROOT_PATH=${prefix} \\\n      -DJulia_PREFIX=${prefix} \\\n      -DSDPA_LIBRARY=\"-lsdpa\" \\\n      -D_GLIBCXX_USE_CXX11_ABI=1 \\\n      -DJlCxx_DIR=${prefix}/lib/cmake/JlCxx \\\n      ..\ncmake --build . --config Release --target install\n\nif [[ $target == *w64-mingw32* ]] ; then\n    cp $WORKSPACE/destdir/lib/libsdpawrap.dll ${libdir}\nfi\n\ninstall_license $WORKSPACE/srcdir/sdpa-*/COPYING\n"""
+        version = "v7.3.8"
+
+            [["7.3.8+1".artifact_metadata.metadata.dependencies]]
+            name = "libcxxwrap_julia_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["7.3.8+1".artifact_metadata.metadata.dependencies]]
+            name = "OpenBLAS32_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["7.3.8+1".artifact_metadata.metadata.dependencies]]
+            name = "CompilerSupportLibraries_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["7.3.8+1".artifact_metadata.metadata.dependencies]]
+            name = "Julia_jll"
+            type = "builddependency"
+            version-major = 1
+            version-minor = 4
+            version-patch = 1
+            [["7.3.8+1".artifact_metadata.metadata.dependencies]]
+            name = "MUMPS_seq_jll"
+            type = "builddependency"
+            uuid = "d7ed1dd3-d0ae-5e8e-bfb4-87a502085b8d"
+            version-major = 4
+            version-minor = 10
+            version-patch = 0
+            [["7.3.8+1".artifact_metadata.metadata.dependencies]]
+            name = "METIS_jll"
+            type = "builddependency"
+            uuid = "d00139f3-1899-568f-a2f0-47f597d42d70"
+            version-major = 4
+            version-minor = 0
+            version-patch = 3
+
+            [["7.3.8+1".artifact_metadata.metadata.products]]
+            binnames = ["sdpa"]
+            type = "exe"
+            variable_name = "sdpa"
+            [["7.3.8+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libsdpa"]
+            type = "lib"
+            variable_name = "libsdpa"
+            [["7.3.8+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libsdpawrap"]
+            type = "lib"
+            variable_name = "libsdpawrap"
+
+            [["7.3.8+1".artifact_metadata.metadata.sources]]
+            hash = "c7541333da2f0bb2d18e90dbf758ac7cc099f3f7da3f256b284b0725f96d4117"
+            type = "archive"
+            unpack_target = ""
+            url = "https://sourceforge.net/projects/sdpa/files/sdpa/sdpa_7.3.8.tar.gz"
+            [["7.3.8+1".artifact_metadata.metadata.sources]]
+            path = "./bundled"
+            target = ""
+            type = "directory"
+
 ["700.300.800+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v700.300.800+0/SDPA.v700.300.800.aarch64-linux-gnu-libgfortran4-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v700.300.800+0/SDPA.v700.300.800.aarch64-linux-gnu-libgfortran4-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v700.300.800+0/SDPA.v700.300.800.aarch64-linux-gnu-libgfortran5-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v700.300.800+0/SDPA.v700.300.800.aarch64-linux-gnu-libgfortran5-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v700.300.800+0/SDPA.v700.300.800.aarch64-linux-musl-libgfortran4-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v700.300.800+0/SDPA.v700.300.800.aarch64-linux-musl-libgfortran4-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v700.300.800+0/SDPA.v700.300.800.aarch64-linux-musl-libgfortran5-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v700.300.800+0/SDPA.v700.300.800.aarch64-linux-musl-libgfortran5-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v700.300.800+0/SDPA.v700.300.800.armv7l-linux-gnueabihf-libgfortran4-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v700.300.800+0/SDPA.v700.300.800.armv7l-linux-gnueabihf-libgfortran4-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v700.300.800+0/SDPA.v700.300.800.armv7l-linux-gnueabihf-libgfortran5-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v700.300.800+0/SDPA.v700.300.800.armv7l-linux-gnueabihf-libgfortran5-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v700.300.800+0/SDPA.v700.300.800.armv7l-linux-musleabihf-libgfortran4-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v700.300.800+0/SDPA.v700.300.800.armv7l-linux-musleabihf-libgfortran4-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v700.300.800+0/SDPA.v700.300.800.armv7l-linux-musleabihf-libgfortran5-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v700.300.800+0/SDPA.v700.300.800.armv7l-linux-musleabihf-libgfortran5-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v700.300.800+0/SDPA.v700.300.800.i686-linux-gnu-libgfortran4-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v700.300.800+0/SDPA.v700.300.800.i686-linux-gnu-libgfortran4-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v700.300.800+0/SDPA.v700.300.800.i686-linux-gnu-libgfortran5-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v700.300.800+0/SDPA.v700.300.800.i686-linux-gnu-libgfortran5-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v700.300.800+0/SDPA.v700.300.800.i686-w64-mingw32-libgfortran4-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v700.300.800+0/SDPA.v700.300.800.i686-w64-mingw32-libgfortran4-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v700.300.800+0/SDPA.v700.300.800.i686-w64-mingw32-libgfortran5-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v700.300.800+0/SDPA.v700.300.800.i686-w64-mingw32-libgfortran5-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v700.300.800+0/SDPA.v700.300.800.powerpc64le-linux-gnu-libgfortran4-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v700.300.800+0/SDPA.v700.300.800.powerpc64le-linux-gnu-libgfortran4-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v700.300.800+0/SDPA.v700.300.800.powerpc64le-linux-gnu-libgfortran5-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v700.300.800+0/SDPA.v700.300.800.powerpc64le-linux-gnu-libgfortran5-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v700.300.800+0/SDPA.v700.300.800.x86_64-apple-darwin-libgfortran4.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v700.300.800+0/SDPA.v700.300.800.x86_64-apple-darwin-libgfortran5.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v700.300.800+0/SDPA.v700.300.800.x86_64-linux-gnu-libgfortran4-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v700.300.800+0/SDPA.v700.300.800.x86_64-linux-gnu-libgfortran4-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v700.300.800+0/SDPA.v700.300.800.x86_64-linux-gnu-libgfortran5-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v700.300.800+0/SDPA.v700.300.800.x86_64-linux-gnu-libgfortran5-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v700.300.800+0/SDPA.v700.300.800.x86_64-linux-musl-libgfortran4-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v700.300.800+0/SDPA.v700.300.800.x86_64-linux-musl-libgfortran4-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v700.300.800+0/SDPA.v700.300.800.x86_64-linux-musl-libgfortran5-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v700.300.800+0/SDPA.v700.300.800.x86_64-linux-musl-libgfortran5-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v700.300.800+0/SDPA.v700.300.800.x86_64-unknown-freebsd-libgfortran4.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v700.300.800+0/SDPA.v700.300.800.x86_64-unknown-freebsd-libgfortran5.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v700.300.800+0/SDPA.v700.300.800.x86_64-w64-mingw32-libgfortran4-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v700.300.800+0/SDPA.v700.300.800.x86_64-w64-mingw32-libgfortran4-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v700.300.800+0/SDPA.v700.300.800.x86_64-w64-mingw32-libgfortran5-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/SDPA_jll.jl/releases/download/SDPA-v700.300.800+0/SDPA.v700.300.800.x86_64-w64-mingw32-libgfortran5-cxx11.tar.gz"]
 registered = 2021-01-02T14:57:04.000Z
