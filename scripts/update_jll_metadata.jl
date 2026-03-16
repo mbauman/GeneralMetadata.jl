@@ -223,7 +223,12 @@ function separate_reconstructed_artifact_metadata!(jllmeta)
     # Extract the metadata blob itself and place it into the reconstructed_artifact_metadata directory
     repo, commit, path = match(r"^https://github.com/(?:[^/]+)/([^/]+)/tree/([^/]+)/(.*)$", jllmeta["buildscript"])
     jllmeta_file = joinpath(@__DIR__, "..", "reconstructed_artifact_metadata", repo, path, commit * ".toml")
-    isfile(jllmeta_file) && @assert jllmeta["metadata"] == TOML.parsefile(jllmeta_file)
+    if isfile(jllmeta_file) &&
+        replace(sprint((io,x)->TOML.print(io, x, sorted=true), jllmeta["metadata"]), r"\"/tmp/jl_[^/]+/" => "\"") !=
+        replace(sprint((io,x)->TOML.print(io, x, sorted=true), TOML.parsefile(jllmeta_file)), r"\"/tmp/jl_[^/]+/" => "\"")
+        # temp foldernames sometimes get serialized to metadata; ignore those differences
+        error("reconstructing buildscript $(jllmeta["buildscript"]) generated two different metadata blobs")
+    end
     mkpath(dirname(jllmeta_file))
     open(jllmeta_file, "w") do f
         TOML.print(f, jllmeta["metadata"], sorted=true)
