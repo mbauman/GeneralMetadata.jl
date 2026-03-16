@@ -387,6 +387,11 @@ function update_jll_metadata(; force = false, timelimit=Dates.Minute(90))
         if haskey(entry, "artifact_metadata") && !force
             continue
         end
+        if DateTime(2020, 9, 26) < entry["registered"] < DateTime(2020, 10, 19)
+            # Skip versions registered during the dark ages when Yggdrasil was pulling some -latest that doesn't work with v1.5 or v1.6-beta1
+            # TODO: find a good version here!
+            continue
+        end
         (Dates.now() - start_time) > timelimit && ( @info "timelimit of $timelimit reached, stopping here"; break)
         try
             add_jll_artifact_metadata!(entry)
