@@ -2,6 +2,123 @@
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/polymake_jll.jl/releases/download/polymake-v4.1.0+0/polymake.v4.1.0.x86_64-apple-darwin14-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/polymake_jll.jl/releases/download/polymake-v4.1.0+0/polymake.v4.1.0.x86_64-linux-gnu-cxx11.tar.gz"]
 registered = 2020-08-06T18:34:20.000Z
 
+    [["4.1.0+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/polymake_jll.jl/releases/download/polymake-v4.1.0+0/polymake.v4.1.0.x86_64-apple-darwin14-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/polymake_jll.jl/releases/download/polymake-v4.1.0+0/polymake.v4.1.0.x86_64-linux-gnu-cxx11.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/b3d616143f1241b2cffbadcbe14a05f4292111b9/P/polymake/build_tarballs.jl"
+    metadata_source = "retrospective (by timestamp)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.2.5"
+
+        ["4.1.0+0".artifact_metadata.metadata]
+        init_block = """\n   mutable_artifacts_toml = joinpath(dirname(@__DIR__), \"MutableArtifacts.toml\")\n   polymake_tree = \"polymake_tree\"\n   polymake_tree_hash = artifact_hash(polymake_tree, mutable_artifacts_toml)\n\n   # create a directory tree for polymake with links to dependencies\n   # looking similiar to the tree in the build environment\n   # for compiling wrappers at run-time\n   polymake_tree_hash = create_artifact() do art_dir\n      mkpath(joinpath(art_dir,\"deps\"))\n      for dep in [FLINT_jll, GMP_jll, MPFR_jll, PPL_jll, Perl_jll, bliss_jll, boost_jll, cddlib_jll, lrslib_jll, normaliz_jll]\n         symlink(dep.artifact_dir, joinpath(art_dir,\"deps\",\"$dep\"))\n      end\n      for dir in readdir(polymake_jll.artifact_dir)\n         symlink(joinpath(polymake_jll.artifact_dir,dir), joinpath(art_dir,dir))\n      end\n   end\n   bind_artifact!(mutable_artifacts_toml,\n      polymake_tree,\n      polymake_tree_hash;\n      force=true\n   )\n\n   # Point polymake to our custom tree\n   ENV[\"POLYMAKE_DEPS_TREE\"] = artifact_path(polymake_tree_hash)\n"""
+        lazy_artifacts = false
+        name = "polymake"
+        platforms = ["x86_64-apple-darwin14-cxx11", "x86_64-linux-gnu-cxx11"]
+        script = """cd $WORKSPACE/srcdir/polymake\n\nperl_version=5.30.3\n\n# to be able to generate a similiar dependency tree at runtime\n# we prepare a symlink tree for all dependencies\nmkdir -p ${prefix}/deps\nfor dir in FLINT GMP MPFR PPL Perl bliss boost cddlib lrslib normaliz; do\n   ln -s .. ${prefix}/deps/${dir}_jll\ndone\n\natomic_patch -p1 ../patches/relocatable.patch\nif [[ $target == *darwin* ]]; then\n  # we cannot run configure and instead provide config files\n  mkdir -p build/Opt\n  mkdir -p build/perlx/$perl_version/apple-darwin14\n  cp ../config/config-$target.ninja build/config.ninja\n  cp ../config/build-Opt-$target.ninja build/Opt/build.ninja\n  cp ../config/targets.ninja build/targets.ninja\n  ln -s ../config.ninja build/Opt/config.ninja\n  cp ../config/perlx-config-$target.ninja build/perlx/$perl_version/apple-darwin14/config.ninja\n  # for a modified pure perl JSON module and to make miniperl find the correct modules\n  export PERL5LIB=$prefix/lib/perl5/$perl_version:$prefix/lib/perl5/$perl_version/darwin-2level:$WORKSPACE/srcdir/patches\n  atomic_patch -p1 ../patches/polymake-cross.patch\n  atomic_patch -p1 ../patches/polymake-cross-build.patch\nelse\n  ./configure CFLAGS=\"-Wno-error\" CC=\"$CC\" CXX=\"$CXX\" \\\n              PERL=${prefix}/deps/Perl_jll/bin/perl LDFLAGS=\"$LDFLAGS\" \\\n              --prefix=${prefix} \\\n              --with-flint=${prefix}/deps/FLINT_jll \\\n              --with-gmp=${prefix}/deps/GMP_jll \\\n              --with-mpfr=${prefix}/deps/MPFR_jll \\\n              --with-ppl=${prefix}/deps/PPL_jll \\\n              --with-bliss=${prefix}/deps/bliss_jll \\\n              --with-boost=${prefix}/deps/boost_jll \\\n              --with-cdd=${prefix}/deps/cddlib_jll \\\n              --with-lrs=${prefix}/deps/lrslib_jll \\\n              --with-libnormaliz=${prefix}/deps/normaliz_jll \\\n              --without-singular \\\n              --without-native\nfi\n\nninja -v -C build/Opt -j${nproc}\n\nninja -v -C build/Opt install\n\n# undo patch needed for building\nif [[ $target == *darwin* ]]; then\n  atomic_patch -R -p1 ../patches/polymake-cross-build.patch\nfi\ninstall -m 444 -D support/*.pl $prefix/share/polymake/support/\n\n# replace miniperl\nsed -i -e \"s/miniperl-for-build/perl/\" ${libdir}/polymake/config.ninja ${bindir}/polymake*\n# replace binary path with env\nsed -i -e \"s#$bindir/perl#/usr/bin/env perl#g\" ${libdir}/polymake/config.ninja ${bindir}/polymake*\n# remove target and sysroot\nsed -i -e \"s#--sysroot[ =]\\S\\+##g\" ${libdir}/polymake/config.ninja\nsed -i -e \"s#-target[ =]\\S\\+##g\" ${libdir}/polymake/config.ninja\n\n# copy of build config that has prefix as a variable\nsed -e \"s#${prefix}#\\${prefix}#g\" ${libdir}/polymake/config.ninja > ${libdir}/polymake/config-reloc.ninja\n\n# cleanup symlink tree\nrm -rf ${prefix}/deps\n\ninstall_license COPYING\n"""
+        version = "v4.1.0"
+
+            [["4.1.0+0".artifact_metadata.metadata.dependencies]]
+            name = "CompilerSupportLibraries_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["4.1.0+0".artifact_metadata.metadata.dependencies]]
+            name = "FLINT_jll"
+            type = "dependency"
+            uuid = "e134572f-a0d5-539d-bddf-3cad8db41a82"
+            version-major = 2
+            version-minor = 6
+            version-patch = 2
+            [["4.1.0+0".artifact_metadata.metadata.dependencies]]
+            name = "GMP_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["4.1.0+0".artifact_metadata.metadata.dependencies]]
+            name = "MPFR_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["4.1.0+0".artifact_metadata.metadata.dependencies]]
+            name = "PPL_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["4.1.0+0".artifact_metadata.metadata.dependencies]]
+            name = "Perl_jll"
+            type = "dependency"
+            uuid = "83958c19-0796-5285-893e-a1267f8ec499"
+            version-major = 5
+            version-minor = 30
+            version-patch = 3
+            [["4.1.0+0".artifact_metadata.metadata.dependencies]]
+            name = "bliss_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["4.1.0+0".artifact_metadata.metadata.dependencies]]
+            name = "boost_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["4.1.0+0".artifact_metadata.metadata.dependencies]]
+            name = "cddlib_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["4.1.0+0".artifact_metadata.metadata.dependencies]]
+            name = "lrslib_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["4.1.0+0".artifact_metadata.metadata.dependencies]]
+            name = "normaliz_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["4.1.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libpolymake"]
+            type = "lib"
+            variable_name = "libpolymake"
+            [["4.1.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = true
+            libnames = ["libpolymake-apps-rt"]
+            type = "lib"
+            variable_name = "libpolymake_apps_rt"
+            [["4.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["polymake"]
+            type = "exe"
+            variable_name = "polymake"
+            [["4.1.0+0".artifact_metadata.metadata.products]]
+            binnames = ["polymake-config"]
+            type = "exe"
+            variable_name = "polymake_config"
+
+            [["4.1.0+0".artifact_metadata.metadata.sources]]
+            hash = "8704ebbba9f8cc2b07f824a283ffed49a8c036be"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/polymake/polymake.git"
+            [["4.1.0+0".artifact_metadata.metadata.sources]]
+            path = "./bundled"
+            target = ""
+            type = "directory"
+
 ["4.1.0+1"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/polymake_jll.jl/releases/download/polymake-v4.1.0+1/polymake.v4.1.0.x86_64-apple-darwin14-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/polymake_jll.jl/releases/download/polymake-v4.1.0+1/polymake.v4.1.0.x86_64-linux-gnu-cxx11.tar.gz"]
 registered = 2020-08-18T09:58:07.000Z
