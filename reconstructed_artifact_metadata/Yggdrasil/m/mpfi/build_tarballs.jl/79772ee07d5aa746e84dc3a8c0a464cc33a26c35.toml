@@ -1,0 +1,41 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "MPFI"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """    cd $WORKSPACE/srcdir/mpfi\n\n    # The autotools scripts are not provided setup, so we must configure the configure script\n    ./autogen.sh\n\n    # Don't build the static library, documentation, or test set\n    ./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} --with-gmp=${prefix} --with-mpfr=${prefix} --disable-static CFLAGS=-Wno-incompatible-pointer-types\n    make -j${nproc} SUBDIRS=\"src\"\n    make install SUBDIRS=\"src\"\n\n    # Remove the libtool files that are created\n    rm -f ${prefix}/lib/*.la\n"""
+version = "v1.5.6"
+
+[[dependencies]]
+compat = "6.2.1"
+name = "GMP_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "4.2.0"
+name = "MPFR_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmpfi"]
+type = "lib"
+variable_name = "libmpfi"
+
+[[sources]]
+hash = "446e21250c82c9d156e7b83b6119013943664942"
+type = "git"
+unpack_target = ""
+url = "https://github.com/arpra-project/mpfi"

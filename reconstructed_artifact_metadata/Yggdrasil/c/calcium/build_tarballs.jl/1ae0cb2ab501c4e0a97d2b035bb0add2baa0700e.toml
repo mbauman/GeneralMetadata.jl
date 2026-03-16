@@ -1,0 +1,57 @@
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Calcium"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "aarch64-apple-darwin", "armv6l-linux-gnueabihf", "armv6l-linux-musleabihf"]
+script = """cd $WORKSPACE/srcdir\ncd calcium*/\n\nif [[ ${target} == *musl* ]]; then\n   export CFLAGS=-D_GNU_SOURCE=1\nelif [[ ${target} == *mingw* ]]; then\n   # /lib is hardcoded in many places\n   sed -i -e \"s#/lib\\>#/$(basename ${libdir})#g\" configure\n   # MSYS_NT-6.3 is not detected as MINGW\n   extraflags=--build=MINGW${nbits}\nfi\n\n./configure --prefix=$prefix --disable-static --enable-shared --with-gmp=$prefix --with-mpfr=$prefix --with-flint=$prefix --with-arb=$prefix --with-antic=$prefix ${extraflags}\nmake -j${nproc}\nmake install LIBDIR=$(basename ${libdir})\n"""
+version = "v0.400.101"
+
+[[dependencies]]
+compat = "~200.800.101"
+name = "FLINT_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "~200.2000.1"
+name = "Arb_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "~0.200.501"
+name = "Antic_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "GMP_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MPFR_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcalcium"]
+type = "lib"
+variable_name = "libcalcium"
+
+[[sources]]
+hash = "5fbc997e8c9e76c88cd85c12a86f0f14c4ebe602e9f7f11e11f0ca1f89c5d81c"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/fredrik-johansson/calcium/archive/refs/tags/0.4.1.tar.gz"

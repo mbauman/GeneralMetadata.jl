@@ -1,0 +1,17 @@
+dependencies = ["LibCURL_jll", "Expat_jll", "OpenSSL_jll", "Gettext_jll", "Libiconv_jll", "PCRE2_jll", "Zlib_jll"]
+name = "Git"
+platforms = ["i686-w64-mingw32", "x86_64-w64-mingw32", "i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "arm-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "arm-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1"]
+script = ["""cd $WORKSPACE/srcdir/mingw*/\ncp -r * ${prefix}\n""", """cd $WORKSPACE/srcdir/git-*/\n\n# We need a native \"msgfmt\" to cross-compile\napk add tcl gettext\n\n# Git doesn't want to be cross-compiled, but we swear that we're not going to\n# cross-compile\nsed -i 's/cross_compiling=yes/cross_compiling=no/' configure\n\nif [[ \"${target}\" == *-apple-* ]]; then\n    LDFLAGS=\"-lgettextlib\"\nelif [[ ${target} == *-freebsd* ]]; then\n    LDFLAGS=\"-L${prefix}/lib -lcharset\"\nfi\n\n./configure --prefix=$prefix --host=$target \\\n    --with-curl \\\n    --with-expat \\\n    --with-openssl \\\n    --with-iconv=${prefix} \\\n    --with-libpcre2 \\\n    --with-zlib=${prefix} \\\n    CPPFLAGS=\"-I${prefix}/include\" \\\n    LDFLAGS=\"${LDFLAGS}\"\nmake -j${nproc}\nmake install INSTALL_SYMLINKS=\"yes, please\"\n"""]
+version = "v2.23.0"
+
+[[products]]
+binnames = ["git"]
+type = "exe"
+variable_name = "git"
+
+[[sources]]
+"https://github.com/git-for-windows/git/releases/download/v2.23.0.windows.1/Git-2.23.0-32-bit.tar.bz2" = "c2e95e31b633c66845aae7ffd4cff8a8e3202137ae5954199551c09b164cd266"
+[[sources]]
+"https://github.com/git-for-windows/git/releases/download/v2.23.0.windows.1/Git-2.23.0-64-bit.tar.bz2" = "88076579c843edd1d048635b552ff4899818f9bdbeedf5e1e3cf8b5dc93129f5"
+[[sources]]
+"https://mirrors.edge.kernel.org/pub/software/scm/git/git-2.23.0.tar.xz" = "234fa05b6839e92dc300b2dd78c92ec9c0c8d439f65e1d430a7034f60af16067"

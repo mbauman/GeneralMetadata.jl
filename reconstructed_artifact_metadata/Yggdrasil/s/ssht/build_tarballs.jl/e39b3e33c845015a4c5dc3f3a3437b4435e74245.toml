@@ -1,0 +1,32 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "ssht"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd ${WORKSPACE}/srcdir/ssht\n\n# Build using the regular instructions\nmkdir build\ncd build\ncmake \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_FIND_ROOT_PATH=${prefix} \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DBUILD_TESTING=OFF \\\n    -DCMAKE_C_FLAGS_INIT='-fPIC' \\\n    ..\ncmake --build . --config RelWithDebInfo --parallel ${nproc}\ncmake --build . --config RelWithDebInfo --parallel ${nproc} --target install\n\n# Convert the static into a shared library\nwhole_archive=$(flagon --whole-archive)\nif [ -n \"${whole_archive}\" ]; then\n    whole_archive=\"-Wl,${whole_archive}\"\nfi\nno_whole_archive=$(flagon --no-whole-archive)\nif [ -n \"${no_whole_archive}\" ]; then\n    no_whole_archive=\"-Wl,${no_whole_archive}\"\nfi\n${CC} -g -fPIC -shared -o ${libdir}/libssht.${dlext} \\\n    ${whole_archive} ${prefix}/lib/libssht.a ${no_whole_archive} \\\n    -L${libdir} -lfftw3\nrm ${prefix}/lib/libssht.a\n"""
+version = "v1.5.2"
+
+[[dependencies]]
+compat = ""
+name = "FFTW_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libssht"]
+type = "lib"
+variable_name = "libssht"
+
+[[sources]]
+hash = "c83fb2a07e1869e875e819523d2e19d91bc8a4bf"
+type = "git"
+unpack_target = ""
+url = "https://github.com/astro-informatics/ssht.git"

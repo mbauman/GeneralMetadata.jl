@@ -1,0 +1,226 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Trilinos"
+platforms = ["i686-linux-gnu-libgfortran3-cxx03", "i686-linux-gnu-libgfortran4-cxx03", "i686-linux-gnu-libgfortran5-cxx03", "i686-linux-gnu-libgfortran3-cxx11", "i686-linux-gnu-libgfortran4-cxx11", "i686-linux-gnu-libgfortran5-cxx11", "x86_64-linux-gnu-libgfortran3-cxx03", "x86_64-linux-gnu-libgfortran4-cxx03", "x86_64-linux-gnu-libgfortran5-cxx03", "x86_64-linux-gnu-libgfortran3-cxx11", "x86_64-linux-gnu-libgfortran4-cxx11", "x86_64-linux-gnu-libgfortran5-cxx11", "aarch64-linux-gnu-libgfortran3-cxx03", "aarch64-linux-gnu-libgfortran4-cxx03", "aarch64-linux-gnu-libgfortran5-cxx03", "aarch64-linux-gnu-libgfortran3-cxx11", "aarch64-linux-gnu-libgfortran4-cxx11", "aarch64-linux-gnu-libgfortran5-cxx11", "armv6l-linux-gnueabihf-libgfortran3-cxx03", "armv6l-linux-gnueabihf-libgfortran4-cxx03", "armv6l-linux-gnueabihf-libgfortran5-cxx03", "armv6l-linux-gnueabihf-libgfortran3-cxx11", "armv6l-linux-gnueabihf-libgfortran4-cxx11", "armv6l-linux-gnueabihf-libgfortran5-cxx11", "armv7l-linux-gnueabihf-libgfortran3-cxx03", "armv7l-linux-gnueabihf-libgfortran4-cxx03", "armv7l-linux-gnueabihf-libgfortran5-cxx03", "armv7l-linux-gnueabihf-libgfortran3-cxx11", "armv7l-linux-gnueabihf-libgfortran4-cxx11", "armv7l-linux-gnueabihf-libgfortran5-cxx11", "powerpc64le-linux-gnu-libgfortran3-cxx03", "powerpc64le-linux-gnu-libgfortran4-cxx03", "powerpc64le-linux-gnu-libgfortran5-cxx03", "powerpc64le-linux-gnu-libgfortran3-cxx11", "powerpc64le-linux-gnu-libgfortran4-cxx11", "powerpc64le-linux-gnu-libgfortran5-cxx11", "i686-linux-musl-libgfortran3-cxx03", "i686-linux-musl-libgfortran4-cxx03", "i686-linux-musl-libgfortran5-cxx03", "i686-linux-musl-libgfortran3-cxx11", "i686-linux-musl-libgfortran4-cxx11", "i686-linux-musl-libgfortran5-cxx11", "x86_64-linux-musl-libgfortran3-cxx03", "x86_64-linux-musl-libgfortran4-cxx03", "x86_64-linux-musl-libgfortran5-cxx03", "x86_64-linux-musl-libgfortran3-cxx11", "x86_64-linux-musl-libgfortran4-cxx11", "x86_64-linux-musl-libgfortran5-cxx11", "aarch64-linux-musl-libgfortran3-cxx03", "aarch64-linux-musl-libgfortran4-cxx03", "aarch64-linux-musl-libgfortran5-cxx03", "aarch64-linux-musl-libgfortran3-cxx11", "aarch64-linux-musl-libgfortran4-cxx11", "aarch64-linux-musl-libgfortran5-cxx11", "armv6l-linux-musleabihf-libgfortran3-cxx03", "armv6l-linux-musleabihf-libgfortran4-cxx03", "armv6l-linux-musleabihf-libgfortran5-cxx03", "armv6l-linux-musleabihf-libgfortran3-cxx11", "armv6l-linux-musleabihf-libgfortran4-cxx11", "armv6l-linux-musleabihf-libgfortran5-cxx11", "armv7l-linux-musleabihf-libgfortran3-cxx03", "armv7l-linux-musleabihf-libgfortran4-cxx03", "armv7l-linux-musleabihf-libgfortran5-cxx03", "armv7l-linux-musleabihf-libgfortran3-cxx11", "armv7l-linux-musleabihf-libgfortran4-cxx11", "armv7l-linux-musleabihf-libgfortran5-cxx11", "x86_64-apple-darwin-libgfortran3", "x86_64-apple-darwin-libgfortran4", "x86_64-apple-darwin-libgfortran5", "aarch64-apple-darwin-libgfortran5", "x86_64-unknown-freebsd-libgfortran3", "x86_64-unknown-freebsd-libgfortran4", "x86_64-unknown-freebsd-libgfortran5", "i686-w64-mingw32-libgfortran3-cxx03", "i686-w64-mingw32-libgfortran4-cxx03", "i686-w64-mingw32-libgfortran5-cxx03", "i686-w64-mingw32-libgfortran3-cxx11", "i686-w64-mingw32-libgfortran4-cxx11", "i686-w64-mingw32-libgfortran5-cxx11", "x86_64-w64-mingw32-libgfortran3-cxx03", "x86_64-w64-mingw32-libgfortran4-cxx03", "x86_64-w64-mingw32-libgfortran5-cxx03", "x86_64-w64-mingw32-libgfortran3-cxx11", "x86_64-w64-mingw32-libgfortran4-cxx11", "x86_64-w64-mingw32-libgfortran5-cxx11"]
+script = """cd $WORKSPACE/srcdir\ncd Trilinos\natomic_patch -p1 $WORKSPACE/srcdir/patches/*.patch\nmkdir trilbuild\ncd trilbuild\ninstall_license ${WORKSPACE}/srcdir/Trilinos/LICENSE\nSRCDIR=\"/workspace/srcdir/Trilinos\"\nFLAGS=\"-O3 -fPIC\"\nCMAKE_FLAGS=\"-DCMAKE_INSTALL_PREFIX=$prefix -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN}\"\n# Trilinos tries to run a bunch of configure tests. Tell it what the output would have been.\nCMAKE_FLAGS=\"${CMAKE_FLAGS} -DHAVE_GCC_ABI_DEMANGLE_EXITCODE=0 -DHAVE_TEUCHOS_BLASFLOAT_EXITCODE=0 -DHAVE_TEUCHOS_BLASFLOAT_DOUBLE_RETURN_EXITCODE=0 -DCXX_COMPLEX_BLAS_WORKS_EXITCODE=0 -DLAPACK_SLAPY2_WORKS_EXITCODE=0 -DHAVE_GCC_ABI_DEMANGLE_EXITCODE__TRYRUN_OUTPUT='' -DHAVE_TEUCHOS_BLASFLOAT_EXITCODE__TRYRUN_OUTPUT='' -DLAPACK_SLAPY2_WORKS_EXITCODE__TRYRUN_OUTPUT='' -DCXX_COMPLEX_BLAS_WORKS_EXITCODE__TRYRUN_OUTPUT=''\"\ncmake -G \"Unix Makefiles\" ${CMAKE_FLAGS} -DCMAKE_CXX_FLAGS=\"$FLAGS\" -DCMAKE_C_FLAGS=\"$FLAGS\" -DCMAKE_Fortran_FLAGS=\"$FLAGS\" -DBUILD_SHARED_LIBS=ON -DTrilinos_ENABLE_NOX=ON -DNOX_ENABLE_LOCA=ON -DTrilinos_ENABLE_EpetraExt=ON   -DEpetraExt_BUILD_BTF=ON   -DEpetraExt_BUILD_EXPERIMENTAL=ON -DEpetraExt_BUILD_GRAPH_REORDERINGS=ON -DTrilinos_ENABLE_TrilinosCouplings=ON -DTrilinos_ENABLE_Ifpack=ON -DTrilinos_ENABLE_Isorropia=ON -DTrilinos_ENABLE_AztecOO=ON -DTrilinos_ENABLE_Belos=ON -DTrilinos_ENABLE_Teuchos=ON -DTeuchos_ENABLE_COMPLEX=ON -DTrilinos_ENABLE_Amesos=ON -DAmesos_ENABLE_KLU=ON -DTrilinos_ENABLE_Sacado=ON -DTrilinos_ENABLE_Kokkos=OFF -DTrilinos_ENABLE_ALL_OPTIONAL_PACKAGES=OFF -DTrilinos_ENABLE_CXX11=ON -DTPL_ENABLE_AMD=ON -DAMD_LIBRARY_DIRS=\"/${libdir}\" -DAMD_LIBRARY_NAMES=\"libsuitesparseconfig.${dlext};libamd.${dlext};libklu.${dlext};libcolamd.${dlext};libbtf.${dlext}\" -DAMD_INCLUDE_DIRS=\"${prefix}/include\" -DTPL_ENABLE_UMFPACK=ON -DUMFPACK_LIBRARY_DIRS=\"/${libdir}\" -DAMD_LIBRARY_NAMES=\"libumfpack.${dlext}\" -DTPL_UMFPACK_INCLUDE_DIRS=\"${prefix}/include\" -DTPL_ENABLE_BLAS=ON -DTPL_ENABLE_LAPACK=ON -DTPL_UMFPACK_LIBRARIES=\"$libdir/libumfpack.${dlext}\" -DTPL_AMD_LIBRARIES=\"$libdir/libamd.${dlext}\" -DBLAS_LIBRARY_DIRS=\"${prefix}/lib\" -DBLAS_LIBRARY_NAMES=\"libopenblas.${dlext}\" -DLAPACK_LIBRARY_DIRS=\"${prefix}/lib\" -DLAPACK_LIBRARY_NAMES=\"libopenblas.${dlext}\" -DCMAKE_BUILD_TYPE=Release $SRCDIR\nmake -j${nprocs}\nmake install\n"""
+version = "v12.13.1"
+
+[[dependencies]]
+compat = ""
+name = "SuiteSparse_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "bea87d4a-7f5b-5778-9afe-8cc45184846c"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenBLAS32_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "656ef2d0-ae68-5445-9ca0-591084a874a2"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libaztecoo"]
+type = "lib"
+variable_name = "libaztecoo"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["liblocalapack"]
+type = "lib"
+variable_name = "liblocalapack"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libifpack"]
+type = "lib"
+variable_name = "libifpack"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libloca"]
+type = "lib"
+variable_name = "libloca"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libzoltan"]
+type = "lib"
+variable_name = "libzoltan"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libisorropia"]
+type = "lib"
+variable_name = "libisorropia"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libbelos"]
+type = "lib"
+variable_name = "libbelos"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libteuchosparameterlist"]
+type = "lib"
+variable_name = "libteuchosparameterlist"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnoxlapack"]
+type = "lib"
+variable_name = "libnoxlapack"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnox"]
+type = "lib"
+variable_name = "libnox"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libteuchoscore"]
+type = "lib"
+variable_name = "libteuchoscore"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsimpi"]
+type = "lib"
+variable_name = "libsimpi"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libteuchosremainder"]
+type = "lib"
+variable_name = "libteuchosremainder"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["liblocaepetra"]
+type = "lib"
+variable_name = "liblocaepetra"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libteuchosnumerics"]
+type = "lib"
+variable_name = "libteuchosnumerics"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libteuchoscomm"]
+type = "lib"
+variable_name = "libteuchoscomm"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libtrilinoscouplings"]
+type = "lib"
+variable_name = "libtrilinoscouplings"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libepetraext"]
+type = "lib"
+variable_name = "libepetraext"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libtriutils"]
+type = "lib"
+variable_name = "libtriutils"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libbelosepetra"]
+type = "lib"
+variable_name = "libbelosepetra"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libepetra"]
+type = "lib"
+variable_name = "libepetra"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libtrilinosss"]
+type = "lib"
+variable_name = "libtrilinosss"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnoxepetra"]
+type = "lib"
+variable_name = "libnoxepetra"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsacado"]
+type = "lib"
+variable_name = "libsacado"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libamesos"]
+type = "lib"
+variable_name = "libamesos"
+
+[[sources]]
+hash = "512a9e81183c609ab16366a9b09d70d37c6af8d4"
+type = "git"
+unpack_target = ""
+url = "https://github.com/trilinos/Trilinos.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

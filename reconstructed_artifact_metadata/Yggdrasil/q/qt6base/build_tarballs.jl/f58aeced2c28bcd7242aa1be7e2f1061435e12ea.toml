@@ -1,0 +1,349 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Qt6Base"
+platforms = ["x86_64-linux-musl-cxx11"]
+script = """# Need newer cmake from JLL\napk del cmake\n\ncd $WORKSPACE/srcdir\n\nBIN_DIR=\"/opt/bin/${bb_full_target}\"\n\nmkdir build\ncd build/\n\nqtsrcdir=`ls -d ../qtbase-everywhere-src-*`\n\natomic_patch -p1 -d \"${qtsrcdir}\" ../patches/mingw-mac.patch\n\ncommonoptions=\" \\\n-opensource -confirm-license \\\n-openssl-linked  -nomake examples -release \\\n\"\n\ncommoncmakeoptions=\"-DCMAKE_PREFIX_PATH=${prefix} -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} -DQT_HOST_PATH=$host_prefix -DQT_FEATURE_openssl_linked=ON\"\n\nexport LD_LIBRARY_PATH=$host_libdir:$host_prefix/lib64:$LD_LIBRARY_PATH\nexport OPENSSL_LIBS=\"-L${libdir} -lssl -lcrypto\"\n\n# temporarily allow march during configure\nsed -i 's/exit 1/#exit 1/' /opt/bin/$bb_full_target/$target-g++\n\ncase \"$bb_full_target\" in\n\n    x86_64-linux-musl-libgfortran5-cxx11)\n        sed -i 's/exit 1/#exit 1/' $HOSTCXX\n        ../qtbase-everywhere-src-*/configure -prefix $prefix \\\n            $commonoptions \\\n            -fontconfig \\\n            -- \\\n            -DCMAKE_PREFIX_PATH=${prefix} \\\n            -DCMAKE_TOOLCHAIN_FILE=${CMAKE_HOST_TOOLCHAIN} \\\n            -DQT_FEATURE_xcb=ON\n        sed -i 's/#exit 1/exit 1/' $HOSTCXX\n    ;;\n\n    *mingw*)\n        ../qtbase-everywhere-src-*/configure -prefix $prefix \\\n            -opensource -confirm-license \\\n            -nomake examples -release \\\n            -opengl dynamic \\\n            -- -DCMAKE_PREFIX_PATH=${prefix} \\\n            -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n            -DQT_HOST_PATH=$host_prefix\n    ;;\n\n    *apple-darwin*)\n        export LDFLAGS=\"-L${libdir}/darwin -lclang_rt.osx\"\n        export OBJCFLAGS=\"-D__ENVIRONMENT_OS_VERSION_MIN_REQUIRED__=120000\"\n        export OBJCXXFLAGS=$OBJCFLAGS\n        export CXXFLAGS=$OBJCFLAGS\n        sed -i 's/exit 1/#exit 1/' /opt/bin/$bb_full_target/$target-clang++\n        ../qtbase-everywhere-src-*/configure -prefix $prefix \\\n            $commonoptions \\\n            -- $commoncmakeoptions \\\n            -DQT_INTERNAL_APPLE_SDK_VERSION=14 \\\n            -DQT_INTERNAL_XCODE_VERSION=15 \\\n            -DQT_FEATURE_vulkan=OFF\n        sed -i 's/#exit 1/exit 1/' /opt/bin/$bb_full_target/$target-clang++\n    ;;\n\n    *freebsd*)\n        sed -i 's/-Wl,--no-undefined//' $qtsrcdir/mkspecs/freebsd-clang/qmake.conf\n        sed -i 's/-Wl,--no-undefined//' $qtsrcdir/cmake/QtFlagHandlingHelpers.cmake\n        sed -i 's/exit 1/#exit 1/' /opt/bin/$bb_full_target/$target-clang++\n        ../qtbase-everywhere-src-*/configure -prefix $prefix \\\n            $commonoptions \\\n            -fontconfig \\\n            -- $commoncmakeoptions \\\n            -DQT_PLATFORM_DEFINITION_DIR=$host_prefix/mkspecs/freebsd-clang \\\n            -DQT_FEATURE_xcb=ON\n        sed -i 's/#exit 1/exit 1/' /opt/bin/$bb_full_target/$target-clang++\n    ;;\n\n    *i686-linux-musl*)\n        ../qtbase-everywhere-src-*/configure -prefix $prefix \\\n            $commonoptions \\\n             -verbose \\\n            -fontconfig \\\n            -no-stack-protector \\\n            -- $commoncmakeoptions \\\n            -DQT_FEATURE_xcb=ON\n    ;;\n\n    *)\n        echo \"#define ELFOSABI_GNU 3\" >> /opt/$target/$target/sys-root/usr/include/elf.h\n        echo \"#define EM_AARCH64 183\" >> /opt/$target/$target/sys-root/usr/include/elf.h\n        echo \"#define EM_BLACKFIN 106\" >> /opt/$target/$target/sys-root/usr/include/elf.h\n        ../qtbase-everywhere-src-*/configure -prefix $prefix \\\n            -verbose \\\n            $commonoptions \\\n            -fontconfig \\\n            -- $commoncmakeoptions \\\n            -DQT_FEATURE_xcb=ON\n    ;;\nesac\n\n# reinstate march restriction for build\nsed -i 's/#exit 1/exit 1/' /opt/bin/$bb_full_target/$target-g++\n\ncmake --build . --parallel ${nproc}\ncmake --install .\ninstall_license $WORKSPACE/srcdir/qtbase-everywhere-src-*/LICENSES/LGPL-3.0-only.txt\n"""
+version = "v6.10.2"
+
+[[dependencies]]
+compat = ""
+name = "libinput_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_libXext_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_libxcb_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_xcb_util_wm_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_xcb_util_cursor_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_xcb_util_image_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_xcb_util_keysyms_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_xcb_util_renderutil_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_libXrender_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_libSM_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "xkbcommon_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Libglvnd_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Fontconfig_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "2.59.0"
+name = "Glib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "3.0.8"
+name = "OpenSSL_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Vulkan_Loader_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LLVM_full_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 16
+version-minor = 0
+version-patch = 6
+[[dependencies]]
+compat = ""
+name = "LLVMCompilerRT_jll"
+platforms = []
+top_level = false
+type = "builddependency"
+uuid = "4e17d02c-6bf5-513e-be62-445f41c75a11"
+version-major = 16
+version-minor = 0
+version-patch = 6
+[[dependencies]]
+compat = ""
+name = "Xorg_libX11_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_kbproto_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_renderproto_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_xproto_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_glproto_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Vulkan_Headers_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CMake_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt6Concurrent", "libQt6Concurrent", "QtConcurrent"]
+type = "lib"
+variable_name = "libqt6concurrent"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt6Core", "libQt6Core", "QtCore"]
+type = "lib"
+variable_name = "libqt6core"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt6DBus", "libQt6DBus", "QtDBus"]
+type = "lib"
+variable_name = "libqt6dbus"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt6Gui", "libQt6Gui", "QtGui"]
+type = "lib"
+variable_name = "libqt6gui"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt6Network", "libQt6Network", "QtNetwork"]
+type = "lib"
+variable_name = "libqt6network"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt6OpenGL", "libQt6OpenGL", "QtOpenGL"]
+type = "lib"
+variable_name = "libqt6opengl"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt6OpenGLWidgets", "libQt6OpenGLWidgets", "QtOpenGLWidgets"]
+type = "lib"
+variable_name = "libqt6openglwidgets"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt6PrintSupport", "libQt6PrintSupport", "QtPrintSupport"]
+type = "lib"
+variable_name = "libqt6printsupport"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt6Sql", "libQt6Sql", "QtSql"]
+type = "lib"
+variable_name = "libqt6sql"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt6Test", "libQt6Test", "QtTest"]
+type = "lib"
+variable_name = "libqt6test"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt6Widgets", "libQt6Widgets", "QtWidgets"]
+type = "lib"
+variable_name = "libqt6widgets"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt6Xml", "libQt6Xml", "QtXml"]
+type = "lib"
+variable_name = "libqt6xml"
+
+[[sources]]
+hash = "aeb78d29291a2b5fd53cb55950f8f5065b4978c25fb1d77f627d695ab9adf21e"
+type = "archive"
+unpack_target = ""
+url = "https://download.qt.io/official_releases/qt/6.10/6.10.2/submodules/qtbase-everywhere-src-6.10.2.tar.xz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

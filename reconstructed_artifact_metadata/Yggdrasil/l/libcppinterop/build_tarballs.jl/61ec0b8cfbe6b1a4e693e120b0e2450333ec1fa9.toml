@@ -1,0 +1,55 @@
+augment_platform_block = """using Base.BinaryPlatforms\n\nfunction augment_llvm!(platform::Platform)\n    haskey(platform, \"llvm_version\") && return platform\n\n    llvm_version = Base.libllvm_version\n    # does our LLVM build use assertions?\n    llvm_assertions = try\n        cglobal((:_ZN4llvm24DisableABIBreakingChecksE, Base.libllvm_path()), Cvoid)\n        false\n    catch\n        true\n    end\n    platform[\"llvm_version\"] = if llvm_assertions\n        \"$(llvm_version.major).asserts\"\n    else\n        \"$(llvm_version.major)\"\n    end\n    return platform\nend\n\n\nfunction augment_platform!(platform::Platform)\n    augment_llvm!(platform)\nend"""
+init_block = ""
+julia_compat = "1.7"
+lazy_artifacts = false
+name = "libCppInterOp"
+platforms = ["i686-linux-gnu-cxx03-llvm_version+18", "i686-linux-gnu-cxx11-llvm_version+18", "x86_64-linux-gnu-cxx03-llvm_version+18", "x86_64-linux-gnu-cxx11-llvm_version+18", "aarch64-linux-gnu-cxx03-llvm_version+18", "aarch64-linux-gnu-cxx11-llvm_version+18", "armv6l-linux-gnueabihf-cxx03-llvm_version+18", "armv6l-linux-gnueabihf-cxx11-llvm_version+18", "armv7l-linux-gnueabihf-cxx03-llvm_version+18", "armv7l-linux-gnueabihf-cxx11-llvm_version+18", "powerpc64le-linux-gnu-cxx03-llvm_version+18", "powerpc64le-linux-gnu-cxx11-llvm_version+18", "x86_64-linux-musl-cxx03-llvm_version+18", "x86_64-linux-musl-cxx11-llvm_version+18", "aarch64-linux-musl-cxx03-llvm_version+18", "aarch64-linux-musl-cxx11-llvm_version+18", "armv6l-linux-musleabihf-cxx03-llvm_version+18", "armv6l-linux-musleabihf-cxx11-llvm_version+18", "armv7l-linux-musleabihf-cxx03-llvm_version+18", "armv7l-linux-musleabihf-cxx11-llvm_version+18", "x86_64-apple-darwin-llvm_version+18", "aarch64-apple-darwin-llvm_version+18", "x86_64-unknown-freebsd-llvm_version+18", "aarch64-unknown-freebsd-llvm_version+18", "i686-w64-mingw32-cxx03-llvm_version+18", "i686-w64-mingw32-cxx11-llvm_version+18", "x86_64-w64-mingw32-cxx03-llvm_version+18", "x86_64-w64-mingw32-cxx11-llvm_version+18", "i686-linux-gnu-cxx03-llvm_version+18.asserts", "i686-linux-gnu-cxx11-llvm_version+18.asserts", "x86_64-linux-gnu-cxx03-llvm_version+18.asserts", "x86_64-linux-gnu-cxx11-llvm_version+18.asserts", "aarch64-linux-gnu-cxx03-llvm_version+18.asserts", "aarch64-linux-gnu-cxx11-llvm_version+18.asserts", "armv6l-linux-gnueabihf-cxx03-llvm_version+18.asserts", "armv6l-linux-gnueabihf-cxx11-llvm_version+18.asserts", "armv7l-linux-gnueabihf-cxx03-llvm_version+18.asserts", "armv7l-linux-gnueabihf-cxx11-llvm_version+18.asserts", "powerpc64le-linux-gnu-cxx03-llvm_version+18.asserts", "powerpc64le-linux-gnu-cxx11-llvm_version+18.asserts", "x86_64-linux-musl-cxx03-llvm_version+18.asserts", "x86_64-linux-musl-cxx11-llvm_version+18.asserts", "aarch64-linux-musl-cxx03-llvm_version+18.asserts", "aarch64-linux-musl-cxx11-llvm_version+18.asserts", "armv6l-linux-musleabihf-cxx03-llvm_version+18.asserts", "armv6l-linux-musleabihf-cxx11-llvm_version+18.asserts", "armv7l-linux-musleabihf-cxx03-llvm_version+18.asserts", "armv7l-linux-musleabihf-cxx11-llvm_version+18.asserts", "x86_64-apple-darwin-llvm_version+18.asserts", "aarch64-apple-darwin-llvm_version+18.asserts", "x86_64-unknown-freebsd-llvm_version+18.asserts", "aarch64-unknown-freebsd-llvm_version+18.asserts", "i686-w64-mingw32-cxx03-llvm_version+18.asserts", "i686-w64-mingw32-cxx11-llvm_version+18.asserts", "x86_64-w64-mingw32-cxx03-llvm_version+18.asserts", "x86_64-w64-mingw32-cxx11-llvm_version+18.asserts"]
+script = """cd $WORKSPACE/srcdir\ncd CppInterOp/\natomic_patch -p1 ../patches/windows.patch\natomic_patch -p1 ../patches/cmake.patch\nmkdir build && cd build\ncmake .. -DCMAKE_INSTALL_PREFIX=$prefix -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n     -DBUILD_SHARED_LIBS=ON \\\n     -DLLVM_DIR=${prefix}/lib/cmake/llvm \\\n     -DClang_DIR=${prefix}/lib/cmake/clang \\\n     -DCMAKE_BUILD_TYPE=Release\nmake -j${nproc}\nmake install\ninstall_license ../LICENSE.txt\n"""
+version = "v0.1.5"
+
+[[dependencies]]
+compat = ""
+name = "Clang_jll"
+platforms = ["any"]
+top_level = false
+type = "runtimedependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LLVM_full_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 18
+version-minor = 1
+version-patch = 7
+[[dependencies]]
+compat = ""
+name = "LLVM_full_assert_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 18
+version-minor = 1
+version-patch = 7
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libCppInterOp"]
+type = "lib"
+variable_name = "libCppInterOp"
+
+[[sources]]
+hash = "e0546dd8fdf3fb0c7a2ba6beddaf359130d13f35"
+type = "git"
+unpack_target = ""
+url = "https://github.com/compiler-research/CppInterOp.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

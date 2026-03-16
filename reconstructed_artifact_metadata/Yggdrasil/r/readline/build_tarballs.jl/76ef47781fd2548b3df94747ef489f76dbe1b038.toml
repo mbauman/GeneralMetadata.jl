@@ -1,0 +1,59 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Readline"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/readline-*/\n\natomic_patch -p0 ${WORKSPACE}/srcdir/readline83-001\natomic_patch -p0 ${WORKSPACE}/srcdir/readline83-002\natomic_patch -p0 ${WORKSPACE}/srcdir/readline83-003\n\n# Declare `struct winsize` on Windows. We'll never actually use it.\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/mingw-winsize.patch\n\nexport CPPFLAGS=\"-I${includedir}\"\nif [[ \"${target}\" == *-mingw* ]]; then\n    # Only on Windows the library name embeds the ABI version\n    export NCURSES_ABI_VER=6\nfi\nif [[ \"${target}\" == *-mingw* ]] || [[ \"${target}\" == *-freebsd* ]]; then\n    export LDFLAGS=\"-L${libdir}\"\nfi\n\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} --target=${target} --with-curses\nmake -j${nproc} SHLIB_LIBS=\"-lncurses${NCURSES_ABI_VER}\"\nmake install\ninstall_license COPYING\n"""
+version = "v8.3.3"
+
+[[dependencies]]
+compat = "6.5.1"
+name = "Ncurses_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libhistory", "libhistory8"]
+type = "lib"
+variable_name = "libhistory"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libreadline", "libreadline8"]
+type = "lib"
+variable_name = "libreadline"
+
+[[sources]]
+hash = "fe5383204467828cd495ee8d1d3c037a7eba1389c22bc6a041f627976f9061cc"
+type = "archive"
+unpack_target = ""
+url = "https://ftpmirror.gnu.org/gnu/readline/readline-8.3.tar.gz"
+[[sources]]
+filename = "readline83-001"
+hash = "21f0a03106dbe697337cd25c70eb0edbaa2bdb6d595b45f83285cdd35bac84de"
+type = "file"
+url = "https://ftpmirror.gnu.org/gnu/readline/readline-8.3-patches/readline83-001"
+[[sources]]
+filename = "readline83-002"
+hash = "e27364396ba9f6debf7cbaaf1a669e2b2854241ae07f7eca74ca8a8ba0c97472"
+type = "file"
+url = "https://ftpmirror.gnu.org/gnu/readline/readline-8.3-patches/readline83-002"
+[[sources]]
+filename = "readline83-003"
+hash = "72dee13601ce38f6746eb15239999a7c56f8e1ff5eb1ec8153a1f213e4acdb29"
+type = "file"
+url = "https://ftpmirror.gnu.org/gnu/readline/readline-8.3-patches/readline83-003"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

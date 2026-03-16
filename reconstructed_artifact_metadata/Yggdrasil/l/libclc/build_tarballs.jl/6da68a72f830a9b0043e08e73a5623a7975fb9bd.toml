@@ -1,0 +1,53 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "libclc"
+script = """mv llvm-* llvm\nmv clang-* clang\nmv cmake-* cmake\nmv third-party-* third-party\nmv libclc-* libclc\n\natomic_patch -p1 patches/124743.patch\n\n# Build LLVM with support for the necessary targets.\n# libclc really only needs clang, llvm-as, llvm-link and opt,\n# but it uses find_package so really needs the whole thing installed.\ncd $WORKSPACE/srcdir/llvm\nmkdir bootstrap && cd bootstrap\nCMAKE_FLAGS=()\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${host_prefix})\nCMAKE_FLAGS+=(-DLLVM_TARGETS_TO_BUILD:STRING=\"AMDGPU;NVPTX;SPIRV\")\nCMAKE_FLAGS+=(-DLLVM_HOST_TRIPLE=${MACHTYPE})\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\nCMAKE_FLAGS+=(-DLLVM_ENABLE_PROJECTS='llvm;clang')\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING=False)\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_HOST_TOOLCHAIN})\nCMAKE_FLAGS+=(-DLLVM_ENABLE_ZSTD=OFF)\ncmake -GNinja ../ ${CMAKE_FLAGS[@]}\nninja -j${nproc} install\n\ncd $WORKSPACE/srcdir/libclc\ninstall_license LICENSE.TXT\n\nmkdir build && cd build\nCMAKE_FLAGS=()\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix})\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING=True)\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_HOST_TOOLCHAIN})\nCMAKE_FLAGS+=(-DLLVM_CMAKE_DIR=$host_prefix/lib/cmake/llvm)\ncmake -GNinja ../ ${CMAKE_FLAGS[@]}\n\nninja -j${nproc} install\n"""
+version = "v20.1.2"
+
+[[dependencies]]
+compat = ""
+name = "SPIRV_LLVM_Translator_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 20
+version-minor = 1
+version-patch = 0
+
+[[products]]
+paths = ["include/clc/clc.h"]
+type = "file"
+variable_name = "clc_h"
+
+[[sources]]
+hash = "6286c526db3b84ce79292f80118e7e6d3fbd5b5ce3e4a0ebb32b2d205233bd86"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/llvm/llvm-project/releases/download/llvmorg-20.1.2/llvm-20.1.2.src.tar.xz"
+[[sources]]
+hash = "65031207d088937d0ffdf4d7dd7167cae640b7c9188fc0be3d7e286a89b7787c"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/llvm/llvm-project/releases/download/llvmorg-20.1.2/clang-20.1.2.src.tar.xz"
+[[sources]]
+hash = "8a48d5ff59a078b7a94395b34f7d5a769f435a3211886e2c8bf83aa2981631bc"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/llvm/llvm-project/releases/download/llvmorg-20.1.2/cmake-20.1.2.src.tar.xz"
+[[sources]]
+hash = "0eaaabff4be62189599026019f232adefc03d3db25d41f1a090ad8e806dc5dce"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/llvm/llvm-project/releases/download/llvmorg-20.1.2/third-party-20.1.2.src.tar.xz"
+[[sources]]
+hash = "ea1db1c7ffd6ba524124112040458f033ee7a156d9e382e5d04e73d609f8fbed"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/llvm/llvm-project/releases/download/llvmorg-20.1.2/libclc-20.1.2.src.tar.xz"
+[[sources]]
+follow_symlinks = false
+path = "bundled"
+target = ""
+type = "directory"

@@ -1,0 +1,72 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "openfhe_julia"
+platforms = ["x86_64-linux-gnu-cxx03-julia_version+1.6.3", "x86_64-linux-gnu-cxx11-julia_version+1.6.3", "aarch64-linux-gnu-cxx03-julia_version+1.6.3", "aarch64-linux-gnu-cxx11-julia_version+1.6.3", "armv7l-linux-gnueabihf-cxx03-julia_version+1.6.3", "armv7l-linux-gnueabihf-cxx11-julia_version+1.6.3", "x86_64-apple-darwin-julia_version+1.6.3", "x86_64-unknown-freebsd-julia_version+1.6.3", "x86_64-w64-mingw32-cxx03-julia_version+1.6.3", "x86_64-w64-mingw32-cxx11-julia_version+1.6.3", "x86_64-linux-gnu-cxx03-julia_version+1.7.0", "x86_64-linux-gnu-cxx11-julia_version+1.7.0", "aarch64-linux-gnu-cxx03-julia_version+1.7.0", "aarch64-linux-gnu-cxx11-julia_version+1.7.0", "armv6l-linux-gnueabihf-cxx03-julia_version+1.7.0", "armv6l-linux-gnueabihf-cxx11-julia_version+1.7.0", "armv7l-linux-gnueabihf-cxx03-julia_version+1.7.0", "armv7l-linux-gnueabihf-cxx11-julia_version+1.7.0", "x86_64-apple-darwin-julia_version+1.7.0", "aarch64-apple-darwin-julia_version+1.7.0", "x86_64-unknown-freebsd-julia_version+1.7.0", "x86_64-w64-mingw32-cxx03-julia_version+1.7.0", "x86_64-w64-mingw32-cxx11-julia_version+1.7.0", "x86_64-linux-gnu-cxx03-julia_version+1.8.2", "x86_64-linux-gnu-cxx11-julia_version+1.8.2", "aarch64-linux-gnu-cxx03-julia_version+1.8.2", "aarch64-linux-gnu-cxx11-julia_version+1.8.2", "armv6l-linux-gnueabihf-cxx03-julia_version+1.8.2", "armv6l-linux-gnueabihf-cxx11-julia_version+1.8.2", "armv7l-linux-gnueabihf-cxx03-julia_version+1.8.2", "armv7l-linux-gnueabihf-cxx11-julia_version+1.8.2", "x86_64-apple-darwin-julia_version+1.8.2", "aarch64-apple-darwin-julia_version+1.8.2", "x86_64-unknown-freebsd-julia_version+1.8.2", "x86_64-w64-mingw32-cxx03-julia_version+1.8.2", "x86_64-w64-mingw32-cxx11-julia_version+1.8.2", "x86_64-linux-gnu-cxx03-julia_version+1.9.0", "x86_64-linux-gnu-cxx11-julia_version+1.9.0", "aarch64-linux-gnu-cxx03-julia_version+1.9.0", "aarch64-linux-gnu-cxx11-julia_version+1.9.0", "x86_64-apple-darwin-julia_version+1.9.0", "aarch64-apple-darwin-julia_version+1.9.0", "x86_64-unknown-freebsd-julia_version+1.9.0", "x86_64-w64-mingw32-cxx03-julia_version+1.9.0", "x86_64-w64-mingw32-cxx11-julia_version+1.9.0", "x86_64-linux-gnu-cxx03-julia_version+1.10.0", "x86_64-linux-gnu-cxx11-julia_version+1.10.0", "aarch64-linux-gnu-cxx03-julia_version+1.10.0", "aarch64-linux-gnu-cxx11-julia_version+1.10.0", "x86_64-apple-darwin-julia_version+1.10.0", "aarch64-apple-darwin-julia_version+1.10.0", "x86_64-unknown-freebsd-julia_version+1.10.0", "x86_64-w64-mingw32-cxx03-julia_version+1.10.0", "x86_64-w64-mingw32-cxx11-julia_version+1.10.0", "x86_64-linux-gnu-cxx03-julia_version+1.11.0", "x86_64-linux-gnu-cxx11-julia_version+1.11.0", "aarch64-linux-gnu-cxx03-julia_version+1.11.0", "aarch64-linux-gnu-cxx11-julia_version+1.11.0", "x86_64-apple-darwin-julia_version+1.11.0", "aarch64-apple-darwin-julia_version+1.11.0", "x86_64-unknown-freebsd-julia_version+1.11.0", "x86_64-w64-mingw32-cxx03-julia_version+1.11.0", "x86_64-w64-mingw32-cxx11-julia_version+1.11.0"]
+script = """cd $WORKSPACE/srcdir/openfhe-julia/\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    # This is needed because otherwise we get unusable binaries (error \"The specified\n    # executable is not a valid application for this OS platform\"). These come from\n    # CompilerSupportLibraries_jll.\n    # xref: https://github.com/JuliaPackaging/Yggdrasil/issues/7904\n    #\n    # The remove path pattern matches `lib/gcc/<triple>/<major>/`, where `<triple>` is the\n    # platform triplet and `<major>` is the GCC major version with which CSL was built\n    # xref: https://github.com/JuliaPackaging/Yggdrasil/pull/7535\n    #\n    # However, before CSL v1.1, these files were located in just `lib/`, thus we clean this\n    # directory as well.\n    if test -n \"$(find $prefix/lib/gcc/*mingw*/*/libgcc*)\"; then\n        rm $prefix/lib/gcc/*mingw*/*/libgcc* $prefix/lib/gcc/*mingw*/*/libmsvcrt*\n    elif test -n \"$(find $prefix/lib/libgcc*)\"; then\n        rm $prefix/lib/libgcc* $prefix/lib/libmsvcrt*\n    else\n        echo \"Could not find any libraries to remove :-/\"\n        find $prefix/lib\n    fi\nfi\n\nmkdir build && cd build\n\ncmake .. \\\n  -DCMAKE_INSTALL_PREFIX=$prefix \\\n  -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n  -DCMAKE_BUILD_TYPE=Release \\\n  -DJulia_PREFIX=$prefix\n\nmake -j${nproc}\nmake install\n"""
+version = "v0.2.4"
+
+[[dependencies]]
+compat = ""
+name = "libjulia_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 1
+version-minor = 10
+version-patch = 7
+[[dependencies]]
+compat = "0.11.2"
+name = "libcxxwrap_julia_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "3eaa8342-bff7-56a5-9981-c04077f7cee7"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenFHE_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "a2687184-f17b-54bc-b2bb-b849352af807"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["x86_64-linux-gnu-cxx03-julia_version+1.6.3", "x86_64-linux-gnu-cxx11-julia_version+1.6.3", "aarch64-linux-gnu-cxx03-julia_version+1.6.3", "aarch64-linux-gnu-cxx11-julia_version+1.6.3", "armv7l-linux-gnueabihf-cxx03-julia_version+1.6.3", "armv7l-linux-gnueabihf-cxx11-julia_version+1.6.3", "x86_64-w64-mingw32-cxx03-julia_version+1.6.3", "x86_64-w64-mingw32-cxx11-julia_version+1.6.3", "x86_64-linux-gnu-cxx03-julia_version+1.7.0", "x86_64-linux-gnu-cxx11-julia_version+1.7.0", "aarch64-linux-gnu-cxx03-julia_version+1.7.0", "aarch64-linux-gnu-cxx11-julia_version+1.7.0", "armv6l-linux-gnueabihf-cxx03-julia_version+1.7.0", "armv6l-linux-gnueabihf-cxx11-julia_version+1.7.0", "armv7l-linux-gnueabihf-cxx03-julia_version+1.7.0", "armv7l-linux-gnueabihf-cxx11-julia_version+1.7.0", "x86_64-w64-mingw32-cxx03-julia_version+1.7.0", "x86_64-w64-mingw32-cxx11-julia_version+1.7.0", "x86_64-linux-gnu-cxx03-julia_version+1.8.2", "x86_64-linux-gnu-cxx11-julia_version+1.8.2", "aarch64-linux-gnu-cxx03-julia_version+1.8.2", "aarch64-linux-gnu-cxx11-julia_version+1.8.2", "armv6l-linux-gnueabihf-cxx03-julia_version+1.8.2", "armv6l-linux-gnueabihf-cxx11-julia_version+1.8.2", "armv7l-linux-gnueabihf-cxx03-julia_version+1.8.2", "armv7l-linux-gnueabihf-cxx11-julia_version+1.8.2", "x86_64-w64-mingw32-cxx03-julia_version+1.8.2", "x86_64-w64-mingw32-cxx11-julia_version+1.8.2", "x86_64-linux-gnu-cxx03-julia_version+1.9.0", "x86_64-linux-gnu-cxx11-julia_version+1.9.0", "aarch64-linux-gnu-cxx03-julia_version+1.9.0", "aarch64-linux-gnu-cxx11-julia_version+1.9.0", "x86_64-w64-mingw32-cxx03-julia_version+1.9.0", "x86_64-w64-mingw32-cxx11-julia_version+1.9.0", "x86_64-linux-gnu-cxx03-julia_version+1.10.0", "x86_64-linux-gnu-cxx11-julia_version+1.10.0", "aarch64-linux-gnu-cxx03-julia_version+1.10.0", "aarch64-linux-gnu-cxx11-julia_version+1.10.0", "x86_64-w64-mingw32-cxx03-julia_version+1.10.0", "x86_64-w64-mingw32-cxx11-julia_version+1.10.0", "x86_64-linux-gnu-cxx03-julia_version+1.11.0", "x86_64-linux-gnu-cxx11-julia_version+1.11.0", "aarch64-linux-gnu-cxx03-julia_version+1.11.0", "aarch64-linux-gnu-cxx11-julia_version+1.11.0", "x86_64-w64-mingw32-cxx03-julia_version+1.11.0", "x86_64-w64-mingw32-cxx11-julia_version+1.11.0"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LLVMOpenMP_jll"
+platforms = ["x86_64-apple-darwin-julia_version+1.6.3", "x86_64-unknown-freebsd-julia_version+1.6.3", "x86_64-apple-darwin-julia_version+1.7.0", "aarch64-apple-darwin-julia_version+1.7.0", "x86_64-unknown-freebsd-julia_version+1.7.0", "x86_64-apple-darwin-julia_version+1.8.2", "aarch64-apple-darwin-julia_version+1.8.2", "x86_64-unknown-freebsd-julia_version+1.8.2", "x86_64-apple-darwin-julia_version+1.9.0", "aarch64-apple-darwin-julia_version+1.9.0", "x86_64-unknown-freebsd-julia_version+1.9.0", "x86_64-apple-darwin-julia_version+1.10.0", "aarch64-apple-darwin-julia_version+1.10.0", "x86_64-unknown-freebsd-julia_version+1.10.0", "x86_64-apple-darwin-julia_version+1.11.0", "aarch64-apple-darwin-julia_version+1.11.0", "x86_64-unknown-freebsd-julia_version+1.11.0"]
+top_level = false
+type = "dependency"
+uuid = "1d63c593-3942-5779-bab2-d838dc0a180e"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libopenfhe_julia"]
+type = "lib"
+variable_name = "libopenfhe_julia"
+
+[[sources]]
+hash = "f6d693d3c01a11eea6524e16022a017ed1ff6faa"
+type = "git"
+unpack_target = ""
+url = "https://github.com/sloede/openfhe-julia.git"

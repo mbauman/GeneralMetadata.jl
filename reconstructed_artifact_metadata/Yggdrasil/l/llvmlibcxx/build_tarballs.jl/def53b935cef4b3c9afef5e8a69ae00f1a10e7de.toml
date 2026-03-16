@@ -1,0 +1,52 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "LLVMLibcxx"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "powerpc64le-linux-gnu"]
+script = """cd $WORKSPACE/srcdir/llvm-project/runtimes\n\nexport CXXFLAGS=-pthread\ncmake -B build \\\n    -DCMAKE_INSTALL_PREFIX=${prefix}/libcxx \\\n    -DCMAKE_TOOLCHAIN_FILE=\"${CMAKE_TARGET_TOOLCHAIN}\" \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DLLVM_ENABLE_RUNTIMES='libcxx;libcxxabi' \\\n    -DLIBCXX_INCLUDE_BENCHMARKS=OFF \\\n    -DLIBCXX_HAS_ATOMIC_LIB=NO \\\n    -DLIBCXX_USE_COMPILER_RT=ON \\\n    -DLIBCXX_ENABLE_SHARED=ON \\\n    -DLIBCXX_ENABLE_STATIC=ON \\\n    -DLIBCXX_ENABLE_STATIC_ABI_LIBRARY=ON \\\n    -DLIBCXX_INSTALL_MODULES=ON \\\n    -DLIBCXXABI_USE_COMPILER_RT=ON \\\n    -DLIBCXXABI_USE_LLVM_UNWINDER=OFF\n\ncmake --build build --parallel ${nproc}\ncmake --install build\n\ninstall_license ../LICENSE.TXT\n"""
+version = "v18.1.7"
+
+[[dependencies]]
+compat = ""
+name = "XML2_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = ["libcxx/lib"]
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libc++"]
+type = "lib"
+variable_name = "libcxx"
+[[products]]
+dir_paths = ["libcxx/lib"]
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libc++abi"]
+type = "lib"
+variable_name = "libcxxabi"
+[[products]]
+paths = ["libcxx/include/c++/v1"]
+type = "file"
+variable_name = "includecxxv1_dir"
+
+[[sources]]
+hash = "768118d1ad38bf13c545828f67bd6b474d61fc55"
+type = "git"
+unpack_target = ""
+url = "https://github.com/llvm/llvm-project.git"

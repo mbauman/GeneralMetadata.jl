@@ -1,0 +1,48 @@
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Gettext"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11", "aarch64-apple-darwin", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11"]
+script = """cd $WORKSPACE/srcdir/gettext-*/\n\nexport CFLAGS=\"-O2\"\nexport CPPFLAGS=\"-I${includedir}\"\nexport LDFLAGS=\"-L${libdir}\"\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    # Apply patch from https://lists.gnu.org/archive/html/bug-gettext/2020-07/msg00035.html\n    #      ../woe32dll/.libs/libgettextsrc_la-c++format.o: In function `__static_initialization_and_destruction_0':\n    #      /workspace/srcdir/gettext-0.21/gettext-tools/src/../woe32dll/../src/format.c:67: undefined reference to `__imp_formatstring_ruby'\n    atomic_patch -p1 ../patches/0001-build-Fix-build-failure-on-mingw-formatstring_ruby.patch\nfi\n\n./configure --prefix=${prefix} \\\n    --build=${MACHTYPE} \\\n    --host=${target} \\\n    --disable-static \\\n    --enable-relocatable \\\n    --with-libiconv-prefix=${prefix} \\\n    am_cv_lib_iconv=yes \\\n    am_cv_func_iconv=yes\nmake -j${nproc}\nmake install\n"""
+version = "v0.21.0"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Libiconv_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "XML2_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgettextlib", "libgettextlib-0"]
+type = "lib"
+variable_name = "libgettext"
+
+[[sources]]
+hash = "d20fcbb537e02dcf1383197ba05bd0734ef7bf5db06bdb241eb69b7d16b73192"
+type = "archive"
+unpack_target = ""
+url = "https://ftp.gnu.org/pub/gnu/gettext/gettext-0.21.tar.xz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

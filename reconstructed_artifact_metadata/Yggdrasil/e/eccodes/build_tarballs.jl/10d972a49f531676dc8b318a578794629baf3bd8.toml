@@ -1,0 +1,39 @@
+init_block = ""
+lazy_artifacts = false
+name = "eccodes"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir\ncd eccodes-2.18.0-Source\nif [ ${target} = \"x86_64-w64-mingw32\" ] || [ ${target} = \"i686-w64-mingw32\" ] ; then \n    chmod +x cmake/ecbuild_windows_replace_symlinks.sh \n    atomic_patch -p1 /workspace/srcdir/patches/windows.patch\nelse\n    atomic_patch -p1 /workspace/srcdir/patches/unix.patch\nfi\ncd ..\nmkdir build\ncd build\ncmake -DCMAKE_INSTALL_PREFIX=${prefix} -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} -DCMAKE_BUILD_TYPE=Release -DENABLE_NETCDF=OFF -DENABLE_PNG=ON -DENABLE_PYTHON=OFF -DENABLE_FORTRAN=OFF ../eccodes-2.18.0-Source/\nmake -j${nproc}\nmake install\ninstall_license ../eccodes-2.18.0-Source/LICENSE\n"""
+version = "v2.18.0"
+
+[[dependencies]]
+name = "libpng_jll"
+type = "dependency"
+uuid = "b53b4c65-9356-5827-b1ea-8c7a1a84506f"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "OpenJpeg_jll"
+type = "dependency"
+uuid = "643b3616-a352-519d-856d-80112ee9badc"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libeccodes"]
+type = "lib"
+variable_name = "eccodes"
+
+[[sources]]
+hash = "d88943df0f246843a1a062796edbf709ef911de7269648eef864be259e9704e3"
+type = "archive"
+unpack_target = ""
+url = "https://confluence.ecmwf.int/download/attachments/45757960/eccodes-2.18.0-Source.tar.gz"
+[[sources]]
+path = "./bundled"
+target = ""
+type = "directory"

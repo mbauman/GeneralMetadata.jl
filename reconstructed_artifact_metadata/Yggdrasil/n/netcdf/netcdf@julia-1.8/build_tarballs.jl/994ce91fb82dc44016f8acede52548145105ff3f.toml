@@ -1,0 +1,52 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.8"
+lazy_artifacts = false
+name = "NetCDF"
+platforms = ["x86_64-linux-gnu", "aarch64-linux-gnu", "x86_64-apple-darwin", "aarch64-apple-darwin"]
+script = """cd $WORKSPACE/srcdir/netcdf-c-*\n\nexport CPPFLAGS=\"-I${includedir}\"\nexport CFLAGS=\"-std=c99\"\nexport LDFLAGS=\"-L${libdir}\"\nexport LDFLAGS_MAKE=\"${LDFLAGS}\"\nCONFIGURE_OPTIONS=\"\"\n\nfor p in ../patches/*.patch; do\n    atomic_patch -p1 \"${p}\"\ndone\n\nif [[ ${target} == *-mingw* ]]; then\n    export LIBS=\"-lhdf5-0 -lhdf5_hl-0 -lcurl-4 -lz\"\n    # linking fails with: \"libtool:   error: can't build x86_64-w64-mingw32 shared library unless -no-undefined is specified\"\n    # unless -no-undefined is added to LDFLAGS\n    LDFLAGS_MAKE=\"${LDFLAGS} ${LIBS} -no-undefined -Wl,--export-all-symbols\"\n\n    # testset fails on mingw (NetCDF 4.8.1)\n    # libtool: link: cc -fno-strict-aliasing -o .libs/pathcvt.exe pathcvt.o  -L/workspace/destdir/bin ../liblib/.libs/libnetcdf.dll.a -lhdf5-0 -lhdf5_hl-0 -lcurl-4 -lz -L/workspace/destdir/lib\n    # pathcvt.o:pathcvt.c:(.text+0x15c): undefined reference to `NCpathcvt'\n    CONFIGURE_OPTIONS=\"--disable-testsets\"\nelif [[ \"${target}\" == *-apple-* ]]; then\n    # this file is referenced by hdf.h by not installed\n    touch ${includedir}/features.h\nfi\n\nif [[ ${target} -ne x86_64-linux-gnu ]]; then\n    # utilities are necessary to run the tests\n    CONFIGURE_OPTIONS=\"$CONFIGURE_OPTIONS --disable-utilities\"\nfi\n\n./configure --prefix=${prefix} \\\n    --build=${MACHTYPE} \\\n    --host=${target} \\\n    --enable-shared \\\n    --disable-static \\\n    --disable-dap-remote-tests \\\n    $CONFIGURE_OPTIONS\nmake LDFLAGS=\"${LDFLAGS_MAKE}\" -j${nproc}\n\nif [[ ${target} == x86_64-linux-gnu ]]; then\n   make check\nfi\n\nmake install\nnc-config --all\n"""
+version = "v400.802.102"
+
+[[dependencies]]
+compat = "1.12.1"
+name = "HDF5_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LibCURL_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnetcdf"]
+type = "lib"
+variable_name = "libnetcdf"
+
+[[sources]]
+hash = "e4e75523466de4187cff29784ff12755925f17e753bff0c9c46cd670ca63c6b2"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/Unidata/netcdf-c/archive/v4.8.1.zip"
+[[sources]]
+follow_symlinks = false
+path = "../bundled"
+target = ""
+type = "directory"

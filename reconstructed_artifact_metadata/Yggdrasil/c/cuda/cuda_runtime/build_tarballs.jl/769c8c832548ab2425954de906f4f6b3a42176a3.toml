@@ -1,0 +1,2677 @@
+augment_platform_block = """using Base.BinaryPlatforms\n\nusing Base: thismajor, thisminor\n\nusing Libdl\n\nconst CUDA_Runtime_jll_uuid = Base.UUID(\"76a88914-d11a-5bdc-97e0-2f5a05c973a2\")\nconst preferences = Base.get_preferences(CUDA_Runtime_jll_uuid)\nBase.record_compiletime_preference(CUDA_Runtime_jll_uuid, \"version\")\nBase.record_compiletime_preference(CUDA_Runtime_jll_uuid, \"local\")\nconst local_preference = if haskey(preferences, \"local\")\n    if isa(preferences[\"local\"], Bool)\n        preferences[\"local\"]\n    elseif isa(preferences[\"local\"], String)\n        use_local = tryparse(Bool, preferences[\"local\"])\n        if use_local === nothing\n            @error \"CUDA local preference is not valid; expected a boolean, but got '$(preferences[\"local\"])'\"\n            missing\n        else\n            use_local\n        end\n    else\n        @error \"CUDA local preference is not valid; expected a boolean, but got '$(preferences[\"local\"])'\"\n        missing\n    end\nelseif haskey(preferences, \"version\") && preferences[\"version\"] == \"local\"\n    # legacy support for CUDA.jl's old \"version\" preference format.\n    # in this case, an \"actual_version\" preference is required.\n    @debug \"The version=local preference is deprecated, please use local=true instead.\"\n    # XXX: turn this into a warning after HPC people have had the time to upgrade.\n    true\nelse\n    missing\nend\n\nfunction parse_version_preference(key)\n    if haskey(preferences, key)\n        if isa(preferences[key], String)\n            version = tryparse(VersionNumber, preferences[key])\n            if version === nothing\n                @error \"CUDA $key preference is not valid; expected a version number, but got '$(preferences[key])'\"\n                missing\n            else\n                version\n            end\n        else\n            @error \"CUDA $key preference is not valid; expected a version number, but got '$(preferences[key])'\"\n            missing\n        end\n    else\n        missing\n    end\nend\nconst version_preference = if haskey(preferences, \"version\") && preferences[\"version\"] == \"local\"\n    # legacy support for CUDA.jl's old \"version\" preference format.\n    # in this case, an \"actual_version\" preference is required.\n    parse_version_preference(\"actual_version\")\nelse\n    parse_version_preference(\"version\")\nend\n\nif ismissing(version_preference)\n    # before loading CUDA_Driver_jll, try to find out where the system driver is located.\n    let\n        name = if Sys.iswindows()\n            Libdl.find_library(\"nvcuda\")\n        else\n            Libdl.find_library([\"libcuda.so.1\", \"libcuda.so\"])\n        end\n\n        # if we've found a system driver, put a dependency on it,\n        # so that we get recompiled if the driver changes.\n        if name != \"\"\n            handle = Libdl.dlopen(name)\n            path = Libdl.dlpath(handle)\n            Libdl.dlclose(handle)\n\n            @debug \"Adding include dependency on $path\"\n            Base.include_dependency(path)\n        end\n    end\nend\n\n# platform augmentation hooks run in an ill-defined environment, where:\n# - CUDA_Driver_jll may not be available\n# - the wrong version of CUDA_Driver_jll may be available\n#\n# because of that, we need to be very careful about using that dependency.\n# currently, we support all existing versions of CUDA_Driver_jll, but if we\n# ever need to introduce a breaking change, we'll need some way to identify\n# the version of CUDA_Driver_jll from its module (e.g. a global constant).\n#\n# ref: https://github.com/JuliaLang/Pkg.jl/issues/3225\n# can't use Preferences for the same reason\ntry\n    using CUDA_Driver_jll\ncatch err\n    # we'll handle this below\nend\n\n# get the version of the local CUDA toolkit by querying the system libcudart\nfunction get_runtime_version()\n    cuda_runtime = if Sys.iswindows()\n        Libdl.find_library([\"cudart64_12\", \"cudart64_110\"])\n    else\n        Libdl.find_library([\"libcudart.so\", \"libcudart.so.12\", \"libcudart.so.11.0\"])\n    end\n    if cuda_runtime == \"\"\n        # no runtime library found\n        @debug \"No system CUDA runtime library found\"\n        return nothing\n    end\n    @debug \"Found CUDA runtime library at '$cuda_runtime'\"\n\n    # minimal API call wrappers we need\n    function cudaRuntimeGetVersion(library_handle)\n        function_handle = Libdl.dlsym(library_handle, \"cudaRuntimeGetVersion\"; throw_error=false)\n        if function_handle === nothing\n            @debug \"Runtime library seems invalid (does not contain 'cudaRuntimeGetVersion')\"\n            return nothing\n        end\n        version_ref = Ref{Cint}()\n        status = ccall(function_handle, Cint, (Ptr{Cint},), version_ref)\n        if status != 0\n            @debug \"Call to 'cudaRuntimeGetVersion' failed with status $status\"\n            return nothing\n        end\n        major, ver = divrem(version_ref[], 1000)\n        minor, patch = divrem(ver, 10)\n        return VersionNumber(major, minor, patch)\n    end\n\n    runtime_handle = Libdl.dlopen(cuda_runtime; throw_error=false)\n    if runtime_handle === nothing\n        @debug \"Failed to load CUDA runtime library\"\n        return nothing\n    end\n\n    cudaRuntimeGetVersion(runtime_handle)\nend\n\n# get the version of the available CUDA driver by querying either CUDA_Driver_jll's\n# driver, or the system driver if CUDA_Driver_jll is not available\nfunction get_driver_version()\n    if !@isdefined(CUDA_Driver_jll)\n        # driver JLL not available because we're in the middle of installing packages\n        @debug \"CUDA_Driver_jll not available; not selecting an artifact\"\n        return nothing\n    end\n\n    cuda_driver = if CUDA_Driver_jll.is_available()\n        @debug \"Using CUDA_Driver_jll for driver discovery\"\n\n        if !isdefined(CUDA_Driver_jll, :libcuda) || # CUDA_Driver_jll@0.4-compat\n            isnothing(CUDA_Driver_jll.libcuda)      # https://github.com/JuliaLang/julia/issues/48999\n            # no driver found\n            @debug \"CUDA_Driver_jll reports no driver found\"\n            return nothing\n        end\n        CUDA_Driver_jll.libcuda\n    else\n        # CUDA_Driver_jll only kicks in for supported platforms, so fall back to\n        # a system search if the artifact isn't available (JLLWrappers.jl#50)\n        @debug \"CUDA_Driver_jll unavailable, falling back to system search\"\n\n        driver_name = if Sys.iswindows()\n            Libdl.find_library(\"nvcuda\")\n        else\n            Libdl.find_library([\"libcuda.so.1\", \"libcuda.so\"])\n        end\n        if driver_name == \"\"\n            # no driver found\n            @debug \"CUDA_Driver_jll unavailable, and no system CUDA driver found\"\n            return nothing\n        end\n\n        driver_name\n    end\n    @debug \"Found CUDA driver at '$cuda_driver'\"\n\n    # minimal API call wrappers we need\n    function cuDriverGetVersion(library_handle)\n        function_handle = Libdl.dlsym(library_handle, \"cuDriverGetVersion\"; throw_error=false)\n        if function_handle === nothing\n            @debug \"Driver library seems invalid (does not contain 'cuDriverGetVersion')\"\n            return nothing\n        end\n        version_ref = Ref{Cint}()\n        status = ccall(function_handle, Cint, (Ptr{Cint},), version_ref)\n        if status != 0\n            @debug \"Call to 'cuDriverGetVersion' failed with status $status\"\n            return nothing\n        end\n        major, ver = divrem(version_ref[], 1000)\n        minor, patch = divrem(ver, 10)\n        return VersionNumber(major, minor, patch)\n    end\n\n    driver_handle = Libdl.dlopen(cuda_driver; throw_error=false)\n    if driver_handle === nothing\n        @debug \"Failed to load CUDA driver\"\n        return nothing\n    end\n\n    cuDriverGetVersion(driver_handle)\nend\n\n# returns the value for the \"cuda\" tag we should use in the platform (\"$MAJOR.$MINOR\")\n# or nothing if no compatible CUDA toolkit was found.\nfunction cuda_toolkit_tag()\n    # check if the user requested a specific version\n    if version_preference !== missing\n        @debug \"CUDA version override: $version_preference\"\n        cuda_version_override = version_preference\n    end\n\n    # check if the user requested to use a local version\n    if local_preference !== missing\n        @debug \"CUDA local preference: $(local_preference)\"\n        if local_preference && !@isdefined(cuda_version_override)\n            # the user didn't specify a version, so try quering it\n            version = get_runtime_version()\n            if version === nothing\n                @error \"\"\"Local CUDA version requested, but could not query the runtime version.\n                          Either make sure CUDA is available, or set the CUDA version explicitly.\"\"\"\n                return nothing\n            end\n            @debug \"Local CUDA runtime version: $version\"\n            cuda_version_override = version\n        end\n\n        # if we're using a local toolkit, use the version as-is. this may result in an\n        # incompatible toolkit being used, but CUDA.jl will complain about that.\n        if local_preference\n            return \"$(cuda_version_override.major).$(cuda_version_override.minor)\"\n        end\n    end\n\n    # if not, we need to be able to use the driver to determine the version.\n    # note that we only require this when there's no override, to support\n    # precompiling with a fixed version without having the driver available.\n    if !@isdefined(cuda_version_override)\n        cuda_driver_version = get_driver_version()\n        if cuda_driver_version === nothing\n            @debug \"Failed to query CUDA driver version\"\n            return nothing\n        end\n        @debug \"CUDA driver version: $cuda_driver_version\"\n    end\n\n    # \"[...] applications built against any of the older CUDA Toolkits always continued\n    #  to function on newer drivers due to binary backward compatibility\"\n    compatible_toolkits = filter(cuda_toolkits) do toolkit\n        if @isdefined(cuda_version_override)\n            thisminor(toolkit) == thisminor(cuda_version_override)\n        elseif cuda_driver_version >= v\"11\"\n            # enhanced compatibility\n            #\n            # \"From CUDA 11 onwards, applications compiled with a CUDA Toolkit release\n            #  from within a CUDA major release family can run, with limited feature-set,\n            #  on systems having at least the minimum required driver version\"\n            thismajor(toolkit) <= thismajor(cuda_driver_version)\n        else\n            thisminor(toolkit) <= thisminor(cuda_driver_version)\n        end\n    end\n    if isempty(compatible_toolkits)\n        # the user either has a functional CUDA driver set-up, or requested a specific\n        # toolkit version, so complain loudly if we aren't compatible with it.\n        if @isdefined(cuda_version_override)\n            @error \"Requested CUDA version $(cuda_version_override) does not match any supported CUDA toolkit ($(join(cuda_toolkits, \", \", \" or \")))\"\n        else\n            @error \"CUDA driver $(cuda_driver_version) is not compatible with any supported CUDA toolkit ($(join(cuda_toolkits, \", \", \" or \")))\"\n        end\n        return nothing\n    end\n\n    cuda_toolkit = Base.thisminor(last(compatible_toolkits))\n    @debug \"Selected CUDA toolkit: $cuda_toolkit\"\n    \"$(cuda_toolkit.major).$(cuda_toolkit.minor)\"\nend\n\nfunction cuda_comparison_strategy(a::String, b::String, a_requested::Bool, b_requested::Bool)\n    # we don't actually need a comparison strategy, as the tag is known to exactly match\n    # whatever toolkit artifacts we have available. however, we use one so that we can\n    # bail out from downloading artifacts if the user requested a local toolkit\n    if local_preference !== missing && local_preference\n        return false\n    end\n\n    return a == b\nend\n\nfunction is_tegra()\n    if isfile(\"/etc/nv_tegra_release\")\n        return true\n    end\n    if isfile(\"/proc/device-tree/compatible\") &&\n        contains(read(\"/proc/device-tree/compatible\", String), \"tegra\")\n        return true\n    end\n    return false\nend\n\nfunction augment_platform!(platform::Platform)\n    if !haskey(platform, \"cuda\")\n        platform[\"cuda\"] = something(cuda_toolkit_tag(), \"none\")\n        # XXX: use \"none\" when we couldn't find a compatible toolkit.\n        #      we can't just leave off the platform tag or Pkg would select *any* artifact.\n    end\n    BinaryPlatforms.set_compare_strategy!(platform, \"cuda\", cuda_comparison_strategy)\n\n    # store the fact that we're using a local CUDA toolkit, so that we can more easily\n    # query it from CUDA.jl without having to parse the preference again.\n    platform[\"cuda_local\"] = string(local_preference !== missing && local_preference)\n\n    # if we're on an arm64 platform, identify the CUDA subplatform\n    if Sys.islinux() && arch(platform) == \"aarch64\"\n        platform[\"cuda_platform\"] = if is_tegra()\n            \"jetson\"\n        else\n            \"sbsa\"\n        end\n    end\n\n    return platform\nend\n\nconst cuda_toolkits = VersionNumber[v\"10.2.89\", v\"11.4.4\", v\"11.5.2\", v\"11.6.2\", v\"11.7.1\", v\"11.8.0\", v\"12.0.1\", v\"12.1.1\", v\"12.2.2\", v\"12.3.2\", v\"12.4.1\", v\"12.5.1\", v\"12.6.3\"]"""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = true
+name = "CUDA_Runtime"
+platforms = ["x86_64-linux-gnu-cuda+10.2", "aarch64-linux-gnu-cuda_platform+jetson-cuda+10.2", "x86_64-w64-mingw32-cuda+10.2", "x86_64-linux-gnu-cuda+11.4", "aarch64-linux-gnu-cuda_platform+sbsa-cuda+11.4", "x86_64-w64-mingw32-cuda+11.4", "x86_64-linux-gnu-cuda+11.5", "aarch64-linux-gnu-cuda_platform+sbsa-cuda+11.5", "x86_64-w64-mingw32-cuda+11.5", "x86_64-linux-gnu-cuda+11.6", "aarch64-linux-gnu-cuda_platform+sbsa-cuda+11.6", "x86_64-w64-mingw32-cuda+11.6", "x86_64-linux-gnu-cuda+11.7", "aarch64-linux-gnu-cuda_platform+sbsa-cuda+11.7", "x86_64-w64-mingw32-cuda+11.7", "x86_64-linux-gnu-cuda+11.8", "aarch64-linux-gnu-cuda_platform+jetson-cuda+11.8", "aarch64-linux-gnu-cuda_platform+sbsa-cuda+11.8", "x86_64-w64-mingw32-cuda+11.8", "x86_64-linux-gnu-cuda+12.0", "aarch64-linux-gnu-cuda_platform+jetson-cuda+12.0", "aarch64-linux-gnu-cuda_platform+sbsa-cuda+12.0", "x86_64-w64-mingw32-cuda+12.0", "x86_64-linux-gnu-cuda+12.1", "aarch64-linux-gnu-cuda_platform+jetson-cuda+12.1", "aarch64-linux-gnu-cuda_platform+sbsa-cuda+12.1", "x86_64-w64-mingw32-cuda+12.1", "x86_64-linux-gnu-cuda+12.2", "aarch64-linux-gnu-cuda_platform+jetson-cuda+12.2", "aarch64-linux-gnu-cuda_platform+sbsa-cuda+12.2", "x86_64-w64-mingw32-cuda+12.2", "x86_64-linux-gnu-cuda+12.3", "aarch64-linux-gnu-cuda_platform+sbsa-cuda+12.3", "x86_64-w64-mingw32-cuda+12.3", "x86_64-linux-gnu-cuda+12.4", "aarch64-linux-gnu-cuda_platform+jetson-cuda+12.4", "aarch64-linux-gnu-cuda_platform+sbsa-cuda+12.4", "x86_64-w64-mingw32-cuda+12.4", "x86_64-linux-gnu-cuda+12.5", "aarch64-linux-gnu-cuda_platform+jetson-cuda+12.5", "aarch64-linux-gnu-cuda_platform+sbsa-cuda+12.5", "x86_64-w64-mingw32-cuda+12.5", "x86_64-linux-gnu-cuda+12.6", "aarch64-linux-gnu-cuda_platform+jetson-cuda+12.6", "aarch64-linux-gnu-cuda_platform+sbsa-cuda+12.6", "x86_64-w64-mingw32-cuda+12.6"]
+script = ["""# First, find (true) CUDA toolkit directory in ~/.artifacts somewhere\nCUDA_ARTIFACT_DIR=$(dirname $(dirname $(realpath $prefix/cuda/bin/ptxas${exeext})))\ncd ${CUDA_ARTIFACT_DIR}\n\n# Clear out our prefix\nrm -rf ${prefix}/*\n\n# license\ninstall_license EULA.txt\n\n# headers\nmkdir -p ${prefix}/include\nmv include/* ${prefix}/include\nrm -rf ${prefix}/include/thrust\n\n# binaries\nmkdir -p ${bindir} ${libdir} ${prefix}/lib ${prefix}/share\nif [[ ${target} == *-linux-gnu ]]; then\n    # CUDA Runtime\n    mv lib64/libcudart.so* lib64/libcudadevrt.a ${libdir}\n\n    # CUDA FFT Library\n    mv lib64/libcufft.so* lib64/libcufftw.so* ${libdir}\n\n    # CUDA BLAS Library\n    mv lib64/libcublas.so* lib64/libcublasLt.so* ${libdir}\n\n    # CUDA Sparse Matrix Library\n    mv lib64/libcusparse.so* ${libdir}\n\n    # CUDA Linear Solver Library\n    mv lib64/libcusolver.so* ${libdir}\n\n    # CUDA Linear Solver Multi GPU Library\n    if [[ $target != aarch64-linux-gnu ]]; then\n        mv lib64/libcusolverMg.so* ${libdir}\n    fi\n\n    # CUDA Random Number Generation Library\n    mv lib64/libcurand.so* ${libdir}\n\n    # NVIDIA Common Device Math Functions Library\n    mkdir ${prefix}/share/libdevice\n    mv nvvm/libdevice/libdevice.10.bc ${prefix}/share/libdevice\n\n    # CUDA Profiling Tools Interface (CUPTI) Library\n    mv extras/CUPTI/lib64/libcupti.so* ${libdir}\n\n    mv extras/CUPTI/lib64/libnvperf_host.so* ${libdir}\n    mv extras/CUPTI/lib64/libnvperf_target.so* ${libdir}\n\n    mv lib64/libnvrtc.so* ${libdir}\n    mv lib64/libnvrtc-builtins.so* ${libdir}\n\n    # Additional binaries\n    mv bin/ptxas ${bindir}\n    mv bin/nvdisasm ${bindir}\n    mv bin/nvlink ${bindir}\nelif [[ ${target} == x86_64-w64-mingw32 ]]; then\n    # CUDA Runtime\n    mv bin/cudart64_*.dll ${bindir}\n    mv lib/x64/cudadevrt.lib ${prefix}/lib\n\n    # CUDA FFT Library\n    mv bin/cufft64_*.dll bin/cufftw64_*.dll ${bindir}\n\n    # CUDA BLAS Library\n    mv bin/cublas64_*.dll bin/cublasLt64_*.dll ${bindir}\n\n    # CUDA Sparse Matrix Library\n    mv bin/cusparse64_*.dll ${bindir}\n\n    # CUDA Linear Solver Library\n    mv bin/cusolver64_*.dll ${bindir}\n\n    # CUDA Linear Solver Nulti GPU Library\n    mv bin/cusolverMg64_*.dll ${bindir}\n\n    # CUDA Random Number Generation Library\n    mv bin/curand64_*.dll ${bindir}\n\n    # NVIDIA Common Device Math Functions Library\n    mkdir ${prefix}/share/libdevice\n    mv nvvm/libdevice/libdevice.10.bc ${prefix}/share/libdevice\n\n    # CUDA Profiling Tools Interface (CUPTI) Library\n    mv extras/CUPTI/lib64/cupti64_*.dll ${bindir}\n\n    mv extras/CUPTI/lib64/nvperf_host.dll* ${libdir}\n    mv extras/CUPTI/lib64/nvperf_target.dll* ${libdir}\n\n    mv bin/nvrtc64_* ${bindir}\n    mv bin/nvrtc-builtins64_* ${bindir}\n\n    # Additional binaries\n    mv bin/ptxas.exe ${bindir}\n    mv bin/nvdisasm.exe ${bindir}\n    mv bin/nvlink.exe ${bindir}\n\n    # Fix permissions\n    chmod +x ${bindir}/*.{exe,dll}\nfi\n""", """# rename directories, stripping the architecture and version suffix\nfor dir in *-archive; do\n    base=$(echo $dir | cut -d '-' -f 1)\n    mv $dir $base\ndone\n\n# license\ninstall_license cuda_cudart/LICENSE\n\n# binaries\nmkdir -p ${bindir} ${libdir} ${prefix}/lib ${prefix}/share\nif [[ ${target} == *-linux-gnu ]]; then\n    mv cuda_cudart/lib/libcudart.so* cuda_cudart/lib/libcudadevrt.a ${libdir}\n\n    mv cuda_cupti/lib/libcupti.so* ${libdir}\n    mv cuda_cupti/lib/libnvperf_host.so* ${libdir}\n    mv cuda_cupti/lib/libnvperf_target.so* ${libdir}\n\n    mkdir ${prefix}/share/libdevice\n    mv cuda_nvcc/nvvm/lib64/libnvvm.so* ${libdir}\n    mv cuda_nvcc/bin/ptxas ${bindir}\n    mv cuda_nvcc/bin/nvlink ${bindir}\n    mv cuda_nvcc/nvvm/libdevice/libdevice.10.bc ${prefix}/share/libdevice\n\n    mv cuda_nvrtc/lib/libnvrtc.so* ${libdir}\n    mv cuda_nvrtc/lib/libnvrtc-builtins.so* ${libdir}\n\n    mv cuda_nvdisasm/bin/nvdisasm ${bindir}\n\n    if [[ -d libnvjitlink ]]; then\n        mv libnvjitlink/lib/libnvJitLink.so* ${libdir}\n    fi\n\n    mv libcufft/lib/libcufft.so* libcufft/lib/libcufftw.so* ${libdir}\n\n    mv libcublas/lib/libcublas.so* libcublas/lib/libcublasLt.so* ${libdir}\n\n    mv libcusparse/lib/libcusparse.so* ${libdir}\n\n    mv libcusolver/lib/libcusolver.so* libcusolver/lib/libcusolverMg.so* ${libdir}\n\n    mv libcurand/lib/libcurand.so* ${libdir}\nelif [[ ${target} == x86_64-w64-mingw32 ]]; then\n    # older versions of the redist binaries had DLLs in the lib folder; correct that\n    for dir in */; do\n        mkdir -p $dir/bin $dir/lib\n        mv $dir/lib/*.dll $dir/bin || true\n    done\n\n    mv cuda_cudart/bin/cudart64_*.dll ${bindir}\n    if [[ -d cuda_cudart/lib/x64 ]]; then\n        mv cuda_cudart/lib/x64/cudadevrt.lib ${prefix}/lib\n    else\n        mv cuda_cudart/lib/cudadevrt.lib ${prefix}/lib\n    fi\n\n    mv cuda_cupti/bin/cupti64_*.dll ${bindir}\n    mv cuda_cupti/bin/nvperf_host.dll* ${libdir}\n    mv cuda_cupti/bin/nvperf_target.dll* ${libdir}\n\n    mkdir ${prefix}/share/libdevice\n    mv cuda_nvcc/nvvm/bin/nvvm64_*.dll ${bindir}\n    mv cuda_nvcc/bin/ptxas.exe ${bindir}\n    mv cuda_nvcc/bin/nvlink.exe ${bindir}\n    mv cuda_nvcc/nvvm/libdevice/libdevice.10.bc ${prefix}/share/libdevice\n\n    mv cuda_nvrtc/bin/nvrtc64_* ${bindir}\n    mv cuda_nvrtc/bin/nvrtc-builtins64_* ${bindir}\n\n    mv cuda_nvdisasm/bin/nvdisasm.exe ${bindir}\n\n    if [[ -d libnvjitlink ]]; then\n        mv libnvjitlink/bin/nvJitLink_*.dll ${bindir}\n    fi\n\n    mv libcufft/bin/cufft64_*.dll libcufft/bin/cufftw64_*.dll ${bindir}\n\n    mv libcublas/bin/cublas64_*.dll libcublas/bin/cublasLt64_*.dll ${bindir}\n\n    mv libcusparse/bin/cusparse64_*.dll ${bindir}\n\n    mv libcusolver/bin/cusolver64_*.dll libcusolver/bin/cusolverMg64_*.dll ${bindir}\n\n    mv libcurand/bin/curand64_*.dll ${bindir}\n\n    # Fix permissions\n    chmod +x ${bindir}/*.{exe,dll}\nfi\n"""]
+version = "v0.15.5"
+
+[[dependencies]]
+compat = "0.10"
+name = "CUDA_Driver_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 10
+version-minor = 2
+version-patch = 89
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcudart", "cudart64_102"]
+type = "lib"
+variable_name = "libcudart"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcufft", "cufft64_10"]
+type = "lib"
+variable_name = "libcufft"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcublas", "cublas64_10"]
+type = "lib"
+variable_name = "libcublas"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcusparse", "cusparse64_10"]
+type = "lib"
+variable_name = "libcusparse"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcusolver", "cusolver64_10"]
+type = "lib"
+variable_name = "libcusolver"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcurand", "curand64_10"]
+type = "lib"
+variable_name = "libcurand"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcupti", "cupti64_102"]
+type = "lib"
+variable_name = "libcupti"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnvperf_host", "nvperf_host"]
+type = "lib"
+variable_name = "libnvperf_host"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnvperf_target", "nvperf_target"]
+type = "lib"
+variable_name = "libnvperf_target"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnvrtc", "nvrtc64_102_0"]
+type = "lib"
+variable_name = "libnvrtc"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnvrtc-builtins", "nvrtc-builtins64_102"]
+type = "lib"
+variable_name = "libnvrtc_builtins"
+[[products]]
+paths = ["lib/libcudadevrt.a", "lib/cudadevrt.lib"]
+type = "file"
+variable_name = "libcudadevrt"
+[[products]]
+paths = ["share/libdevice/libdevice.10.bc"]
+type = "file"
+variable_name = "libdevice"
+[[products]]
+binnames = ["ptxas"]
+type = "exe"
+variable_name = "ptxas"
+[[products]]
+binnames = ["nvdisasm"]
+type = "exe"
+variable_name = "nvdisasm"
+[[products]]
+binnames = ["nvlink"]
+type = "exe"
+variable_name = "nvlink"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcudart", "cudart64_110"]
+type = "lib"
+variable_name = "libcudart"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcublas", "cublas64_11"]
+type = "lib"
+variable_name = "libcublas"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcublasLt", "cublasLt64_11"]
+type = "lib"
+variable_name = "libcublasLt"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcusparse", "cusparse64_11"]
+type = "lib"
+variable_name = "libcusparse"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcusolver", "cusolver64_11"]
+type = "lib"
+variable_name = "libcusolver"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcusolverMg", "cusolverMg64_11"]
+type = "lib"
+variable_name = "libcusolverMg"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcupti", "cupti64_2021.2.2"]
+type = "lib"
+variable_name = "libcupti"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnvrtc", "nvrtc64_112_0"]
+type = "lib"
+variable_name = "libnvrtc"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnvrtc-builtins", "nvrtc-builtins64_114"]
+type = "lib"
+variable_name = "libnvrtc_builtins"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcupti", "cupti64_2021.3.1"]
+type = "lib"
+variable_name = "libcupti"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnvrtc-builtins", "nvrtc-builtins64_115"]
+type = "lib"
+variable_name = "libnvrtc_builtins"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcupti", "cupti64_2022.1.1"]
+type = "lib"
+variable_name = "libcupti"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnvrtc-builtins", "nvrtc-builtins64_116"]
+type = "lib"
+variable_name = "libnvrtc_builtins"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcupti", "cupti64_2022.2.1"]
+type = "lib"
+variable_name = "libcupti"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnvrtc-builtins", "nvrtc-builtins64_117"]
+type = "lib"
+variable_name = "libnvrtc_builtins"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcupti", "cupti64_2022.3.0"]
+type = "lib"
+variable_name = "libcupti"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnvrtc-builtins", "nvrtc-builtins64_118"]
+type = "lib"
+variable_name = "libnvrtc_builtins"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcudart", "cudart64_12"]
+type = "lib"
+variable_name = "libcudart"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcufft", "cufft64_11"]
+type = "lib"
+variable_name = "libcufft"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcublas", "cublas64_12"]
+type = "lib"
+variable_name = "libcublas"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcublasLt", "cublasLt64_12"]
+type = "lib"
+variable_name = "libcublasLt"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcusparse", "cusparse64_12"]
+type = "lib"
+variable_name = "libcusparse"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcupti", "cupti64_2022.4.1"]
+type = "lib"
+variable_name = "libcupti"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnvrtc", "nvrtc64_120_0"]
+type = "lib"
+variable_name = "libnvrtc"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnvrtc-builtins", "nvrtc-builtins64_120"]
+type = "lib"
+variable_name = "libnvrtc_builtins"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnvJitLink", "nvJitLink_120_0"]
+type = "lib"
+variable_name = "libnvJitLink"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcupti", "cupti64_2023.1.1"]
+type = "lib"
+variable_name = "libcupti"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnvrtc-builtins", "nvrtc-builtins64_121"]
+type = "lib"
+variable_name = "libnvrtc_builtins"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcupti", "cupti64_2023.2.2"]
+type = "lib"
+variable_name = "libcupti"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnvrtc-builtins", "nvrtc-builtins64_122"]
+type = "lib"
+variable_name = "libnvrtc_builtins"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcupti", "cupti64_2023.3.1"]
+type = "lib"
+variable_name = "libcupti"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnvrtc-builtins", "nvrtc-builtins64_123"]
+type = "lib"
+variable_name = "libnvrtc_builtins"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcupti", "cupti64_2024.1.1"]
+type = "lib"
+variable_name = "libcupti"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnvrtc-builtins", "nvrtc-builtins64_124"]
+type = "lib"
+variable_name = "libnvrtc_builtins"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcupti", "cupti64_2024.2.1"]
+type = "lib"
+variable_name = "libcupti"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnvrtc-builtins", "nvrtc-builtins64_125"]
+type = "lib"
+variable_name = "libnvrtc_builtins"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcupti", "cupti64_2024.3.2"]
+type = "lib"
+variable_name = "libcupti"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnvrtc-builtins", "nvrtc-builtins64_126"]
+type = "lib"
+variable_name = "libnvrtc_builtins"
+
+[[sources]]
+hash = "36bd6f1ea8711f69405ebd0b26d1f791a6ef6eb01cc3f01ba4231eb8ec09c208"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/linux-x86_64/cuda_cudart-linux-x86_64-11.4.148-archive.tar.xz"
+[[sources]]
+hash = "e589bd0955dc59cf7871dad3446e583316623dd899b67c34b808fbe14cde0209"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cupti/linux-x86_64/cuda_cupti-linux-x86_64-11.4.120-archive.tar.xz"
+[[sources]]
+hash = "7250fc83b54f9089e67f3b506648fd8e70a9107baed968cb5de169c05831d5e5"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/linux-x86_64/cuda_nvcc-linux-x86_64-11.4.152-archive.tar.xz"
+[[sources]]
+hash = "5b7e491b583d1914c591447b9cf1b4c02dc33b222874eb89eee4ea8f87929396"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvrtc/linux-x86_64/cuda_nvrtc-linux-x86_64-11.4.152-archive.tar.xz"
+[[sources]]
+hash = "6ab9bd7c31a54529762fddc9ebfc4d331a912bf97b47318b0b75bfbd3b8a5551"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvdisasm/linux-x86_64/cuda_nvdisasm-linux-x86_64-11.4.152-archive.tar.xz"
+[[sources]]
+hash = "751c585c062f6e1dfcb1bca5898de48d4a247edad478de37eda0c7c62038379a"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcublas/linux-x86_64/libcublas-linux-x86_64-11.6.5.2-archive.tar.xz"
+[[sources]]
+hash = "0e3ec55be39db99c8769a3f297d190b93c8281afb5b3bc2ca1966ae94d42255f"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcufft/linux-x86_64/libcufft-linux-x86_64-10.5.2.100-archive.tar.xz"
+[[sources]]
+hash = "0f741c8c74bc19ea03a3a19a6d858d364d86d806fa5941763cafb181d4f9b2f0"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcurand/linux-x86_64/libcurand-linux-x86_64-10.2.5.120-archive.tar.xz"
+[[sources]]
+hash = "5bae164a8a6969a374f6abe33cc71462e714538c2a818228cf401d0fa6c3c1b7"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusolver/linux-x86_64/libcusolver-linux-x86_64-11.2.0.120-archive.tar.xz"
+[[sources]]
+hash = "00bef20a412c9b099e7e48477804ed4c2bda8581b101d19c50559efff79bf269"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusparse/linux-x86_64/libcusparse-linux-x86_64-11.6.0.120-archive.tar.xz"
+[[sources]]
+hash = "d013448f76c22614e458de94b5289807d2d0934b3a5deb073b621401a222c16f"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/linux-sbsa/cuda_cudart-linux-sbsa-11.4.148-archive.tar.xz"
+[[sources]]
+hash = "d66367c166d27ddd6d7ed07f7a492dfed77b6eae505a7037a29537ce3e15eeb3"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cupti/linux-sbsa/cuda_cupti-linux-sbsa-11.4.120-archive.tar.xz"
+[[sources]]
+hash = "c0743a099bfb8c840a20317559668777e9a8ac9664dc121bcd22d76cee08416d"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/linux-sbsa/cuda_nvcc-linux-sbsa-11.4.152-archive.tar.xz"
+[[sources]]
+hash = "d82eb049e72545239c6d64e6bf5afd06b89df06f338165fc5a68a2bf3143472e"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvrtc/linux-sbsa/cuda_nvrtc-linux-sbsa-11.4.152-archive.tar.xz"
+[[sources]]
+hash = "68743913c877014b4f9a6d7267cc117d443c9990ea583ea837a1c51df1676d7d"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvdisasm/linux-sbsa/cuda_nvdisasm-linux-sbsa-11.4.152-archive.tar.xz"
+[[sources]]
+hash = "7325d4fe77567ee69799902eae7479b8d6518c7722882d683a41b1ebdd8f676d"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcublas/linux-sbsa/libcublas-linux-sbsa-11.6.5.2-archive.tar.xz"
+[[sources]]
+hash = "49b7d658dc84fd6669a27907d403b4c93d82f9cc10670e9c990eed29ae6e5ee8"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcufft/linux-sbsa/libcufft-linux-sbsa-10.5.2.100-archive.tar.xz"
+[[sources]]
+hash = "834b508e8979c3f4751a0ddbc62e9c8bc113844e4f82326e73cc42da4adabad9"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcurand/linux-sbsa/libcurand-linux-sbsa-10.2.5.120-archive.tar.xz"
+[[sources]]
+hash = "a53d4d80240702a8216903798ced8449f690379b785cc5fee21aeff5e0241dc4"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusolver/linux-sbsa/libcusolver-linux-sbsa-11.2.0.120-archive.tar.xz"
+[[sources]]
+hash = "93f7fbb8191e4af59aac32adb8ac06d6501bf90ca97e3e01f400314bc320c852"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusparse/linux-sbsa/libcusparse-linux-sbsa-11.6.0.120-archive.tar.xz"
+[[sources]]
+hash = "e889e38929a95845409ed7dcdb0e6189343af5d17442a3b8c9f2ba297f0d262e"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/windows-x86_64/cuda_cudart-windows-x86_64-11.4.148-archive.zip"
+[[sources]]
+hash = "74545a99d9a35c53790003006b29b9af5ca52b48f8703fdbc003665b42f5ec39"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cupti/windows-x86_64/cuda_cupti-windows-x86_64-11.4.120-archive.zip"
+[[sources]]
+hash = "460c9e54bd0b99f4f63243eeb6b2090d17193361575b189c050faa10d465d4a9"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/windows-x86_64/cuda_nvcc-windows-x86_64-11.4.152-archive.zip"
+[[sources]]
+hash = "48e3def76ff1842d00051fd035e6487be711ac4019e9dc43f5db3f9e14363f91"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvrtc/windows-x86_64/cuda_nvrtc-windows-x86_64-11.4.152-archive.zip"
+[[sources]]
+hash = "9fa3a5a1248ad1247ee78a3d9627f1b2d7173cbde5bdb1635a853624f3f8137e"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvdisasm/windows-x86_64/cuda_nvdisasm-windows-x86_64-11.4.152-archive.zip"
+[[sources]]
+hash = "7ebcfcd9cc327a020f156d9a9f7607ea6a563038834991324230102915bef47c"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcublas/windows-x86_64/libcublas-windows-x86_64-11.6.5.2-archive.zip"
+[[sources]]
+hash = "eaf957a481d0c361724cf796b6bc105e36f9a3d17b7525107a78ff15ea3ddc6c"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcufft/windows-x86_64/libcufft-windows-x86_64-10.5.2.100-archive.zip"
+[[sources]]
+hash = "35108db3e9afaac017e1d3460313632850e3627520cf2213b987fa3d4cf6a8ce"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcurand/windows-x86_64/libcurand-windows-x86_64-10.2.5.120-archive.zip"
+[[sources]]
+hash = "72e456cc8d7e79f514eae95ac9a4acb269e66344d67c5913370a3f0367a1f862"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusolver/windows-x86_64/libcusolver-windows-x86_64-11.2.0.120-archive.zip"
+[[sources]]
+hash = "bd995a141da804fa0d2c3bce1c6d575e862877e1356041dae326825e5194c176"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusparse/windows-x86_64/libcusparse-windows-x86_64-11.6.0.120-archive.zip"
+[[sources]]
+hash = "c01bfcfca22063c99fd50122d39383433f4f789e021c7785cd555f59c2632a2c"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/linux-x86_64/cuda_cudart-linux-x86_64-11.5.117-archive.tar.xz"
+[[sources]]
+hash = "1ab09d29571a80f5c26187e78419b424a041ade7c9c108523aad26d6711eb222"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cupti/linux-x86_64/cuda_cupti-linux-x86_64-11.5.114-archive.tar.xz"
+[[sources]]
+hash = "4072592764717f5c3ac53b95f0bb5f2bf427294b94aa9abda125e51b4fca9e0a"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/linux-x86_64/cuda_nvcc-linux-x86_64-11.5.119-archive.tar.xz"
+[[sources]]
+hash = "78aa426f8d1bd6a309582268045e92d798dea84ab17b0e41bbf81ed4c6c51c37"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvrtc/linux-x86_64/cuda_nvrtc-linux-x86_64-11.5.119-archive.tar.xz"
+[[sources]]
+hash = "7b5055db4fbc270a49d69dae6320331d16b3d50f828a9b155e7bf2abe138f273"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvdisasm/linux-x86_64/cuda_nvdisasm-linux-x86_64-11.5.119-archive.tar.xz"
+[[sources]]
+hash = "1ba27f135e2f920bb47e22c05e4ef2e0a75e21d9306f5062e44c3d705150a3a9"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcublas/linux-x86_64/libcublas-linux-x86_64-11.7.4.6-archive.tar.xz"
+[[sources]]
+hash = "e2e51dc75c9c5b4476624bf683d50afbcc611f88361392625f017bd3efc545b9"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcufft/linux-x86_64/libcufft-linux-x86_64-10.6.0.107-archive.tar.xz"
+[[sources]]
+hash = "9dd3bfa212a4c8e58a6869c4992e710409d34c46d5a683cf99670d5ef5b1f8de"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcurand/linux-x86_64/libcurand-linux-x86_64-10.2.7.107-archive.tar.xz"
+[[sources]]
+hash = "4c9e3fec211fa6cc6dd14a7d09237c56f43789e498817cd0839b0e6ef9c498fa"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusolver/linux-x86_64/libcusolver-linux-x86_64-11.3.2.107-archive.tar.xz"
+[[sources]]
+hash = "9e768d6278df1b2323e2708bbf53af0bdb2955c0c4688eb69d5e418aea3a9b41"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusparse/linux-x86_64/libcusparse-linux-x86_64-11.7.0.107-archive.tar.xz"
+[[sources]]
+hash = "550f8dfdce3fb6ca723d716abff81e1fd55132a130d284ae2050a0f09f40c93f"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/linux-sbsa/cuda_cudart-linux-sbsa-11.5.117-archive.tar.xz"
+[[sources]]
+hash = "05926807291609f643d4b92706a9ab627f4dd32e4f0c5779b58ba5c737453c43"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cupti/linux-sbsa/cuda_cupti-linux-sbsa-11.5.114-archive.tar.xz"
+[[sources]]
+hash = "21e9d7941a62806331e94eff3ba22b4bcace3f8227e133580f0367343eb3f3a4"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/linux-sbsa/cuda_nvcc-linux-sbsa-11.5.119-archive.tar.xz"
+[[sources]]
+hash = "c924444459eca0ee5f5748cc80628c0e8759d6cf70c55b5ce2e1b4b37a46d3cd"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvrtc/linux-sbsa/cuda_nvrtc-linux-sbsa-11.5.119-archive.tar.xz"
+[[sources]]
+hash = "698ccf414b9a7d823dc8d9818df72cac0a10d618ab143b221bbf321ada96ef08"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvdisasm/linux-sbsa/cuda_nvdisasm-linux-sbsa-11.5.119-archive.tar.xz"
+[[sources]]
+hash = "38d7045310487b6f3dad4c6f8c5f6420b4dcf9dbf0171f3ef5f48f3e2f0024f9"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcublas/linux-sbsa/libcublas-linux-sbsa-11.7.4.6-archive.tar.xz"
+[[sources]]
+hash = "e5ea473699697bcfd2a0ab7b807dbc5dd713bfe40221f7356097fb6e2577d73a"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcufft/linux-sbsa/libcufft-linux-sbsa-10.6.0.107-archive.tar.xz"
+[[sources]]
+hash = "e8f2cc5e786812cf70bd7bd37a9c78e3341e602c402177d44e7bf07fe7e85142"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcurand/linux-sbsa/libcurand-linux-sbsa-10.2.7.107-archive.tar.xz"
+[[sources]]
+hash = "6feba029d8838d17345c38d77b6cd0e7853934106edcc5d5f6ec57646b499d28"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusolver/linux-sbsa/libcusolver-linux-sbsa-11.3.2.107-archive.tar.xz"
+[[sources]]
+hash = "88de7ce848b929439ba1fa1baf487ec56fedc39f8042a862c2f5522fbc1e82a2"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusparse/linux-sbsa/libcusparse-linux-sbsa-11.7.0.107-archive.tar.xz"
+[[sources]]
+hash = "02cd427306ada807c9a8a1f16dd34ddeb58f35c7932bcbe13e1ee2afa882332c"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/windows-x86_64/cuda_cudart-windows-x86_64-11.5.117-archive.zip"
+[[sources]]
+hash = "56948dab7b3d39bc9d8231a277a051e57f95efe73f9f6bfeb9f66df2be3d2208"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cupti/windows-x86_64/cuda_cupti-windows-x86_64-11.5.114-archive.zip"
+[[sources]]
+hash = "477ca5d096c2e5a87480cae24951b54e641030cfc3c75ce869e0656e4fcb2142"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/windows-x86_64/cuda_nvcc-windows-x86_64-11.5.119-archive.zip"
+[[sources]]
+hash = "e6c7312b4b8f678828dca2b2e29bd8a1afee83709885bffe0115743219e092ae"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvrtc/windows-x86_64/cuda_nvrtc-windows-x86_64-11.5.119-archive.zip"
+[[sources]]
+hash = "f8dee0ae12696a02a01e95083e1fde8222018f641f7ebf712985fc6c1716f217"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvdisasm/windows-x86_64/cuda_nvdisasm-windows-x86_64-11.5.119-archive.zip"
+[[sources]]
+hash = "a5b2c090e7b3da7b9823aa71ecf76a07344846daf8d26b13a06dba2d8a572c79"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcublas/windows-x86_64/libcublas-windows-x86_64-11.7.4.6-archive.zip"
+[[sources]]
+hash = "f6b846a79772640585cbfc35746ededa1210e1ba7005e075d678a4d84ffd93ec"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcufft/windows-x86_64/libcufft-windows-x86_64-10.6.0.107-archive.zip"
+[[sources]]
+hash = "fa74020026d1cf81b0a3004c823ae40a4f0a02df34041438b992e6058ff97cd2"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcurand/windows-x86_64/libcurand-windows-x86_64-10.2.7.107-archive.zip"
+[[sources]]
+hash = "325684ebefb24f7a47c5868a87f8dc38c88812c12f113bd57029b3a715c95405"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusolver/windows-x86_64/libcusolver-windows-x86_64-11.3.2.107-archive.zip"
+[[sources]]
+hash = "365a0316da888e0b8cc17b3e958b24b9faefa35e6b5fded7d9083483c1f0c097"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusparse/windows-x86_64/libcusparse-windows-x86_64-11.7.0.107-archive.zip"
+[[sources]]
+hash = "734a77b3a26a9d08489d43afb74bad230c7c4a0ed2d17a6317a47cf363dca521"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/linux-x86_64/cuda_cudart-linux-x86_64-11.6.55-archive.tar.xz"
+[[sources]]
+hash = "e56a68900e08dc1165cc8efabba1073087ebd5d8742cd16ef463cb3638b5d1a8"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cupti/linux-x86_64/cuda_cupti-linux-x86_64-11.6.124-archive.tar.xz"
+[[sources]]
+hash = "8c81199c5a096869a10c284197cefc1a958df8bf482322a0a48dff9cc82291b8"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/linux-x86_64/cuda_nvcc-linux-x86_64-11.6.124-archive.tar.xz"
+[[sources]]
+hash = "9086e9f0ac56337d8e80d3cd1d78f79633f8725cdd0bb5a9864311a2ba95c1e0"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvrtc/linux-x86_64/cuda_nvrtc-linux-x86_64-11.6.124-archive.tar.xz"
+[[sources]]
+hash = "1645505394a9d186741c7c2e07dea05fc1852bfa6a0663fdc53176ffaedff548"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvdisasm/linux-x86_64/cuda_nvdisasm-linux-x86_64-11.6.124-archive.tar.xz"
+[[sources]]
+hash = "ea2395ea76a811498863774491721d5c4b491fd1498221ef7cb1ae514e6518cb"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcublas/linux-x86_64/libcublas-linux-x86_64-11.9.2.110-archive.tar.xz"
+[[sources]]
+hash = "95397578c2d18d5df17dafa42cf34d47821953c6d5c9bdba45c7b673ba07276a"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcufft/linux-x86_64/libcufft-linux-x86_64-10.7.2.124-archive.tar.xz"
+[[sources]]
+hash = "87b1d70ec749db31cabb79ae5034b05883666e1848aa3feca643ea4a68dea47e"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcurand/linux-x86_64/libcurand-linux-x86_64-10.2.9.124-archive.tar.xz"
+[[sources]]
+hash = "adbd0af1f84aea29859c217e028c1a74a5b3a90acce7d679790efd73aff28462"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusolver/linux-x86_64/libcusolver-linux-x86_64-11.3.4.124-archive.tar.xz"
+[[sources]]
+hash = "744affcbe5ecc8ca9438f20cf93e43a1648d682f6badfa4494f76ae26a350edc"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusparse/linux-x86_64/libcusparse-linux-x86_64-11.7.2.124-archive.tar.xz"
+[[sources]]
+hash = "ae0ba7295280c4b2f2a217bc79cc604a3beb20484011dd2db604507f31fde0a7"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/linux-sbsa/cuda_cudart-linux-sbsa-11.6.55-archive.tar.xz"
+[[sources]]
+hash = "8e45eac6e94938de807c44d2f846a0e8996a065b0817c2119948193fec279ca6"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cupti/linux-sbsa/cuda_cupti-linux-sbsa-11.6.124-archive.tar.xz"
+[[sources]]
+hash = "cdca0d230967ccf227063841ae984704a1812663bd0074e400eee57ba47d99a9"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/linux-sbsa/cuda_nvcc-linux-sbsa-11.6.124-archive.tar.xz"
+[[sources]]
+hash = "140d6587924f95fa6a9fbd7ad9a2d57b276ae71f1738b2b6bebfd0a8317b7e6d"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvrtc/linux-sbsa/cuda_nvrtc-linux-sbsa-11.6.124-archive.tar.xz"
+[[sources]]
+hash = "d4e5e3eef98659f3d1464576d3ec715469918def222cf7f84851ba06716fa8dd"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvdisasm/linux-sbsa/cuda_nvdisasm-linux-sbsa-11.6.124-archive.tar.xz"
+[[sources]]
+hash = "8201009b6df0924d599731bcf309190b8e8e3c1eebff0226f12107ca3f5f86dd"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcublas/linux-sbsa/libcublas-linux-sbsa-11.9.2.110-archive.tar.xz"
+[[sources]]
+hash = "b132fc468d46a90baac45f8f0484675cc4552120d5912c9c7612d7346c7db9bf"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcufft/linux-sbsa/libcufft-linux-sbsa-10.7.2.124-archive.tar.xz"
+[[sources]]
+hash = "c084db363510f6a2f628401494372edc1a841b0fabf95d80e86b852b27a299f5"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcurand/linux-sbsa/libcurand-linux-sbsa-10.2.9.124-archive.tar.xz"
+[[sources]]
+hash = "bb0dcef4d8c4e076a724d1a0a7258bffb6e9a9c49357716ed70466b3403eb4e3"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusolver/linux-sbsa/libcusolver-linux-sbsa-11.3.4.124-archive.tar.xz"
+[[sources]]
+hash = "4962d79be52338c911fb5612bb2f7562aa41bda0ec474fc096524bf9dd762922"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusparse/linux-sbsa/libcusparse-linux-sbsa-11.7.2.124-archive.tar.xz"
+[[sources]]
+hash = "d73be9aa0d66b282e94c75032763249a753efb9d63de891ae9a1c4a62ed1aca1"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/windows-x86_64/cuda_cudart-windows-x86_64-11.6.55-archive.zip"
+[[sources]]
+hash = "ff7d4d4d7a83b2fe1bb3b964a44fdc29261470b239fc9c113e91e6b1bf1e9707"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cupti/windows-x86_64/cuda_cupti-windows-x86_64-11.6.124-archive.zip"
+[[sources]]
+hash = "ab39ba1495ebe474fb74cea2b520bc4a3c80e6953ebf774c6cd4058c50be94e1"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/windows-x86_64/cuda_nvcc-windows-x86_64-11.6.124-archive.zip"
+[[sources]]
+hash = "ea5d8de24af80840bcf7d8f91ab1385366ca736485c52910fe269f845711b28f"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvrtc/windows-x86_64/cuda_nvrtc-windows-x86_64-11.6.124-archive.zip"
+[[sources]]
+hash = "e318fc6ae9b33e6cc657c655a0c1eff5f56828abbea208728619c9bdfc59eb7d"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvdisasm/windows-x86_64/cuda_nvdisasm-windows-x86_64-11.6.124-archive.zip"
+[[sources]]
+hash = "13f5119c43128ccda66ab092bad4435313cf06cb892247e38cb2ec1d8bc96c90"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcublas/windows-x86_64/libcublas-windows-x86_64-11.9.2.110-archive.zip"
+[[sources]]
+hash = "d7a613f9bb647695947cdd0514abed09fb82c0934461cedab629f6471f4adaf7"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcufft/windows-x86_64/libcufft-windows-x86_64-10.7.2.124-archive.zip"
+[[sources]]
+hash = "6bbb3c33f76813a96b1cec51d723d0d53704f3b7fedaf6c29f4c84f1bcb73a4e"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcurand/windows-x86_64/libcurand-windows-x86_64-10.2.9.124-archive.zip"
+[[sources]]
+hash = "80d602eef188a19779b0beabb6f3fd9f8eb52ce8c8c61d31a792351d85053996"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusolver/windows-x86_64/libcusolver-windows-x86_64-11.3.4.124-archive.zip"
+[[sources]]
+hash = "4c33673bb1de12005b26fbf5139b6b9e25fbf4490839205036e060af27c1f789"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusparse/windows-x86_64/libcusparse-windows-x86_64-11.7.2.124-archive.zip"
+[[sources]]
+hash = "7892409299c6865d0652373cb385add31b0faa2e5421a931ae9fbc103e1472ad"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/linux-x86_64/cuda_cudart-linux-x86_64-11.7.99-archive.tar.xz"
+[[sources]]
+hash = "7193f5d9b23e91b5cc34df57f7500f891b8461c1ace2d2489beed38da6d22f23"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cupti/linux-x86_64/cuda_cupti-linux-x86_64-11.7.101-archive.tar.xz"
+[[sources]]
+hash = "4a75e5bd6a0e0e664ec5895ba050cf9d7cda08f41db2b6b4c36fb91cfb9627bc"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/linux-x86_64/cuda_nvcc-linux-x86_64-11.7.99-archive.tar.xz"
+[[sources]]
+hash = "cd6ed198ef77898bb3025145570d981cc7a0d2bda792e9a70822fcd274b18248"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvrtc/linux-x86_64/cuda_nvrtc-linux-x86_64-11.7.99-archive.tar.xz"
+[[sources]]
+hash = "da935b2d88a3e75095981143174026ca1d2a5ea43783240e7312874ae3e73217"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvdisasm/linux-x86_64/cuda_nvdisasm-linux-x86_64-11.7.91-archive.tar.xz"
+[[sources]]
+hash = "15c117c74bc1401dbc87cc8a9f510155818786c030fc3396f4af6bc425aef6f3"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcublas/linux-x86_64/libcublas-linux-x86_64-11.10.3.66-archive.tar.xz"
+[[sources]]
+hash = "4f1ed4817de6be53474a27c47097eb618a33b5a3e0ad08f5f68abc8b7312aa28"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcufft/linux-x86_64/libcufft-linux-x86_64-10.7.2.91-archive.tar.xz"
+[[sources]]
+hash = "283323c93050b3904d58417a6dd4055c156407c2df0c064ae81592e532b69a31"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcurand/linux-x86_64/libcurand-linux-x86_64-10.2.10.91-archive.tar.xz"
+[[sources]]
+hash = "9f56bfdfeccd63f4cde99bc4a573d5ab45e2339cf6a1b2a0fc7ff83ff9775b3d"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusolver/linux-x86_64/libcusolver-linux-x86_64-11.4.0.1-archive.tar.xz"
+[[sources]]
+hash = "16841f9d4350ca21b6b362d4265983a58e675d64a14f168687b1b68995bec32e"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusparse/linux-x86_64/libcusparse-linux-x86_64-11.7.4.91-archive.tar.xz"
+[[sources]]
+hash = "b7c90ae963e67825b9b518062902d4b80a55a3f3ada6f5bb3a7c19b8e93df024"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/linux-sbsa/cuda_cudart-linux-sbsa-11.7.99-archive.tar.xz"
+[[sources]]
+hash = "42c2f7b9734a18dec5f63b954e3bc1ff45f4283b1707d88e7eb298d40c2a7390"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cupti/linux-sbsa/cuda_cupti-linux-sbsa-11.7.101-archive.tar.xz"
+[[sources]]
+hash = "59016452808b9b2eb83eeb05bdc0737983a1debb3812513c860869092a8152b8"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/linux-sbsa/cuda_nvcc-linux-sbsa-11.7.99-archive.tar.xz"
+[[sources]]
+hash = "32a94a6993edc24aadeebdae7c4e8fad04a9c7214bd1f505aec16256305feb4e"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvrtc/linux-sbsa/cuda_nvrtc-linux-sbsa-11.7.99-archive.tar.xz"
+[[sources]]
+hash = "09e183b991019eb102a8592ab3f3cf64fa1969a4ec42deb96407549938ece485"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvdisasm/linux-sbsa/cuda_nvdisasm-linux-sbsa-11.7.91-archive.tar.xz"
+[[sources]]
+hash = "3d64f899d4e88bd85ff410aa8fda0fe3c14d0e3acadba9ef550924ac8f34b52d"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcublas/linux-sbsa/libcublas-linux-sbsa-11.10.3.66-archive.tar.xz"
+[[sources]]
+hash = "c6147c67db716824d8b7ff61306ccbf1897e3d5e1399d37e6c5ede0334db4ce9"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcufft/linux-sbsa/libcufft-linux-sbsa-10.7.2.91-archive.tar.xz"
+[[sources]]
+hash = "ce68130a726152a7f68a0cec85773e4074a2f2049e16ca41e462fde12affda94"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcurand/linux-sbsa/libcurand-linux-sbsa-10.2.10.91-archive.tar.xz"
+[[sources]]
+hash = "eb9c08d184226c616a4ff041cec178b29480f8afe034f7537c0d07b6afe84588"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusolver/linux-sbsa/libcusolver-linux-sbsa-11.4.0.1-archive.tar.xz"
+[[sources]]
+hash = "b7f1ba9c18f87db594847b318fa73b5c76945777b5c03a507434bfa6aba2f2a2"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusparse/linux-sbsa/libcusparse-linux-sbsa-11.7.4.91-archive.tar.xz"
+[[sources]]
+hash = "1eb967fe01843dbe4b41a43352df193018077dd28b06eb2fd5af897b03f92d5c"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/windows-x86_64/cuda_cudart-windows-x86_64-11.7.99-archive.zip"
+[[sources]]
+hash = "9d2d98b73cf70165a0c7652b5c764da2816209f519a8c73cdf01733a83502170"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cupti/windows-x86_64/cuda_cupti-windows-x86_64-11.7.101-archive.zip"
+[[sources]]
+hash = "55aac64b0c81b96628ad9511514c591c33a4649d15d5a579d351be5b89632276"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/windows-x86_64/cuda_nvcc-windows-x86_64-11.7.99-archive.zip"
+[[sources]]
+hash = "d4b5027eee2e20155ba317b6b62f8fc36b2baa0c23b5c7031d93fa7d5b260fd1"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvrtc/windows-x86_64/cuda_nvrtc-windows-x86_64-11.7.99-archive.zip"
+[[sources]]
+hash = "be716596ea300a295ab06b92caa92d7a17e4dd23f7a3f9ef0f98f1f81a63d241"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvdisasm/windows-x86_64/cuda_nvdisasm-windows-x86_64-11.7.91-archive.zip"
+[[sources]]
+hash = "f6d80b92b0c4ae077d71ee83aaa5057c4e6419b80e25ef22ff03a80aad700fe0"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcublas/windows-x86_64/libcublas-windows-x86_64-11.10.3.66-archive.zip"
+[[sources]]
+hash = "88643d092d3d8ef30d2b5ca3757ea87577eaefc1268f350507a3b132abeb7f24"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcufft/windows-x86_64/libcufft-windows-x86_64-10.7.2.91-archive.zip"
+[[sources]]
+hash = "90e043d540765f410fa8d3d569e95b8eac15940037cd1159335f99d4caab484f"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcurand/windows-x86_64/libcurand-windows-x86_64-10.2.10.91-archive.zip"
+[[sources]]
+hash = "bfce43d0437ae10a7250c9f173e04e048fc46f9e5c9ed2c2bd4db4e661c77ba1"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusolver/windows-x86_64/libcusolver-windows-x86_64-11.4.0.1-archive.zip"
+[[sources]]
+hash = "2827643399b92b87af858bf4b004b4a664bc7e838a18e2143258b93c019487b0"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusparse/windows-x86_64/libcusparse-windows-x86_64-11.7.4.91-archive.zip"
+[[sources]]
+hash = "56129e0c42df03ecb50a7bb23fc3285fa39af1a818f8826b183cf793529098bb"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/linux-x86_64/cuda_cudart-linux-x86_64-11.8.89-archive.tar.xz"
+[[sources]]
+hash = "b2ebc5672aa7b896b5986200d132933c37e72df6b0bf5ac25c9cb18c2c03057f"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cupti/linux-x86_64/cuda_cupti-linux-x86_64-11.8.87-archive.tar.xz"
+[[sources]]
+hash = "7ee8450dbcc16e9fe5d2a7b567d6dec220c5894a94ac6640459e06231e3b39a5"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/linux-x86_64/cuda_nvcc-linux-x86_64-11.8.89-archive.tar.xz"
+[[sources]]
+hash = "4bde6bdd6550110b91a5b8e442579c26ddf3a4bc9d380bed03daee8bf70a5286"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvrtc/linux-x86_64/cuda_nvrtc-linux-x86_64-11.8.89-archive.tar.xz"
+[[sources]]
+hash = "9c1a92d012ec7e63334863a70f8c48b25d3a7df13253813318454358eeaa4400"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvdisasm/linux-x86_64/cuda_nvdisasm-linux-x86_64-11.8.86-archive.tar.xz"
+[[sources]]
+hash = "045e6455c9f8789b1c7ced19957c7904d23c221f4d1d75bb574a2c856aebae98"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcublas/linux-x86_64/libcublas-linux-x86_64-11.11.3.6-archive.tar.xz"
+[[sources]]
+hash = "eadca0b30a4a2c1f741fde88d6dd611604e488fdb51c676861eabc08d2c4612f"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcufft/linux-x86_64/libcufft-linux-x86_64-10.9.0.58-archive.tar.xz"
+[[sources]]
+hash = "9d30be251c1a0463b52203f6514dac5062844c606d13e234d1386e80c83db279"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcurand/linux-x86_64/libcurand-linux-x86_64-10.3.0.86-archive.tar.xz"
+[[sources]]
+hash = "ed136d960d28001fef1fe896aab56ea3e6a886970ab732274c9306e1bec88c96"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusolver/linux-x86_64/libcusolver-linux-x86_64-11.4.1.48-archive.tar.xz"
+[[sources]]
+hash = "9250fe539d4bd6a378581dc0b528e8cfc418b57f28545bf39d70cae762075df7"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusparse/linux-x86_64/libcusparse-linux-x86_64-11.7.5.86-archive.tar.xz"
+[[sources]]
+hash = "e7622a46261df6424e8cd892e1631ef3bbfae90d0aace4a63fd35cdcffa9c788"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/linux-aarch64/cuda_cudart-linux-aarch64-11.8.89-archive.tar.xz"
+[[sources]]
+hash = "a7d2b993dcfdec7bf24cd8e7cee292679bc351d95bc58e99e3394593f708fa80"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cupti/linux-aarch64/cuda_cupti-linux-aarch64-11.8.87-archive.tar.xz"
+[[sources]]
+hash = "e6cd1a039b5318cabc848840f0e660c4e0971186ae84ff0b2a56246b898ace1e"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/linux-aarch64/cuda_nvcc-linux-aarch64-11.8.89-archive.tar.xz"
+[[sources]]
+hash = "89f3f8067b1a5812b0c46a24b4a82864516bf7026c951f8ccfe91c2b7c430596"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvrtc/linux-aarch64/cuda_nvrtc-linux-aarch64-11.8.89-archive.tar.xz"
+[[sources]]
+hash = "578604e16d2c687a41fe1beb9eff44a72ad7e0ae9acc147fe28c37e1d3962f8a"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvdisasm/linux-aarch64/cuda_nvdisasm-linux-aarch64-11.8.86-archive.tar.xz"
+[[sources]]
+hash = "05252a76ee24a73b4def52a52c3a4d08e790f3956b020dfaba56af0cc169b08a"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcublas/linux-aarch64/libcublas-linux-aarch64-11.11.3.6-archive.tar.xz"
+[[sources]]
+hash = "7337babe858b3b9d267603207da5e450d24d7fdd8173c4c5d303f6586e83611c"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcufft/linux-aarch64/libcufft-linux-aarch64-10.9.0.58-archive.tar.xz"
+[[sources]]
+hash = "56411f5ce1f7c8a0a6a9db0b50f3454321226ad82abf6a189b176efd86587b77"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcurand/linux-aarch64/libcurand-linux-aarch64-10.3.0.86-archive.tar.xz"
+[[sources]]
+hash = "25010c938487032feb4ff8efbe9e60d9cc2fe68e865ce263be0a2542929d16be"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusolver/linux-aarch64/libcusolver-linux-aarch64-11.4.1.48-archive.tar.xz"
+[[sources]]
+hash = "a7795a1f97ea1b7c1e5753294e7ddaecc3e99e18da29e1e9adcbd73e61946365"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusparse/linux-aarch64/libcusparse-linux-aarch64-11.7.5.86-archive.tar.xz"
+[[sources]]
+hash = "88f496a2f96f5bb2a9cb351e6704dfe6a45e713e571c958a3924b2a02e7adea0"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/linux-sbsa/cuda_cudart-linux-sbsa-11.8.89-archive.tar.xz"
+[[sources]]
+hash = "d53c7e5da57d1e9df1f5bb3009e4964fbbcc8382906f64153ba4fab2ddeae607"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cupti/linux-sbsa/cuda_cupti-linux-sbsa-11.8.87-archive.tar.xz"
+[[sources]]
+hash = "17d30d924a1d6ff5748a0b6a4e7c25fd39644250cef9184fba520362f70ff798"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/linux-sbsa/cuda_nvcc-linux-sbsa-11.8.89-archive.tar.xz"
+[[sources]]
+hash = "d81246bc36adb4664a816ebebd2a572b92a74b3a36a830454fc91a13bdad7d18"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvrtc/linux-sbsa/cuda_nvrtc-linux-sbsa-11.8.89-archive.tar.xz"
+[[sources]]
+hash = "8e6f10a708937283919ebd57ba55a5a3575a751c92f63ac9a99f5bcfda8ac1dc"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvdisasm/linux-sbsa/cuda_nvdisasm-linux-sbsa-11.8.86-archive.tar.xz"
+[[sources]]
+hash = "38fe90cbbc7da3dbdcd8c29e0fcd60f69baf580d9b3f71a4ee102e3c7fc30b3d"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcublas/linux-sbsa/libcublas-linux-sbsa-11.11.3.6-archive.tar.xz"
+[[sources]]
+hash = "e2bec93081e31ee2f0234d2fa93c2b501de29d2143fae287fe729c3318811e56"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcufft/linux-sbsa/libcufft-linux-sbsa-10.9.0.58-archive.tar.xz"
+[[sources]]
+hash = "3df3571103b056ab354e616f1c0737b1b2a25a7875b98b1b9bf32dee94449699"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcurand/linux-sbsa/libcurand-linux-sbsa-10.3.0.86-archive.tar.xz"
+[[sources]]
+hash = "554a404bc39eb8369b5ad90cc7bb45fdb33dae509bd9a34cb0cbeff831d8569a"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusolver/linux-sbsa/libcusolver-linux-sbsa-11.4.1.48-archive.tar.xz"
+[[sources]]
+hash = "191ae1f26b15955b743f6c4978c8562b973b16671a9f684368d501919f906ce5"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusparse/linux-sbsa/libcusparse-linux-sbsa-11.7.5.86-archive.tar.xz"
+[[sources]]
+hash = "988cc9e7d3785d4b1975521f312c57c6814cbf15e73a2b7941d961835f2a945e"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/windows-x86_64/cuda_cudart-windows-x86_64-11.8.89-archive.zip"
+[[sources]]
+hash = "a243ffc6b5cfd9ba469bc3dd02208186c4f1956e91d54e9bca295757edd9dafa"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cupti/windows-x86_64/cuda_cupti-windows-x86_64-11.8.87-archive.zip"
+[[sources]]
+hash = "4cdd7555f31186e5af0b14ab761838bbc8b5e6441589f5bb326930c7a502dcd3"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/windows-x86_64/cuda_nvcc-windows-x86_64-11.8.89-archive.zip"
+[[sources]]
+hash = "e5d571247e71e0b0922a929516175844efa9e7ac424ed3c1b764bffb4899d3c9"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvrtc/windows-x86_64/cuda_nvrtc-windows-x86_64-11.8.89-archive.zip"
+[[sources]]
+hash = "56888ecebbac419f1d5e91bff33ea1268fda12a3ce8818b0c6f360521cf07152"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvdisasm/windows-x86_64/cuda_nvdisasm-windows-x86_64-11.8.86-archive.zip"
+[[sources]]
+hash = "67b0934a6359e4ee26fff823c356021589d392c4fd49ca12624f570edc08e2b9"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcublas/windows-x86_64/libcublas-windows-x86_64-11.11.3.6-archive.zip"
+[[sources]]
+hash = "a4071a85e3983bf42ea7a2e9bebe3b0b3c9ac258668580adc32ee1c385f7556f"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcufft/windows-x86_64/libcufft-windows-x86_64-10.9.0.58-archive.zip"
+[[sources]]
+hash = "aaccf56d68a63378edc05109c233ed47e185237c8d334f9df136923440a9a6b7"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcurand/windows-x86_64/libcurand-windows-x86_64-10.3.0.86-archive.zip"
+[[sources]]
+hash = "965298e47640b643827cd6fe4ca5cab3c5a97b4bedc5357e9b6551298d1f9c2c"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusolver/windows-x86_64/libcusolver-windows-x86_64-11.4.1.48-archive.zip"
+[[sources]]
+hash = "b51a46f4f6bb9476ffe433a1dedad2c94a546c8a92e70dfed63207b64ff57e50"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusparse/windows-x86_64/libcusparse-windows-x86_64-11.7.5.86-archive.zip"
+[[sources]]
+hash = "af047b03ea261db8413fe61cd9c5d480e784b41f286d1cd31925eddaf8b2e84c"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/linux-x86_64/cuda_cudart-linux-x86_64-12.0.146-archive.tar.xz"
+[[sources]]
+hash = "ab0cd16702748861a58668e78fe6ed27d69c649f585a616927e7809a4108881b"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cupti/linux-x86_64/cuda_cupti-linux-x86_64-12.0.146-archive.tar.xz"
+[[sources]]
+hash = "906b894dffd853acefe6ab3d2a6cd74a0aa99b34bb8ca1e848174bddf55bfa3b"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/linux-x86_64/cuda_nvcc-linux-x86_64-12.0.140-archive.tar.xz"
+[[sources]]
+hash = "90199c8586a1ee88363358c25e028b1ae301457c5f3e36120a4135b8d941a5d8"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvrtc/linux-x86_64/cuda_nvrtc-linux-x86_64-12.0.140-archive.tar.xz"
+[[sources]]
+hash = "edcd6133f55d04dce7f09c0b9e70b3c2e3b67a4ac526aaaffd98cbdf619fd160"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvdisasm/linux-x86_64/cuda_nvdisasm-linux-x86_64-12.0.140-archive.tar.xz"
+[[sources]]
+hash = "67f9d7f639762685a93a8d3a12b8625084749fade6a887323fbb53bf6fefc81b"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcublas/linux-x86_64/libcublas-linux-x86_64-12.0.2.224-archive.tar.xz"
+[[sources]]
+hash = "0052bb2dfbb2d5bbe11c986b4c6f20cd2fb2ec006336829c70976ce6b9cb3f88"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcufft/linux-x86_64/libcufft-linux-x86_64-11.0.1.95-archive.tar.xz"
+[[sources]]
+hash = "0a890a9dd99c199973d909bd7a4a3614f236810b7b2b713417d1ceeb00cc2c51"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcurand/linux-x86_64/libcurand-linux-x86_64-10.3.1.124-archive.tar.xz"
+[[sources]]
+hash = "7e457ec82af1819d7ceed3bdc68dd31819a51f9562836e24a7a9baecd71af08f"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusolver/linux-x86_64/libcusolver-linux-x86_64-11.4.3.1-archive.tar.xz"
+[[sources]]
+hash = "e6042e6e8c9f075e6f23a172473a384858dd8d0a1e97950763f96eec329e168b"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusparse/linux-x86_64/libcusparse-linux-x86_64-12.0.1.140-archive.tar.xz"
+[[sources]]
+hash = "6bbfae3c369ad5b7807e9697000cb60ecc84e4a21af9376b9f42ed56f8ce9c7a"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libnvjitlink/linux-x86_64/libnvjitlink-linux-x86_64-12.0.140-archive.tar.xz"
+[[sources]]
+hash = "cb333a5ef5da06aa88823501c3269dbde7b3b2aa53b3cf9d76c7ebad9d53a532"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/linux-aarch64/cuda_cudart-linux-aarch64-12.0.146-archive.tar.xz"
+[[sources]]
+hash = "36e00f979177b559fd6b137ecbdf8cf9e5ed6d3e2d9960c3d17e9b375cecf540"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cupti/linux-aarch64/cuda_cupti-linux-aarch64-12.0.146-archive.tar.xz"
+[[sources]]
+hash = "9540d9b13bc5d576f3ea645cb077b420c672c7197c7e5c9dae3db75d5a671d67"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/linux-aarch64/cuda_nvcc-linux-aarch64-12.0.140-archive.tar.xz"
+[[sources]]
+hash = "3482f78e1170b3ba5ab43b024c56d635721ca01ab9e3f691eb32544c1743eac9"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvrtc/linux-aarch64/cuda_nvrtc-linux-aarch64-12.0.140-archive.tar.xz"
+[[sources]]
+hash = "27bd736406574ab8c4090725da5b3504905e2e2aed4d1cc1fbf3ddbaf1e2cd18"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvdisasm/linux-aarch64/cuda_nvdisasm-linux-aarch64-12.0.140-archive.tar.xz"
+[[sources]]
+hash = "779817bf118e62c6a1b80037b045128f389b80b05bde774b4e7ec9b2b03e86c7"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcublas/linux-aarch64/libcublas-linux-aarch64-12.0.2.224-archive.tar.xz"
+[[sources]]
+hash = "c2ded0d0cf2d2686d31da81488d6e0d56c5d97f8509a3de9a7f41a6636d916de"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcufft/linux-aarch64/libcufft-linux-aarch64-11.0.1.95-archive.tar.xz"
+[[sources]]
+hash = "4d9b6ef38bd646f9a9219e605b6dc2a33ae2b5a15458b57b297f27938eee9a79"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcurand/linux-aarch64/libcurand-linux-aarch64-10.3.1.124-archive.tar.xz"
+[[sources]]
+hash = "9ee052656581ea67b37fcbe0430f680530351bfa77a2fd3575f5afc262a6cf26"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusolver/linux-aarch64/libcusolver-linux-aarch64-11.4.3.1-archive.tar.xz"
+[[sources]]
+hash = "878b02e09d73677365fc9195f282164c80f004921ae33b84c804333c1a28ab9d"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusparse/linux-aarch64/libcusparse-linux-aarch64-12.0.1.140-archive.tar.xz"
+[[sources]]
+hash = "65fd365da945c56562057ab2992582783bfa69f411a69f8bc51635349737821b"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libnvjitlink/linux-aarch64/libnvjitlink-linux-aarch64-12.0.140-archive.tar.xz"
+[[sources]]
+hash = "33b14bd774b0bec908d4758bfb30fcf2020cd0c93ad899376f438113de3df519"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/linux-sbsa/cuda_cudart-linux-sbsa-12.0.146-archive.tar.xz"
+[[sources]]
+hash = "df39906fe2320a4b7901b5afe6bc39c43c0cd83871bcd153005166bca3036fba"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cupti/linux-sbsa/cuda_cupti-linux-sbsa-12.0.146-archive.tar.xz"
+[[sources]]
+hash = "04ea3493f4411007f1941eacc2de4af2277804a3d5be2e18f2aea54a362431bd"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/linux-sbsa/cuda_nvcc-linux-sbsa-12.0.140-archive.tar.xz"
+[[sources]]
+hash = "a6af3286a30ffa69ec667886c0e0aa44df23cd32dd77807c39ff8cab1ecc3492"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvrtc/linux-sbsa/cuda_nvrtc-linux-sbsa-12.0.140-archive.tar.xz"
+[[sources]]
+hash = "591da3a8957102934dd4af1c18a4a781c071b7da6a88213ad05edba3393783ce"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvdisasm/linux-sbsa/cuda_nvdisasm-linux-sbsa-12.0.140-archive.tar.xz"
+[[sources]]
+hash = "024561f702d72795f69a8c2a481da8961c85b954c43a3cb9ad66dd6f01ffbf65"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcublas/linux-sbsa/libcublas-linux-sbsa-12.0.2.224-archive.tar.xz"
+[[sources]]
+hash = "2df31984726527989418ffbec944f2c0fcc59707d5c84dd53c04a35c5b93dc95"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcufft/linux-sbsa/libcufft-linux-sbsa-11.0.1.95-archive.tar.xz"
+[[sources]]
+hash = "d73bfb1fee2cef2d5e72a71777ebe7a21a3002db95fb1f367c573189c3dd0253"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcurand/linux-sbsa/libcurand-linux-sbsa-10.3.1.124-archive.tar.xz"
+[[sources]]
+hash = "f707901e02374dd1bbfa5ac8901da799cca5fdc18c088cd4d8a8d7ba1b91e02e"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusolver/linux-sbsa/libcusolver-linux-sbsa-11.4.3.1-archive.tar.xz"
+[[sources]]
+hash = "f0df2c3d36b4529d84f8d447c7640a988f4c52db965b4582abfc282c90173937"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusparse/linux-sbsa/libcusparse-linux-sbsa-12.0.1.140-archive.tar.xz"
+[[sources]]
+hash = "7b45ef9787670e2676257e769deb60c12467a4751806ed4da49ff6c3826e8939"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libnvjitlink/linux-sbsa/libnvjitlink-linux-sbsa-12.0.140-archive.tar.xz"
+[[sources]]
+hash = "f40f5ab0d3a566f30d865903f76b504a168a58adc11cf16e0c53f1c2cea4a588"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/windows-x86_64/cuda_cudart-windows-x86_64-12.0.146-archive.zip"
+[[sources]]
+hash = "cc888b32d5e2d6dfbdab00c5ac99bbb35f45cbee6a9e79f679013a550811a322"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cupti/windows-x86_64/cuda_cupti-windows-x86_64-12.0.146-archive.zip"
+[[sources]]
+hash = "410100486923612c1984e4b4d93b04c9d689f5aca9e93294f1d78e3af745746b"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/windows-x86_64/cuda_nvcc-windows-x86_64-12.0.140-archive.zip"
+[[sources]]
+hash = "cd8e8c5be748ad2675040ebcf8435c6431ef6dc08e3313e537d67cc31f370c3d"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvrtc/windows-x86_64/cuda_nvrtc-windows-x86_64-12.0.140-archive.zip"
+[[sources]]
+hash = "ac84be4b8657dff366ac949d2a1827ed30ff8a130a46bad92006c4bad6a79be6"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvdisasm/windows-x86_64/cuda_nvdisasm-windows-x86_64-12.0.140-archive.zip"
+[[sources]]
+hash = "d7094c6ac5a9dfa27bfecca7b0afea8293f0828e1bce895c9b87740674bbc75f"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcublas/windows-x86_64/libcublas-windows-x86_64-12.0.2.224-archive.zip"
+[[sources]]
+hash = "3e284518643b7788c38c0f67a9a34f6310b4558a9e72d71d1e7d95a80d947038"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcufft/windows-x86_64/libcufft-windows-x86_64-11.0.1.95-archive.zip"
+[[sources]]
+hash = "e214f386e7313371e1a70928f0cefe315093ee9ecceb48b784fcb8d8ce92bbb9"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcurand/windows-x86_64/libcurand-windows-x86_64-10.3.1.124-archive.zip"
+[[sources]]
+hash = "f4fd50ca109b8633409c26806dac80f2cb0cf9e8d715158c1addee1403ce9792"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusolver/windows-x86_64/libcusolver-windows-x86_64-11.4.3.1-archive.zip"
+[[sources]]
+hash = "0721ffa90bcf2d25b46245f76b30a8d948a3a05bca8f63ca0a4380d76ab37233"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusparse/windows-x86_64/libcusparse-windows-x86_64-12.0.1.140-archive.zip"
+[[sources]]
+hash = "88c4d3ca3fe2275b4ef0212034a67748465af2e9e193560c63c4c251f618caf9"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libnvjitlink/windows-x86_64/libnvjitlink-windows-x86_64-12.0.140-archive.zip"
+[[sources]]
+hash = "6096ec878c8c443258d39c6e9cf2decef127f8aa8da594fdc5a336d047ab6bd9"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/linux-x86_64/cuda_cudart-linux-x86_64-12.1.105-archive.tar.xz"
+[[sources]]
+hash = "397594a200619aa748bdd9e1c95bbf01bfddbb00624940c5ed26e43df1bec363"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cupti/linux-x86_64/cuda_cupti-linux-x86_64-12.1.105-archive.tar.xz"
+[[sources]]
+hash = "0b85f7eee17788abbd170b0b493c74ce2e9fd5a9604461b99c2c378165e1083b"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/linux-x86_64/cuda_nvcc-linux-x86_64-12.1.105-archive.tar.xz"
+[[sources]]
+hash = "bb15706aca6760770f0bfb814517f875ab0cfd479bc6b1d5dd7792c5ded8317b"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvrtc/linux-x86_64/cuda_nvrtc-linux-x86_64-12.1.105-archive.tar.xz"
+[[sources]]
+hash = "f47cbfd3f139e37da7cfd648e5a4f3d3f2d67a6f1515e8c1f9bb135f1ce6a9e9"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvdisasm/linux-x86_64/cuda_nvdisasm-linux-x86_64-12.1.105-archive.tar.xz"
+[[sources]]
+hash = "90044d7ad8c44f33cb670c1fe6f2c22246db6c22c2db22c7a172bb61cccb438c"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcublas/linux-x86_64/libcublas-linux-x86_64-12.1.3.1-archive.tar.xz"
+[[sources]]
+hash = "7136c1d42c7d1fbc29db2f401c8d5f169d4b81cff4d017946d3e6f45077e7b14"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcufft/linux-x86_64/libcufft-linux-x86_64-11.0.2.54-archive.tar.xz"
+[[sources]]
+hash = "9941216fad2d419e6172dbd2ee431d77effe671065c08490782fc286ebb364de"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcurand/linux-x86_64/libcurand-linux-x86_64-10.3.2.106-archive.tar.xz"
+[[sources]]
+hash = "7169970001e71fbd8ff2678830af9a90edd23d0165f53c829c00a6decfe464f8"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusolver/linux-x86_64/libcusolver-linux-x86_64-11.4.5.107-archive.tar.xz"
+[[sources]]
+hash = "ae1f604d6aa753b156e3072519a29938b74b37b727c7bd78fab73add78f83907"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusparse/linux-x86_64/libcusparse-linux-x86_64-12.1.0.106-archive.tar.xz"
+[[sources]]
+hash = "21ee6206cf9509e1c1c31be918b1971da8eb1e7c5492804ecd6750105c7db6b4"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libnvjitlink/linux-x86_64/libnvjitlink-linux-x86_64-12.1.105-archive.tar.xz"
+[[sources]]
+hash = "ca7358c878d217b4982df896e726d49146f00396e3687778409bf022b7ce15e1"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/linux-aarch64/cuda_cudart-linux-aarch64-12.1.105-archive.tar.xz"
+[[sources]]
+hash = "7a6d7381bada9a77f723945da77187670b443885be539114ad6fef1fcd9a4792"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cupti/linux-aarch64/cuda_cupti-linux-aarch64-12.1.105-archive.tar.xz"
+[[sources]]
+hash = "16f8614a0478b5d90cf0c9a5aec7c6a28077f8ec11bba09579dc21d05a0e2536"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/linux-aarch64/cuda_nvcc-linux-aarch64-12.1.105-archive.tar.xz"
+[[sources]]
+hash = "6160d7f26427e39d5493c42a7f1bde525db813fcd14669f174d944621e3eb72a"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvrtc/linux-aarch64/cuda_nvrtc-linux-aarch64-12.1.105-archive.tar.xz"
+[[sources]]
+hash = "c239aa158b1081ae8746bf89ac64f502b8a950106bbe59f2485fd7c3420fd35e"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvdisasm/linux-aarch64/cuda_nvdisasm-linux-aarch64-12.1.105-archive.tar.xz"
+[[sources]]
+hash = "2e395b3cdf4e492101ecabde4b4ea2d75b6e9d36fcbc37b0e9d78f7fefefffaf"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcublas/linux-aarch64/libcublas-linux-aarch64-12.1.3.1-archive.tar.xz"
+[[sources]]
+hash = "e6bc88cafdf640f2a8483408cf1582297036437746a17c23a86f0341d2ecbe4e"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcufft/linux-aarch64/libcufft-linux-aarch64-11.0.2.54-archive.tar.xz"
+[[sources]]
+hash = "43922977f6bbd83329a2b69df06693f4721e0ff66d904eff220984778a1c8553"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcurand/linux-aarch64/libcurand-linux-aarch64-10.3.2.106-archive.tar.xz"
+[[sources]]
+hash = "185c2f5733e8f62bc8eef74e35bdd0031f47c48b5fa615d823c92b0c89ea2873"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusolver/linux-aarch64/libcusolver-linux-aarch64-11.4.5.107-archive.tar.xz"
+[[sources]]
+hash = "334ada7297132db8042cd4275045dfe88b343c83ffd65449d6c7bc8f138fb5ef"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusparse/linux-aarch64/libcusparse-linux-aarch64-12.1.0.106-archive.tar.xz"
+[[sources]]
+hash = "dfcdecc04bd0d3d30b7605433e23b0ff92d498cd0aeaefa55e3c90f9fc68cb95"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libnvjitlink/linux-aarch64/libnvjitlink-linux-aarch64-12.1.105-archive.tar.xz"
+[[sources]]
+hash = "4a08376f30c2b3c4274fbd40e546738b59c046beb9766c1d76c5f4d192d2aa2c"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/linux-sbsa/cuda_cudart-linux-sbsa-12.1.105-archive.tar.xz"
+[[sources]]
+hash = "ead8d9a706b89cd0e4d5243920ccfdf032304187e69f0cc844ec76f7293d4d46"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cupti/linux-sbsa/cuda_cupti-linux-sbsa-12.1.105-archive.tar.xz"
+[[sources]]
+hash = "6e795ec791241e9320ec300657408cbfafbe7e79ceda0da46522cc85ced358f4"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/linux-sbsa/cuda_nvcc-linux-sbsa-12.1.105-archive.tar.xz"
+[[sources]]
+hash = "0b42518c99cc31bb45ccbecde0de6f8d60f846dd822656eeeb56e78a91a35f0c"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvrtc/linux-sbsa/cuda_nvrtc-linux-sbsa-12.1.105-archive.tar.xz"
+[[sources]]
+hash = "9592d0de8a0be49af357b9a7894e073005d9657f3aa23b13b6d665d937d1f90c"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvdisasm/linux-sbsa/cuda_nvdisasm-linux-sbsa-12.1.105-archive.tar.xz"
+[[sources]]
+hash = "95d01b8185a3e43dad819c10496df17f36c319f0896a45b1a76407ee31d8df78"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcublas/linux-sbsa/libcublas-linux-sbsa-12.1.3.1-archive.tar.xz"
+[[sources]]
+hash = "138ad4dc1d0895a8bf8ed6b32b204dcbda176397a23a044ec76a6785c7452fa4"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcufft/linux-sbsa/libcufft-linux-sbsa-11.0.2.54-archive.tar.xz"
+[[sources]]
+hash = "525d997d74b391a3484f9c71e7a6e51a136267b8a2dddbfef1420134f3011827"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcurand/linux-sbsa/libcurand-linux-sbsa-10.3.2.106-archive.tar.xz"
+[[sources]]
+hash = "06bb7bdc008de189117f258ebc4c190392be3950afbcd78b40603ff165bdef74"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusolver/linux-sbsa/libcusolver-linux-sbsa-11.4.5.107-archive.tar.xz"
+[[sources]]
+hash = "1cede312d23dd19225cac1124363835127a08d9641f7e2a330056b7c35190703"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusparse/linux-sbsa/libcusparse-linux-sbsa-12.1.0.106-archive.tar.xz"
+[[sources]]
+hash = "0a314ce11a20f097ac844ebe7b8d6ca1cfc00dd1d24624d86b51ad09f41625ed"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libnvjitlink/linux-sbsa/libnvjitlink-linux-sbsa-12.1.105-archive.tar.xz"
+[[sources]]
+hash = "99b884fc761a4c8592f819a170947db2dff2cd26fafc350bd4dd3c2b4b9aaf19"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/windows-x86_64/cuda_cudart-windows-x86_64-12.1.105-archive.zip"
+[[sources]]
+hash = "15d09e7226bc1157c57044af8cc6d01b74847954c856942d93a58f9450f43163"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cupti/windows-x86_64/cuda_cupti-windows-x86_64-12.1.105-archive.zip"
+[[sources]]
+hash = "3b452d704c92e8af6d59247ee842b2ca8c8e37dd04c015eea59c74c265672074"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/windows-x86_64/cuda_nvcc-windows-x86_64-12.1.105-archive.zip"
+[[sources]]
+hash = "7fa294726483b10815305fe1c07c9ceb23e048fc43bb459775eb68dee82d1a8f"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvrtc/windows-x86_64/cuda_nvrtc-windows-x86_64-12.1.105-archive.zip"
+[[sources]]
+hash = "32e6b7a9e49ed132fba2968fdf964f019e6a3c34d796c93d37445b5278ba6216"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvdisasm/windows-x86_64/cuda_nvdisasm-windows-x86_64-12.1.105-archive.zip"
+[[sources]]
+hash = "c55de20432e3a2469de8cb3999b829f74441d00384e058b2dcfa1a65d8c280ef"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcublas/windows-x86_64/libcublas-windows-x86_64-12.1.3.1-archive.zip"
+[[sources]]
+hash = "87cd7a4453a873d011210075bfedf76397ca08f29237354277b07076a9e057b3"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcufft/windows-x86_64/libcufft-windows-x86_64-11.0.2.54-archive.zip"
+[[sources]]
+hash = "9d899a09c9d227d995b7fd2a4e9f0c16abfe1e0543f41b09ccb05802c9fa107b"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcurand/windows-x86_64/libcurand-windows-x86_64-10.3.2.106-archive.zip"
+[[sources]]
+hash = "974f0754076678dff903a0f34f50594fa683e54b7ad1ee59b98b86a60a591cdb"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusolver/windows-x86_64/libcusolver-windows-x86_64-11.4.5.107-archive.zip"
+[[sources]]
+hash = "882156f87ec1f95938d7b1a35419fbc340e475488dbd45664ef8b8705767c1d2"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusparse/windows-x86_64/libcusparse-windows-x86_64-12.1.0.106-archive.zip"
+[[sources]]
+hash = "f89184abc5a1d4a1c12ef202c2524671a3be6d464e0b7d8e9fb67c1a9e714097"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libnvjitlink/windows-x86_64/libnvjitlink-windows-x86_64-12.1.105-archive.zip"
+[[sources]]
+hash = "baebd331249bca0edf36776ead90e6b2024ffee01ea26cd9dd07344bebeaff08"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/linux-x86_64/cuda_cudart-linux-x86_64-12.2.140-archive.tar.xz"
+[[sources]]
+hash = "b269a3616634c6bbab8b0c3929aae05d9f7d7dc5f0f1a07f35d8847196965b6e"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cupti/linux-x86_64/cuda_cupti-linux-x86_64-12.2.142-archive.tar.xz"
+[[sources]]
+hash = "3feaab191e1ae3fded02c02b0f24453069ada96b2e3a750251293b36079dc2f1"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/linux-x86_64/cuda_nvcc-linux-x86_64-12.2.140-archive.tar.xz"
+[[sources]]
+hash = "d13903b5785f9c2157bec4c0d48f2217bfd9079dae5e9873901e4723a83a31d4"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvrtc/linux-x86_64/cuda_nvrtc-linux-x86_64-12.2.140-archive.tar.xz"
+[[sources]]
+hash = "ca07e223ff3d9954ff2664f90ea1bdfcde1c3cbdcdfd0dbfcd131c36f6ae0449"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvdisasm/linux-x86_64/cuda_nvdisasm-linux-x86_64-12.2.140-archive.tar.xz"
+[[sources]]
+hash = "56ccf7ffbe7ea204fbb0c5c4c55829ef3fb81b2e811f8073fcd0bbef438b262e"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcublas/linux-x86_64/libcublas-linux-x86_64-12.2.5.6-archive.tar.xz"
+[[sources]]
+hash = "b146efb8bb500ee82519a7783b55c68c36f2c350a61cbba7d7b642ddc0d68bcb"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcufft/linux-x86_64/libcufft-linux-x86_64-11.0.8.103-archive.tar.xz"
+[[sources]]
+hash = "105ce31a3e83e8e548e35efe8e3b9f18b4fdb30048d0305015c2cf62257a090c"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcurand/linux-x86_64/libcurand-linux-x86_64-10.3.3.141-archive.tar.xz"
+[[sources]]
+hash = "7037b9fda9d5e4cebab204e0850a9df7e6f66724f798c4ca17e9af21dcfe9ba3"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusolver/linux-x86_64/libcusolver-linux-x86_64-11.5.2.141-archive.tar.xz"
+[[sources]]
+hash = "042d635487006837e08ebe0c307ee1ccfa026209d0ce2c64183581626c79ff3b"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusparse/linux-x86_64/libcusparse-linux-x86_64-12.1.2.141-archive.tar.xz"
+[[sources]]
+hash = "1d6339ea90dc0d68e8e3d819c92ca1b3b1a0fab4837587d546a3289c152e5337"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libnvjitlink/linux-x86_64/libnvjitlink-linux-x86_64-12.2.140-archive.tar.xz"
+[[sources]]
+hash = "ec0b5100d7c20819a2b775a479478fb571039b5743eddd5d51e1df0edf7fcb37"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/linux-aarch64/cuda_cudart-linux-aarch64-12.2.140-archive.tar.xz"
+[[sources]]
+hash = "2659cc15e8cf0ae04c5500a9db4dade5bcef480030821f4dfdb0ff646252aec4"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cupti/linux-aarch64/cuda_cupti-linux-aarch64-12.2.142-archive.tar.xz"
+[[sources]]
+hash = "1b127448457a201c74a21077ab2cf0b3291f525ed8570341649c95314468a2d0"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/linux-aarch64/cuda_nvcc-linux-aarch64-12.2.140-archive.tar.xz"
+[[sources]]
+hash = "30056d9fadac1b6b347e316463cbdb0245ef699f0ba51b890f8419827b0d0623"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvrtc/linux-aarch64/cuda_nvrtc-linux-aarch64-12.2.140-archive.tar.xz"
+[[sources]]
+hash = "94ae6926a92ec3f090daed525e8a8ffbea358cc484b4bb928704536a9986635c"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvdisasm/linux-aarch64/cuda_nvdisasm-linux-aarch64-12.2.140-archive.tar.xz"
+[[sources]]
+hash = "db001ba7f3e33568846b1c37ccdf54dcea66396975e43720471d799d08e1eb5f"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcublas/linux-aarch64/libcublas-linux-aarch64-12.2.5.6-archive.tar.xz"
+[[sources]]
+hash = "15d1ada050f60a5362b80650ef63be4663bf6749a8c298bfa93009ce4b8113fa"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcufft/linux-aarch64/libcufft-linux-aarch64-11.0.8.103-archive.tar.xz"
+[[sources]]
+hash = "b1430ba8424f638ef1eeb16a602641d68d9929b88f5a6328217da0d660a0694e"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcurand/linux-aarch64/libcurand-linux-aarch64-10.3.3.141-archive.tar.xz"
+[[sources]]
+hash = "988c5e61477e4425c02b3c162c6e8eaad907452ccbdcd0297040e9c0c0ac12df"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusolver/linux-aarch64/libcusolver-linux-aarch64-11.5.2.141-archive.tar.xz"
+[[sources]]
+hash = "12f3b910e7facb0f4204cdfd9cc1d46e828a6d6d220da36e852bb4be3fa10b15"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusparse/linux-aarch64/libcusparse-linux-aarch64-12.1.2.141-archive.tar.xz"
+[[sources]]
+hash = "42f0caf3f922464edda5b8c1973ad388a39d606245793c59ebbaefc69cbc327d"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libnvjitlink/linux-aarch64/libnvjitlink-linux-aarch64-12.2.140-archive.tar.xz"
+[[sources]]
+hash = "11c263e07a0d0cef82d754b0beea3db191654b4f18b74b7ea40777244e6c8246"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/linux-sbsa/cuda_cudart-linux-sbsa-12.2.140-archive.tar.xz"
+[[sources]]
+hash = "d8ed35787533d9bfb0d19f05f05aedf11da5d5964ac19157bdb91ba594667c12"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cupti/linux-sbsa/cuda_cupti-linux-sbsa-12.2.142-archive.tar.xz"
+[[sources]]
+hash = "3e9df10648af47cd4b1b985be81da9e4706623b6dd6f640e53f6d8badd84c155"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/linux-sbsa/cuda_nvcc-linux-sbsa-12.2.140-archive.tar.xz"
+[[sources]]
+hash = "ff478c5f4bf51a76a1d5ca9f6ca2d8f248f3eb04b7656c8de84d69f5b33c0951"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvrtc/linux-sbsa/cuda_nvrtc-linux-sbsa-12.2.140-archive.tar.xz"
+[[sources]]
+hash = "38b9253059be117c4593efe43483a34754672c13c58b6d413708ac6336b6ae77"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvdisasm/linux-sbsa/cuda_nvdisasm-linux-sbsa-12.2.140-archive.tar.xz"
+[[sources]]
+hash = "be6885ddccdf7b5f6efaf4272aef7cffbb5502258e9991cd93c5bc110a38e364"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcublas/linux-sbsa/libcublas-linux-sbsa-12.2.5.6-archive.tar.xz"
+[[sources]]
+hash = "c4c247f2c3d608aa690ed0237e5e0413455a9ee10a59ce84e2643b44800705cc"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcufft/linux-sbsa/libcufft-linux-sbsa-11.0.8.103-archive.tar.xz"
+[[sources]]
+hash = "a1e754fe336f12848cb9f4f7b3c13a6bc81df375fe4babfb160936242a71d99d"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcurand/linux-sbsa/libcurand-linux-sbsa-10.3.3.141-archive.tar.xz"
+[[sources]]
+hash = "57a1912f8f0f53a192254863d2c5feccb6a878cdf8dfce39594788aca5f46b8f"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusolver/linux-sbsa/libcusolver-linux-sbsa-11.5.2.141-archive.tar.xz"
+[[sources]]
+hash = "5068d6909a37bb96989f6af6a197280986eb917398391da2f45df2e47eb44cf6"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusparse/linux-sbsa/libcusparse-linux-sbsa-12.1.2.141-archive.tar.xz"
+[[sources]]
+hash = "0d661c092c3f5eafe889ff1bce131f0f2a0ab00e4ee7a06a118cebf8051ad737"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libnvjitlink/linux-sbsa/libnvjitlink-linux-sbsa-12.2.140-archive.tar.xz"
+[[sources]]
+hash = "c63a17cd542a47aa6734263586e3dab6f1e127779099af92d9d01f220f80d750"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/windows-x86_64/cuda_cudart-windows-x86_64-12.2.140-archive.zip"
+[[sources]]
+hash = "5eb71c13a03b3c1ad6004094b5a17f509ca857b23c36fb40f5def766c8ffa6e6"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cupti/windows-x86_64/cuda_cupti-windows-x86_64-12.2.142-archive.zip"
+[[sources]]
+hash = "140ca9c560f2fa4f6f7275d815d1d6fa6bbf08901a9bae48152f6c5e50c0bb1c"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/windows-x86_64/cuda_nvcc-windows-x86_64-12.2.140-archive.zip"
+[[sources]]
+hash = "3c02299e9fad2b5fda67301140e841f31db7edac57a57f9233f98d9066d14e32"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvrtc/windows-x86_64/cuda_nvrtc-windows-x86_64-12.2.140-archive.zip"
+[[sources]]
+hash = "8ab067d496dcf7f98845c46c8163d7452414a0f012e4e24e91b2b8baa456bb01"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvdisasm/windows-x86_64/cuda_nvdisasm-windows-x86_64-12.2.140-archive.zip"
+[[sources]]
+hash = "205f20a1e91a9502ad4b9bca2e66effa76ef14ef5378e1fc5b6e2a223158ac5b"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcublas/windows-x86_64/libcublas-windows-x86_64-12.2.5.6-archive.zip"
+[[sources]]
+hash = "d523ea42f195f16c4b117276797093834a1fffbbcd006c2b24cf31736d995e60"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcufft/windows-x86_64/libcufft-windows-x86_64-11.0.8.103-archive.zip"
+[[sources]]
+hash = "46058aefc4fd8fb120c8565fc6ec5dcc6b4374cf973c2523b5cb8189e51e27bb"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcurand/windows-x86_64/libcurand-windows-x86_64-10.3.3.141-archive.zip"
+[[sources]]
+hash = "e49095d45121c18f566a06aa9e688088193f892a1a381e6028233b037bbd39fa"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusolver/windows-x86_64/libcusolver-windows-x86_64-11.5.2.141-archive.zip"
+[[sources]]
+hash = "70ea2dfc918aa23fadb8e3804cd6f04e80ec19f44eeffa635bf3e69e76b3c046"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusparse/windows-x86_64/libcusparse-windows-x86_64-12.1.2.141-archive.zip"
+[[sources]]
+hash = "21795de33dfffefa314ce7461aae3ea7509974848b8acd1842d600ee19278c4f"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libnvjitlink/windows-x86_64/libnvjitlink-windows-x86_64-12.2.140-archive.zip"
+[[sources]]
+hash = "e37d478d1e7a10490d55fb87a5ef379a18c648f3010e1d3687c4298ddc3e9e19"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/linux-x86_64/cuda_cudart-linux-x86_64-12.3.101-archive.tar.xz"
+[[sources]]
+hash = "082c178c1b94671d2feac5f1cc241ea0e8b46860b1fd1aed530eca2d919e4360"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cupti/linux-x86_64/cuda_cupti-linux-x86_64-12.3.101-archive.tar.xz"
+[[sources]]
+hash = "65dba017ed1dbbe819a6ccc1841a4add4dfbc652603aa89be773888e82a5629e"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/linux-x86_64/cuda_nvcc-linux-x86_64-12.3.107-archive.tar.xz"
+[[sources]]
+hash = "bc9d2f9d8f8847f76cc936f61d66f55ea4a898294e1799e2a63480b553b60e0b"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvrtc/linux-x86_64/cuda_nvrtc-linux-x86_64-12.3.107-archive.tar.xz"
+[[sources]]
+hash = "02409ad45cad89920bb6b5f9ef8332f4566347a33037d3730a5db562e8b3e4bb"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvdisasm/linux-x86_64/cuda_nvdisasm-linux-x86_64-12.3.101-archive.tar.xz"
+[[sources]]
+hash = "2cb5c340f89d9bad6e0f1fb2a93a8a4962fe106eeb96d8887abd25c1552bd219"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcublas/linux-x86_64/libcublas-linux-x86_64-12.3.4.1-archive.tar.xz"
+[[sources]]
+hash = "db057e20e123124fa43e71c97276a8bb02bb14dcdd467e901f542217ca603a48"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcufft/linux-x86_64/libcufft-linux-x86_64-11.0.12.1-archive.tar.xz"
+[[sources]]
+hash = "ae34384e17563b2bb156f0491ef30a280298509a243e4c32e6edf507606bdb4d"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcurand/linux-x86_64/libcurand-linux-x86_64-10.3.4.107-archive.tar.xz"
+[[sources]]
+hash = "c271621cba76a12dd3cbddc491416f6cfea975bea695c418abb1f7fe281b8596"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusolver/linux-x86_64/libcusolver-linux-x86_64-11.5.4.101-archive.tar.xz"
+[[sources]]
+hash = "2705bea3c1ae1f0eeb5850a32b9af58bd9d3ecacca6cd2a557236e11a1c46efa"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusparse/linux-x86_64/libcusparse-linux-x86_64-12.2.0.103-archive.tar.xz"
+[[sources]]
+hash = "c66ebf27cf9bcfc584918c98eb7683ea2f5ab68c9c95c361ccb9e27d0520df13"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libnvjitlink/linux-x86_64/libnvjitlink-linux-x86_64-12.3.101-archive.tar.xz"
+[[sources]]
+hash = "131e62c60ba979f6870687db99a7537482f6df445915789d2a4799dc4e898b66"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/linux-sbsa/cuda_cudart-linux-sbsa-12.3.101-archive.tar.xz"
+[[sources]]
+hash = "a9417e7ef9af4e592099e372b0e6a1714d617866b2fc93c6832da2bdc07a707c"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cupti/linux-sbsa/cuda_cupti-linux-sbsa-12.3.101-archive.tar.xz"
+[[sources]]
+hash = "4c0e6a79a67fb86489be9e0976cc22127ca2ae160b1ad22ac4742d52f0ebe32d"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/linux-sbsa/cuda_nvcc-linux-sbsa-12.3.107-archive.tar.xz"
+[[sources]]
+hash = "efadf1837f40eeecb29255516afaff258602e74fb9c436b15024b6a295c506f5"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvrtc/linux-sbsa/cuda_nvrtc-linux-sbsa-12.3.107-archive.tar.xz"
+[[sources]]
+hash = "fa9a5b1f1c68080cb0e58297d52fff695c9fb4ab71906acc4a3500d7654fddc5"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvdisasm/linux-sbsa/cuda_nvdisasm-linux-sbsa-12.3.101-archive.tar.xz"
+[[sources]]
+hash = "063f0e1a130b35ff662d21c2e05613122146bec2eab4818139eaee5a1c4d94bd"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcublas/linux-sbsa/libcublas-linux-sbsa-12.3.4.1-archive.tar.xz"
+[[sources]]
+hash = "8bde00bd10cba318998d6aee5677b5094be55c6e77259581495f8b31450c3ec2"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcufft/linux-sbsa/libcufft-linux-sbsa-11.0.12.1-archive.tar.xz"
+[[sources]]
+hash = "eaf641c5f29b3e8984c489bdfbe57f5c64711446e5ff83486b9e2e3d1da92d37"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcurand/linux-sbsa/libcurand-linux-sbsa-10.3.4.107-archive.tar.xz"
+[[sources]]
+hash = "66cfb75fa2941b13b0ac287230f38b686369f9a8eb1eec01690095daf4205939"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusolver/linux-sbsa/libcusolver-linux-sbsa-11.5.4.101-archive.tar.xz"
+[[sources]]
+hash = "f356b0fff937946e661582362c754bec29314191613d26867db2b1625c06e208"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusparse/linux-sbsa/libcusparse-linux-sbsa-12.2.0.103-archive.tar.xz"
+[[sources]]
+hash = "cae34a104a8b61f061ba5f133792c28e2f6f6c0b6a726ff15c225a58649816d2"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libnvjitlink/linux-sbsa/libnvjitlink-linux-sbsa-12.3.101-archive.tar.xz"
+[[sources]]
+hash = "310a71bc9c92d6e61eeddf3489cc195519665fbfaca16c618b03da0ac5ea9f7d"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/windows-x86_64/cuda_cudart-windows-x86_64-12.3.101-archive.zip"
+[[sources]]
+hash = "fb57c570cbd71c167d8b4227508b39bdf8d2e79a38ba6f669217045d774df027"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cupti/windows-x86_64/cuda_cupti-windows-x86_64-12.3.101-archive.zip"
+[[sources]]
+hash = "8398faefe86092b434d6be2f0b74addae639965217b8fb8f77099c8d75eb99df"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/windows-x86_64/cuda_nvcc-windows-x86_64-12.3.107-archive.zip"
+[[sources]]
+hash = "535f226462c1f5025e054f7f76dd55573b6c59bdc734b314df554085b9c782ed"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvrtc/windows-x86_64/cuda_nvrtc-windows-x86_64-12.3.107-archive.zip"
+[[sources]]
+hash = "e4f984462be44e897d8e56382b5e18091d447ba46c0b325916dae197ac73007e"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvdisasm/windows-x86_64/cuda_nvdisasm-windows-x86_64-12.3.101-archive.zip"
+[[sources]]
+hash = "e29c419a99a2f5e3ea0e7394a58c23536429a26b7eccc3f89f172f7fd2818a23"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcublas/windows-x86_64/libcublas-windows-x86_64-12.3.4.1-archive.zip"
+[[sources]]
+hash = "c961016efe08da23f481f76efd8be0c2767496aaa7afead51789460ebac81cee"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcufft/windows-x86_64/libcufft-windows-x86_64-11.0.12.1-archive.zip"
+[[sources]]
+hash = "8cae76b0ad0ef62623cc6ee2b64646d5628fd3f7cf753c264607462426e1c7d7"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcurand/windows-x86_64/libcurand-windows-x86_64-10.3.4.107-archive.zip"
+[[sources]]
+hash = "698149cd3bbd09ac8c426f95a7598d84e62f4452cde13c1d29f707f8091047b9"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusolver/windows-x86_64/libcusolver-windows-x86_64-11.5.4.101-archive.zip"
+[[sources]]
+hash = "1913315cc0cf73dff68266cd130c67884615ac410d92fa97f1726f71ff7c5a29"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusparse/windows-x86_64/libcusparse-windows-x86_64-12.2.0.103-archive.zip"
+[[sources]]
+hash = "05de293d0f8bb2c23fc5953ae725d2281bca7ddc2971ada55de246265ecc5842"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libnvjitlink/windows-x86_64/libnvjitlink-windows-x86_64-12.3.101-archive.zip"
+[[sources]]
+hash = "0483bff9a36e7a44465db3cd42874f6f70f019297dcf803fbefcbf58d7448c8f"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/linux-x86_64/cuda_cudart-linux-x86_64-12.4.127-archive.tar.xz"
+[[sources]]
+hash = "232f4677a30335f4bafcd4a42b61d4cb65060680067e0dce32966d663f4224ac"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cupti/linux-x86_64/cuda_cupti-linux-x86_64-12.4.127-archive.tar.xz"
+[[sources]]
+hash = "7ffba1ada0e4b8c17e451ac7a60d386aa2642ecd08d71202a0b100c98bd74681"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/linux-x86_64/cuda_nvcc-linux-x86_64-12.4.131-archive.tar.xz"
+[[sources]]
+hash = "b5e7a984fcf05d3123684d7926e595306d31fbf99f9b19e9a0d268a02fc75827"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvrtc/linux-x86_64/cuda_nvrtc-linux-x86_64-12.4.127-archive.tar.xz"
+[[sources]]
+hash = "44018a76ee5977b603b0a1f3176a8398eaa893008dadf23e82d01733c20b5542"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvdisasm/linux-x86_64/cuda_nvdisasm-linux-x86_64-12.4.127-archive.tar.xz"
+[[sources]]
+hash = "c267c4d2cd42065ae2c30ca41a43ddce4e0ecc5484de23f299e3c397b5506eda"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcublas/linux-x86_64/libcublas-linux-x86_64-12.4.5.8-archive.tar.xz"
+[[sources]]
+hash = "0963b4b57fb7fe9217e97b494159ff4719f1abdc407b2dc215d71bae0576bb02"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcufft/linux-x86_64/libcufft-linux-x86_64-11.2.1.3-archive.tar.xz"
+[[sources]]
+hash = "f3752abef1ffae7bc9180bd9885905e971cc9c28d7f4d5860731a012e07638a3"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcurand/linux-x86_64/libcurand-linux-x86_64-10.3.5.147-archive.tar.xz"
+[[sources]]
+hash = "0a35a16e3bc02ba6fe0393e916da087bac079eb998a01666c79533db4f0d37f6"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusolver/linux-x86_64/libcusolver-linux-x86_64-11.6.1.9-archive.tar.xz"
+[[sources]]
+hash = "21b7e5c3afd8c3e761471c644b8bbf36cd528dd0f9d274becbeb09b79dd9bec5"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusparse/linux-x86_64/libcusparse-linux-x86_64-12.3.1.170-archive.tar.xz"
+[[sources]]
+hash = "0e0ec59ee56d3dfa29c66bd4e225b1a6330d42b36545ab4377880009d42b675c"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libnvjitlink/linux-x86_64/libnvjitlink-linux-x86_64-12.4.127-archive.tar.xz"
+[[sources]]
+hash = "0fc5240b1c2a27169b3fefb1e7390cdb0177cb86469fd545f580cd4cc69c7fde"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/linux-aarch64/cuda_cudart-linux-aarch64-12.4.127-archive.tar.xz"
+[[sources]]
+hash = "93275f4069a05e2342f4648130e039de20900bc3e81d797a7239032ddec5556e"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cupti/linux-aarch64/cuda_cupti-linux-aarch64-12.4.127-archive.tar.xz"
+[[sources]]
+hash = "9e7a26fb7acd86ec8d4b67799a329d9bc6bd48bbf27a89f87df4385eb7fe5758"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/linux-aarch64/cuda_nvcc-linux-aarch64-12.4.131-archive.tar.xz"
+[[sources]]
+hash = "9fb6f14168c3194225f29f85467d95150ea65ea676f86303c5ea47ef42ff302f"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvrtc/linux-aarch64/cuda_nvrtc-linux-aarch64-12.4.127-archive.tar.xz"
+[[sources]]
+hash = "db97528d051cc8ee4a00e33a5dc8ca098196295862d3dcd264d61ac5ed1ebd2d"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvdisasm/linux-aarch64/cuda_nvdisasm-linux-aarch64-12.4.127-archive.tar.xz"
+[[sources]]
+hash = "1d3886c1da442325d21424f5c021957bdb0c9c8b0b8aef7bf5ca5a449f60490b"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcublas/linux-aarch64/libcublas-linux-aarch64-12.4.5.8-archive.tar.xz"
+[[sources]]
+hash = "538735221a110b052d21ebfe57f710572814b4d8a820c125ce63db621f6b973b"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcufft/linux-aarch64/libcufft-linux-aarch64-11.2.1.3-archive.tar.xz"
+[[sources]]
+hash = "3be3a69ab2b242cfc78ef2f85a14c3d02b04d4e64a4345c75f565d981ae99415"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcurand/linux-aarch64/libcurand-linux-aarch64-10.3.5.147-archive.tar.xz"
+[[sources]]
+hash = "82050419231f3ab6252cf4edb6673504adcdd712cb34ab519f7913beadb8526e"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusolver/linux-aarch64/libcusolver-linux-aarch64-11.6.1.9-archive.tar.xz"
+[[sources]]
+hash = "0ae1b89c7c26aa1fc1c59e4b5fd65b37bbefe0914cae3b36e057e8a66bd3c349"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusparse/linux-aarch64/libcusparse-linux-aarch64-12.3.1.170-archive.tar.xz"
+[[sources]]
+hash = "104229ab8ed7f585339a4b4e43f7926d8f7478e9b376a376613bbe402dfd5e5b"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libnvjitlink/linux-aarch64/libnvjitlink-linux-aarch64-12.4.127-archive.tar.xz"
+[[sources]]
+hash = "fb96abcff3544384440b9259f9aeab9bf222a5775348546ef87c68ee02eee379"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/linux-sbsa/cuda_cudart-linux-sbsa-12.4.127-archive.tar.xz"
+[[sources]]
+hash = "62f3a245ade16dfb17c56eaaad4df5f339acaa34d2e05ddc15f49fc30e78663c"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cupti/linux-sbsa/cuda_cupti-linux-sbsa-12.4.127-archive.tar.xz"
+[[sources]]
+hash = "83f130dab0325e12b90fdf1279c0cbbd88acf638ef0a7e0cad72d50855a4f44a"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/linux-sbsa/cuda_nvcc-linux-sbsa-12.4.131-archive.tar.xz"
+[[sources]]
+hash = "f9e4bd972ffee5951577b45524b656eda681407a3c761c57978acec26a3acc25"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvrtc/linux-sbsa/cuda_nvrtc-linux-sbsa-12.4.127-archive.tar.xz"
+[[sources]]
+hash = "ec0480837e789f14803ae148f5ada2cfbd02216afc832c23d6a38037b88be381"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvdisasm/linux-sbsa/cuda_nvdisasm-linux-sbsa-12.4.127-archive.tar.xz"
+[[sources]]
+hash = "e946460149f1970e8c07472bab447f30054dfcc809eb2809bcd9b0090b0b876f"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcublas/linux-sbsa/libcublas-linux-sbsa-12.4.5.8-archive.tar.xz"
+[[sources]]
+hash = "4087e27f2429d5f1f820ec49ac400391cbfe84c4abfadb95aaf90705ae84e725"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcufft/linux-sbsa/libcufft-linux-sbsa-11.2.1.3-archive.tar.xz"
+[[sources]]
+hash = "ee337fa4c53136e336f974ba5d1a9be2a1ec5da674be3bb972a8d645051bbfae"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcurand/linux-sbsa/libcurand-linux-sbsa-10.3.5.147-archive.tar.xz"
+[[sources]]
+hash = "3344980ec35d4d850cf10909a2b0f5c1fdea7f2c1af0c6ad9b72dbd188391c3c"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusolver/linux-sbsa/libcusolver-linux-sbsa-11.6.1.9-archive.tar.xz"
+[[sources]]
+hash = "098169df5ee6ad441ca22ca7d1168c4adedada57e32238b68db42a9934347534"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusparse/linux-sbsa/libcusparse-linux-sbsa-12.3.1.170-archive.tar.xz"
+[[sources]]
+hash = "c85f5c50f18e1b8249a318432dbefdbb752ec81d374a59ab452f8d74acaf6017"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libnvjitlink/linux-sbsa/libnvjitlink-linux-sbsa-12.4.127-archive.tar.xz"
+[[sources]]
+hash = "6a1c32e68ee1a95ca17334691ff9ad1ffe7f352c24a083d55e4c96b8063b2bcb"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/windows-x86_64/cuda_cudart-windows-x86_64-12.4.127-archive.zip"
+[[sources]]
+hash = "6ad8df634d60e4bc96cf6914af71a5708f6460a25a39d0183780c6bdebfa60c7"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cupti/windows-x86_64/cuda_cupti-windows-x86_64-12.4.127-archive.zip"
+[[sources]]
+hash = "3b14cf8dd9dda4a3b1a9682270d46eef775f018e17650187a8a448a06111f2b8"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/windows-x86_64/cuda_nvcc-windows-x86_64-12.4.131-archive.zip"
+[[sources]]
+hash = "f140545e06d0d10780c1382a577db2e2c242db7a2d94970f0e6026b2d01aeb1b"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvrtc/windows-x86_64/cuda_nvrtc-windows-x86_64-12.4.127-archive.zip"
+[[sources]]
+hash = "62a15a4ef3c0641352d7e5c184243d20f9e4992f040538c0f14cd40ec7e5ef7b"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvdisasm/windows-x86_64/cuda_nvdisasm-windows-x86_64-12.4.127-archive.zip"
+[[sources]]
+hash = "698140f12da055a3709eee2e022fcfe7bc8edf31f30115e3f7a5c877a9491de5"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcublas/windows-x86_64/libcublas-windows-x86_64-12.4.5.8-archive.zip"
+[[sources]]
+hash = "df1594afd3de4e23779511eb8eccc1f77faacd9fa64e6154828b9bdd68d9a785"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcufft/windows-x86_64/libcufft-windows-x86_64-11.2.1.3-archive.zip"
+[[sources]]
+hash = "24c3b0fb7063e49ccc0ac1bff387c5f4fd9617b72aab3fa3b642f08607770ad3"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcurand/windows-x86_64/libcurand-windows-x86_64-10.3.5.147-archive.zip"
+[[sources]]
+hash = "e1f98fab494b099beaf39b533a725c241afad5b885a88a01e21c5e0aa8bbf978"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusolver/windows-x86_64/libcusolver-windows-x86_64-11.6.1.9-archive.zip"
+[[sources]]
+hash = "d1cef671112537a290ef9282f5258b86bc1ae55e76b1995e330d356b6a140d4e"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusparse/windows-x86_64/libcusparse-windows-x86_64-12.3.1.170-archive.zip"
+[[sources]]
+hash = "d8f4086215f482263dbfbe47a3580e88acbcdacbb284f8aa0c21a8fe408e671d"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libnvjitlink/windows-x86_64/libnvjitlink-windows-x86_64-12.4.127-archive.zip"
+[[sources]]
+hash = "2e92179494712a41e9ba979ac81909cccbc7cbbadac9c3e0fd217fd410270df5"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/linux-x86_64/cuda_cudart-linux-x86_64-12.5.82-archive.tar.xz"
+[[sources]]
+hash = "5054985d6454cdb1ef67a3baacd19cac98a89fe8d39fd31bd727bfa65eed6b0a"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cupti/linux-x86_64/cuda_cupti-linux-x86_64-12.5.82-archive.tar.xz"
+[[sources]]
+hash = "ded05fe3c8d075c6c1bf892005d3c50bde3eceaa049b879fcdff6158e068e3be"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/linux-x86_64/cuda_nvcc-linux-x86_64-12.5.82-archive.tar.xz"
+[[sources]]
+hash = "6745275167fd1c84f95cab9117066a7c41178cd26d4615ae685cb1b777b456b1"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvrtc/linux-x86_64/cuda_nvrtc-linux-x86_64-12.5.82-archive.tar.xz"
+[[sources]]
+hash = "fa775b95352302585732644bdd3254a210ccbe477fe5ab85f81956299ca40909"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvdisasm/linux-x86_64/cuda_nvdisasm-linux-x86_64-12.5.39-archive.tar.xz"
+[[sources]]
+hash = "5cac4f3cf97aebc947442aad606069cb747dc585c5b36cb022770046d984d9da"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcublas/linux-x86_64/libcublas-linux-x86_64-12.5.3.2-archive.tar.xz"
+[[sources]]
+hash = "c69cc32712f2396aaf497894945572e8c3e2668b89614e1a56c2d8e3cece4e54"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcufft/linux-x86_64/libcufft-linux-x86_64-11.2.3.61-archive.tar.xz"
+[[sources]]
+hash = "af41597788fd30eb5ccae390be5fe0db59b0a3285a8db97de604a75eeaac93f7"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcurand/linux-x86_64/libcurand-linux-x86_64-10.3.6.82-archive.tar.xz"
+[[sources]]
+hash = "f2fae41cd7637e22cb539c79dc44845cbd7ab932f006c5a8faf459a89054bf7f"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusolver/linux-x86_64/libcusolver-linux-x86_64-11.6.3.83-archive.tar.xz"
+[[sources]]
+hash = "2b1c4295f7c5d57b986268086ee3e05b599afcc6fe303ccacf393cda2a7b1aff"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusparse/linux-x86_64/libcusparse-linux-x86_64-12.5.1.3-archive.tar.xz"
+[[sources]]
+hash = "cbe265b0b2db1e99468191d9cab896bf94a532dfb41827f17ed8e91d0ea0b5dd"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libnvjitlink/linux-x86_64/libnvjitlink-linux-x86_64-12.5.82-archive.tar.xz"
+[[sources]]
+hash = "fb2108b7af85d7334d06accc44080e4da0a8caec0069b0e89ce4d6a7e08e2d64"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/linux-aarch64/cuda_cudart-linux-aarch64-12.5.82-archive.tar.xz"
+[[sources]]
+hash = "ca4f11504c336146e6b4fd5c6d363607e5c41aaf7cfbd917db7e3e06aa869cab"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cupti/linux-aarch64/cuda_cupti-linux-aarch64-12.5.82-archive.tar.xz"
+[[sources]]
+hash = "76f57ce3e4294fe9f69eb93b04ab294f696d5e7cde996f33929e68fdde7ab462"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/linux-aarch64/cuda_nvcc-linux-aarch64-12.5.82-archive.tar.xz"
+[[sources]]
+hash = "9a10a8cccd427fc6e47ab6632267c72579d19801b3c0fd2066cd9ef3669d9b83"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvrtc/linux-aarch64/cuda_nvrtc-linux-aarch64-12.5.82-archive.tar.xz"
+[[sources]]
+hash = "07c6861cef0953997feaca5d897a8b15ab7466f193c9f7c07b6ef34dae710a23"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvdisasm/linux-aarch64/cuda_nvdisasm-linux-aarch64-12.5.39-archive.tar.xz"
+[[sources]]
+hash = "90d2f6abfc66ce6226cd42af54f0e94adf8c49be3e161cf4cb31c6c01441e42c"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcublas/linux-aarch64/libcublas-linux-aarch64-12.5.3.2-archive.tar.xz"
+[[sources]]
+hash = "314e7437de38a69e0ea38db79525174e0fab99c4720532acdfe74efe89804dbb"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcufft/linux-aarch64/libcufft-linux-aarch64-11.2.3.61-archive.tar.xz"
+[[sources]]
+hash = "e5dfb488e1a232e35b159d89de01755389e175d1d39e8d1841fbd5ef98457c41"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcurand/linux-aarch64/libcurand-linux-aarch64-10.3.6.82-archive.tar.xz"
+[[sources]]
+hash = "eff8e95800dfb3cc332b26e93e6ecfe6c1c95a4e185ed48adc95fa8d3b6fbd6f"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusolver/linux-aarch64/libcusolver-linux-aarch64-11.6.3.83-archive.tar.xz"
+[[sources]]
+hash = "d1c083686f8dbb7db77160d6a14eef940f587fb8942be024a2f3a32aff1d72cc"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusparse/linux-aarch64/libcusparse-linux-aarch64-12.5.1.3-archive.tar.xz"
+[[sources]]
+hash = "359ee281f4e8ef4c50163659d9efd1e4e3b677ad045013ad40af9bb86bcfda68"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libnvjitlink/linux-aarch64/libnvjitlink-linux-aarch64-12.5.82-archive.tar.xz"
+[[sources]]
+hash = "4b0421f8cde1d3276682954c20d3a5089c6297cdb2f4f5ea070846a0e7170a25"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/linux-sbsa/cuda_cudart-linux-sbsa-12.5.82-archive.tar.xz"
+[[sources]]
+hash = "1fe17ad05fa001d06e9a3aacd1720d956a9d370e8d9a25349aee8bfa3d42bf2c"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cupti/linux-sbsa/cuda_cupti-linux-sbsa-12.5.82-archive.tar.xz"
+[[sources]]
+hash = "345a80c87627a414516e1bfdd99ec97f6a02039c9b82b2610bc5a93e035ca954"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/linux-sbsa/cuda_nvcc-linux-sbsa-12.5.82-archive.tar.xz"
+[[sources]]
+hash = "a086a54a207477eb7e89ac670021bab514faf689d9ebbe67f5d26cf70c441610"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvrtc/linux-sbsa/cuda_nvrtc-linux-sbsa-12.5.82-archive.tar.xz"
+[[sources]]
+hash = "b6a2a8f74cb4ccf5f489308b95568e24917fd384471f0e41235d2a48c2d71729"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvdisasm/linux-sbsa/cuda_nvdisasm-linux-sbsa-12.5.39-archive.tar.xz"
+[[sources]]
+hash = "136491297d7bcedad4449ac442557ae0c583b8408bad4dde5223c4acf387dce1"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcublas/linux-sbsa/libcublas-linux-sbsa-12.5.3.2-archive.tar.xz"
+[[sources]]
+hash = "50831766eb16a52a803484e746197d604e5e5181fdadbc0fbfaf90ff90e6b18f"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcufft/linux-sbsa/libcufft-linux-sbsa-11.2.3.61-archive.tar.xz"
+[[sources]]
+hash = "35584cad6b5908d69ace5bc223e96cadcc7f2940d71468535503033fcbd9a7f3"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcurand/linux-sbsa/libcurand-linux-sbsa-10.3.6.82-archive.tar.xz"
+[[sources]]
+hash = "846d86d8f4e5af49abd311d158cab5c2affbb47d65942735cca3310d32c55751"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusolver/linux-sbsa/libcusolver-linux-sbsa-11.6.3.83-archive.tar.xz"
+[[sources]]
+hash = "a93e0e59c378405de53a47363759fdeed30c1c9b23df98a4b86dc375a77e56d8"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusparse/linux-sbsa/libcusparse-linux-sbsa-12.5.1.3-archive.tar.xz"
+[[sources]]
+hash = "7fcbd26170ee91891e497f728cd25c91c61e23ff490eef2aaf4791b3535cda7d"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libnvjitlink/linux-sbsa/libnvjitlink-linux-sbsa-12.5.82-archive.tar.xz"
+[[sources]]
+hash = "079dd4349ee536a80308bfeb745a75b729d3957a430dd1cd0051bbd26fe4007e"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/windows-x86_64/cuda_cudart-windows-x86_64-12.5.82-archive.zip"
+[[sources]]
+hash = "efaaa348b74d697f5f8267c3d49132b43fa71127ed74310696b94c4d26a2eb49"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cupti/windows-x86_64/cuda_cupti-windows-x86_64-12.5.82-archive.zip"
+[[sources]]
+hash = "51cec40087b524478c4d204a102ad5de86cd30d0bd2f9e87339032b55296448b"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/windows-x86_64/cuda_nvcc-windows-x86_64-12.5.82-archive.zip"
+[[sources]]
+hash = "0bc5443fe432d69495412e1ee275fcc5f7590a65bda360ee5e25c20eb192632e"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvrtc/windows-x86_64/cuda_nvrtc-windows-x86_64-12.5.82-archive.zip"
+[[sources]]
+hash = "2b378494913d9e86c9f6210c2e5389df2fe9de1be1b1dd4a229b86f2bca0cd98"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvdisasm/windows-x86_64/cuda_nvdisasm-windows-x86_64-12.5.39-archive.zip"
+[[sources]]
+hash = "d3628039eb3d39ba9fe6a5350447b10483dd13d5973b5e4cde1d3e917d457d01"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcublas/windows-x86_64/libcublas-windows-x86_64-12.5.3.2-archive.zip"
+[[sources]]
+hash = "afe77d89bce4ee669516597bfb635adddc156988409ee2e220f7b492fe81201e"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcufft/windows-x86_64/libcufft-windows-x86_64-11.2.3.61-archive.zip"
+[[sources]]
+hash = "49f1d18d35af5b446b47d81757f822c054058bade9107c4d96e42b06baafaa2c"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcurand/windows-x86_64/libcurand-windows-x86_64-10.3.6.82-archive.zip"
+[[sources]]
+hash = "2f4d929f206937e9d87d7ef6e5340923e4d8a47db1dbdd560eb968cf53b9ea47"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusolver/windows-x86_64/libcusolver-windows-x86_64-11.6.3.83-archive.zip"
+[[sources]]
+hash = "c526cbf7db1fff65229433733027ef4e8daeec36dc7cd8f3043754ebca704da3"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusparse/windows-x86_64/libcusparse-windows-x86_64-12.5.1.3-archive.zip"
+[[sources]]
+hash = "410e0bd78ee7e89e9b0ddbeb6825c898a18d7fb637450db8df6b3fec57c2a5bd"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libnvjitlink/windows-x86_64/libnvjitlink-windows-x86_64-12.5.82-archive.zip"
+[[sources]]
+hash = "f74689258a60fd9c5bdfa7679458527a55e22442691ba678dcfaeffbf4391ef9"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/linux-x86_64/cuda_cudart-linux-x86_64-12.6.77-archive.tar.xz"
+[[sources]]
+hash = "5ef9aa8229f81e16f243ebe5b710a8b6a871374bbe1aeb5b95c0ed35791592b7"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cupti/linux-x86_64/cuda_cupti-linux-x86_64-12.6.80-archive.tar.xz"
+[[sources]]
+hash = "840deff234d9bef20d6856439c49881cb4f29423b214f9ecd2fa59b7ac323817"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/linux-x86_64/cuda_nvcc-linux-x86_64-12.6.85-archive.tar.xz"
+[[sources]]
+hash = "a4289ba86f0deeccf4e1d94c58559eae4c8184fcb6eaade8fcab45584e6cf402"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvrtc/linux-x86_64/cuda_nvrtc-linux-x86_64-12.6.85-archive.tar.xz"
+[[sources]]
+hash = "aeae4d2bdeaaa0b9149f1c6f486d40b248e8f4f5f1fccba42de5ab69337f7252"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvdisasm/linux-x86_64/cuda_nvdisasm-linux-x86_64-12.6.77-archive.tar.xz"
+[[sources]]
+hash = "ec682bac6387f9cdfd0c20b25a16cd6ed0b8b3b7ff42be9eaeb41828e3a72572"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcublas/linux-x86_64/libcublas-linux-x86_64-12.6.4.1-archive.tar.xz"
+[[sources]]
+hash = "63a046d51a45388e10612c3fd423bb7fa5127496aa9bb3951a609e8b9d996852"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcufft/linux-x86_64/libcufft-linux-x86_64-11.3.0.4-archive.tar.xz"
+[[sources]]
+hash = "981339cc86d7b8779e9a3c17e72d8c5e1a8a2d06c24db692eecabed8e746a3c7"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcurand/linux-x86_64/libcurand-linux-x86_64-10.3.7.77-archive.tar.xz"
+[[sources]]
+hash = "7cf794bf21c4947d0922e378984fa7939f0811bfc355121be1a0d44cd8695c09"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusolver/linux-x86_64/libcusolver-linux-x86_64-11.7.1.2-archive.tar.xz"
+[[sources]]
+hash = "a9ad797756a7bb9a92bf8a63768dec837af38064ee8be3c32e21382e03604bd8"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusparse/linux-x86_64/libcusparse-linux-x86_64-12.5.4.2-archive.tar.xz"
+[[sources]]
+hash = "1055077ce594fad6fd86d23604c60c64b673cdc8dd01fae7e0cbec633c35930d"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libnvjitlink/linux-x86_64/libnvjitlink-linux-x86_64-12.6.85-archive.tar.xz"
+[[sources]]
+hash = "d5b8f6f5a2ab34066c267daf5f73f25d2f24ea25d8fa3dce427c196ff07504e7"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/linux-aarch64/cuda_cudart-linux-aarch64-12.6.77-archive.tar.xz"
+[[sources]]
+hash = "9a3945219e5cf98c8df612681bd1984a9fdad6d86226bb0e99a515d18f736b4b"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cupti/linux-aarch64/cuda_cupti-linux-aarch64-12.6.80-archive.tar.xz"
+[[sources]]
+hash = "ef9dfb2c7327e196f8601ed216908de56911578f26e6ab9ac13c3e7dfff784f9"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/linux-aarch64/cuda_nvcc-linux-aarch64-12.6.85-archive.tar.xz"
+[[sources]]
+hash = "9debdacfd445d7c8c2bb79e90088e45544f3ed194f614d2904ab6a749b7997ca"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvrtc/linux-aarch64/cuda_nvrtc-linux-aarch64-12.6.85-archive.tar.xz"
+[[sources]]
+hash = "5f9616270bb35bf4bfa519c8ec1097e51e786646800077df2ed0409b3d728b68"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvdisasm/linux-aarch64/cuda_nvdisasm-linux-aarch64-12.6.77-archive.tar.xz"
+[[sources]]
+hash = "3324e0a995794704874c71397964c4739667c279d3e3cb183e482476df9b57ed"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcublas/linux-aarch64/libcublas-linux-aarch64-12.6.4.1-archive.tar.xz"
+[[sources]]
+hash = "beafc176148563833a4271a6913bc318a004037a8b4f5b73904667a33fe6ecb1"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcufft/linux-aarch64/libcufft-linux-aarch64-11.3.0.4-archive.tar.xz"
+[[sources]]
+hash = "eab273ca1d30659f026600d15cd0492d511408ae2141349cdf2edadd3da2661d"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcurand/linux-aarch64/libcurand-linux-aarch64-10.3.7.77-archive.tar.xz"
+[[sources]]
+hash = "d7e578143ebd90582873cb4c84f0f29ae1b3f086104a7660f5a63a28a115b9e6"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusolver/linux-aarch64/libcusolver-linux-aarch64-11.7.1.2-archive.tar.xz"
+[[sources]]
+hash = "fc790c3d0d194fc96212bde94c8a22016e63a07d048ac6e9e49fdc8cf2a2dfcc"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusparse/linux-aarch64/libcusparse-linux-aarch64-12.5.4.2-archive.tar.xz"
+[[sources]]
+hash = "65497b5bf4abd81fa993bf89996e7e9678a801284d8df798ddceb00502972ed6"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libnvjitlink/linux-aarch64/libnvjitlink-linux-aarch64-12.6.85-archive.tar.xz"
+[[sources]]
+hash = "c73c8e5bfe8fcd7468d012c9eebff15063005a3bba44423d541d573dc058de58"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/linux-sbsa/cuda_cudart-linux-sbsa-12.6.77-archive.tar.xz"
+[[sources]]
+hash = "990b04b1e17c0c29612438b0f31bef94b4c5151f51384a51873a50cb23f88c75"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cupti/linux-sbsa/cuda_cupti-linux-sbsa-12.6.80-archive.tar.xz"
+[[sources]]
+hash = "1b834df41cb071884f33b1e4ffc185e4799975057baca57d80ba7c4591e67950"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/linux-sbsa/cuda_nvcc-linux-sbsa-12.6.85-archive.tar.xz"
+[[sources]]
+hash = "8b8218447645909934712085cad0de259383b5b3f6fd8beea861959fcdcb3663"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvrtc/linux-sbsa/cuda_nvrtc-linux-sbsa-12.6.85-archive.tar.xz"
+[[sources]]
+hash = "aeed7512466923f91f339573c110dd8187a21c110f70fc391510372148de47b5"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvdisasm/linux-sbsa/cuda_nvdisasm-linux-sbsa-12.6.77-archive.tar.xz"
+[[sources]]
+hash = "84668dcb2159f9efd912a66ed5afe5d6533b72a81bbabc98b26ac7ac7a36105a"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcublas/linux-sbsa/libcublas-linux-sbsa-12.6.4.1-archive.tar.xz"
+[[sources]]
+hash = "bce2ae627c9fee47d59850f622e28213aa7dc39fec6759505b9195c858f8701d"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcufft/linux-sbsa/libcufft-linux-sbsa-11.3.0.4-archive.tar.xz"
+[[sources]]
+hash = "a189b8456e86a5f53c73f7fd392bf158d81d72a4e94f6853d2056cd67454e858"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcurand/linux-sbsa/libcurand-linux-sbsa-10.3.7.77-archive.tar.xz"
+[[sources]]
+hash = "96bdff422ac078049e70442404a5f4027c64d58881efdfd47eb32d3bcfdd3b44"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusolver/linux-sbsa/libcusolver-linux-sbsa-11.7.1.2-archive.tar.xz"
+[[sources]]
+hash = "27f5743ca677a8b0144a824f95f6674f39f3effdac50fdd15e050a9a87069d8b"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusparse/linux-sbsa/libcusparse-linux-sbsa-12.5.4.2-archive.tar.xz"
+[[sources]]
+hash = "05e5ddcadc46f17e18e22b9b782e6c19f0d8c8e8bd13c37c51d7f8288fa9810e"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libnvjitlink/linux-sbsa/libnvjitlink-linux-sbsa-12.6.85-archive.tar.xz"
+[[sources]]
+hash = "7a313bc0c93b1a50bb03aa9783a199ae70c3b66e2d8084da65e8254a8577b925"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/windows-x86_64/cuda_cudart-windows-x86_64-12.6.77-archive.zip"
+[[sources]]
+hash = "6b69bad461cd54f6555a11785b6e5878407df5bdc3caeadf2ff729cf45376128"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cupti/windows-x86_64/cuda_cupti-windows-x86_64-12.6.80-archive.zip"
+[[sources]]
+hash = "3fb9f76b87c37d02f947354be89b718ad5f2c76b6ab47995265bfa3a068a5e14"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/windows-x86_64/cuda_nvcc-windows-x86_64-12.6.85-archive.zip"
+[[sources]]
+hash = "b1221a95a3758561bc73c56905743730f7459cbaff54a4870aa899fa3489219e"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvrtc/windows-x86_64/cuda_nvrtc-windows-x86_64-12.6.85-archive.zip"
+[[sources]]
+hash = "f3e52fc4cb3bab0e097c7f5d1ee19ff90bf40f3304aef02281dfde989b5d008c"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvdisasm/windows-x86_64/cuda_nvdisasm-windows-x86_64-12.6.77-archive.zip"
+[[sources]]
+hash = "1a87ec80f8c0e5a39badc87010d479930c5b63abd788b3a05bd688a5980a3d07"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcublas/windows-x86_64/libcublas-windows-x86_64-12.6.4.1-archive.zip"
+[[sources]]
+hash = "7b3c75e90a907b3a2d215f7c846d67b684c6ddb76369d1bced67d2cdd411014b"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcufft/windows-x86_64/libcufft-windows-x86_64-11.3.0.4-archive.zip"
+[[sources]]
+hash = "f4554a9bbc933118ff7cde51db2664e17b23ffb5d32715157bee4564bba8bfd7"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcurand/windows-x86_64/libcurand-windows-x86_64-10.3.7.77-archive.zip"
+[[sources]]
+hash = "9999cbbf5d3789bb766ed3336dfb8d9be02832ffc5f36b1c37b9aa099ab47604"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusolver/windows-x86_64/libcusolver-windows-x86_64-11.7.1.2-archive.zip"
+[[sources]]
+hash = "ab409eee74ab63d5f2e78473d5901c0ce4d414161a1b30838d4e0dc857b2452f"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libcusparse/windows-x86_64/libcusparse-windows-x86_64-12.5.4.2-archive.zip"
+[[sources]]
+hash = "035445b0be5f7cf4b7ee26f0a476de9d25322857b728df270bb11f3e61d0623f"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libnvjitlink/windows-x86_64/libnvjitlink-windows-x86_64-12.6.85-archive.zip"

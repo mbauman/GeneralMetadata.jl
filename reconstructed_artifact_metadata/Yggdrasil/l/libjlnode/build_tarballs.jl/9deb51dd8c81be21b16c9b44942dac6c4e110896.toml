@@ -1,0 +1,51 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "libjlnode"
+platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "x86_64-apple-darwin", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir\nif [[ $target == *w64* ]]\nthen\n    cd ${target}/*-dist\nmkdir -p ${bindir}\nmv lib/*.dll ${bindir}/\nmv lib ${prefix}/\ncd ../../jlnode-*\ninstall_license ./LICENSE.md\n\nelif [[ $target == *apple* ]]\nthen\n    cd ${target}/*-dist\nmv lib/* ${prefix}/lib/\ncd ../../jlnode-*\ninstall_license ./LICENSE.md\n\nelif [[ $target == *linux* ]]\nthen\n    cd node-addon-api-*\nexport NAPI_INC=`pwd`\n\ncd ../jlnode-*\nmkdir build\ncd build\ncmake .. -G\"Unix Makefiles\" \\\n    -DCMAKE_BUILD_TYPE=\"Release\" \\\n    -DCMAKE_LIBRARY_OUTPUT_DIRECTORY=\"`pwd`/Release\" \\\n    -DCMAKE_JS_INC=\"${prefix}/include/node\" \\\n    -DNAPI_INC=\"$NAPI_INC\" \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN}\ncmake --build .\ncmake --install .\ninstall_license ../LICENSE.md\n\nfi\n"""
+version = "v18.0.0"
+
+[[dependencies]]
+compat = "18"
+name = "libnode_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libjlnode"]
+type = "lib"
+variable_name = "libjlnode"
+[[products]]
+paths = ["lib/jlnode_addon.node"]
+type = "file"
+variable_name = "jlnode_addon"
+
+[[sources]]
+hash = "82991ee31522e89179dd0f9c1b43a0d9f5c5f28932440f32e8580f2d28ce5fda"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/sunoru/jlnode/archive/refs/tags/v18.0.0.tar.gz"
+[[sources]]
+hash = "2bdf9c540f67c43036d58b3146e61b437148939efc8d4cde2d1314fdaeb39e9b"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/nodejs/node-addon-api/archive/refs/tags/v5.0.0.tar.gz"
+[[sources]]
+hash = "072ee1ea8df849e24581a2a016a425fedd1b33d7e4d6336ff566629c2798ae8e"
+type = "archive"
+unpack_target = "x86_64-w64-mingw32"
+url = "https://github.com/sunoru/jlnode/releases/download/v18.0.0/Windows-dist.zip"
+[[sources]]
+hash = "fb2c809aef9941bf2a113a5a897589257d6f90514a17d304aad922c03672614d"
+type = "archive"
+unpack_target = "x86_64-apple-darwin14"
+url = "https://github.com/sunoru/jlnode/releases/download/v18.0.0/macOS-dist.zip"

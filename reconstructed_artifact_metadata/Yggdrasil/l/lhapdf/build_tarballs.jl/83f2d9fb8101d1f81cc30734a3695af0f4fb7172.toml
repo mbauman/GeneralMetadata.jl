@@ -1,0 +1,27 @@
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "LHAPDF"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11", "aarch64-apple-darwin", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11"]
+script = """cd $WORKSPACE/srcdir/LHAPDF*/\natomic_patch -p1 ../patches/undefined-setenv-mingw.patch\nif [[ \"${target}\" == *-mingw* ]]; then\n    # The macro `M_PI` is defined conditionally inside `math.h`.  Use\n    # `_GNU_SOURCE` to enable it.\n    export CPPFLAGS=\"-D_GNU_SOURCE\"\n    # Pass `-no-undefined` to the linker\n    atomic_patch -p1 ../patches/ldflags-no-undefined.patch\n    autoreconf -fiv\nfi\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} --disable-python\nmake -j${nproc}\nmake install\n"""
+version = "v6.3.0"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libLHAPDF"]
+type = "lib"
+variable_name = "libLHAPDF"
+
+[[sources]]
+hash = "ed4d8772b7e6be26d1a7682a13c87338d67821847aa1640d78d67d2cef8b9b5d"
+type = "archive"
+unpack_target = ""
+url = "https://lhapdf.hepforge.org/downloads/?f=LHAPDF-6.3.0.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

@@ -1,0 +1,2282 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "OpenFOAM_com"
+platforms = ["x86_64-linux-gnu-cxx03-mpi+mpich", "x86_64-linux-gnu-cxx11-mpi+mpich", "x86_64-linux-gnu-cxx03-mpi+openmpi", "x86_64-linux-gnu-cxx11-mpi+openmpi", "x86_64-linux-gnu-cxx03-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-mpi+mpitrampoline"]
+script = """\ncd ${WORKSPACE}/srcdir/openfoam\ngit submodule update --init modules/cfmesh modules/avalanche\n\n# Adding -rpath-links #TODO need to automate for other platforms\n## For linux64\nLDFLAGS=\"\"\nfor dir in \"\" \"/dummy\" \"/mpi-system\"; do\n    LDFLAGS=\"${LDFLAGS} -Wl,-rpath-link=${PWD}/platforms/linux64GccDPInt32Opt/lib${dir}\"\ndone\nLDFLAGS=\"${LDFLAGS} -Wl,-rpath-link=${libdir}\"\n\n# Set rpath-link in all C/C++ compilers\nsed -i \"s|cc         := gcc\\$(COMPILER_VERSION)|cc         := cc\\$(COMPILER_VERSION) ${LDFLAGS}|\" wmake/rules/General/Gcc/c\nsed -i \"s|CC         := g++\\$(COMPILER_VERSION) -std=c++14|CC         := c++\\$(COMPILER_VERSION) -std=c++14 ${LDFLAGS}|\" wmake/rules/General/Gcc/c++\n\ncat wmake/rules/General/Gcc/c\ncat wmake/rules/General/Gcc/c++\n\n# Setup Scotch\nsed -i \"s|SCOTCH_VERSION=scotch_6.1.0|SCOTCH_VERSION=scotch-system|\" etc/config.sh/scotch\nsed -i \"s|export SCOTCH_ARCH_PATH=\\$WM_THIRD_PARTY_DIR/platforms/\\$WM_ARCH\\$WM_COMPILER\\$WM_PRECISION_OPTION\\$WM_LABEL_OPTION/\\$SCOTCH_VERSION|export SCOTCH_ARCH_PATH=${prefix}|\" etc/config.sh/scotch\ncat etc/config.sh/scotch\n\n# Setup METIS\nsed -i \"s|METIS_VERSION=metis-5.1.0|METIS_VERSION=metis-system|\" etc/config.sh/metis\nsed -i \"s|export METIS_ARCH_PATH=\\$WM_THIRD_PARTY_DIR/platforms/\\$WM_ARCH\\$WM_COMPILER\\$WM_PRECISION_OPTION\\$WM_LABEL_OPTION/\\$METIS_VERSION|export METIS_ARCH_PATH=${prefix}|\" etc/config.sh/metis\ncat etc/config.sh/metis\n\n# Setup FFTW\nsed -i \"s|fftw_version=fftw-3.3.10|fftw_version=fftw-system|\" etc/config.sh/FFTW\nsed -i \"s|export FFTW_ARCH_PATH=\\$WM_THIRD_PARTY_DIR/platforms/\\$WM_ARCH\\$WM_COMPILER/\\$fftw_version|export FFTW_ARCH_PATH=${prefix}|\" etc/config.sh/FFTW\ncat etc/config.sh/FFTW\n\n# Setup CGAL, BOOST\nsed -i \"s|boost_version=boost_1_74_0|boost_version=boost-system|\" etc/config.sh/CGAL\nsed -i \"s|cgal_version=CGAL-4.14.3|cgal_version=cgal-system|\" etc/config.sh/CGAL\nsed -i \"s|export BOOST_ARCH_PATH=|export BOOST_ARCH_PATH=${prefix} #|\" etc/config.sh/CGAL\nsed -i \"s|export CGAL_ARCH_PATH=|export CGAL_ARCH_PATH=${prefix} #|\" etc/config.sh/CGAL\nsed -i \"s|# export GMP_ARCH_PATH=...|export GMP_ARCH_PATH=${prefix}|\" etc/config.sh/CGAL\nsed -i \"s|# export MPFR_ARCH_PATH=...|export MPFR_ARCH_PATH=${prefix}|\" etc/config.sh/CGAL\ncat etc/config.sh/CGAL\n\n\n# Setup to use our MPI\nsed -i \"s|WM_MPLIB=SYSTEMOPENMPI|WM_MPLIB=SYSTEMMPI|\" etc/bashrc\ncat etc/bashrc\n\nexport MPI_ROOT=\"${prefix}\"\nexport MPI_ARCH_FLAGS=\"\"\nexport MPI_ARCH_INC=\"-I${includedir}\"\n\nif grep -q MPICH_NAME $prefix/include/mpi.h; then\n    export MPI_ARCH_LIBS=\"-L${libdir} -lmpi\";  \nelif grep -q MPItrampoline $prefix/include/mpi.h; then\n    export MPI_ARCH_LIBS=\"-L${libdir} -lmpitrampoline\";  \nelif grep -q OMPI_MAJOR_VERSION $prefix/include/mpi.h; then\n    export MPI_ARCH_LIBS=\"-L${libdir} -lmpi\";  \nfi\n\n# Setup the environment. Failures allowed\nsource etc/bashrc || true\n\n# Build!\n./Allwmake -j${nproc} -q -s\n\n# Copying the binaries and etc to the correct directories\nmkdir -p \"${libdir}\" \"${bindir}\" \"${prefix}/share/openfoam\"\ncp platforms/linux64GccDPInt32Opt/lib/{,dummy/,sys-mpi/}*.${dlext}* \"${libdir}/.\"\ncp platforms/linux64GccDPInt32Opt/bin/* \"${bindir}/.\"\ncp -r etc/ \"${prefix}/share/openfoam/.\"\ncp -r bin/ \"${prefix}/share/openfoam/.\"\n"""
+version = "v2312.0.0"
+
+[[dependencies]]
+compat = ""
+name = "flex_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "48a596b8-cc7a-5e48-b182-65f75e8595d0"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CGAL_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+uuid = "8fcd9439-76b0-55f4-a525-bad0597c05d8"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "6.1.3"
+name = "SCOTCH_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "a8d0f55d-b80e-548d-aff6-1a04c175f0f9"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "3.3.10"
+name = "FFTW_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "f5851436-0d7a-5f13-b9de-f02708fd171a"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "PTSCOTCH_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "b3ec0f5a-9838-5c9b-9e77-5f2c6a4b089f"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "METIS_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "d00139f3-1899-568f-a2f0-47f597d42d70"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "83775a58-1f1d-513f-b197-d71354ab007a"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MPICH_jll"
+platforms = ["x86_64-linux-gnu-cxx03-mpi+mpich", "x86_64-linux-gnu-cxx11-mpi+mpich"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenMPI_jll"
+platforms = ["x86_64-linux-gnu-cxx03-mpi+openmpi", "x86_64-linux-gnu-cxx11-mpi+openmpi"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MicrosoftMPI_jll"
+platforms = []
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "5.0.1 - 5"
+name = "MPItrampoline_jll"
+platforms = ["x86_64-linux-gnu-cxx03-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-mpi+mpitrampoline"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "0.1"
+name = "MPIPreferences"
+platforms = ["any"]
+top_level = true
+type = "dependency"
+uuid = "3da0fdf6-3ccc-4f1b-acd9-58baa6c99267"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libadjointOptimisation"]
+type = "lib"
+variable_name = "libadjointOptimisation"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libalphaFieldFunctions"]
+type = "lib"
+variable_name = "libalphaFieldFunctions"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libatmosphericModels"]
+type = "lib"
+variable_name = "libatmosphericModels"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libbarotropicCompressibilityModel"]
+type = "lib"
+variable_name = "libbarotropicCompressibilityModel"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libblockMesh"]
+type = "lib"
+variable_name = "libblockMesh"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libchemistryModel"]
+type = "lib"
+variable_name = "libchemistryModel"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libcoalCombustion"]
+type = "lib"
+variable_name = "libcoalCombustion"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libcombustionModels"]
+type = "lib"
+variable_name = "libcombustionModels"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libcompressibleMultiPhaseTurbulenceModels"]
+type = "lib"
+variable_name = "libcompressibleMultiPhaseTurbulenceModels"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libcompressibleTransportModels"]
+type = "lib"
+variable_name = "libcompressibleTransportModels"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libcompressibleTurbulenceModels"]
+type = "lib"
+variable_name = "libcompressibleTurbulenceModels"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libcompressibleTwoPhaseMixtureTurbulenceModels"]
+type = "lib"
+variable_name = "libcompressibleTwoPhaseMixtureTurbulenceModels"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libcompressibleTwoPhaseSystem"]
+type = "lib"
+variable_name = "libcompressibleTwoPhaseSystem"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libconformalVoronoiMesh"]
+type = "lib"
+variable_name = "libconformalVoronoiMesh"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libconversion"]
+type = "lib"
+variable_name = "libconversion"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libcv2DMesh"]
+type = "lib"
+variable_name = "libcv2DMesh"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libdecompose"]
+type = "lib"
+variable_name = "libdecompose"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libdecompositionMethods"]
+type = "lib"
+variable_name = "libdecompositionMethods"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libdistributed"]
+type = "lib"
+variable_name = "libdistributed"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libdistributionModels"]
+type = "lib"
+variable_name = "libdistributionModels"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libDPMTurbulenceModels"]
+type = "lib"
+variable_name = "libDPMTurbulenceModels"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libdriftFluxRelativeVelocityModels"]
+type = "lib"
+variable_name = "libdriftFluxRelativeVelocityModels"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libdriftFluxTransportModels"]
+type = "lib"
+variable_name = "libdriftFluxTransportModels"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libDSMC"]
+type = "lib"
+variable_name = "libDSMC"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libdynamicFvMesh"]
+type = "lib"
+variable_name = "libdynamicFvMesh"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libdynamicMesh"]
+type = "lib"
+variable_name = "libdynamicMesh"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libengine"]
+type = "lib"
+variable_name = "libengine"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libextrude2DMesh"]
+type = "lib"
+variable_name = "libextrude2DMesh"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libextrudeModel"]
+type = "lib"
+variable_name = "libextrudeModel"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libfaAvalanche"]
+type = "lib"
+variable_name = "libfaAvalanche"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libfaDecompose"]
+type = "lib"
+variable_name = "libfaDecompose"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libfaOptions"]
+type = "lib"
+variable_name = "libfaOptions"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libfaReconstruct"]
+type = "lib"
+variable_name = "libfaReconstruct"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libfieldFunctionObjects"]
+type = "lib"
+variable_name = "libfieldFunctionObjects"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libfileFormats"]
+type = "lib"
+variable_name = "libfileFormats"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libfiniteArea"]
+type = "lib"
+variable_name = "libfiniteArea"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libfiniteVolume"]
+type = "lib"
+variable_name = "libfiniteVolume"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libfluidThermophysicalModels"]
+type = "lib"
+variable_name = "libfluidThermophysicalModels"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libforces"]
+type = "lib"
+variable_name = "libforces"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libfvMotionSolvers"]
+type = "lib"
+variable_name = "libfvMotionSolvers"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libfvOptions"]
+type = "lib"
+variable_name = "libfvOptions"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libgenericPatchFields"]
+type = "lib"
+variable_name = "libgenericPatchFields"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libgeometricVoF"]
+type = "lib"
+variable_name = "libgeometricVoF"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libhelpTypes"]
+type = "lib"
+variable_name = "libhelpTypes"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libimmiscibleIncompressibleTwoPhaseMixture"]
+type = "lib"
+variable_name = "libimmiscibleIncompressibleTwoPhaseMixture"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libincompressibleInterPhaseTransportModels"]
+type = "lib"
+variable_name = "libincompressibleInterPhaseTransportModels"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libincompressibleMultiphaseSystems"]
+type = "lib"
+variable_name = "libincompressibleMultiphaseSystems"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libincompressibleTransportModels"]
+type = "lib"
+variable_name = "libincompressibleTransportModels"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libincompressibleTurbulenceModels"]
+type = "lib"
+variable_name = "libincompressibleTurbulenceModels"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libinitialisationFunctionObjects"]
+type = "lib"
+variable_name = "libinitialisationFunctionObjects"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libinterfaceProperties"]
+type = "lib"
+variable_name = "libinterfaceProperties"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libinterfaceTrackingFvMesh"]
+type = "lib"
+variable_name = "libinterfaceTrackingFvMesh"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libkahipDecomp"]
+type = "lib"
+variable_name = "libkahipDecomp"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["liblagrangian"]
+type = "lib"
+variable_name = "liblagrangian"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["liblagrangianFunctionObjects"]
+type = "lib"
+variable_name = "liblagrangianFunctionObjects"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["liblagrangianIntermediate"]
+type = "lib"
+variable_name = "liblagrangianIntermediate"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["liblagrangianSpray"]
+type = "lib"
+variable_name = "liblagrangianSpray"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["liblagrangianTurbulence"]
+type = "lib"
+variable_name = "liblagrangianTurbulence"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["liblaminarFlameSpeedModels"]
+type = "lib"
+variable_name = "liblaminarFlameSpeedModels"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["liblaserDTRM"]
+type = "lib"
+variable_name = "liblaserDTRM"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["liblumpedPointMotion"]
+type = "lib"
+variable_name = "liblumpedPointMotion"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libmeshLibrary"]
+type = "lib"
+variable_name = "libmeshLibrary"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libmeshTools"]
+type = "lib"
+variable_name = "libmeshTools"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libmetisDecomp"]
+type = "lib"
+variable_name = "libmetisDecomp"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libMGridGen"]
+type = "lib"
+variable_name = "libMGridGen"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libmolecularMeasurements"]
+type = "lib"
+variable_name = "libmolecularMeasurements"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libmolecule"]
+type = "lib"
+variable_name = "libmolecule"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libmultiphaseInterFoam"]
+type = "lib"
+variable_name = "libmultiphaseInterFoam"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libmultiphaseMixtureThermo"]
+type = "lib"
+variable_name = "libmultiphaseMixtureThermo"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libmultiphaseSystem"]
+type = "lib"
+variable_name = "libmultiphaseSystem"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libODE"]
+type = "lib"
+variable_name = "libODE"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libOpenFOAM"]
+type = "lib"
+variable_name = "libOpenFOAM"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["liboverset"]
+type = "lib"
+variable_name = "liboverset"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libpairPatchAgglomeration"]
+type = "lib"
+variable_name = "libpairPatchAgglomeration"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libpdrFields"]
+type = "lib"
+variable_name = "libpdrFields"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libphaseChangeTwoPhaseMixtures"]
+type = "lib"
+variable_name = "libphaseChangeTwoPhaseMixtures"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libphaseCompressibleTurbulenceModels"]
+type = "lib"
+variable_name = "libphaseCompressibleTurbulenceModels"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libphaseFunctionObjects"]
+type = "lib"
+variable_name = "libphaseFunctionObjects"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libphaseTemperatureChangeTwoPhaseMixtures"]
+type = "lib"
+variable_name = "libphaseTemperatureChangeTwoPhaseMixtures"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libPolyhedronReader"]
+type = "lib"
+variable_name = "libPolyhedronReader"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libpotential"]
+type = "lib"
+variable_name = "libpotential"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libPstream"]
+type = "lib"
+variable_name = "libPstream"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libptscotchDecomp"]
+type = "lib"
+variable_name = "libptscotchDecomp"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libpyrolysisModels"]
+type = "lib"
+variable_name = "libpyrolysisModels"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libradiationModels"]
+type = "lib"
+variable_name = "libradiationModels"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["librandomProcesses"]
+type = "lib"
+variable_name = "librandomProcesses"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["librandomProcessesFunctionObjects"]
+type = "lib"
+variable_name = "librandomProcessesFunctionObjects"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libreactingMultiphaseSystem"]
+type = "lib"
+variable_name = "libreactingMultiphaseSystem"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libreactingTwoPhaseSystem"]
+type = "lib"
+variable_name = "libreactingTwoPhaseSystem"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libreactionThermophysicalModels"]
+type = "lib"
+variable_name = "libreactionThermophysicalModels"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libreconstruct"]
+type = "lib"
+variable_name = "libreconstruct"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libregionCoupling"]
+type = "lib"
+variable_name = "libregionCoupling"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libregionFaModels"]
+type = "lib"
+variable_name = "libregionFaModels"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libregionModels"]
+type = "lib"
+variable_name = "libregionModels"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["librenumberMethods"]
+type = "lib"
+variable_name = "librenumberMethods"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["librhoCentralFoam"]
+type = "lib"
+variable_name = "librhoCentralFoam"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["librigidBodyDynamics"]
+type = "lib"
+variable_name = "librigidBodyDynamics"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["librigidBodyMeshMotion"]
+type = "lib"
+variable_name = "librigidBodyMeshMotion"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libsampling"]
+type = "lib"
+variable_name = "libsampling"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libsaturationModel"]
+type = "lib"
+variable_name = "libsaturationModel"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libscotchDecomp"]
+type = "lib"
+variable_name = "libscotchDecomp"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libsixDoFRigidBodyMotion"]
+type = "lib"
+variable_name = "libsixDoFRigidBodyMotion"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libsixDoFRigidBodyState"]
+type = "lib"
+variable_name = "libsixDoFRigidBodyState"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libSLGThermo"]
+type = "lib"
+variable_name = "libSLGThermo"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libSloanRenumber"]
+type = "lib"
+variable_name = "libSloanRenumber"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libsnappyHexMesh"]
+type = "lib"
+variable_name = "libsnappyHexMesh"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libsolidChemistryModel"]
+type = "lib"
+variable_name = "libsolidChemistryModel"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libsolidParticle"]
+type = "lib"
+variable_name = "libsolidParticle"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libsolidSpecie"]
+type = "lib"
+variable_name = "libsolidSpecie"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libsolidThermo"]
+type = "lib"
+variable_name = "libsolidThermo"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libsolverFunctionObjects"]
+type = "lib"
+variable_name = "libsolverFunctionObjects"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libspecie"]
+type = "lib"
+variable_name = "libspecie"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libsurfaceFeatureExtract"]
+type = "lib"
+variable_name = "libsurfaceFeatureExtract"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libsurfaceFilmDerivedFvPatchFields"]
+type = "lib"
+variable_name = "libsurfaceFilmDerivedFvPatchFields"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libsurfaceFilmModels"]
+type = "lib"
+variable_name = "libsurfaceFilmModels"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libsurfMesh"]
+type = "lib"
+variable_name = "libsurfMesh"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libtabulatedWallFunctions"]
+type = "lib"
+variable_name = "libtabulatedWallFunctions"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libthermalBaffleModels"]
+type = "lib"
+variable_name = "libthermalBaffleModels"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libthermophysicalProperties"]
+type = "lib"
+variable_name = "libthermophysicalProperties"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libthermoTools"]
+type = "lib"
+variable_name = "libthermoTools"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libtopoChangerFvMesh"]
+type = "lib"
+variable_name = "libtopoChangerFvMesh"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libturbulenceModels"]
+type = "lib"
+variable_name = "libturbulenceModels"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libturbulenceModelSchemes"]
+type = "lib"
+variable_name = "libturbulenceModelSchemes"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libtwoPhaseMixture"]
+type = "lib"
+variable_name = "libtwoPhaseMixture"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libtwoPhaseMixtureThermo"]
+type = "lib"
+variable_name = "libtwoPhaseMixtureThermo"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libtwoPhaseProperties"]
+type = "lib"
+variable_name = "libtwoPhaseProperties"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libtwoPhaseReactingTurbulenceModels"]
+type = "lib"
+variable_name = "libtwoPhaseReactingTurbulenceModels"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libtwoPhaseSurfaceTension"]
+type = "lib"
+variable_name = "libtwoPhaseSurfaceTension"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libutilityFunctionObjects"]
+type = "lib"
+variable_name = "libutilityFunctionObjects"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libVoFphaseCompressibleTurbulenceModels"]
+type = "lib"
+variable_name = "libVoFphaseCompressibleTurbulenceModels"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libVoFphaseTurbulentTransportModels"]
+type = "lib"
+variable_name = "libVoFphaseTurbulentTransportModels"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libwaveModels"]
+type = "lib"
+variable_name = "libwaveModels"
+[[products]]
+binnames = ["acousticFoam"]
+type = "exe"
+variable_name = "acousticFoam"
+[[products]]
+binnames = ["adiabaticFlameT"]
+type = "exe"
+variable_name = "adiabaticFlameT"
+[[products]]
+binnames = ["adjointOptimisationFoam"]
+type = "exe"
+variable_name = "adjointOptimisationFoam"
+[[products]]
+binnames = ["adjointShapeOptimizationFoam"]
+type = "exe"
+variable_name = "adjointShapeOptimizationFoam"
+[[products]]
+binnames = ["ansysToFoam"]
+type = "exe"
+variable_name = "ansysToFoam"
+[[products]]
+binnames = ["applyBoundaryLayer"]
+type = "exe"
+variable_name = "applyBoundaryLayer"
+[[products]]
+binnames = ["attachMesh"]
+type = "exe"
+variable_name = "attachMesh"
+[[products]]
+binnames = ["autoPatch"]
+type = "exe"
+variable_name = "autoPatch"
+[[products]]
+binnames = ["blockMesh"]
+type = "exe"
+variable_name = "blockMesh"
+[[products]]
+binnames = ["boundaryFoam"]
+type = "exe"
+variable_name = "boundaryFoam"
+[[products]]
+binnames = ["boxTurb"]
+type = "exe"
+variable_name = "boxTurb"
+[[products]]
+binnames = ["buoyantBoussinesqPimpleFoam"]
+type = "exe"
+variable_name = "buoyantBoussinesqPimpleFoam"
+[[products]]
+binnames = ["buoyantBoussinesqSimpleFoam"]
+type = "exe"
+variable_name = "buoyantBoussinesqSimpleFoam"
+[[products]]
+binnames = ["buoyantPimpleFoam"]
+type = "exe"
+variable_name = "buoyantPimpleFoam"
+[[products]]
+binnames = ["buoyantSimpleFoam"]
+type = "exe"
+variable_name = "buoyantSimpleFoam"
+[[products]]
+binnames = ["cartesian2DMesh"]
+type = "exe"
+variable_name = "cartesian2DMesh"
+[[products]]
+binnames = ["cartesianMesh"]
+type = "exe"
+variable_name = "cartesianMesh"
+[[products]]
+binnames = ["cavitatingDyMFoam"]
+type = "exe"
+variable_name = "cavitatingDyMFoam"
+[[products]]
+binnames = ["cavitatingFoam"]
+type = "exe"
+variable_name = "cavitatingFoam"
+[[products]]
+binnames = ["cfx4ToFoam"]
+type = "exe"
+variable_name = "cfx4ToFoam"
+[[products]]
+binnames = ["changeDictionary"]
+type = "exe"
+variable_name = "changeDictionary"
+[[products]]
+binnames = ["checkFaMesh"]
+type = "exe"
+variable_name = "checkFaMesh"
+[[products]]
+binnames = ["checkMesh"]
+type = "exe"
+variable_name = "checkMesh"
+[[products]]
+binnames = ["checkSurfaceMesh"]
+type = "exe"
+variable_name = "checkSurfaceMesh"
+[[products]]
+binnames = ["chemFoam"]
+type = "exe"
+variable_name = "chemFoam"
+[[products]]
+binnames = ["chemkinToFoam"]
+type = "exe"
+variable_name = "chemkinToFoam"
+[[products]]
+binnames = ["chtMultiRegionFoam"]
+type = "exe"
+variable_name = "chtMultiRegionFoam"
+[[products]]
+binnames = ["chtMultiRegionSimpleFoam"]
+type = "exe"
+variable_name = "chtMultiRegionSimpleFoam"
+[[products]]
+binnames = ["chtMultiRegionTwoPhaseEulerFoam"]
+type = "exe"
+variable_name = "chtMultiRegionTwoPhaseEulerFoam"
+[[products]]
+binnames = ["coalChemistryFoam"]
+type = "exe"
+variable_name = "coalChemistryFoam"
+[[products]]
+binnames = ["coldEngineFoam"]
+type = "exe"
+variable_name = "coldEngineFoam"
+[[products]]
+binnames = ["collapseEdges"]
+type = "exe"
+variable_name = "collapseEdges"
+[[products]]
+binnames = ["combinePatchFaces"]
+type = "exe"
+variable_name = "combinePatchFaces"
+[[products]]
+binnames = ["compressibleInterDyMFoam"]
+type = "exe"
+variable_name = "compressibleInterDyMFoam"
+[[products]]
+binnames = ["compressibleInterFilmFoam"]
+type = "exe"
+variable_name = "compressibleInterFilmFoam"
+[[products]]
+binnames = ["compressibleInterFoam"]
+type = "exe"
+variable_name = "compressibleInterFoam"
+[[products]]
+binnames = ["compressibleInterIsoFoam"]
+type = "exe"
+variable_name = "compressibleInterIsoFoam"
+[[products]]
+binnames = ["compressibleMultiphaseInterFoam"]
+type = "exe"
+variable_name = "compressibleMultiphaseInterFoam"
+[[products]]
+binnames = ["computeSensitivities"]
+type = "exe"
+variable_name = "computeSensitivities"
+[[products]]
+binnames = ["copySurfaceParts"]
+type = "exe"
+variable_name = "copySurfaceParts"
+[[products]]
+binnames = ["createBaffles"]
+type = "exe"
+variable_name = "createBaffles"
+[[products]]
+binnames = ["createBoxTurb"]
+type = "exe"
+variable_name = "createBoxTurb"
+[[products]]
+binnames = ["createExternalCoupledPatchGeometry"]
+type = "exe"
+variable_name = "createExternalCoupledPatchGeometry"
+[[products]]
+binnames = ["createPatch"]
+type = "exe"
+variable_name = "createPatch"
+[[products]]
+binnames = ["createROMfields"]
+type = "exe"
+variable_name = "createROMfields"
+[[products]]
+binnames = ["createZeroDirectory"]
+type = "exe"
+variable_name = "createZeroDirectory"
+[[products]]
+binnames = ["cumulativeDisplacement"]
+type = "exe"
+variable_name = "cumulativeDisplacement"
+[[products]]
+binnames = ["datToFoam"]
+type = "exe"
+variable_name = "datToFoam"
+[[products]]
+binnames = ["decomposePar"]
+type = "exe"
+variable_name = "decomposePar"
+[[products]]
+binnames = ["deformedGeom"]
+type = "exe"
+variable_name = "deformedGeom"
+[[products]]
+binnames = ["dnsFoam"]
+type = "exe"
+variable_name = "dnsFoam"
+[[products]]
+binnames = ["DPMDyMFoam"]
+type = "exe"
+variable_name = "DPMDyMFoam"
+[[products]]
+binnames = ["DPMFoam"]
+type = "exe"
+variable_name = "DPMFoam"
+[[products]]
+binnames = ["driftFluxFoam"]
+type = "exe"
+variable_name = "driftFluxFoam"
+[[products]]
+binnames = ["dsmcFoam"]
+type = "exe"
+variable_name = "dsmcFoam"
+[[products]]
+binnames = ["dsmcInitialise"]
+type = "exe"
+variable_name = "dsmcInitialise"
+[[products]]
+binnames = ["electrostaticFoam"]
+type = "exe"
+variable_name = "electrostaticFoam"
+[[products]]
+binnames = ["engineCompRatio"]
+type = "exe"
+variable_name = "engineCompRatio"
+[[products]]
+binnames = ["engineFoam"]
+type = "exe"
+variable_name = "engineFoam"
+[[products]]
+binnames = ["engineSwirl"]
+type = "exe"
+variable_name = "engineSwirl"
+[[products]]
+binnames = ["ensightToFoam"]
+type = "exe"
+variable_name = "ensightToFoam"
+[[products]]
+binnames = ["equilibriumCO"]
+type = "exe"
+variable_name = "equilibriumCO"
+[[products]]
+binnames = ["equilibriumFlameT"]
+type = "exe"
+variable_name = "equilibriumFlameT"
+[[products]]
+binnames = ["extrude2DMesh"]
+type = "exe"
+variable_name = "extrude2DMesh"
+[[products]]
+binnames = ["extrudeEdgesInto2DSurface"]
+type = "exe"
+variable_name = "extrudeEdgesInto2DSurface"
+[[products]]
+binnames = ["extrudeMesh"]
+type = "exe"
+variable_name = "extrudeMesh"
+[[products]]
+binnames = ["extrudeToRegionMesh"]
+type = "exe"
+variable_name = "extrudeToRegionMesh"
+[[products]]
+binnames = ["faceAgglomerate"]
+type = "exe"
+variable_name = "faceAgglomerate"
+[[products]]
+binnames = ["faParkerFukushimaFoam"]
+type = "exe"
+variable_name = "faParkerFukushimaFoam"
+[[products]]
+binnames = ["faSavageHutterFoam"]
+type = "exe"
+variable_name = "faSavageHutterFoam"
+[[products]]
+binnames = ["faTwoLayerAvalancheFoam"]
+type = "exe"
+variable_name = "faTwoLayerAvalancheFoam"
+[[products]]
+binnames = ["financialFoam"]
+type = "exe"
+variable_name = "financialFoam"
+[[products]]
+binnames = ["fireFoam"]
+type = "exe"
+variable_name = "fireFoam"
+[[products]]
+binnames = ["fireToFoam"]
+type = "exe"
+variable_name = "fireToFoam"
+[[products]]
+binnames = ["flattenMesh"]
+type = "exe"
+variable_name = "flattenMesh"
+[[products]]
+binnames = ["FLMAToSurface"]
+type = "exe"
+variable_name = "FLMAToSurface"
+[[products]]
+binnames = ["fluent3DMeshToFoam"]
+type = "exe"
+variable_name = "fluent3DMeshToFoam"
+[[products]]
+binnames = ["fluentMeshToFoam"]
+type = "exe"
+variable_name = "fluentMeshToFoam"
+[[products]]
+binnames = ["FMSToSurface"]
+type = "exe"
+variable_name = "FMSToSurface"
+[[products]]
+binnames = ["FMSToVTK"]
+type = "exe"
+variable_name = "FMSToVTK"
+[[products]]
+binnames = ["foamDataToFluent"]
+type = "exe"
+variable_name = "foamDataToFluent"
+[[products]]
+binnames = ["foamDictionary"]
+type = "exe"
+variable_name = "foamDictionary"
+[[products]]
+binnames = ["foamFormatConvert"]
+type = "exe"
+variable_name = "foamFormatConvert"
+[[products]]
+binnames = ["foamHasLibrary"]
+type = "exe"
+variable_name = "foamHasLibrary"
+[[products]]
+binnames = ["foamHelp"]
+type = "exe"
+variable_name = "foamHelp"
+[[products]]
+binnames = ["foamListRegions"]
+type = "exe"
+variable_name = "foamListRegions"
+[[products]]
+binnames = ["foamListTimes"]
+type = "exe"
+variable_name = "foamListTimes"
+[[products]]
+binnames = ["foamMeshToFluent"]
+type = "exe"
+variable_name = "foamMeshToFluent"
+[[products]]
+binnames = ["foamRestoreFields"]
+type = "exe"
+variable_name = "foamRestoreFields"
+[[products]]
+binnames = ["foamToEnsight"]
+type = "exe"
+variable_name = "foamToEnsight"
+[[products]]
+binnames = ["foamToFireMesh"]
+type = "exe"
+variable_name = "foamToFireMesh"
+[[products]]
+binnames = ["foamToGMV"]
+type = "exe"
+variable_name = "foamToGMV"
+[[products]]
+binnames = ["foamToStarMesh"]
+type = "exe"
+variable_name = "foamToStarMesh"
+[[products]]
+binnames = ["foamToSurface"]
+type = "exe"
+variable_name = "foamToSurface"
+[[products]]
+binnames = ["foamToTetDualMesh"]
+type = "exe"
+variable_name = "foamToTetDualMesh"
+[[products]]
+binnames = ["foamToVTK"]
+type = "exe"
+variable_name = "foamToVTK"
+[[products]]
+binnames = ["foamUpgradeCyclics"]
+type = "exe"
+variable_name = "foamUpgradeCyclics"
+[[products]]
+binnames = ["foamyHexMesh"]
+type = "exe"
+variable_name = "foamyHexMesh"
+[[products]]
+binnames = ["foamyQuadMesh"]
+type = "exe"
+variable_name = "foamyQuadMesh"
+[[products]]
+binnames = ["gambitToFoam"]
+type = "exe"
+variable_name = "gambitToFoam"
+[[products]]
+binnames = ["generateBoundaryLayers"]
+type = "exe"
+variable_name = "generateBoundaryLayers"
+[[products]]
+binnames = ["gmshToFoam"]
+type = "exe"
+variable_name = "gmshToFoam"
+[[products]]
+binnames = ["gridToSTL"]
+type = "exe"
+variable_name = "gridToSTL"
+[[products]]
+binnames = ["icoFoam"]
+type = "exe"
+variable_name = "icoFoam"
+[[products]]
+binnames = ["icoReactingMultiphaseInterFoam"]
+type = "exe"
+variable_name = "icoReactingMultiphaseInterFoam"
+[[products]]
+binnames = ["icoUncoupledKinematicParcelDyMFoam"]
+type = "exe"
+variable_name = "icoUncoupledKinematicParcelDyMFoam"
+[[products]]
+binnames = ["icoUncoupledKinematicParcelFoam"]
+type = "exe"
+variable_name = "icoUncoupledKinematicParcelFoam"
+[[products]]
+binnames = ["ideasUnvToFoam"]
+type = "exe"
+variable_name = "ideasUnvToFoam"
+[[products]]
+binnames = ["importSurfaceAsSubset"]
+type = "exe"
+variable_name = "importSurfaceAsSubset"
+[[products]]
+binnames = ["improveMeshQuality"]
+type = "exe"
+variable_name = "improveMeshQuality"
+[[products]]
+binnames = ["improveSymmetryPlanes"]
+type = "exe"
+variable_name = "improveSymmetryPlanes"
+[[products]]
+binnames = ["insideCells"]
+type = "exe"
+variable_name = "insideCells"
+[[products]]
+binnames = ["interCondensatingEvaporatingFoam"]
+type = "exe"
+variable_name = "interCondensatingEvaporatingFoam"
+[[products]]
+binnames = ["interFoam"]
+type = "exe"
+variable_name = "interFoam"
+[[products]]
+binnames = ["interIsoFoam"]
+type = "exe"
+variable_name = "interIsoFoam"
+[[products]]
+binnames = ["interMixingFoam"]
+type = "exe"
+variable_name = "interMixingFoam"
+[[products]]
+binnames = ["interPhaseChangeDyMFoam"]
+type = "exe"
+variable_name = "interPhaseChangeDyMFoam"
+[[products]]
+binnames = ["interPhaseChangeFoam"]
+type = "exe"
+variable_name = "interPhaseChangeFoam"
+[[products]]
+binnames = ["kinematicParcelFoam"]
+type = "exe"
+variable_name = "kinematicParcelFoam"
+[[products]]
+binnames = ["kivaToFoam"]
+type = "exe"
+variable_name = "kivaToFoam"
+[[products]]
+binnames = ["laplacianFoam"]
+type = "exe"
+variable_name = "laplacianFoam"
+[[products]]
+binnames = ["liquidFilmFoam"]
+type = "exe"
+variable_name = "liquidFilmFoam"
+[[products]]
+binnames = ["lumpedPointForces"]
+type = "exe"
+variable_name = "lumpedPointForces"
+[[products]]
+binnames = ["lumpedPointMovement"]
+type = "exe"
+variable_name = "lumpedPointMovement"
+[[products]]
+binnames = ["lumpedPointZones"]
+type = "exe"
+variable_name = "lumpedPointZones"
+[[products]]
+binnames = ["magneticFoam"]
+type = "exe"
+variable_name = "magneticFoam"
+[[products]]
+binnames = ["makeFaMesh"]
+type = "exe"
+variable_name = "makeFaMesh"
+[[products]]
+binnames = ["mapFields"]
+type = "exe"
+variable_name = "mapFields"
+[[products]]
+binnames = ["mapFieldsPar"]
+type = "exe"
+variable_name = "mapFieldsPar"
+[[products]]
+binnames = ["mdEquilibrationFoam"]
+type = "exe"
+variable_name = "mdEquilibrationFoam"
+[[products]]
+binnames = ["mdFoam"]
+type = "exe"
+variable_name = "mdFoam"
+[[products]]
+binnames = ["mdInitialise"]
+type = "exe"
+variable_name = "mdInitialise"
+[[products]]
+binnames = ["mergeMeshes"]
+type = "exe"
+variable_name = "mergeMeshes"
+[[products]]
+binnames = ["mergeOrSplitBaffles"]
+type = "exe"
+variable_name = "mergeOrSplitBaffles"
+[[products]]
+binnames = ["mergeSurfacePatches"]
+type = "exe"
+variable_name = "mergeSurfacePatches"
+[[products]]
+binnames = ["meshToFPMA"]
+type = "exe"
+variable_name = "meshToFPMA"
+[[products]]
+binnames = ["mhdFoam"]
+type = "exe"
+variable_name = "mhdFoam"
+[[products]]
+binnames = ["mirrorMesh"]
+type = "exe"
+variable_name = "mirrorMesh"
+[[products]]
+binnames = ["mixtureAdiabaticFlameT"]
+type = "exe"
+variable_name = "mixtureAdiabaticFlameT"
+[[products]]
+binnames = ["modifyMesh"]
+type = "exe"
+variable_name = "modifyMesh"
+[[products]]
+binnames = ["moveDynamicMesh"]
+type = "exe"
+variable_name = "moveDynamicMesh"
+[[products]]
+binnames = ["moveEngineMesh"]
+type = "exe"
+variable_name = "moveEngineMesh"
+[[products]]
+binnames = ["moveMesh"]
+type = "exe"
+variable_name = "moveMesh"
+[[products]]
+binnames = ["MPPICDyMFoam"]
+type = "exe"
+variable_name = "MPPICDyMFoam"
+[[products]]
+binnames = ["MPPICFoam"]
+type = "exe"
+variable_name = "MPPICFoam"
+[[products]]
+binnames = ["MPPICInterFoam"]
+type = "exe"
+variable_name = "MPPICInterFoam"
+[[products]]
+binnames = ["mshToFoam"]
+type = "exe"
+variable_name = "mshToFoam"
+[[products]]
+binnames = ["multiphaseEulerFoam"]
+type = "exe"
+variable_name = "multiphaseEulerFoam"
+[[products]]
+binnames = ["multiphaseInterFoam"]
+type = "exe"
+variable_name = "multiphaseInterFoam"
+[[products]]
+binnames = ["netgenNeutralToFoam"]
+type = "exe"
+variable_name = "netgenNeutralToFoam"
+[[products]]
+binnames = ["noise"]
+type = "exe"
+variable_name = "noise"
+[[products]]
+binnames = ["nonNewtonianIcoFoam"]
+type = "exe"
+variable_name = "nonNewtonianIcoFoam"
+[[products]]
+binnames = ["objToVTK"]
+type = "exe"
+variable_name = "objToVTK"
+[[products]]
+binnames = ["orientFaceZone"]
+type = "exe"
+variable_name = "orientFaceZone"
+[[products]]
+binnames = ["overBuoyantPimpleDyMFoam"]
+type = "exe"
+variable_name = "overBuoyantPimpleDyMFoam"
+[[products]]
+binnames = ["overCompressibleInterDyMFoam"]
+type = "exe"
+variable_name = "overCompressibleInterDyMFoam"
+[[products]]
+binnames = ["overInterDyMFoam"]
+type = "exe"
+variable_name = "overInterDyMFoam"
+[[products]]
+binnames = ["overInterPhaseChangeDyMFoam"]
+type = "exe"
+variable_name = "overInterPhaseChangeDyMFoam"
+[[products]]
+binnames = ["overLaplacianDyMFoam"]
+type = "exe"
+variable_name = "overLaplacianDyMFoam"
+[[products]]
+binnames = ["overPimpleDyMFoam"]
+type = "exe"
+variable_name = "overPimpleDyMFoam"
+[[products]]
+binnames = ["overPotentialFoam"]
+type = "exe"
+variable_name = "overPotentialFoam"
+[[products]]
+binnames = ["overRhoPimpleDyMFoam"]
+type = "exe"
+variable_name = "overRhoPimpleDyMFoam"
+[[products]]
+binnames = ["overRhoSimpleFoam"]
+type = "exe"
+variable_name = "overRhoSimpleFoam"
+[[products]]
+binnames = ["overSimpleFoam"]
+type = "exe"
+variable_name = "overSimpleFoam"
+[[products]]
+binnames = ["particleTracks"]
+type = "exe"
+variable_name = "particleTracks"
+[[products]]
+binnames = ["patchesToSubsets"]
+type = "exe"
+variable_name = "patchesToSubsets"
+[[products]]
+binnames = ["patchSummary"]
+type = "exe"
+variable_name = "patchSummary"
+[[products]]
+binnames = ["pdfPlot"]
+type = "exe"
+variable_name = "pdfPlot"
+[[products]]
+binnames = ["PDRblockMesh"]
+type = "exe"
+variable_name = "PDRblockMesh"
+[[products]]
+binnames = ["PDRFoam"]
+type = "exe"
+variable_name = "PDRFoam"
+[[products]]
+binnames = ["PDRMesh"]
+type = "exe"
+variable_name = "PDRMesh"
+[[products]]
+binnames = ["PDRsetFields"]
+type = "exe"
+variable_name = "PDRsetFields"
+[[products]]
+binnames = ["pimpleFoam"]
+type = "exe"
+variable_name = "pimpleFoam"
+[[products]]
+binnames = ["pisoFoam"]
+type = "exe"
+variable_name = "pisoFoam"
+[[products]]
+binnames = ["plot3dToFoam"]
+type = "exe"
+variable_name = "plot3dToFoam"
+[[products]]
+binnames = ["pMesh"]
+type = "exe"
+variable_name = "pMesh"
+[[products]]
+binnames = ["polyDualMesh"]
+type = "exe"
+variable_name = "polyDualMesh"
+[[products]]
+binnames = ["porousSimpleFoam"]
+type = "exe"
+variable_name = "porousSimpleFoam"
+[[products]]
+binnames = ["postChannel"]
+type = "exe"
+variable_name = "postChannel"
+[[products]]
+binnames = ["postProcess"]
+type = "exe"
+variable_name = "postProcess"
+[[products]]
+binnames = ["potentialFoam"]
+type = "exe"
+variable_name = "potentialFoam"
+[[products]]
+binnames = ["potentialFreeSurfaceDyMFoam"]
+type = "exe"
+variable_name = "potentialFreeSurfaceDyMFoam"
+[[products]]
+binnames = ["potentialFreeSurfaceFoam"]
+type = "exe"
+variable_name = "potentialFreeSurfaceFoam"
+[[products]]
+binnames = ["preparePar"]
+type = "exe"
+variable_name = "preparePar"
+[[products]]
+binnames = ["profilingSummary"]
+type = "exe"
+variable_name = "profilingSummary"
+[[products]]
+binnames = ["reactingFoam"]
+type = "exe"
+variable_name = "reactingFoam"
+[[products]]
+binnames = ["reactingHeterogenousParcelFoam"]
+type = "exe"
+variable_name = "reactingHeterogenousParcelFoam"
+[[products]]
+binnames = ["reactingMultiphaseEulerFoam"]
+type = "exe"
+variable_name = "reactingMultiphaseEulerFoam"
+[[products]]
+binnames = ["reactingParcelFoam"]
+type = "exe"
+variable_name = "reactingParcelFoam"
+[[products]]
+binnames = ["reactingTwoPhaseEulerFoam"]
+type = "exe"
+variable_name = "reactingTwoPhaseEulerFoam"
+[[products]]
+binnames = ["reconstructPar"]
+type = "exe"
+variable_name = "reconstructPar"
+[[products]]
+binnames = ["reconstructParMesh"]
+type = "exe"
+variable_name = "reconstructParMesh"
+[[products]]
+binnames = ["redistributePar"]
+type = "exe"
+variable_name = "redistributePar"
+[[products]]
+binnames = ["refineHexMesh"]
+type = "exe"
+variable_name = "refineHexMesh"
+[[products]]
+binnames = ["refinementLevel"]
+type = "exe"
+variable_name = "refinementLevel"
+[[products]]
+binnames = ["refineMesh"]
+type = "exe"
+variable_name = "refineMesh"
+[[products]]
+binnames = ["refineWallLayer"]
+type = "exe"
+variable_name = "refineWallLayer"
+[[products]]
+binnames = ["releaseAreaMapping"]
+type = "exe"
+variable_name = "releaseAreaMapping"
+[[products]]
+binnames = ["removeFaces"]
+type = "exe"
+variable_name = "removeFaces"
+[[products]]
+binnames = ["removeSurfaceFacets"]
+type = "exe"
+variable_name = "removeSurfaceFacets"
+[[products]]
+binnames = ["renumberMesh"]
+type = "exe"
+variable_name = "renumberMesh"
+[[products]]
+binnames = ["rhoCentralFoam"]
+type = "exe"
+variable_name = "rhoCentralFoam"
+[[products]]
+binnames = ["rhoPimpleAdiabaticFoam"]
+type = "exe"
+variable_name = "rhoPimpleAdiabaticFoam"
+[[products]]
+binnames = ["rhoPimpleFoam"]
+type = "exe"
+variable_name = "rhoPimpleFoam"
+[[products]]
+binnames = ["rhoPorousSimpleFoam"]
+type = "exe"
+variable_name = "rhoPorousSimpleFoam"
+[[products]]
+binnames = ["rhoReactingBuoyantFoam"]
+type = "exe"
+variable_name = "rhoReactingBuoyantFoam"
+[[products]]
+binnames = ["rhoReactingFoam"]
+type = "exe"
+variable_name = "rhoReactingFoam"
+[[products]]
+binnames = ["rhoSimpleFoam"]
+type = "exe"
+variable_name = "rhoSimpleFoam"
+[[products]]
+binnames = ["rotateMesh"]
+type = "exe"
+variable_name = "rotateMesh"
+[[products]]
+binnames = ["scalarTransportFoam"]
+type = "exe"
+variable_name = "scalarTransportFoam"
+[[products]]
+binnames = ["scaleMesh"]
+type = "exe"
+variable_name = "scaleMesh"
+[[products]]
+binnames = ["scaleSurfaceMesh"]
+type = "exe"
+variable_name = "scaleSurfaceMesh"
+[[products]]
+binnames = ["selectCells"]
+type = "exe"
+variable_name = "selectCells"
+[[products]]
+binnames = ["setAlphaField"]
+type = "exe"
+variable_name = "setAlphaField"
+[[products]]
+binnames = ["setExprBoundaryFields"]
+type = "exe"
+variable_name = "setExprBoundaryFields"
+[[products]]
+binnames = ["setExprFields"]
+type = "exe"
+variable_name = "setExprFields"
+[[products]]
+binnames = ["setFields"]
+type = "exe"
+variable_name = "setFields"
+[[products]]
+binnames = ["setSet"]
+type = "exe"
+variable_name = "setSet"
+[[products]]
+binnames = ["setsToZones"]
+type = "exe"
+variable_name = "setsToZones"
+[[products]]
+binnames = ["setTurbulenceFields"]
+type = "exe"
+variable_name = "setTurbulenceFields"
+[[products]]
+binnames = ["shallowWaterFoam"]
+type = "exe"
+variable_name = "shallowWaterFoam"
+[[products]]
+binnames = ["simpleCoalParcelFoam"]
+type = "exe"
+variable_name = "simpleCoalParcelFoam"
+[[products]]
+binnames = ["simpleFoam"]
+type = "exe"
+variable_name = "simpleFoam"
+[[products]]
+binnames = ["simpleReactingParcelFoam"]
+type = "exe"
+variable_name = "simpleReactingParcelFoam"
+[[products]]
+binnames = ["simpleSprayFoam"]
+type = "exe"
+variable_name = "simpleSprayFoam"
+[[products]]
+binnames = ["singleCellMesh"]
+type = "exe"
+variable_name = "singleCellMesh"
+[[products]]
+binnames = ["slopeMesh"]
+type = "exe"
+variable_name = "slopeMesh"
+[[products]]
+binnames = ["smapToFoam"]
+type = "exe"
+variable_name = "smapToFoam"
+[[products]]
+binnames = ["smoothSurfaceData"]
+type = "exe"
+variable_name = "smoothSurfaceData"
+[[products]]
+binnames = ["snappyHexMesh"]
+type = "exe"
+variable_name = "snappyHexMesh"
+[[products]]
+binnames = ["snappyRefineMesh"]
+type = "exe"
+variable_name = "snappyRefineMesh"
+[[products]]
+binnames = ["solidDisplacementFoam"]
+type = "exe"
+variable_name = "solidDisplacementFoam"
+[[products]]
+binnames = ["solidEquilibriumDisplacementFoam"]
+type = "exe"
+variable_name = "solidEquilibriumDisplacementFoam"
+[[products]]
+binnames = ["solidFoam"]
+type = "exe"
+variable_name = "solidFoam"
+[[products]]
+binnames = ["sonicDyMFoam"]
+type = "exe"
+variable_name = "sonicDyMFoam"
+[[products]]
+binnames = ["sonicFoam"]
+type = "exe"
+variable_name = "sonicFoam"
+[[products]]
+binnames = ["sonicLiquidFoam"]
+type = "exe"
+variable_name = "sonicLiquidFoam"
+[[products]]
+binnames = ["sphereSurfactantFoam"]
+type = "exe"
+variable_name = "sphereSurfactantFoam"
+[[products]]
+binnames = ["splitCells"]
+type = "exe"
+variable_name = "splitCells"
+[[products]]
+binnames = ["splitMesh"]
+type = "exe"
+variable_name = "splitMesh"
+[[products]]
+binnames = ["splitMeshRegions"]
+type = "exe"
+variable_name = "splitMeshRegions"
+[[products]]
+binnames = ["sprayDyMFoam"]
+type = "exe"
+variable_name = "sprayDyMFoam"
+[[products]]
+binnames = ["sprayFoam"]
+type = "exe"
+variable_name = "sprayFoam"
+[[products]]
+binnames = ["SRFPimpleFoam"]
+type = "exe"
+variable_name = "SRFPimpleFoam"
+[[products]]
+binnames = ["SRFSimpleFoam"]
+type = "exe"
+variable_name = "SRFSimpleFoam"
+[[products]]
+binnames = ["star4ToFoam"]
+type = "exe"
+variable_name = "star4ToFoam"
+[[products]]
+binnames = ["steadyParticleTracks"]
+type = "exe"
+variable_name = "steadyParticleTracks"
+[[products]]
+binnames = ["stitchMesh"]
+type = "exe"
+variable_name = "stitchMesh"
+[[products]]
+binnames = ["subsetMesh"]
+type = "exe"
+variable_name = "subsetMesh"
+[[products]]
+binnames = ["subsetToPatch"]
+type = "exe"
+variable_name = "subsetToPatch"
+[[products]]
+binnames = ["surfaceAdd"]
+type = "exe"
+variable_name = "surfaceAdd"
+[[products]]
+binnames = ["surfaceBooleanFeatures"]
+type = "exe"
+variable_name = "surfaceBooleanFeatures"
+[[products]]
+binnames = ["surfaceCheck"]
+type = "exe"
+variable_name = "surfaceCheck"
+[[products]]
+binnames = ["surfaceClean"]
+type = "exe"
+variable_name = "surfaceClean"
+[[products]]
+binnames = ["surfaceCoarsen"]
+type = "exe"
+variable_name = "surfaceCoarsen"
+[[products]]
+binnames = ["surfaceConvert"]
+type = "exe"
+variable_name = "surfaceConvert"
+[[products]]
+binnames = ["surfaceFeatureConvert"]
+type = "exe"
+variable_name = "surfaceFeatureConvert"
+[[products]]
+binnames = ["surfaceFeatureEdges"]
+type = "exe"
+variable_name = "surfaceFeatureEdges"
+[[products]]
+binnames = ["surfaceFeatureExtract"]
+type = "exe"
+variable_name = "surfaceFeatureExtract"
+[[products]]
+binnames = ["surfaceFind"]
+type = "exe"
+variable_name = "surfaceFind"
+[[products]]
+binnames = ["surfaceGenerateBoundingBox"]
+type = "exe"
+variable_name = "surfaceGenerateBoundingBox"
+[[products]]
+binnames = ["surfaceHookUp"]
+type = "exe"
+variable_name = "surfaceHookUp"
+[[products]]
+binnames = ["surfaceInertia"]
+type = "exe"
+variable_name = "surfaceInertia"
+[[products]]
+binnames = ["surfaceInflate"]
+type = "exe"
+variable_name = "surfaceInflate"
+[[products]]
+binnames = ["surfaceLambdaMuSmooth"]
+type = "exe"
+variable_name = "surfaceLambdaMuSmooth"
+[[products]]
+binnames = ["surfaceMeshConvert"]
+type = "exe"
+variable_name = "surfaceMeshConvert"
+[[products]]
+binnames = ["surfaceMeshExport"]
+type = "exe"
+variable_name = "surfaceMeshExport"
+[[products]]
+binnames = ["surfaceMeshExtract"]
+type = "exe"
+variable_name = "surfaceMeshExtract"
+[[products]]
+binnames = ["surfaceMeshImport"]
+type = "exe"
+variable_name = "surfaceMeshImport"
+[[products]]
+binnames = ["surfaceMeshInfo"]
+type = "exe"
+variable_name = "surfaceMeshInfo"
+[[products]]
+binnames = ["surfaceOrient"]
+type = "exe"
+variable_name = "surfaceOrient"
+[[products]]
+binnames = ["surfacePatch"]
+type = "exe"
+variable_name = "surfacePatch"
+[[products]]
+binnames = ["surfacePointMerge"]
+type = "exe"
+variable_name = "surfacePointMerge"
+[[products]]
+binnames = ["surfaceRedistributePar"]
+type = "exe"
+variable_name = "surfaceRedistributePar"
+[[products]]
+binnames = ["surfaceRefineRedGreen"]
+type = "exe"
+variable_name = "surfaceRefineRedGreen"
+[[products]]
+binnames = ["surfaceSplitByPatch"]
+type = "exe"
+variable_name = "surfaceSplitByPatch"
+[[products]]
+binnames = ["surfaceSplitByTopology"]
+type = "exe"
+variable_name = "surfaceSplitByTopology"
+[[products]]
+binnames = ["surfaceSplitNonManifolds"]
+type = "exe"
+variable_name = "surfaceSplitNonManifolds"
+[[products]]
+binnames = ["surfaceSubset"]
+type = "exe"
+variable_name = "surfaceSubset"
+[[products]]
+binnames = ["surfaceToFMS"]
+type = "exe"
+variable_name = "surfaceToFMS"
+[[products]]
+binnames = ["surfaceToPatch"]
+type = "exe"
+variable_name = "surfaceToPatch"
+[[products]]
+binnames = ["surfaceTransformPoints"]
+type = "exe"
+variable_name = "surfaceTransformPoints"
+[[products]]
+binnames = ["surfactantFoam"]
+type = "exe"
+variable_name = "surfactantFoam"
+[[products]]
+binnames = ["temporalInterpolate"]
+type = "exe"
+variable_name = "temporalInterpolate"
+[[products]]
+binnames = ["tetgenToFoam"]
+type = "exe"
+variable_name = "tetgenToFoam"
+[[products]]
+binnames = ["tetMesh"]
+type = "exe"
+variable_name = "tetMesh"
+[[products]]
+binnames = ["thermoFoam"]
+type = "exe"
+variable_name = "thermoFoam"
+[[products]]
+binnames = ["topoSet"]
+type = "exe"
+variable_name = "topoSet"
+[[products]]
+binnames = ["transformPoints"]
+type = "exe"
+variable_name = "transformPoints"
+[[products]]
+binnames = ["twoLiquidMixingFoam"]
+type = "exe"
+variable_name = "twoLiquidMixingFoam"
+[[products]]
+binnames = ["twoPhaseEulerFoam"]
+type = "exe"
+variable_name = "twoPhaseEulerFoam"
+[[products]]
+binnames = ["uncoupledKinematicParcelDyMFoam"]
+type = "exe"
+variable_name = "uncoupledKinematicParcelDyMFoam"
+[[products]]
+binnames = ["uncoupledKinematicParcelFoam"]
+type = "exe"
+variable_name = "uncoupledKinematicParcelFoam"
+[[products]]
+binnames = ["viewFactorsGen"]
+type = "exe"
+variable_name = "viewFactorsGen"
+[[products]]
+binnames = ["vtkUnstructuredToFoam"]
+type = "exe"
+variable_name = "vtkUnstructuredToFoam"
+[[products]]
+binnames = ["wallFunctionTable"]
+type = "exe"
+variable_name = "wallFunctionTable"
+[[products]]
+binnames = ["writeMeshObj"]
+type = "exe"
+variable_name = "writeMeshObj"
+[[products]]
+binnames = ["writeMorpherCPs"]
+type = "exe"
+variable_name = "writeMorpherCPs"
+[[products]]
+binnames = ["XiDyMFoam"]
+type = "exe"
+variable_name = "XiDyMFoam"
+[[products]]
+binnames = ["XiEngineFoam"]
+type = "exe"
+variable_name = "XiEngineFoam"
+[[products]]
+binnames = ["XiFoam"]
+type = "exe"
+variable_name = "XiFoam"
+[[products]]
+binnames = ["zipUpMesh"]
+type = "exe"
+variable_name = "zipUpMesh"
+[[products]]
+paths = ["share/openfoam/etc"]
+type = "file"
+variable_name = "openfoam_etc"
+[[products]]
+paths = ["share/openfoam/bin"]
+type = "file"
+variable_name = "openfoam_bin"
+
+[[sources]]
+hash = "1d8f0d55f79e6488dae75e4b839e358a88af77b5"
+type = "git"
+unpack_target = ""
+url = "https://develop.openfoam.com/Development/openfoam.git"

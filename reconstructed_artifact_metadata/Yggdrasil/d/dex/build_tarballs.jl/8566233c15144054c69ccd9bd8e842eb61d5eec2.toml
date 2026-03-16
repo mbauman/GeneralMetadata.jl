@@ -1,0 +1,29 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "Dex"
+platforms = ["x86_64-linux-musl", "x86_64-linux-gnu"]
+script = """cd $WORKSPACE/srcdir\nmkdir -p \"${bindir}\" \"${prefix}/share\"\ncd dex/\nfor f in ${WORKSPACE}/srcdir/patches/*.patch; do\n    atomic_patch -p1 ${f}\ndone\ninstall_license LICENSE\ngo get -u entgo.io/contrib/entproto@latest\ngo get entgo.io/contrib/entproto/cmd/protoc-gen-entgrpc@latest\ngo mod tidy\nmake build\nmkdir -p $bindir\nmv bin/dex \"$bindir/dex${exeext}\"\ntar -czvf $prefix/share/webtemplates.tar.gz -C ./web static templates themes\n"""
+version = "v2.43.1"
+
+[[products]]
+binnames = ["dex"]
+type = "exe"
+variable_name = "dex"
+[[products]]
+paths = ["share/webtemplates.tar.gz"]
+type = "file"
+variable_name = "webtemplates"
+
+[[sources]]
+hash = "6e602d3315ea09d0cdeef6b51e61f2fd4ae52502"
+type = "git"
+unpack_target = ""
+url = "https://github.com/dexidp/dex.git"
+[[sources]]
+follow_symlinks = false
+path = "bundled"
+target = ""
+type = "directory"

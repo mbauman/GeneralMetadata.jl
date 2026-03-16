@@ -1,0 +1,50 @@
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "CompilerSupportLibraries"
+platforms = ["i686-linux-gnu-libgfortran3", "i686-linux-gnu-libgfortran4", "i686-linux-gnu-libgfortran5", "x86_64-linux-gnu-libgfortran3", "x86_64-linux-gnu-libgfortran4", "x86_64-linux-gnu-libgfortran5", "aarch64-linux-gnu-libgfortran3", "aarch64-linux-gnu-libgfortran4", "aarch64-linux-gnu-libgfortran5", "armv7l-linux-gnueabihf-libgfortran3", "armv7l-linux-gnueabihf-libgfortran4", "armv7l-linux-gnueabihf-libgfortran5", "powerpc64le-linux-gnu-libgfortran3", "powerpc64le-linux-gnu-libgfortran4", "powerpc64le-linux-gnu-libgfortran5", "i686-linux-musl-libgfortran3", "i686-linux-musl-libgfortran4", "i686-linux-musl-libgfortran5", "x86_64-linux-musl-libgfortran3", "x86_64-linux-musl-libgfortran4", "x86_64-linux-musl-libgfortran5", "aarch64-linux-musl-libgfortran3", "aarch64-linux-musl-libgfortran4", "aarch64-linux-musl-libgfortran5", "armv7l-linux-musleabihf-libgfortran3", "armv7l-linux-musleabihf-libgfortran4", "armv7l-linux-musleabihf-libgfortran5", "x86_64-apple-darwin-libgfortran3", "x86_64-apple-darwin-libgfortran4", "x86_64-apple-darwin-libgfortran5", "x86_64-unknown-freebsd-libgfortran3", "x86_64-unknown-freebsd-libgfortran4", "x86_64-unknown-freebsd-libgfortran5", "i686-w64-mingw32-libgfortran3", "i686-w64-mingw32-libgfortran4", "i686-w64-mingw32-libgfortran5", "x86_64-w64-mingw32-libgfortran3", "x86_64-w64-mingw32-libgfortran4", "x86_64-w64-mingw32-libgfortran5", "aarch64-apple-darwin-libgfortran5", "armv6l-linux-gnueabihf-libgfortran3", "armv6l-linux-gnueabihf-libgfortran4", "armv6l-linux-gnueabihf-libgfortran5", "armv6l-linux-musleabihf-libgfortran3", "armv6l-linux-musleabihf-libgfortran4", "armv6l-linux-musleabihf-libgfortran5"]
+script = """# Start by extracting LatestLibraries\ntar -zxvf ${WORKSPACE}/srcdir/LatestLibraries*.tar.gz -C ${prefix}\n\necho ***********************************************************\necho LatestLibraries logs, reproduced here for debuggability:\nzcat ${prefix}/logs/LatestLibraries.log.gz\necho ***********************************************************\nrm -f ${prefix}/logs/LatestLibraries.log.gz\n\n# Make sure expansions aren't empty\nshopt -s nullglob\n\n# copy out all the libraries we can find, not clobbering stuff from LL\nfor d in /opt/${target}/${target}/lib*; do\n    cp -uav ${d}/*.${dlext}* ${libdir}/ || true\ndone\n\n# libwinpthread is a special snowflake and is only within `bin` for some reason\nif [[ ${target} == *mingw* ]]; then\n    cp -uav /opt/${target}/${target}/sys-root/bin/*.${dlext}* ${libdir}/\nfi\n\n# Delete .a and .py files, we don't want those.\nrm -f ${libdir}/*.a ${libdir}/*.py\n\n# Delete any `.so` files that are not ELF files, since they're mostly likely linker scripts\nfor f in ${libdir}/*.so; do\n    if [[ \"$(file -b \"$f\")\" != ELF* ]]; then\n        rm -f \"$f\"\n    fi\ndone\n\n# change permissions so that rpath succeeds\nfor l in ${libdir}/*; do\n    chmod 0755 \"${l}\"\ndone\n\n# libgcc_s.X.dylib receives special treatment for now.  We need to reset the dylib id,\n# but we don't want to run a full audit, so we do it ourselves.\nif [[ ${target} == *apple* ]]; then\n    LIBGCC_NAME=$(basename $(echo ${libdir}/libgcc_s.*.dylib))\n    install_name_tool -id @rpath/${LIBGCC_NAME} ${libdir}/${LIBGCC_NAME}\nfi\n\n# Install license (we license these all as GPL3, since they're from GCC)\ninstall_license /usr/share/licenses/GPL3\n"""
+version = "v0.3.6"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgcc_s", "libgcc_s_sjlj", "libgcc_s_seh"]
+type = "lib"
+variable_name = "libgcc_s"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libstdc++"]
+type = "lib"
+variable_name = "libstdcxx"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgfortran"]
+type = "lib"
+variable_name = "libgfortran"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgomp"]
+type = "lib"
+variable_name = "libgomp"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libatomic"]
+type = "lib"
+variable_name = "libatomic"
+
+[[sources]]
+filename = "build_tarballs.jl"
+hash = "9e94165ea03f534138434f39d37eba1e6838cbcccad5f109b5e305d094eb206e"
+type = "file"
+url = "/tmp/jl_WRtWmW/C/CompilerSupportLibraries/build_tarballs.jl"

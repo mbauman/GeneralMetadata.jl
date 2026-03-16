@@ -1,0 +1,42 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "libnode"
+platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "x86_64-apple-darwin", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir\nif [[ $target == *w64* ]]\nthen\n    cd ${target}/libnode-*\ncd node-*\nchmod +x *.cmd *.exe\nmkdir -p ${bindir}\nmv * ${bindir}/\nmv ${bindir}/include ${prefix}\nmv ${bindir}/LICENSE .\ninstall_license ./LICENSE\n\nelif [[ $target == *apple* ]]\nthen\n    cd ${target}/libnode-*\nchmod +x bin/*\nmv * ${prefix}/\nmv ${prefix}/LICENSE .\ninstall_license ./LICENSE\n\nelif [[ $target == *linux* ]]\nthen\n    cd node-*\nexport CC_host=$HOSTCC\nexport CXX_host=$HOSTCXX\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/configure.py.patch\"\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/node.gypi.patch\"\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/node_credentials.cc.patch\"\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/test_crypto_clienthello.cc.patch\"\n# Build & install libnode\nif [[ $target == $MACHTYPE ]]\nthen\n    ./configure --prefix=${prefix} --shared --no-cross-compiling\nelse\n    DEST_CPU=x86_64\n    if [[ $target == *aarch64* ]]; then DEST_CPU=arm64; fi\n    ./configure --prefix=${prefix} --shared --cross-compiling --dest-cpu=$DEST_CPU --dest-os=linux\nfi\n\nexport CPPFLAGS=-D__STDC_FORMAT_MACROS\nmake -j`nproc`\nmake install\ncp ./out/Release/node ${bindir}\ninstall_license ./LICENSE\n\nfi\n"""
+version = "v18.12.1"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnode"]
+type = "lib"
+variable_name = "libnode"
+[[products]]
+binnames = ["node"]
+type = "exe"
+variable_name = "node"
+
+[[sources]]
+hash = "ba8174dda00d5b90943f37c6a180a1d37c861d91e04a4cb38dc1c0c74981c186"
+type = "archive"
+unpack_target = ""
+url = "https://nodejs.org/dist/v18.12.1/node-v18.12.1.tar.gz"
+[[sources]]
+hash = "675d4b4b335db8d1ab047ea55e09488e0b1c51008f42ee09e4ef7cbca978b2ff"
+type = "archive"
+unpack_target = "x86_64-w64-mingw32"
+url = "https://github.com/sunoru/libnode/releases/download/v18.12.1/libnode-v18.12.1-Windows-x64.zip"
+[[sources]]
+hash = "a19cbfceaeae3e98f982e06dc232f8a228e021941a9ead79aef9bc1ca0fc2f50"
+type = "archive"
+unpack_target = "x86_64-apple-darwin14"
+url = "https://github.com/sunoru/libnode/releases/download/v18.12.1/libnode-v18.12.1-macOS-x64.zip"
+[[sources]]
+follow_symlinks = false
+path = "bundled"
+target = ""
+type = "directory"

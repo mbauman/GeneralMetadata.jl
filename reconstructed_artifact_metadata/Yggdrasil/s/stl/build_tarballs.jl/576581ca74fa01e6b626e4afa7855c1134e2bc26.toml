@@ -1,0 +1,41 @@
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "STL"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """export PATH=\"${PATH}:${WORKSPACE}/srcdir/julia-1.6.5/bin\"\n\n# Switch into source directory\ncd STL.jl\n\n# Create C++ wrapper code\njulia --project=@. --eval '\n    using Pkg\n\n    oldpwd = pwd()\n    cd(\"..\")\n    Pkg.generate(\"STL_jll\")\n    write(\"STL_jll/src/STL_jll.jl\",\n        \"\"\"\n        module STL_jll\n        # Just a placeholder library name\n        const libSTL = \"libSTL\"\n        export libSTL\n        end\n        \"\"\")\n    cd(oldpwd)\n\n    # Replace `STL_jll` which may not yet exist\n    Pkg.rm(\"STL_jll\")\n    # Replace `TestAbstractTypes` which is not registered yet\n    Pkg.rm(\"TestAbstractTypes\")\n\n    Pkg.develop(path=\"../STL_jll\")\n    Pkg.develop(path=\"../TestAbstractTypes.jl\")\n\n    # Pkg.build(\"STL\")\n    using STL\n    STL.cxx_write_code!()\n'\n\n# Build and install C++ wrapper code\n${CXX} -Drestrict=__restrict__ -std=c++17 -g -O2 -fPIC -shared -o ${libdir}/libSTL.${dlext} \\\n    StdMap.cxx StdSharedPtr.cxx StdString.cxx StdVector.cxx\ninstall_license LICENSE.md\n"""
+version = "v0.1.0"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libSTL"]
+type = "lib"
+variable_name = "libSTL"
+
+[[sources]]
+hash = "76f5f5eeaa0b789010b302ca5cf9d8551e3c83fb"
+type = "git"
+unpack_target = ""
+url = "https://github.com/eschnett/STL.jl"
+[[sources]]
+hash = "a23107bf47796db9d414c77801c6b3331f4950f0"
+type = "git"
+unpack_target = ""
+url = "https://github.com/eschnett/TestAbstractTypes.jl"
+[[sources]]
+hash = "e38eece6f9f20c7472caf3f8f74a99ad0880921c28e1301461fa7af919880383"
+type = "archive"
+unpack_target = ""
+url = "https://julialang-s3.julialang.org/bin/musl/x64/1.6/julia-1.6.5-musl-x86_64.tar.gz"

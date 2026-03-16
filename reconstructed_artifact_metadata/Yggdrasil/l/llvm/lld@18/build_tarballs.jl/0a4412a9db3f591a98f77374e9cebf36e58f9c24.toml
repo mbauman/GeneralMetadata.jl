@@ -1,0 +1,79 @@
+augment_platform_block = """using Base.BinaryPlatforms\nfunction augment_llvm!(platform::Platform)\n    haskey(platform, \"llvm_version\") && return platform\n\n    llvm_version = Base.libllvm_version\n    # does our LLVM build use assertions?\n    llvm_assertions = try\n        cglobal((:_ZN4llvm24DisableABIBreakingChecksE, Base.libllvm_path()), Cvoid)\n        false\n    catch\n        true\n    end\n    platform[\"llvm_version\"] = if llvm_assertions\n        \"$(llvm_version.major).asserts\"\n    else\n        \"$(llvm_version.major)\"\n    end\n    return platform\nend\n\nfunction augment_platform!(platform::Platform)\n    augment_llvm!(platform)\nend"""
+init_block = ""
+julia_compat = "1.12"
+lazy_artifacts = false
+name = "LLD"
+platforms = ["i686-linux-gnu-cxx03-llvm_version+18", "i686-linux-gnu-cxx11-llvm_version+18", "x86_64-linux-gnu-cxx03-llvm_version+18", "x86_64-linux-gnu-cxx11-llvm_version+18", "aarch64-linux-gnu-cxx03-llvm_version+18", "aarch64-linux-gnu-cxx11-llvm_version+18", "armv6l-linux-gnueabihf-cxx03-llvm_version+18", "armv6l-linux-gnueabihf-cxx11-llvm_version+18", "armv7l-linux-gnueabihf-cxx03-llvm_version+18", "armv7l-linux-gnueabihf-cxx11-llvm_version+18", "powerpc64le-linux-gnu-cxx03-llvm_version+18", "powerpc64le-linux-gnu-cxx11-llvm_version+18", "x86_64-linux-musl-cxx03-llvm_version+18", "x86_64-linux-musl-cxx11-llvm_version+18", "aarch64-linux-musl-cxx03-llvm_version+18", "aarch64-linux-musl-cxx11-llvm_version+18", "armv6l-linux-musleabihf-cxx03-llvm_version+18", "armv6l-linux-musleabihf-cxx11-llvm_version+18", "armv7l-linux-musleabihf-cxx03-llvm_version+18", "armv7l-linux-musleabihf-cxx11-llvm_version+18", "x86_64-apple-darwin-llvm_version+18", "aarch64-apple-darwin-llvm_version+18", "x86_64-unknown-freebsd-llvm_version+18", "aarch64-unknown-freebsd-llvm_version+18", "i686-w64-mingw32-cxx03-llvm_version+18", "i686-w64-mingw32-cxx11-llvm_version+18", "x86_64-w64-mingw32-cxx03-llvm_version+18", "x86_64-w64-mingw32-cxx11-llvm_version+18", "x86_64-linux-gnu-cxx11-sanitize+memory-llvm_version+18", "i686-linux-gnu-cxx03-llvm_version+18.asserts", "i686-linux-gnu-cxx11-llvm_version+18.asserts", "x86_64-linux-gnu-cxx03-llvm_version+18.asserts", "x86_64-linux-gnu-cxx11-llvm_version+18.asserts", "aarch64-linux-gnu-cxx03-llvm_version+18.asserts", "aarch64-linux-gnu-cxx11-llvm_version+18.asserts", "armv6l-linux-gnueabihf-cxx03-llvm_version+18.asserts", "armv6l-linux-gnueabihf-cxx11-llvm_version+18.asserts", "armv7l-linux-gnueabihf-cxx03-llvm_version+18.asserts", "armv7l-linux-gnueabihf-cxx11-llvm_version+18.asserts", "powerpc64le-linux-gnu-cxx03-llvm_version+18.asserts", "powerpc64le-linux-gnu-cxx11-llvm_version+18.asserts", "x86_64-linux-musl-cxx03-llvm_version+18.asserts", "x86_64-linux-musl-cxx11-llvm_version+18.asserts", "aarch64-linux-musl-cxx03-llvm_version+18.asserts", "aarch64-linux-musl-cxx11-llvm_version+18.asserts", "armv6l-linux-musleabihf-cxx03-llvm_version+18.asserts", "armv6l-linux-musleabihf-cxx11-llvm_version+18.asserts", "armv7l-linux-musleabihf-cxx03-llvm_version+18.asserts", "armv7l-linux-musleabihf-cxx11-llvm_version+18.asserts", "x86_64-apple-darwin-llvm_version+18.asserts", "aarch64-apple-darwin-llvm_version+18.asserts", "x86_64-unknown-freebsd-llvm_version+18.asserts", "aarch64-unknown-freebsd-llvm_version+18.asserts", "i686-w64-mingw32-cxx03-llvm_version+18.asserts", "i686-w64-mingw32-cxx11-llvm_version+18.asserts", "x86_64-w64-mingw32-cxx03-llvm_version+18.asserts", "x86_64-w64-mingw32-cxx11-llvm_version+18.asserts", "x86_64-linux-gnu-cxx11-sanitize+memory-llvm_version+18.asserts"]
+script = """# First, find (true) LLVM library directory in ~/.artifacts somewhere\nLLVM_ARTIFACT_DIR=$(dirname $(dirname $(realpath ${prefix}/tools/opt${exeext})))\n\n# Clear out our `${prefix}`\nrm -rf ${prefix}/*\n\n# Copy over `lld`, `libclang` and `include`, specifically.\nmkdir -p ${prefix}/include ${prefix}/bin ${libdir} ${prefix}/lib ${prefix}/tools ${prefix}/lib/cmake\nmv -v ${LLVM_ARTIFACT_DIR}/include/lld* ${prefix}/include/\n\n# LLVM isn't very reliable in choosing tools over bin even if we tell it to\nfile_patterns=(\"*lld*\" \"wasm-ld*\" \"dsymutil*\")\nfor pattern in \"${file_patterns[@]}\"; do\n    find ${LLVM_ARTIFACT_DIR}/bin/ -maxdepth 1 -type f -name \"$pattern\" -print0 -o -type l -name \"$pattern\" -print0 | xargs -0r mv -v -t \"${prefix}/tools/\"\ndone\nfor pattern in \"${file_patterns[@]}\"; do\n    find ${LLVM_ARTIFACT_DIR}/tools/ -maxdepth 1 -type f -name \"$pattern\" -print0 -o -type l -name \"$pattern\" -print0 | xargs -0r mv -v -t \"${prefix}/tools/\"\ndone\n\n# mv -v ${LLVM_ARTIFACT_DIR}/$(basename ${libdir})/liblld*.${dlext}* ${libdir}/\nmv -v ${LLVM_ARTIFACT_DIR}/lib/liblld*.a ${prefix}/lib\nmv -v ${LLVM_ARTIFACT_DIR}/lib/cmake/lld ${prefix}/lib/cmake/lld\ninstall_license ${LLVM_ARTIFACT_DIR}/share/licenses/LLVM_full*/*\n"""
+sources = []
+version = "v18.1.7"
+
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LLVM_full_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+uuid = "a3ccf953-465e-511d-b87f-60a6490c289d"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "18.1.7"
+name = "libLLVM_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LLVM_full_assert_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+uuid = "6ec703ca-3f29-566b-9bb1-b5c9e844abaf"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["lld"]
+dir_path = "tools"
+type = "exe"
+variable_name = "lld"
+[[products]]
+binnames = ["ld.lld"]
+dir_path = "tools"
+type = "exe"
+variable_name = "ld_lld"
+[[products]]
+binnames = ["ld64.lld"]
+dir_path = "tools"
+type = "exe"
+variable_name = "ld64_lld"
+[[products]]
+binnames = ["lld-link"]
+dir_path = "tools"
+type = "exe"
+variable_name = "lld_link"
+[[products]]
+binnames = ["wasm-ld"]
+dir_path = "tools"
+type = "exe"
+variable_name = "wasm_ld"
+[[products]]
+binnames = ["dsymutil"]
+dir_path = "tools"
+type = "exe"
+variable_name = "dsymutil"

@@ -1,0 +1,27 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "capnproto"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/capnproto-*/\n(\n    # Do native build to get a capnp that we can run\n    mkdir build_native && cd build_native\n    export CC=${CC_BUILD}\n    export CXX=${CXX_BUILD}\n    export LD=${LD_BUILD}\n    ../configure --host=${MACHTYPE} --with-pic \\\n        lt_cv_prog_compiler_pic_works=yes \\\n        lt_cv_prog_compiler_pic_works_CXX=yes\n    make -j${nproc}\n)\nexport CAPNP=build_native/capnp\nif [[ ${target} == *linux* ]]; then\n    export LDFLAGS=\"-lrt\"\nfi\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} --with-external-capnp\nmake -j${nproc}\nmake install\nif [[ \"${target}\" == *-mingw* ]]; then\n    # The build for Windows creates \"${bindir}/capnpc\" as a broken link to\n    # \"capnp\": let's remove it and copy capnp.exe to capnpc.exe\n    rm \"${bindir}/capnpc\"\n    cp \"${bindir}/capnp${exeext}\" \"${bindir}/capnpc${exeext}\"\nfi\n"""
+version = "v0.8.0"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcapnp", "libcapnp-0-8"]
+type = "lib"
+variable_name = "libcapnp"
+[[products]]
+binnames = ["capnp"]
+type = "exe"
+variable_name = "capnp"
+
+[[sources]]
+hash = "d1f40e47574c65700f0ec98bf66729378efabe3c72bc0cda795037498541c10d"
+type = "archive"
+unpack_target = ""
+url = "https://capnproto.org/capnproto-c++-0.8.0.tar.gz"

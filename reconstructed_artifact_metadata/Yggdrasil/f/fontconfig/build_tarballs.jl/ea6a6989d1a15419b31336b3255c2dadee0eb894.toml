@@ -1,0 +1,94 @@
+lazy_artifacts = false
+name = "Fontconfig"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/fontconfig-*/\n\napk add gperf\n\n# Ensure that `${prefix}/include` is..... included\nexport CPPFLAGS=\"-I${prefix}/include\"\n\nFLAGS=()\nif [[ \"${target}\" == *-linux-* ]] || [[ \"${target}\" == *-freebsd* ]]; then\n    FLAGS+=(--with-add-fonts=\"/usr/local/share/fonts\")\n    if [[ \"${target}\" == *-linux-* ]]; then\n        FLAGS+=(--with-cache-dir=\"/var/cache/fontconfig\")\n    elif [[ \"${target}\" == *-freebsd* ]]; then\n        FLAGS+=(--with-cache-dir=\"/var/db/fontconfig\")\n    fi\nelif [[ \"${target}\" == *-apple-* ]]; then\n    FLAGS+=(--with-add-fonts=\"/System/Library/Fonts,/Library/Fonts,~/Library/Fonts,/System/Library/Assets/com_apple_MobileAsset_Font4,/System/Library/Assets/com_apple_MobileAsset_Font5\")\nfi\n\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/0001-fix-config-linking.all.patch\"\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/0002-fix-mkdir.mingw.patch\"\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/0004-fix-mkdtemp.mingw.patch\"\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/0005-fix-setenv.mingw.patch\"\nautoreconf\n./configure --prefix=$prefix --build=${MACHTYPE} --host=$target --disable-docs \"${FLAGS[@]}\"\n\n# Disable tests\nsed -i 's,all-am: Makefile $(PROGRAMS),all-am:,' test/Makefile\n\nmake -j${nproc}\nmake install\n"""
+version = "v2.13.1"
+
+[[dependencies]]
+name = "FreeType2_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Bzip2_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Zlib_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Libuuid_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Expat_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libfontconfig"]
+type = "lib"
+variable_name = "libfontconfig"
+[[products]]
+binnames = ["fc-cache"]
+type = "exe"
+variable_name = "fc_cache"
+[[products]]
+binnames = ["fc-cat"]
+type = "exe"
+variable_name = "fc_cat"
+[[products]]
+binnames = ["fc-conflist"]
+type = "exe"
+variable_name = "fc_conflist"
+[[products]]
+binnames = ["fc-list"]
+type = "exe"
+variable_name = "fc_list"
+[[products]]
+binnames = ["fc-match"]
+type = "exe"
+variable_name = "fc_match"
+[[products]]
+binnames = ["fc-pattern"]
+type = "exe"
+variable_name = "fc_pattern"
+[[products]]
+binnames = ["fc-query"]
+type = "exe"
+variable_name = "fc_query"
+[[products]]
+binnames = ["fc-scan"]
+type = "exe"
+variable_name = "fc_scan"
+[[products]]
+binnames = ["fc-validate"]
+type = "exe"
+variable_name = "fc_validate"
+[[products]]
+paths = ["etc/fonts/fonts.conf"]
+type = "file"
+variable_name = "fonts_conf"
+
+[[sources]]
+hash = "f655dd2a986d7aa97e052261b36aa67b0a64989496361eca8d604e6414006741"
+type = "archive"
+unpack_target = ""
+url = "https://www.freedesktop.org/software/fontconfig/release/fontconfig-2.13.1.tar.bz2"
+[[sources]]
+path = "./bundled"
+target = ""
+type = "directory"

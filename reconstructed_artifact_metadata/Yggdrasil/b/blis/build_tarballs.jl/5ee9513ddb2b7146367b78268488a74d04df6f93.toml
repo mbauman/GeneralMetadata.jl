@@ -1,0 +1,29 @@
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "blis"
+platforms = ["x86_64-linux-musl", "armv7l-linux-gnueabihf", "x86_64-w64-mingw32", "x86_64-apple-darwin", "x86_64-linux-gnu", "aarch64-linux-gnu", "x86_64-unknown-freebsd"]
+script = """cd $WORKSPACE/srcdir\ncd blis/\n\nfor i in ./config/*/*.mk; do\n\n    # Building in container forbids -march options\n    sed -i \"s/-march[^ ]*//g\" $i\n    # Building in container forbids unsafe optimization.\n    sed -i \"s/-ffast-math//g\" $i\n    sed -i \"s/-funsafe-math-optimizations//g\" $i\n\ndone\n\ncase ${target} in\n\n    *\"x86_64\"*\"linux\"*) \n        export BLI_CONFIG=x86_64\n        export BLI_THREAD=openmp\n        ;;\n    *\"x86_64\"*\"w64\"*) \n        # MinGW doesn't support savexmm instructions\n        # Build only for AMD processors.\n        export BLI_CONFIG=amd64\n        export BLI_THREAD=openmp\n        ;;\n    *\"x86_64\"*\"apple\"*) \n        export BLI_CONFIG=x86_64\n        export BLI_THREAD=openmp\n        export CC=gcc\n        export CXX=g++\n        ;;\n    *\"x86_64\"*\"freebsd\"*) \n        export BLI_CONFIG=x86_64\n        export BLI_THREAD=openmp\n        export CC=gcc\n        export CXX=g++\n        ;;\n    *\"aarch64\"*\"linux\"*) \n        # Aarch64 has no metaconfiguration support yet.\n        # Use Cortex-A57 for the moment.\n        export BLI_CONFIG=cortexa57\n        export BLI_THREAD=openmp\n        ;;\n    *\"arm\"*\"linux\"*) \n        export BLI_CONFIG=cortexa9\n        export BLI_THREAD=none\n        ;;\n    *)\n        ;; \n\nesac\n\n./configure -p ${prefix} -t ${BLI_THREAD} ${BLI_CONFIG}\nmake -j${nproc}\nmake install\n\n# Rename .dll for Windows targets.\nif [[ \"${target}\" == *\"x86_64\"*\"w64\"* ]]; then\n    mkdir -p ${prefix}/bin\n    mv ${prefix}/lib/libblis.3.dll ${prefix}/bin/libblis.dll\nfi\n"""
+version = "v0.8.0"
+
+[[dependencies]]
+name = "CompilerSupportLibraries_jll"
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libblis"]
+type = "lib"
+variable_name = "blis"
+
+[[sources]]
+hash = "9b387f6d5a010969727ec583c0cdd067a5274ed8"
+type = "git"
+unpack_target = ""
+url = "https://github.com/flame/blis.git"

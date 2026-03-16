@@ -1,0 +1,73 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.10"
+lazy_artifacts = false
+name = "slope"
+platforms = ["i686-linux-gnu-cxx11-julia_version+1.10.0", "x86_64-linux-gnu-cxx11-julia_version+1.10.0", "aarch64-linux-gnu-cxx11-julia_version+1.10.0", "powerpc64le-linux-gnu-cxx11-julia_version+1.10.0", "x86_64-linux-musl-cxx11-julia_version+1.10.0", "aarch64-linux-musl-cxx11-julia_version+1.10.0", "x86_64-apple-darwin-julia_version+1.10.0", "aarch64-apple-darwin-julia_version+1.10.0", "x86_64-unknown-freebsd-julia_version+1.10.0", "i686-w64-mingw32-cxx11-julia_version+1.10.0", "x86_64-w64-mingw32-cxx11-julia_version+1.10.0", "i686-linux-gnu-cxx11-julia_version+1.11.1", "x86_64-linux-gnu-cxx11-julia_version+1.11.1", "aarch64-linux-gnu-cxx11-julia_version+1.11.1", "powerpc64le-linux-gnu-cxx11-julia_version+1.11.1", "x86_64-linux-musl-cxx11-julia_version+1.11.1", "aarch64-linux-musl-cxx11-julia_version+1.11.1", "x86_64-apple-darwin-julia_version+1.11.1", "aarch64-apple-darwin-julia_version+1.11.1", "x86_64-unknown-freebsd-julia_version+1.11.1", "i686-w64-mingw32-cxx11-julia_version+1.11.1", "x86_64-w64-mingw32-cxx11-julia_version+1.11.1", "i686-linux-gnu-cxx11-julia_version+1.12.0", "x86_64-linux-gnu-cxx11-julia_version+1.12.0", "aarch64-linux-gnu-cxx11-julia_version+1.12.0", "powerpc64le-linux-gnu-cxx11-julia_version+1.12.0", "x86_64-linux-musl-cxx11-julia_version+1.12.0", "aarch64-linux-musl-cxx11-julia_version+1.12.0", "x86_64-apple-darwin-julia_version+1.12.0", "aarch64-apple-darwin-julia_version+1.12.0", "x86_64-unknown-freebsd-julia_version+1.12.0", "aarch64-unknown-freebsd-julia_version+1.12.0", "i686-w64-mingw32-cxx11-julia_version+1.12.0", "x86_64-w64-mingw32-cxx11-julia_version+1.12.0", "i686-linux-gnu-cxx11-julia_version+1.13.0", "x86_64-linux-gnu-cxx11-julia_version+1.13.0", "aarch64-linux-gnu-cxx11-julia_version+1.13.0", "powerpc64le-linux-gnu-cxx11-julia_version+1.13.0", "riscv64-linux-gnu-cxx11-julia_version+1.13.0", "x86_64-linux-musl-cxx11-julia_version+1.13.0", "aarch64-linux-musl-cxx11-julia_version+1.13.0", "x86_64-apple-darwin-julia_version+1.13.0", "aarch64-apple-darwin-julia_version+1.13.0", "x86_64-unknown-freebsd-julia_version+1.13.0", "aarch64-unknown-freebsd-julia_version+1.13.0", "i686-w64-mingw32-cxx11-julia_version+1.13.0", "x86_64-w64-mingw32-cxx11-julia_version+1.13.0", "i686-linux-gnu-cxx11-julia_version+1.14.0", "x86_64-linux-gnu-cxx11-julia_version+1.14.0", "aarch64-linux-gnu-cxx11-julia_version+1.14.0", "powerpc64le-linux-gnu-cxx11-julia_version+1.14.0", "riscv64-linux-gnu-cxx11-julia_version+1.14.0", "x86_64-linux-musl-cxx11-julia_version+1.14.0", "aarch64-linux-musl-cxx11-julia_version+1.14.0", "x86_64-apple-darwin-julia_version+1.14.0", "aarch64-apple-darwin-julia_version+1.14.0", "x86_64-unknown-freebsd-julia_version+1.14.0", "aarch64-unknown-freebsd-julia_version+1.14.0", "i686-w64-mingw32-cxx11-julia_version+1.14.0", "x86_64-w64-mingw32-cxx11-julia_version+1.14.0"]
+script = """macos_sdk_version=11.3\nmacosx_deployment_target=11.3\nif [[ \"${target}\" == *-apple-darwin* ]]; then\n    echo \"Extracting MacOSX${macos_sdk_version}.sdk.tar.xz (this may take a while)\"\n    rm -rf /opt/${target}/${target}/sys-root/System\n    rm -rf /opt/${target}/${target}/sys-root/usr/include/libxml2/libxml\n    # extract the tarball into the sys-root so all compilers pick it up\n    # automatically, and use --warning=no-unknown-keyword to hide harmless\n    # warnings about unsupported pax header keywords like \"SCHILY.fflags\"\n    tar --extract \\\n        --file=${WORKSPACE}/srcdir/MacOSX${macos_sdk_version}.sdk.tar.xz \\\n        --directory=\"/opt/${target}/${target}/sys-root/.\" \\\n        --strip-components=1 \\\n        --warning=no-unknown-keyword \\\n        MacOSX${macos_sdk_version}.sdk/System \\\n        MacOSX${macos_sdk_version}.sdk/usr\n    export MACOSX_DEPLOYMENT_TARGET=${macosx_deployment_target}\nfi\ncd $WORKSPACE/srcdir/libslope\n\n# Build main library\ncmake -B build \\\n    -DBUILD_TESTING=OFF \\\n    -DBUILD_JULIA_BINDINGS=ON \\\n    -DJlCxx_DIR=$prefix/lib/cmake/JlCxx \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DCMAKE_INSTALL_PREFIX=$prefix \\\n    -DCMAKE_POSITION_INDEPENDENT_CODE=ON \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DJulia_PREFIX=${prefix}\n\ncmake --build build --parallel ${nproc}\ncmake --install build\n\ninstall_license $WORKSPACE/srcdir/libslope/LICENSE\n"""
+version = "v6.3.0"
+
+[[dependencies]]
+compat = ""
+name = "Eigen_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "libjulia_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LLVMOpenMP_jll"
+platforms = ["x86_64-apple-darwin-julia_version+1.10.0", "aarch64-apple-darwin-julia_version+1.10.0", "x86_64-apple-darwin-julia_version+1.11.1", "aarch64-apple-darwin-julia_version+1.11.1", "x86_64-apple-darwin-julia_version+1.12.0", "aarch64-apple-darwin-julia_version+1.12.0", "x86_64-apple-darwin-julia_version+1.13.0", "aarch64-apple-darwin-julia_version+1.13.0", "x86_64-apple-darwin-julia_version+1.14.0", "aarch64-apple-darwin-julia_version+1.14.0"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "0.14.7"
+name = "libcxxwrap_julia_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libslopejll"]
+type = "lib"
+variable_name = "libslopejll"
+
+[[sources]]
+hash = "25c165ed1e52ee99da57c81d42ba5c504f1c98b4"
+type = "git"
+unpack_target = ""
+url = "https://github.com/jolars/libslope.git"
+[[sources]]
+filename = "MacOSX11.3.sdk.tar.xz"
+hash = "cd4f08a75577145b8f05245a2975f7c81401d75e9535dcffbb879ee1deefcbf4"
+type = "file"
+url = "https://github.com/phracker/MacOSX-SDKs/releases/download/11.3/MacOSX11.3.sdk.tar.xz"

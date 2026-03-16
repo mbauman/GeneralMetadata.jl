@@ -1,0 +1,43 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "XZ"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/xz-*\nBUILD_FLAGS=(--prefix=${prefix} --build=${MACHTYPE} --host=${target} --with-pic)\n\n# i686 error \"configure works but build fails at crc32_x86.S\"\n# See 5.3 from https://git.tukaani.org/?p=xz.git;a=blob_plain;f=INSTALL;hb=HEAD\nif [[ \"${target}\" == i686-linux-gnu ]]; then\n    BUILD_FLAGS+=(--disable-assembler)\nfi\n\nif [[ \"${target}\" != *-gnu* ]]; then\n    ./configure \"${BUILD_FLAGS[@]}\"\n    make -j${nproc}\n    make install\nelse\n    STATIC_SHARED_TOGGLE=(--disable-shared --disable-static)\n    # Handle error on GNU/Linux:\n    #  configure: error:\n    #      On GNU/Linux, building both shared and static library at the same time\n    #      is not supported if --with-pic or --without-pic is used.\n    #      Use either --disable-shared or --disable-static to build one type\n    #      of library at a time. If both types are needed, build one at a time,\n    #      possibly picking only src/liblzma/.libs/liblzma.a from the static build.\n    for TOGGLE in \"${STATIC_SHARED_TOGGLE[@]}\"; do\n        ./configure \"${BUILD_FLAGS[@]}\" \"${TOGGLE[@]}\"\n        make -j${nproc}\n        make install\n    done\nfi\n"""
+version = "v5.6.0"
+
+[[products]]
+binnames = ["xzdec"]
+type = "exe"
+variable_name = "xzdec"
+[[products]]
+binnames = ["lzmainfo"]
+type = "exe"
+variable_name = "lzmainfo"
+[[products]]
+binnames = ["xz"]
+type = "exe"
+variable_name = "xz"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["liblzma"]
+type = "lib"
+variable_name = "liblzma"
+[[products]]
+binnames = ["lzmadec"]
+type = "exe"
+variable_name = "lzmadec"
+[[products]]
+paths = ["lib/liblzma.a"]
+type = "file"
+variable_name = "liblzma_a"
+
+[[sources]]
+hash = "cdafe1632f139c82937cc1ed824f7a60b7b0a0619dfbbd681dcac02b1ac28f5b"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/tukaani-project/xz/releases/download/v5.6.0/xz-5.6.0.tar.xz"

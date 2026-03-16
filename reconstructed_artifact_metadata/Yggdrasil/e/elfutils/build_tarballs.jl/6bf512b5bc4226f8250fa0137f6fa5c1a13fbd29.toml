@@ -1,0 +1,77 @@
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "Elfutils"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf"]
+script = """cd $WORKSPACE/srcdir/elfutils-*/\nif [[ ${target} = *-musl* ]] ; then\n    for patchfile in $WORKSPACE/srcdir/patches/*; do\n        atomic_patch -p1 $patchfile\n    done\n    cp $WORKSPACE/srcdir/error.h src/\n    cp $WORKSPACE/srcdir/error.h lib/\n\n    apk add bsd-compat-headers\n    # /usr/include isn't in search path of cross-cc, so copy cdefs.h\n    mkdir -p $prefix/include/sys\n    # Skip warning macro at top of file\n    tail -n +2 /usr/include/sys/cdefs.h >$prefix/include/sys/cdefs.h\n    autoreconf -vif\nfi\nexport CC=gcc\nexport CXX=g++\nCFLAGS=\"-Wno-error=unused-result\" CPPFLAGS=\"-I${prefix}/include\" ./configure \\\n    --prefix=${prefix} \\\n    --host=${target} \\\n    --disable-debuginfod\nmake -j${nproc}\nmake install\nrm -f \"${includedir}/sys/cdefs.h\"\ninstall_license COPYING*\n"""
+version = "v0.179.0"
+
+[[dependencies]]
+name = "Zlib_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Bzip2_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "XZ_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "argp_standalone_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "fts_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "obstack_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libasm"]
+type = "lib"
+variable_name = "libasm"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libdw"]
+type = "lib"
+variable_name = "libdw"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libelf"]
+type = "lib"
+variable_name = "libelf"
+
+[[sources]]
+hash = "25a545566cbacaa37ae6222e58f1c48ea4570f53ba991886e2f5ce96e22a23a2"
+type = "archive"
+unpack_target = ""
+url = "https://sourceware.org/elfutils/ftp/0.179/elfutils-0.179.tar.bz2"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

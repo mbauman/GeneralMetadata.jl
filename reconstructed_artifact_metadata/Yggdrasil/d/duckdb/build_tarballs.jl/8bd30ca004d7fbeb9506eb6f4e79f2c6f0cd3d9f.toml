@@ -1,0 +1,23 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "DuckDB"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir/duckdb*/\n\nmkdir build && cd build\n\nif [[ \"${target}\" == *86*-linux-gnu ]]; then\n    export LDFLAGS=\"-lrt\";\nelif [[ \"${target}\" == *-mingw* ]]; then\n    # `ResolveLocaleName` requires Windows 7: https://learn.microsoft.com/en-us/windows/win32/api/winnls/nf-winnls-resolvelocalename\n    export CXXFLAGS=\"-DWINVER=_WIN32_WINNT_WIN7 -D_WIN32_WINNT=_WIN32_WINNT_WIN7\"\nfi\n\ncmake -DCMAKE_INSTALL_PREFIX=$prefix \\\n      -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n      -DBUILD_PARQUET_EXTENSION=TRUE \\\n      -DCMAKE_BUILD_TYPE=Release \\\n      -DDISABLE_UNITY=TRUE \\\n      -DENABLE_SANITIZER=FALSE \\\n      -DBUILD_ICU_EXTENSION=TRUE \\\n      -DBUILD_UNITTESTS=FALSE ..\nmake -j${nproc}\nmake install\n\nif [[ \"${target}\" == *-mingw32 ]]; then\n    install -Dvm 755 \"src/libduckdb.${dlext}\" \"${libdir}/libduckdb.${dlext}\"\nfi\n"""
+version = "v0.7.0"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libduckdb"]
+type = "lib"
+variable_name = "libduckdb"
+
+[[sources]]
+hash = "f7827396d70232a0434c91142809deef6e0b6092"
+type = "git"
+unpack_target = ""
+url = "https://github.com/duckdb/duckdb.git"

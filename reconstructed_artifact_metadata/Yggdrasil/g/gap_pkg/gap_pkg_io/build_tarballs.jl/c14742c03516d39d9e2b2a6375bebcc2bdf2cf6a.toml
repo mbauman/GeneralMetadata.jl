@@ -1,0 +1,38 @@
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "GAP_pkg_io"
+platforms = ["x86_64-linux-gnu", "aarch64-linux-gnu", "powerpc64le-linux-gnu", "x86_64-linux-musl", "aarch64-linux-musl", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-apple-darwin"]
+script = """# HACK WORKAROUND GAP_jll deficiencies\n# TODO: tweak for mac build\nif [[ \"${target}\" == *darwin* ]]; then\n  cp gac-darwin ${prefix}/share/gap/gac\nelse\n  cp gac ${prefix}/share/gap/gac\nfi\nchmod a+x ${prefix}/share/gap/gac\ncp sysinfo.gap ${prefix}/share/gap/\n\n# ensure #including src/compiled.h or src/profile.h from GAP_jll works\nln -s . ${prefix}/include/gap/src\ncd io*\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} --with-gaproot=${prefix}/share/gap\nmake -j${nproc}\n\n# copy the loadable module\nmkdir -p ${prefix}/lib/gap\ncp bin/*/*.so ${prefix}/lib/gap/\n\ninstall_license LICENSE\nrm -rf ${prefix}/include\nrm -rf ${prefix}/share/gap\n"""
+version = "v400.700.200"
+
+[[dependencies]]
+compat = "~400.1191.1"
+name = "GAP_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "~400.1191.0"
+name = "GAP_lib_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+paths = ["lib/gap/io.so"]
+type = "file"
+variable_name = "io"
+
+[[sources]]
+follow_symlinks = false
+path = "../bundled"
+target = ""
+type = "directory"
+[[sources]]
+hash = "f541c312a85b2786326142d50d636a8ded12a2b56141f52b02025b843f177c3e"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/gap-packages/io/releases/download/v4.7.2/io-4.7.2.tar.bz2"

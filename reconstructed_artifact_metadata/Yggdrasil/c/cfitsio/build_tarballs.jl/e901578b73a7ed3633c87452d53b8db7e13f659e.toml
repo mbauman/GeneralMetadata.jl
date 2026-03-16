@@ -1,0 +1,30 @@
+lazy_artifacts = false
+name = "CFITSIO"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/cfitsio*\natomic_patch -p1 ../patches/configure_in.patch\natomic_patch -p1 ../patches/Makefile_in.patch\nautoreconf\nif [[ \"${target}\" == *-mingw* ]]; then\n    # This is ridiculous: when CURL is enabled, CFITSIO defines a macro,\n    # `TBYTE`, that has the same name as a mingw macro.  The following patch\n    # renames `TBYTE` to `_TBYTE`.\n    atomic_patch -p1 ../patches/tbyte.patch\nfi\n./configure --prefix=$prefix --host=$target --enable-reentrant\nmake -j${nproc} shared\nmake install\n# On Windows platforms, we need to move our .dll files to bin\nif [[ \"${target}\" == *-mingw* ]]; then\n    mkdir -p ${prefix}/bin\n    mv ${prefix}/lib/*.dll ${prefix}/bin\nfi\n"""
+version = "v3.48.0"
+
+[[dependencies]]
+name = "LibCURL_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcfitsio"]
+type = "lib"
+variable_name = "libcfitsio"
+
+[[sources]]
+hash = "91b48ffef544eb8ea3908543052331072c99bf09ceb139cb3c6977fc3e47aac1"
+type = "archive"
+unpack_target = ""
+url = "http://heasarc.gsfc.nasa.gov/FTP/software/fitsio/c/cfitsio-3.48.tar.gz"
+[[sources]]
+path = "./bundled"
+target = ""
+type = "directory"

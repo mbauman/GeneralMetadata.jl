@@ -1,0 +1,33 @@
+lazy_artifacts = false
+name = "SCS"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/scs*\nflags=\"DLONG=1 USE_OPENMP=0\"\nblasldflags=\"-L${prefix}/lib\"\n# see https://github.com/JuliaPackaging/Yggdrasil/blob/0bc1abd56fa176e3d2cc2e48e7bf85a26c948c40/OpenBLAS/build_tarballs.jl#L23\nif [[ ${nbits} == 64 ]] && [[ ${target} != aarch64* ]]; then\n    flags=\"${flags} BLAS64=1 BLASSUFFIX=_64_\"\n    blasldflags+=\" -lopenblas64_\"\nelse\n    blasldflags+=\" -lopenblas\"\nfi\n\n# Patch to reverse this WIN64 change: https://github.com/cvxgrp/scs/commit/9858d6b562f499de75493b85286276c19ad84c6f#diff-a9dbab3214616022c64ee2656440f544\n# Looks like it is known that this change causes trouble witn mingw32 (but not for mingw64?):\n# https://github.com/cvxgrp/scs/blob/e6ab81db115bb37502de0a9917041a0bc2ded313/.appveyor.yml#L13-L16\ncd include\ncp glbopts.h glbopts.h.orig\ncat > file.patch <<'END'\n--- glbopts.h.orig\n+++ glbopts.h\n@@ -97,7 +97,7 @@\n #ifdef _WIN64\n /* #include <stdint.h> */\n /* typedef int64_t scs_int; */\n-typedef long scs_int;\n+typedef __int64 scs_int;\n #else\n typedef long scs_int;\n #endif\nEND\npatch -l glbopts.h.orig file.patch -o glbopts.h\ncd ..\n\nmake BLASLDFLAGS=\"${blasldflags}\" ${flags} out/libscsdir.${dlext}\nmake BLASLDFLAGS=\"${blasldflags}\" ${flags} out/libscsindir.${dlext}\n\nmkdir -p ${libdir}\ncp out/libscs*.${dlext} ${libdir}\n"""
+version = "v2.1.1"
+
+[[dependencies]]
+name = "OpenBLAS_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libscsindir"]
+type = "lib"
+variable_name = "libscsindir"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libscsdir"]
+type = "lib"
+variable_name = "libscsdir"
+
+[[sources]]
+hash = "d2c1ae92b8c5c6d45406afd007d1ddad74635cfd"
+type = "git"
+unpack_target = ""
+url = "https://github.com/cvxgrp/scs.git"

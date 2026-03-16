@@ -1,0 +1,52 @@
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "SHTOOLS"
+platforms = ["i686-linux-gnu-libgfortran3", "i686-linux-gnu-libgfortran4", "i686-linux-gnu-libgfortran5", "x86_64-linux-gnu-libgfortran3", "x86_64-linux-gnu-libgfortran4", "x86_64-linux-gnu-libgfortran5", "aarch64-linux-gnu-libgfortran3", "aarch64-linux-gnu-libgfortran4", "aarch64-linux-gnu-libgfortran5", "armv7l-linux-gnueabihf-libgfortran3", "armv7l-linux-gnueabihf-libgfortran4", "armv7l-linux-gnueabihf-libgfortran5", "powerpc64le-linux-gnu-libgfortran3", "powerpc64le-linux-gnu-libgfortran4", "powerpc64le-linux-gnu-libgfortran5", "i686-linux-musl-libgfortran3", "i686-linux-musl-libgfortran4", "i686-linux-musl-libgfortran5", "x86_64-linux-musl-libgfortran3", "x86_64-linux-musl-libgfortran4", "x86_64-linux-musl-libgfortran5", "aarch64-linux-musl-libgfortran3", "aarch64-linux-musl-libgfortran4", "aarch64-linux-musl-libgfortran5", "armv7l-linux-musleabihf-libgfortran3", "armv7l-linux-musleabihf-libgfortran4", "armv7l-linux-musleabihf-libgfortran5", "x86_64-apple-darwin-libgfortran3", "x86_64-apple-darwin-libgfortran4", "x86_64-apple-darwin-libgfortran5", "x86_64-unknown-freebsd-libgfortran3", "x86_64-unknown-freebsd-libgfortran4", "x86_64-unknown-freebsd-libgfortran5", "i686-w64-mingw32-libgfortran3", "i686-w64-mingw32-libgfortran4", "i686-w64-mingw32-libgfortran5", "x86_64-w64-mingw32-libgfortran3", "x86_64-w64-mingw32-libgfortran4", "x86_64-w64-mingw32-libgfortran5"]
+script = """cd $WORKSPACE/srcdir/SHTOOLS-*\n\n# Patch source code\n# Add missing C interface for MakeGradientDH\natomic_patch -p1 $WORKSPACE/srcdir/patches/add-cMakeGradientDH.patch\n# Don't use libtool\natomic_patch -p0 $WORKSPACE/srcdir/patches/no-libtool.patch\n\n# Build and install static libraries\nmake fortran -j${nproc} F95FLAGS=\"-fPIC -O3 -std=gnu\"\nmake fortran-mp -j${nproc} F95FLAGS=\"-fPIC -O3 -std=gnu\"\nmake install PREFIX=${prefix}\n\n# Create shared libraries\ngfortran -shared -o ${libdir}/libSHTOOLS.${dlext} -Wl,$(flagon --whole-archive) ${prefix}/lib/libSHTOOLS.a -Wl,$(flagon --no-whole-archive | cut -d' ' -f1) -lfftw3 -lopenblas -lm\ngfortran -fopenmp -shared -o ${libdir}/libSHTOOLS-mp.${dlext} -Wl,$(flagon --whole-archive) ${prefix}/lib/libSHTOOLS-mp.a -Wl,$(flagon --no-whole-archive | cut -d' ' -f1) -lfftw3 -lopenblas -lm\n"""
+version = "v4.8.0"
+
+[[dependencies]]
+name = "CompilerSupportLibraries_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "FFTW_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "OpenBLAS32_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libSHTOOLS"]
+type = "lib"
+variable_name = "libSHTOOLS"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libSHTOOLS-mp"]
+type = "lib"
+variable_name = "libSHTOOLS_mp"
+
+[[sources]]
+hash = "c36fc86810017e544abbfb12f8ddf6f101a1ac8b89856a76d7d9801ffc8dac44"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/SHTOOLS/SHTOOLS/releases/download/v4.8/SHTOOLS-4.8.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

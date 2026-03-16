@@ -1,0 +1,25 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "unzip"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/unzip*\n\nMFLAGS=(\n    CC_CPU_OPT=\n    prefix=${prefix}\n)\n\nif [[ ${target} == *mingw* ]]; then\n    if [[ ${target} == x86_64* ]]; then\n        MFLAGS+=( APPLY_ASMCRC=0 )\n    fi\n    atomic_patch -p1 \"${WORKSPACE}/srcdir/patches/cr_to_xcr.patch\"\n    cp win32/Makefile.gcc Makefile\n    make ${MFLAGS[@]} -j${nproc}\n    mkdir -p ${bindir}\n    mv *.exe ${bindir}/\nelse\n    cp unix/Makefile Makefile        \n\n    if [[ ${target} == *riscv* ]]; then\n       make generic1 ${MFLAGS[@]} -j${nproc}\n    elif [[ ${target} == *darwin* ]]; then\n       make macosx ${MFLAGS[@]} -j${nproc}\n    elif [[ ${target} == *freebsd* ]]; then\n       make bsd ${MFLAGS[@]} -j${nproc}\n    else\n       make generic ${MFLAGS[@]} -j${nproc}\n    fi\n\n    make install ${MFLAGS[@]}\nfi\ninstall_license LICENSE\ninstall_license WHERE\n"""
+version = "v6.0.3"
+
+[[products]]
+binnames = ["unzip"]
+type = "exe"
+variable_name = "unzip"
+
+[[sources]]
+hash = "0b82c20ac7375b522215b567174f370be89a4b12"
+type = "git"
+unpack_target = ""
+url = "https://github.com/madler/unzip.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

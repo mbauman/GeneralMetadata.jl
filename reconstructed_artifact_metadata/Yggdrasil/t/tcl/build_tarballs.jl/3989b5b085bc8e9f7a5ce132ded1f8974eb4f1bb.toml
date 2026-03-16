@@ -1,0 +1,32 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Tcl"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """# musl needs bsd-compat-headers for sys/queue.h\n# Copy header to sysroot since cross-compiler doesn't see /usr/include\nif [[ \"${target}\" == *-musl* ]]; then\n    apk add bsd-compat-headers\n    cp /usr/include/sys/queue.h /opt/${target}/${target}/sys-root/usr/include/sys/\nfi\n\nFLAGS=(--disable-zipfs --enable-threads --disable-rpath)\n\nif [[ \"${target}\" == x86_64-* ]] || [[ \"${target}\" == aarch64-* ]]; then\n    FLAGS+=(--enable-64bit)\nfi\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    # `make install` calls `tclsh` on Windows\n    apk add tcl\n\n    # The pre-built libtommath and zlib DLLs in the Tcl source tree were compiled\n    # with MSVC (UCRT) but tcl90.dll is cross-compiled with MinGW (msvcrt),\n    # causing C runtime mismatch crashes. Fix:\n    #  - Cross-compile libtommath from source.\n    #  - Use Zlib_jll's zlib (available on the DLL search path at runtime).\n\n    # Cross-compile libtommath from source.\n    cd $WORKSPACE/srcdir/tcl/libtommath\n    TOMMATH_CFLAGS=\"-O2 -I. -DTCL_WITH_EXTERNAL_TOMMATH\"\n    if [[ \"${target}\" == x86_64-* ]] || [[ \"${target}\" == aarch64-* ]]; then\n        TOMMATH_CFLAGS=\"${TOMMATH_CFLAGS} -DMP_64BIT\"\n    fi\n    ${CC} ${TOMMATH_CFLAGS} -shared -o libtommath.dll bn_*.c \\\n        -Wl,--out-implib,libtommath.dll.a\n    # Replace pre-built MSVC libtommath and zlib with cross-compiled / Zlib_jll versions.\n    # The MSVC import libraries point to zlib1.dll; Zlib_jll's points to libz.dll.\n    # Configure sets ZLIB_LIBS per target: win64/libz.dll.a, win64-arm/libz.dll.a,\n    # or win32/zdll.lib (no GCC branch for 32-bit in upstream configure).\n    if [[ \"${target}\" == aarch64-*mingw* ]]; then\n        cp -f libtommath.dll libtommath.dll.a win64-arm/\n        cp -f ${prefix}/lib/libz.dll.a $WORKSPACE/srcdir/tcl/compat/zlib/win64-arm/libz.dll.a\n    elif [[ \"${target}\" == x86_64-*mingw* ]]; then\n        cp -f libtommath.dll libtommath.dll.a win64/\n        cp -f ${prefix}/lib/libz.dll.a $WORKSPACE/srcdir/tcl/compat/zlib/win64/libz.dll.a\n    elif [[ \"${target}\" == i686-*mingw* ]]; then\n        cp -f libtommath.dll libtommath.dll.a win32/\n        cp -f ${prefix}/lib/libz.dll.a $WORKSPACE/srcdir/tcl/compat/zlib/win32/zdll.lib\n    fi\n\n    cd $WORKSPACE/srcdir/tcl/win/\n    ./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \"${FLAGS[@]}\"\n\n    # Disable the zlib1.dll copy target; we use libz.dll from Zlib_jll instead.\n    sed -i 's/^ZLIB_DLL_FILE.*/ZLIB_DLL_FILE =/' Makefile\n\n    make -j${nproc}\n    make install\n    make install-private-headers\n\n    # Remove leftover zlib files; Zlib_jll provides libz.dll at runtime.\n    rm -f ${bindir}/zlib1.dll ${prefix}/lib/libz.dll.a\nelse\n    cd $WORKSPACE/srcdir/tcl/unix/\n    ./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \"${FLAGS[@]}\"\n    make -j${nproc}\n    make install\n    # Tk needs private headers\n    make install-private-headers\nfi\n\n# Install license file\ninstall_license $WORKSPACE/srcdir/tcl/license.terms\n"""
+version = "v9.0.3"
+
+[[dependencies]]
+compat = "1.2.12"
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libtcl9.0", "libtcl9", "tcl90"]
+type = "lib"
+variable_name = "libtcl"
+
+[[sources]]
+hash = "bcd73c5cf807577f93f890c0efdd577b14a66418"
+type = "git"
+unpack_target = ""
+url = "https://github.com/tcltk/tcl.git"

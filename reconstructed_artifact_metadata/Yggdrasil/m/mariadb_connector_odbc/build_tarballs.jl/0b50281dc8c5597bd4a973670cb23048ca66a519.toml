@@ -1,0 +1,86 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "MariaDB_Connector_ODBC"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "x86_64-apple-darwin", "aarch64-apple-darwin", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """install_license $WORKSPACE/srcdir/mariadb-connector*/COPYING\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    # For Windows just use the prebuilt library\n    cd $WORKSPACE/srcdir\n    apk add p7zip\n    7z x \"${target}.msi\"\n    install -Dvm 755 mariadb_odbc_dll \"${libdir}/mariadb/mariadb_odbc.dll\"\n    exit\nfi\n\ncd $WORKSPACE/srcdir/mariadb-connector*/\n\n# Skip building of macOS package\nsed -i 's/ADD_SUBDIRECTORY(osxinstall)/# ADD_SUBDIRECTORY(osxinstall)/' CMakeLists.txt\n\n# They want to run a script which changes the name of the required library\n# `libiodbcinst` from `libiodbcinst.2.dylib` to `libiodbcinst.dylib` which has the only\n# effect of making `libmaodbc` not loadable, as `libiodbcinst` is dlopened as... guess\n# what... `libiodbcinst.2.dylib`.\natomic_patch -p1 ../patches/do-not-change-name-of-iodbcinst.patch\n\n## Keep this for reference in case we decide to build for Windows from source\n# if [[ \"${target}\" == *-mingw* ]]; then\n#     # Disable dialog plugin\n#     sed -i 's/-DPLUGINS_LIB_DIR.*:dialog.*//' CMakeLists.txt\n#     atomic_patch -p1 \"${WORKSPACE}/srcdir/patches/0001-fix-case-headers-windows.patch\"\n#     # The following is not really a patch: Microsoft Visual C++ thinks that it's\n#     # a good idea to put some stray characters in the first bits of the file,\n#     # making it hard to digest for MinGW.  We can't diff the file as the\n#     # original one appears to be binary, because of the stray character.\n#     cp \"${WORKSPACE}/srcdir/patches/resource.h\" dsn/\n# fi\n\nmkdir build && cd build\n\nexport CFLAGS=\"-I${includedir}/mariadb\"\n# Find the MariaDB lib and link to the right OpenSSL and Zlib libraries\nexport LDFLAGS=\"-L${libdir}/mariadb ${libdir}/libssl.${dlext} ${libdir}/libcrypto.${dlext} -lz\"\ncmake -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DWITH_OPENSSL=ON \\\n    -DWITH_SSL=OPENSSL \\\n    -DOPENSSL_FOUND=ON \\\n    -DOPENSSL_CRYPTO_LIBRARY=${libdir}/libcrypto.${dlext} \\\n    -DOPENSSL_SSL_LIBRARY=${libdir}/libssl.${dlext} \\\n    -DICONV_LIBRARIES=${libdir}/libiconv.${dlext} \\\n    -DICONV_INCLUDE_DIR=${includedir} \\\n    ..\nmake -j${nproc}\nmake install\n"""
+version = "v3.1.9"
+
+[[dependencies]]
+compat = ""
+name = "MariaDB_Connector_C_jll"
+platforms = ["any"]
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "iODBC_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Libiconv_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "unixODBC_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenSSL_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = ["${libdir}/mariadb"]
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmaodbc", "mariadb_odbc"]
+type = "lib"
+variable_name = "libmaodbc"
+
+[[sources]]
+hash = "5ead3f69ccde539fd7e3de6f4b8f0e6f9f6c32b4b4f082adf0e2ff110971fe1e"
+type = "archive"
+unpack_target = ""
+url = "https://downloads.mariadb.com/Connectors/odbc/connector-odbc-3.1.9/mariadb-connector-odbc-3.1.9-ga-src.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"
+[[sources]]
+filename = "x86_64-w64-mingw32.msi"
+hash = "c526714f4a65d672b86bf9c24962d55bec70661b37863d891f007f680dae71f7"
+type = "file"
+url = "https://downloads.mariadb.com/Connectors/odbc/connector-odbc-3.1.9/mariadb-connector-odbc-3.1.9-win64.msi"
+[[sources]]
+filename = "i686-w64-mingw32.msi"
+hash = "5ef098aefee1d30e6e349bf2363a601007e1376508e6b4a0e23e1eb3ed5a51e2"
+type = "file"
+url = "https://downloads.mariadb.com/Connectors/odbc/connector-odbc-3.1.9/mariadb-connector-odbc-3.1.9-win32.msi"

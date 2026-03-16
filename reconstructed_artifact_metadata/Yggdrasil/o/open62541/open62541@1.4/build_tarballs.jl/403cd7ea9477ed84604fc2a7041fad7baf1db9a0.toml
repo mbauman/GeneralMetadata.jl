@@ -1,0 +1,32 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "open62541"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """# Necessary for cmake to find openssl on Windows \nif [[ ${target} == x86_64-*-mingw* ]]; then \n    export OPENSSL_ROOT_DIR=${prefix}/lib64 \nfi \n\n# Deactivates stack protector under i686-linux-musl; necessary to avoid \n# \"undefined reference to `__stack_chk_fail_local`\nif [[ ${target} == i686-linux-musl ]]; then \n    extraflags=\"-DUA_ENABLE_HARDENING=OFF\" \nelse\n    extraflags=\"\"\nfi \n\ncd $WORKSPACE/srcdir/open62541/\nmkdir build && cd build/\ncmake -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DUA_MULTITHREADING=100 \\\n    -DUA_ENABLE_SUBSCRIPTIONS=ON \\\n    -DUA_ENABLE_METHODCALLS=ON \\\n    -DUA_ENABLE_PARSING=ON \\\n    -DUA_ENABLE_NODEMANAGEMENT=ON \\\n    -DUA_ENABLE_ENCRYPTION=OPENSSL \\\n    -DUA_ENABLE_IMMUTABLE_NODES=ON \\\n    -DUA_ENABLE_HISTORIZING=ON \\\n    -DBUILD_SHARED_LIBS=ON \\\n    -DUA_FORCE_WERROR=OFF \\\n    ${extraflags} \\\n    ..\nmake -j${nproc}\nmake install\ninstall_license ../LICENSE\n"""
+version = "v1.4.12"
+
+[[dependencies]]
+compat = "3.0.16"
+name = "OpenSSL_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libopen62541"]
+type = "lib"
+variable_name = "libopen62541"
+
+[[sources]]
+hash = "7a8db31626f092c6f87cae39990cbf6ca2a1b6de"
+type = "git"
+unpack_target = ""
+url = "https://github.com/open62541/open62541.git"

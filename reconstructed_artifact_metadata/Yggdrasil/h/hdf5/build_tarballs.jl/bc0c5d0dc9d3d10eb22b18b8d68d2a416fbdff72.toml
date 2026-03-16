@@ -1,0 +1,223 @@
+augment_platform_block = """    using Base.BinaryPlatforms\n    # Can't use Preferences since we might be running this very early with a non-existing Manifest\nMPIPreferences_UUID = Base.UUID(\"3da0fdf6-3ccc-4f1b-acd9-58baa6c99267\")\nconst preferences = Base.get_preferences(MPIPreferences_UUID)\n\n# Keep logic in sync with MPIPreferences.jl\nfunction augment_mpi!(platform)\n    # Doesn't need to be `const` since we depend on MPIPreferences so we\n    # invalidate the cache when it changes.\n    binary = get(preferences, \"binary\", Sys.iswindows() ? \"MicrosoftMPI_jll\" : \"MPICH_jll\")\n\n    abi = if binary == \"system\"\n        let abi = get(preferences, \"abi\", nothing)\n            if abi === nothing\n                error(\"MPIPreferences: Inconsistent state detected, binary set to system, but no ABI set.\")\n            else\n                abi\n            end\n        end\n    elseif binary == \"MicrosoftMPI_jll\"\n        \"MicrosoftMPI\"\n    elseif binary == \"MPICH_jll\"\n        \"MPICH\"\n    elseif binary == \"OpenMPI_jll\"\n        \"OpenMPI\"\n    elseif binary == \"MPItrampoline_jll\"\n        \"MPItrampoline\"\n    else\n        error(\"Unknown binary: $binary\")\n    end\n\n    if !haskey(platform, \"mpi\")\n        platform[\"mpi\"] = abi\n    end\n    return platform\nend\n\n    augment_platform!(platform::Platform) = augment_mpi!(platform)\n"""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = true
+name = "HDF5"
+platforms = ["i686-linux-gnu-libgfortran3-cxx03-mpi+mpich", "i686-linux-gnu-libgfortran4-cxx03-mpi+mpich", "i686-linux-gnu-libgfortran5-cxx03-mpi+mpich", "i686-linux-gnu-libgfortran3-cxx11-mpi+mpich", "i686-linux-gnu-libgfortran4-cxx11-mpi+mpich", "i686-linux-gnu-libgfortran5-cxx11-mpi+mpich", "x86_64-linux-gnu-libgfortran3-cxx03-mpi+mpich", "x86_64-linux-gnu-libgfortran4-cxx03-mpi+mpich", "x86_64-linux-gnu-libgfortran5-cxx03-mpi+mpich", "x86_64-linux-gnu-libgfortran3-cxx11-mpi+mpich", "x86_64-linux-gnu-libgfortran4-cxx11-mpi+mpich", "x86_64-linux-gnu-libgfortran5-cxx11-mpi+mpich", "aarch64-linux-gnu-libgfortran3-cxx03-mpi+mpich", "aarch64-linux-gnu-libgfortran4-cxx03-mpi+mpich", "aarch64-linux-gnu-libgfortran5-cxx03-mpi+mpich", "aarch64-linux-gnu-libgfortran3-cxx11-mpi+mpich", "aarch64-linux-gnu-libgfortran4-cxx11-mpi+mpich", "aarch64-linux-gnu-libgfortran5-cxx11-mpi+mpich", "armv6l-linux-gnueabihf-libgfortran3-cxx03-mpi+mpich", "armv6l-linux-gnueabihf-libgfortran4-cxx03-mpi+mpich", "armv6l-linux-gnueabihf-libgfortran5-cxx03-mpi+mpich", "armv6l-linux-gnueabihf-libgfortran3-cxx11-mpi+mpich", "armv6l-linux-gnueabihf-libgfortran4-cxx11-mpi+mpich", "armv6l-linux-gnueabihf-libgfortran5-cxx11-mpi+mpich", "armv7l-linux-gnueabihf-libgfortran3-cxx03-mpi+mpich", "armv7l-linux-gnueabihf-libgfortran4-cxx03-mpi+mpich", "armv7l-linux-gnueabihf-libgfortran5-cxx03-mpi+mpich", "armv7l-linux-gnueabihf-libgfortran3-cxx11-mpi+mpich", "armv7l-linux-gnueabihf-libgfortran4-cxx11-mpi+mpich", "armv7l-linux-gnueabihf-libgfortran5-cxx11-mpi+mpich", "powerpc64le-linux-gnu-libgfortran3-cxx03-mpi+mpich", "powerpc64le-linux-gnu-libgfortran4-cxx03-mpi+mpich", "powerpc64le-linux-gnu-libgfortran5-cxx03-mpi+mpich", "powerpc64le-linux-gnu-libgfortran3-cxx11-mpi+mpich", "powerpc64le-linux-gnu-libgfortran4-cxx11-mpi+mpich", "powerpc64le-linux-gnu-libgfortran5-cxx11-mpi+mpich", "i686-linux-musl-libgfortran3-cxx03-mpi+mpich", "i686-linux-musl-libgfortran4-cxx03-mpi+mpich", "i686-linux-musl-libgfortran5-cxx03-mpi+mpich", "i686-linux-musl-libgfortran3-cxx11-mpi+mpich", "i686-linux-musl-libgfortran4-cxx11-mpi+mpich", "i686-linux-musl-libgfortran5-cxx11-mpi+mpich", "x86_64-linux-musl-libgfortran3-cxx03-mpi+mpich", "x86_64-linux-musl-libgfortran4-cxx03-mpi+mpich", "x86_64-linux-musl-libgfortran5-cxx03-mpi+mpich", "x86_64-linux-musl-libgfortran3-cxx11-mpi+mpich", "x86_64-linux-musl-libgfortran4-cxx11-mpi+mpich", "x86_64-linux-musl-libgfortran5-cxx11-mpi+mpich", "aarch64-linux-musl-libgfortran3-cxx03-mpi+mpich", "aarch64-linux-musl-libgfortran4-cxx03-mpi+mpich", "aarch64-linux-musl-libgfortran5-cxx03-mpi+mpich", "aarch64-linux-musl-libgfortran3-cxx11-mpi+mpich", "aarch64-linux-musl-libgfortran4-cxx11-mpi+mpich", "aarch64-linux-musl-libgfortran5-cxx11-mpi+mpich", "armv6l-linux-musleabihf-libgfortran3-cxx03-mpi+mpich", "armv6l-linux-musleabihf-libgfortran4-cxx03-mpi+mpich", "armv6l-linux-musleabihf-libgfortran5-cxx03-mpi+mpich", "armv6l-linux-musleabihf-libgfortran3-cxx11-mpi+mpich", "armv6l-linux-musleabihf-libgfortran4-cxx11-mpi+mpich", "armv6l-linux-musleabihf-libgfortran5-cxx11-mpi+mpich", "armv7l-linux-musleabihf-libgfortran3-cxx03-mpi+mpich", "armv7l-linux-musleabihf-libgfortran4-cxx03-mpi+mpich", "armv7l-linux-musleabihf-libgfortran5-cxx03-mpi+mpich", "armv7l-linux-musleabihf-libgfortran3-cxx11-mpi+mpich", "armv7l-linux-musleabihf-libgfortran4-cxx11-mpi+mpich", "armv7l-linux-musleabihf-libgfortran5-cxx11-mpi+mpich", "x86_64-apple-darwin-libgfortran3-mpi+mpich", "x86_64-apple-darwin-libgfortran4-mpi+mpich", "x86_64-apple-darwin-libgfortran5-mpi+mpich", "aarch64-apple-darwin-libgfortran5-mpi+mpich", "x86_64-unknown-freebsd-libgfortran3-mpi+mpich", "x86_64-unknown-freebsd-libgfortran4-mpi+mpich", "x86_64-unknown-freebsd-libgfortran5-mpi+mpich", "i686-linux-gnu-libgfortran3-cxx03-mpi+openmpi", "i686-linux-gnu-libgfortran4-cxx03-mpi+openmpi", "i686-linux-gnu-libgfortran5-cxx03-mpi+openmpi", "i686-linux-gnu-libgfortran3-cxx11-mpi+openmpi", "i686-linux-gnu-libgfortran4-cxx11-mpi+openmpi", "i686-linux-gnu-libgfortran5-cxx11-mpi+openmpi", "x86_64-linux-gnu-libgfortran3-cxx03-mpi+openmpi", "x86_64-linux-gnu-libgfortran4-cxx03-mpi+openmpi", "x86_64-linux-gnu-libgfortran5-cxx03-mpi+openmpi", "x86_64-linux-gnu-libgfortran3-cxx11-mpi+openmpi", "x86_64-linux-gnu-libgfortran4-cxx11-mpi+openmpi", "x86_64-linux-gnu-libgfortran5-cxx11-mpi+openmpi", "aarch64-linux-gnu-libgfortran3-cxx03-mpi+openmpi", "aarch64-linux-gnu-libgfortran4-cxx03-mpi+openmpi", "aarch64-linux-gnu-libgfortran5-cxx03-mpi+openmpi", "aarch64-linux-gnu-libgfortran3-cxx11-mpi+openmpi", "aarch64-linux-gnu-libgfortran4-cxx11-mpi+openmpi", "aarch64-linux-gnu-libgfortran5-cxx11-mpi+openmpi", "armv7l-linux-gnueabihf-libgfortran3-cxx03-mpi+openmpi", "armv7l-linux-gnueabihf-libgfortran4-cxx03-mpi+openmpi", "armv7l-linux-gnueabihf-libgfortran5-cxx03-mpi+openmpi", "armv7l-linux-gnueabihf-libgfortran3-cxx11-mpi+openmpi", "armv7l-linux-gnueabihf-libgfortran4-cxx11-mpi+openmpi", "armv7l-linux-gnueabihf-libgfortran5-cxx11-mpi+openmpi", "powerpc64le-linux-gnu-libgfortran3-cxx03-mpi+openmpi", "powerpc64le-linux-gnu-libgfortran4-cxx03-mpi+openmpi", "powerpc64le-linux-gnu-libgfortran5-cxx03-mpi+openmpi", "powerpc64le-linux-gnu-libgfortran3-cxx11-mpi+openmpi", "powerpc64le-linux-gnu-libgfortran4-cxx11-mpi+openmpi", "powerpc64le-linux-gnu-libgfortran5-cxx11-mpi+openmpi", "i686-linux-musl-libgfortran3-cxx03-mpi+openmpi", "i686-linux-musl-libgfortran4-cxx03-mpi+openmpi", "i686-linux-musl-libgfortran5-cxx03-mpi+openmpi", "i686-linux-musl-libgfortran3-cxx11-mpi+openmpi", "i686-linux-musl-libgfortran4-cxx11-mpi+openmpi", "i686-linux-musl-libgfortran5-cxx11-mpi+openmpi", "x86_64-linux-musl-libgfortran3-cxx03-mpi+openmpi", "x86_64-linux-musl-libgfortran4-cxx03-mpi+openmpi", "x86_64-linux-musl-libgfortran5-cxx03-mpi+openmpi", "x86_64-linux-musl-libgfortran3-cxx11-mpi+openmpi", "x86_64-linux-musl-libgfortran4-cxx11-mpi+openmpi", "x86_64-linux-musl-libgfortran5-cxx11-mpi+openmpi", "aarch64-linux-musl-libgfortran3-cxx03-mpi+openmpi", "aarch64-linux-musl-libgfortran4-cxx03-mpi+openmpi", "aarch64-linux-musl-libgfortran5-cxx03-mpi+openmpi", "aarch64-linux-musl-libgfortran3-cxx11-mpi+openmpi", "aarch64-linux-musl-libgfortran4-cxx11-mpi+openmpi", "aarch64-linux-musl-libgfortran5-cxx11-mpi+openmpi", "armv6l-linux-musleabihf-libgfortran3-cxx03-mpi+openmpi", "armv6l-linux-musleabihf-libgfortran4-cxx03-mpi+openmpi", "armv6l-linux-musleabihf-libgfortran5-cxx03-mpi+openmpi", "armv6l-linux-musleabihf-libgfortran3-cxx11-mpi+openmpi", "armv6l-linux-musleabihf-libgfortran4-cxx11-mpi+openmpi", "armv6l-linux-musleabihf-libgfortran5-cxx11-mpi+openmpi", "armv7l-linux-musleabihf-libgfortran3-cxx03-mpi+openmpi", "armv7l-linux-musleabihf-libgfortran4-cxx03-mpi+openmpi", "armv7l-linux-musleabihf-libgfortran5-cxx03-mpi+openmpi", "armv7l-linux-musleabihf-libgfortran3-cxx11-mpi+openmpi", "armv7l-linux-musleabihf-libgfortran4-cxx11-mpi+openmpi", "armv7l-linux-musleabihf-libgfortran5-cxx11-mpi+openmpi", "x86_64-apple-darwin-libgfortran3-mpi+openmpi", "x86_64-apple-darwin-libgfortran4-mpi+openmpi", "x86_64-apple-darwin-libgfortran5-mpi+openmpi", "aarch64-apple-darwin-libgfortran5-mpi+openmpi", "x86_64-unknown-freebsd-libgfortran3-mpi+openmpi", "x86_64-unknown-freebsd-libgfortran4-mpi+openmpi", "x86_64-unknown-freebsd-libgfortran5-mpi+openmpi", "i686-w64-mingw32-libgfortran3-cxx03-mpi+microsoftmpi", "i686-w64-mingw32-libgfortran4-cxx03-mpi+microsoftmpi", "i686-w64-mingw32-libgfortran5-cxx03-mpi+microsoftmpi", "i686-w64-mingw32-libgfortran3-cxx11-mpi+microsoftmpi", "i686-w64-mingw32-libgfortran4-cxx11-mpi+microsoftmpi", "i686-w64-mingw32-libgfortran5-cxx11-mpi+microsoftmpi", "x86_64-w64-mingw32-libgfortran3-cxx03-mpi+microsoftmpi", "x86_64-w64-mingw32-libgfortran4-cxx03-mpi+microsoftmpi", "x86_64-w64-mingw32-libgfortran5-cxx03-mpi+microsoftmpi", "x86_64-w64-mingw32-libgfortran3-cxx11-mpi+microsoftmpi", "x86_64-w64-mingw32-libgfortran4-cxx11-mpi+microsoftmpi", "x86_64-w64-mingw32-libgfortran5-cxx11-mpi+microsoftmpi", "i686-linux-gnu-libgfortran3-cxx03-mpi+mpitrampoline", "i686-linux-gnu-libgfortran4-cxx03-mpi+mpitrampoline", "i686-linux-gnu-libgfortran5-cxx03-mpi+mpitrampoline", "i686-linux-gnu-libgfortran3-cxx11-mpi+mpitrampoline", "i686-linux-gnu-libgfortran4-cxx11-mpi+mpitrampoline", "i686-linux-gnu-libgfortran5-cxx11-mpi+mpitrampoline", "x86_64-linux-gnu-libgfortran3-cxx03-mpi+mpitrampoline", "x86_64-linux-gnu-libgfortran4-cxx03-mpi+mpitrampoline", "x86_64-linux-gnu-libgfortran5-cxx03-mpi+mpitrampoline", "x86_64-linux-gnu-libgfortran3-cxx11-mpi+mpitrampoline", "x86_64-linux-gnu-libgfortran4-cxx11-mpi+mpitrampoline", "x86_64-linux-gnu-libgfortran5-cxx11-mpi+mpitrampoline", "aarch64-linux-gnu-libgfortran3-cxx03-mpi+mpitrampoline", "aarch64-linux-gnu-libgfortran4-cxx03-mpi+mpitrampoline", "aarch64-linux-gnu-libgfortran5-cxx03-mpi+mpitrampoline", "aarch64-linux-gnu-libgfortran3-cxx11-mpi+mpitrampoline", "aarch64-linux-gnu-libgfortran4-cxx11-mpi+mpitrampoline", "aarch64-linux-gnu-libgfortran5-cxx11-mpi+mpitrampoline", "armv6l-linux-gnueabihf-libgfortran3-cxx03-mpi+mpitrampoline", "armv6l-linux-gnueabihf-libgfortran4-cxx03-mpi+mpitrampoline", "armv6l-linux-gnueabihf-libgfortran5-cxx03-mpi+mpitrampoline", "armv6l-linux-gnueabihf-libgfortran3-cxx11-mpi+mpitrampoline", "armv6l-linux-gnueabihf-libgfortran4-cxx11-mpi+mpitrampoline", "armv6l-linux-gnueabihf-libgfortran5-cxx11-mpi+mpitrampoline", "armv7l-linux-gnueabihf-libgfortran3-cxx03-mpi+mpitrampoline", "armv7l-linux-gnueabihf-libgfortran4-cxx03-mpi+mpitrampoline", "armv7l-linux-gnueabihf-libgfortran5-cxx03-mpi+mpitrampoline", "armv7l-linux-gnueabihf-libgfortran3-cxx11-mpi+mpitrampoline", "armv7l-linux-gnueabihf-libgfortran4-cxx11-mpi+mpitrampoline", "armv7l-linux-gnueabihf-libgfortran5-cxx11-mpi+mpitrampoline", "powerpc64le-linux-gnu-libgfortran3-cxx03-mpi+mpitrampoline", "powerpc64le-linux-gnu-libgfortran4-cxx03-mpi+mpitrampoline", "powerpc64le-linux-gnu-libgfortran5-cxx03-mpi+mpitrampoline", "powerpc64le-linux-gnu-libgfortran3-cxx11-mpi+mpitrampoline", "powerpc64le-linux-gnu-libgfortran4-cxx11-mpi+mpitrampoline", "powerpc64le-linux-gnu-libgfortran5-cxx11-mpi+mpitrampoline", "x86_64-apple-darwin-libgfortran3-mpi+mpitrampoline", "x86_64-apple-darwin-libgfortran4-mpi+mpitrampoline", "x86_64-apple-darwin-libgfortran5-mpi+mpitrampoline", "aarch64-apple-darwin-libgfortran5-mpi+mpitrampoline"]
+script = """cd ${WORKSPACE}/srcdir/hdf5-*\n\nif [[ ${target} == *-mingw* ]]; then\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/h5ls.c.patch\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/mkdir.patch\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/strncpy.patch\n    cp ${WORKSPACE}/srcdir/headers/pthread_time.h \"/opt/${target}/${target}/sys-root/include/pthread_time.h\"\nfi\n\n# HDF5 assumes that some MPI constants are C constants, but they are not\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/mpi.patch\n\n# Patch `configure.ac`:\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/configure.ac.patch\n\n# Prepare the file `config.saved` that contains predetermined\n# configuration information\nmkdir saved\ncase \"${target}\" in\n    aarch64-apple-darwin*)\n        cp ../files/darwin-arm64v8/* saved\n        ;;\n    aarch64-linux-*)\n        cp ../files/debian-arm64v8/* saved\n        ;;\n    arm-linux-*)\n        cp ../files/debian-arm32v7/* saved\n        ;;\n    i686-linux-*)\n        cp ../files/debian-i386/* saved\n        ;;\n    i686-w64-mingw32)\n        # sizeof(long double) == 12\n        # layout seems to be 16-bit sign+exponent and 64-bit mantissa\n        cp ../files/msys2-mingw32/* saved\n        ;;\n    powerpc64le-linux-*)\n        cp ../files/debian-ppc64le/* saved\n        ;;\n    x86_64-apple-darwin*)\n        cp ../files/darwin-amd64/* saved\n        ;;\n    x86_64-linux-*)\n        cp ../files/debian-amd64/* saved\n        ;;\n    x86_64-*-freebsd*)\n        # no __float128\n        cp ../files/freebsd-amd64/* saved\n        ;;\n    x86_64-w64-mingw32)\n        # sizeof(long double) == 16\n        # layout seems to be 16-bit sign+exponent and 64-bit mantissa\n        cp ../files/msys2-mingw64/* saved\n        ;;\n    *)\n        echo \"Unsupported target architecture ${target}\" >&2\n        exit 1\n        ;;\nesac\ncp ../files/get_config_setting saved\n\nenv \\\n    HDF5_ACLOCAL=/usr/bin/aclocal \\\n    HDF5_AUTOHEADER=/usr/bin/autoheader \\\n    HDF5_AUTOMAKE=/usr/bin/automake \\\n    HDF5_AUTOCONF=/usr/bin/autoconf \\\n    HDF5_LIBTOOL=/usr/bin/libtool \\\n    HDF5_M4=/usr/bin/m4 \\\n    ./autogen.sh\n\nmkdir build\npushd build\n\n# Required for x86_64-linux-musl:\n# - Some HDF5 C code requires C99, but configure only requests C89.\n# - Some HDF5 C++ code requires C++11, but configure does not request this.\n# This might not be necessary if we switch to newer GCC versions.\nexport CFLAGS=\"${CFLAGS} -std=c99\"\nexport CXXFLAGS=\"${CXXFLAGS} -std=c++11\"\n\nif [[ ${target} == x86_64-linux-musl ]]; then\n    # ${libdir}/libcurl.so needs a libnghttp, and it prefers to load /usr/lib/libnghttp2.so for this.\n    # Unfortunately, that library is missing a symbol. Setting LD_LIBRARY_PATH is not enough to avoid this.\n    rm /usr/lib/libcurl.*\n    rm /usr/lib/libnghttp2.*\nfi\n\nFLAGS=()\nif [[ ${target} == *-mingw* ]]; then\n    FLAGS+=(LDFLAGS='-no-undefined')\n    # For OpenSSL's libcrypto for ROS3-VFD\n    export CFLAGS=\"${CFLAGS} -L${prefix}/lib64\"\n    export FCFLAGS=\"${FCFLAGS} -L${prefix}/lib64\"\nfi\n\n# Check which VFD are available\nENABLE_DIRECT_VFD=yes\nENABLE_MIRROR_VFD=yes\nif [[ ${target} == *-darwin* ]]; then\n    ENABLE_DIRECT_VFD=no\nelif [[ ${target} == *-w64-mingw32 ]]; then\n    ENABLE_DIRECT_VFD=no\n    ENABLE_MIRROR_VFD=no\nfi\n\n# Configure MPI\nif grep -q MSMPI_VER ${prefix}/include/mpi.h; then\n    # Microsoft MPI\n    if [[ ${target} == i686-* ]]; then\n        # 32-bit system\n        # Do not enable MPI; the function MPI_File_close is not defined\n        # in the 32-bit version of Microsoft MPI 10.1.12498.18\n        :\n    elif false; then\n        # DISABLED\n        # 64-bit system\n        # Do not enable MPI\n        # Mingw-w64 runtime failure:\n        # 32 bit pseudo relocation at 0000000007828E2C out of range, targeting 00007FFDE78BAD90, yielding the value 00007FFDE0091F60.\n        # Consider: https://www.symscape.com/configure-msmpi-for-mingw-w64\n        # gendef msmpi.dll - creates msmpi.def\n        # x86_64-w64-mingw32-dlltool -d msmpi.def -l libmsmpi.a -D msmpi.dll - creates libmsmpi.a\n\n        # Hide static libraries\n        rm ${prefix}/lib/msmpi*.lib\n        # Make shared libraries visible\n        ln -s msmpi.dll ${libdir}/libmsmpi.dll\n        ENABLE_PARALLEL=yes\n        export FCFLAGS=\"${FCFLAGS} -I${prefix}/src -I${prefix}/include -fno-range-check\"\n        export LIBS=\"-L${libdir} -lmsmpi\"\n    fi\nelse\n    ENABLE_PARALLEL=yes\n    export MPITRAMPOLINE_CC=\"${CC}\"\n    export MPITRAMPOLINE_CXX=\"${CXX}\"\n    export MPITRAMPOLINE_FC=\"${FC}\"\n    export CC=mpicc\n    export CXX=mpicxx\n    export FC=mpifort\nfi\n\n# This is a bug in HDF5; see\n# <https://github.com/HDFGroup/hdf5/issues/3925>. The file\n# `config/freebsd` includes `config/classic-fflags` which is\n# missing.\n: >../config/classic-fflags\n\n../configure \\\n    --prefix=${prefix} \\\n    --build=${MACHTYPE} \\\n    --host=${target} \\\n    --enable-cxx=yes \\\n    --enable-direct-vfd=\"$ENABLE_DIRECT_VFD\" \\\n    --enable-fortran=yes \\\n    --enable-hl=yes \\\n    --enable-mirror-vfd=\"$ENABLE_MIRROR_VFD\" \\\n    --enable-parallel=\"$ENABLE_PARALLEL\" \\\n    --enable-ros3-vfd=yes \\\n    --enable-static=no \\\n    --enable-tests=no \\\n    --enable-tools=yes \\\n    --enable-unsupported=yes \\\n    --with-examplesdir=/tmp \\\n    --with-szlib=${prefix} \\\n    hdf5_cv_ldouble_to_long_special=no \\\n    hdf5_cv_long_to_ldouble_special=no \\\n    hdf5_cv_ldouble_to_llong_accurate=yes \\\n    hdf5_cv_llong_to_ldouble_correct=yes \\\n    hdf5_cv_disable_some_ldouble_conv=no \\\n    hdf5_cv_szlib_can_encode=yes \\\n    \"$(../saved/get_config_setting PAC_C_MAX_REAL_PRECISION ../saved/config.status)\" \\\n    \"$(../saved/get_config_setting PAC_FC_ALL_REAL_KINDS ../saved/config.status)\" \\\n    \"$(../saved/get_config_setting PAC_FC_MAX_REAL_PRECISION ../saved/config.status)\" \\\n    \"$(../saved/get_config_setting PAC_FORTRAN_NUM_INTEGER_KINDS ../saved/config.status)\" \\\n    \"$(../saved/get_config_setting PAC_FC_ALL_INTEGER_KINDS ../saved/config.status)\" \\\n    \"$(../saved/get_config_setting PAC_FC_ALL_REAL_KINDS_SIZEOF ../saved/config.status)\" \\\n    \"$(../saved/get_config_setting PAC_FC_ALL_INTEGER_KINDS_SIZEOF ../saved/config.status)\" \\\n    \"$(../saved/get_config_setting PAC_FORTRAN_NATIVE_INTEGER_KIND ../saved/config.status)\" \\\n    \"$(../saved/get_config_setting PAC_FORTRAN_NATIVE_INTEGER_SIZEOF ../saved/config.status)\" \\\n    \"$(../saved/get_config_setting PAC_FORTRAN_NATIVE_REAL_KIND ../saved/config.status)\" \\\n    \"$(../saved/get_config_setting PAC_FORTRAN_NATIVE_REAL_SIZEOF ../saved/config.status)\" \\\n    \"$(../saved/get_config_setting PAC_FORTRAN_NATIVE_DOUBLE_KIND ../saved/config.status)\" \\\n    \"$(../saved/get_config_setting PAC_FORTRAN_NATIVE_DOUBLE_SIZEOF ../saved/config.status)\" \\\n    \"$(../saved/get_config_setting HAVE_Fortran_INTEGER_SIZEOF ../saved/config.status)\" \\\n    \"$(../saved/get_config_setting FORTRAN_HAVE_C_LONG_DOUBLE ../saved/config.status)\" \\\n    \"$(../saved/get_config_setting FORTRAN_C_LONG_DOUBLE_IS_UNIQUE ../saved/config.status)\" \\\n    \"$(../saved/get_config_setting H5CONFIG_F_NUM_RKIND ../saved/config.status)\" \\\n    \"$(../saved/get_config_setting H5CONFIG_F_RKIND ../saved/config.status)\" \\\n    \"$(../saved/get_config_setting H5CONFIG_F_RKIND_SIZEOF ../saved/config.status)\" \\\n    \"$(../saved/get_config_setting H5CONFIG_F_NUM_IKIND ../saved/config.status)\" \\\n    \"$(../saved/get_config_setting H5CONFIG_F_IKIND ../saved/config.status)\"\n\n# Patch the generated `Makefile`:\n# (We could instead patch `Makefile.in`, or maybe even `Makefile.am`.)\n# HDF5 would otherwise try to build and run code to determine what\n# integer and real types are available in Fortran. This doesn't work\n# while cross-compiling. We thus provide pre-recorded information\n# instead (see `config.saved` above).\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/fortran-src-Makefile.patch\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/hl-fortran-src-Makefile.patch\n\n# `AM_V_P` is not defined. This must be a shell command that returns\n# true or false depending on whether `make` should be verbose. This is\n# probably caused by a bug in automake, or in how automake was used.\nmake -j${nproc} AM_V_P=: \"${FLAGS[@]}\"\n\nmake install\n\npopd\n\ninstall_license COPYING\n"""
+version = "v1.14.3"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "7.73,8"
+name = "LibCURL_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "3.0.8"
+name = "OpenSSL_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "libaec_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MPICH_jll"
+platforms = ["i686-linux-gnu-libgfortran3-cxx03-mpi+mpich", "i686-linux-gnu-libgfortran4-cxx03-mpi+mpich", "i686-linux-gnu-libgfortran5-cxx03-mpi+mpich", "i686-linux-gnu-libgfortran3-cxx11-mpi+mpich", "i686-linux-gnu-libgfortran4-cxx11-mpi+mpich", "i686-linux-gnu-libgfortran5-cxx11-mpi+mpich", "x86_64-linux-gnu-libgfortran3-cxx03-mpi+mpich", "x86_64-linux-gnu-libgfortran4-cxx03-mpi+mpich", "x86_64-linux-gnu-libgfortran5-cxx03-mpi+mpich", "x86_64-linux-gnu-libgfortran3-cxx11-mpi+mpich", "x86_64-linux-gnu-libgfortran4-cxx11-mpi+mpich", "x86_64-linux-gnu-libgfortran5-cxx11-mpi+mpich", "aarch64-linux-gnu-libgfortran3-cxx03-mpi+mpich", "aarch64-linux-gnu-libgfortran4-cxx03-mpi+mpich", "aarch64-linux-gnu-libgfortran5-cxx03-mpi+mpich", "aarch64-linux-gnu-libgfortran3-cxx11-mpi+mpich", "aarch64-linux-gnu-libgfortran4-cxx11-mpi+mpich", "aarch64-linux-gnu-libgfortran5-cxx11-mpi+mpich", "armv6l-linux-gnueabihf-libgfortran3-cxx03-mpi+mpich", "armv6l-linux-gnueabihf-libgfortran4-cxx03-mpi+mpich", "armv6l-linux-gnueabihf-libgfortran5-cxx03-mpi+mpich", "armv6l-linux-gnueabihf-libgfortran3-cxx11-mpi+mpich", "armv6l-linux-gnueabihf-libgfortran4-cxx11-mpi+mpich", "armv6l-linux-gnueabihf-libgfortran5-cxx11-mpi+mpich", "armv7l-linux-gnueabihf-libgfortran3-cxx03-mpi+mpich", "armv7l-linux-gnueabihf-libgfortran4-cxx03-mpi+mpich", "armv7l-linux-gnueabihf-libgfortran5-cxx03-mpi+mpich", "armv7l-linux-gnueabihf-libgfortran3-cxx11-mpi+mpich", "armv7l-linux-gnueabihf-libgfortran4-cxx11-mpi+mpich", "armv7l-linux-gnueabihf-libgfortran5-cxx11-mpi+mpich", "powerpc64le-linux-gnu-libgfortran3-cxx03-mpi+mpich", "powerpc64le-linux-gnu-libgfortran4-cxx03-mpi+mpich", "powerpc64le-linux-gnu-libgfortran5-cxx03-mpi+mpich", "powerpc64le-linux-gnu-libgfortran3-cxx11-mpi+mpich", "powerpc64le-linux-gnu-libgfortran4-cxx11-mpi+mpich", "powerpc64le-linux-gnu-libgfortran5-cxx11-mpi+mpich", "i686-linux-musl-libgfortran3-cxx03-mpi+mpich", "i686-linux-musl-libgfortran4-cxx03-mpi+mpich", "i686-linux-musl-libgfortran5-cxx03-mpi+mpich", "i686-linux-musl-libgfortran3-cxx11-mpi+mpich", "i686-linux-musl-libgfortran4-cxx11-mpi+mpich", "i686-linux-musl-libgfortran5-cxx11-mpi+mpich", "x86_64-linux-musl-libgfortran3-cxx03-mpi+mpich", "x86_64-linux-musl-libgfortran4-cxx03-mpi+mpich", "x86_64-linux-musl-libgfortran5-cxx03-mpi+mpich", "x86_64-linux-musl-libgfortran3-cxx11-mpi+mpich", "x86_64-linux-musl-libgfortran4-cxx11-mpi+mpich", "x86_64-linux-musl-libgfortran5-cxx11-mpi+mpich", "aarch64-linux-musl-libgfortran3-cxx03-mpi+mpich", "aarch64-linux-musl-libgfortran4-cxx03-mpi+mpich", "aarch64-linux-musl-libgfortran5-cxx03-mpi+mpich", "aarch64-linux-musl-libgfortran3-cxx11-mpi+mpich", "aarch64-linux-musl-libgfortran4-cxx11-mpi+mpich", "aarch64-linux-musl-libgfortran5-cxx11-mpi+mpich", "armv6l-linux-musleabihf-libgfortran3-cxx03-mpi+mpich", "armv6l-linux-musleabihf-libgfortran4-cxx03-mpi+mpich", "armv6l-linux-musleabihf-libgfortran5-cxx03-mpi+mpich", "armv6l-linux-musleabihf-libgfortran3-cxx11-mpi+mpich", "armv6l-linux-musleabihf-libgfortran4-cxx11-mpi+mpich", "armv6l-linux-musleabihf-libgfortran5-cxx11-mpi+mpich", "armv7l-linux-musleabihf-libgfortran3-cxx03-mpi+mpich", "armv7l-linux-musleabihf-libgfortran4-cxx03-mpi+mpich", "armv7l-linux-musleabihf-libgfortran5-cxx03-mpi+mpich", "armv7l-linux-musleabihf-libgfortran3-cxx11-mpi+mpich", "armv7l-linux-musleabihf-libgfortran4-cxx11-mpi+mpich", "armv7l-linux-musleabihf-libgfortran5-cxx11-mpi+mpich", "x86_64-apple-darwin-libgfortran3-mpi+mpich", "x86_64-apple-darwin-libgfortran4-mpi+mpich", "x86_64-apple-darwin-libgfortran5-mpi+mpich", "aarch64-apple-darwin-libgfortran5-mpi+mpich", "x86_64-unknown-freebsd-libgfortran3-mpi+mpich", "x86_64-unknown-freebsd-libgfortran4-mpi+mpich", "x86_64-unknown-freebsd-libgfortran5-mpi+mpich"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "4.1.6, 5"
+name = "OpenMPI_jll"
+platforms = ["i686-linux-gnu-libgfortran3-cxx03-mpi+openmpi", "i686-linux-gnu-libgfortran4-cxx03-mpi+openmpi", "i686-linux-gnu-libgfortran5-cxx03-mpi+openmpi", "i686-linux-gnu-libgfortran3-cxx11-mpi+openmpi", "i686-linux-gnu-libgfortran4-cxx11-mpi+openmpi", "i686-linux-gnu-libgfortran5-cxx11-mpi+openmpi", "x86_64-linux-gnu-libgfortran3-cxx03-mpi+openmpi", "x86_64-linux-gnu-libgfortran4-cxx03-mpi+openmpi", "x86_64-linux-gnu-libgfortran5-cxx03-mpi+openmpi", "x86_64-linux-gnu-libgfortran3-cxx11-mpi+openmpi", "x86_64-linux-gnu-libgfortran4-cxx11-mpi+openmpi", "x86_64-linux-gnu-libgfortran5-cxx11-mpi+openmpi", "aarch64-linux-gnu-libgfortran3-cxx03-mpi+openmpi", "aarch64-linux-gnu-libgfortran4-cxx03-mpi+openmpi", "aarch64-linux-gnu-libgfortran5-cxx03-mpi+openmpi", "aarch64-linux-gnu-libgfortran3-cxx11-mpi+openmpi", "aarch64-linux-gnu-libgfortran4-cxx11-mpi+openmpi", "aarch64-linux-gnu-libgfortran5-cxx11-mpi+openmpi", "armv7l-linux-gnueabihf-libgfortran3-cxx03-mpi+openmpi", "armv7l-linux-gnueabihf-libgfortran4-cxx03-mpi+openmpi", "armv7l-linux-gnueabihf-libgfortran5-cxx03-mpi+openmpi", "armv7l-linux-gnueabihf-libgfortran3-cxx11-mpi+openmpi", "armv7l-linux-gnueabihf-libgfortran4-cxx11-mpi+openmpi", "armv7l-linux-gnueabihf-libgfortran5-cxx11-mpi+openmpi", "powerpc64le-linux-gnu-libgfortran3-cxx03-mpi+openmpi", "powerpc64le-linux-gnu-libgfortran4-cxx03-mpi+openmpi", "powerpc64le-linux-gnu-libgfortran5-cxx03-mpi+openmpi", "powerpc64le-linux-gnu-libgfortran3-cxx11-mpi+openmpi", "powerpc64le-linux-gnu-libgfortran4-cxx11-mpi+openmpi", "powerpc64le-linux-gnu-libgfortran5-cxx11-mpi+openmpi", "i686-linux-musl-libgfortran3-cxx03-mpi+openmpi", "i686-linux-musl-libgfortran4-cxx03-mpi+openmpi", "i686-linux-musl-libgfortran5-cxx03-mpi+openmpi", "i686-linux-musl-libgfortran3-cxx11-mpi+openmpi", "i686-linux-musl-libgfortran4-cxx11-mpi+openmpi", "i686-linux-musl-libgfortran5-cxx11-mpi+openmpi", "x86_64-linux-musl-libgfortran3-cxx03-mpi+openmpi", "x86_64-linux-musl-libgfortran4-cxx03-mpi+openmpi", "x86_64-linux-musl-libgfortran5-cxx03-mpi+openmpi", "x86_64-linux-musl-libgfortran3-cxx11-mpi+openmpi", "x86_64-linux-musl-libgfortran4-cxx11-mpi+openmpi", "x86_64-linux-musl-libgfortran5-cxx11-mpi+openmpi", "aarch64-linux-musl-libgfortran3-cxx03-mpi+openmpi", "aarch64-linux-musl-libgfortran4-cxx03-mpi+openmpi", "aarch64-linux-musl-libgfortran5-cxx03-mpi+openmpi", "aarch64-linux-musl-libgfortran3-cxx11-mpi+openmpi", "aarch64-linux-musl-libgfortran4-cxx11-mpi+openmpi", "aarch64-linux-musl-libgfortran5-cxx11-mpi+openmpi", "armv6l-linux-musleabihf-libgfortran3-cxx03-mpi+openmpi", "armv6l-linux-musleabihf-libgfortran4-cxx03-mpi+openmpi", "armv6l-linux-musleabihf-libgfortran5-cxx03-mpi+openmpi", "armv6l-linux-musleabihf-libgfortran3-cxx11-mpi+openmpi", "armv6l-linux-musleabihf-libgfortran4-cxx11-mpi+openmpi", "armv6l-linux-musleabihf-libgfortran5-cxx11-mpi+openmpi", "armv7l-linux-musleabihf-libgfortran3-cxx03-mpi+openmpi", "armv7l-linux-musleabihf-libgfortran4-cxx03-mpi+openmpi", "armv7l-linux-musleabihf-libgfortran5-cxx03-mpi+openmpi", "armv7l-linux-musleabihf-libgfortran3-cxx11-mpi+openmpi", "armv7l-linux-musleabihf-libgfortran4-cxx11-mpi+openmpi", "armv7l-linux-musleabihf-libgfortran5-cxx11-mpi+openmpi", "x86_64-apple-darwin-libgfortran3-mpi+openmpi", "x86_64-apple-darwin-libgfortran4-mpi+openmpi", "x86_64-apple-darwin-libgfortran5-mpi+openmpi", "aarch64-apple-darwin-libgfortran5-mpi+openmpi", "x86_64-unknown-freebsd-libgfortran3-mpi+openmpi", "x86_64-unknown-freebsd-libgfortran4-mpi+openmpi", "x86_64-unknown-freebsd-libgfortran5-mpi+openmpi"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MicrosoftMPI_jll"
+platforms = ["i686-w64-mingw32-libgfortran3-cxx03-mpi+microsoftmpi", "i686-w64-mingw32-libgfortran4-cxx03-mpi+microsoftmpi", "i686-w64-mingw32-libgfortran5-cxx03-mpi+microsoftmpi", "i686-w64-mingw32-libgfortran3-cxx11-mpi+microsoftmpi", "i686-w64-mingw32-libgfortran4-cxx11-mpi+microsoftmpi", "i686-w64-mingw32-libgfortran5-cxx11-mpi+microsoftmpi", "x86_64-w64-mingw32-libgfortran3-cxx03-mpi+microsoftmpi", "x86_64-w64-mingw32-libgfortran4-cxx03-mpi+microsoftmpi", "x86_64-w64-mingw32-libgfortran5-cxx03-mpi+microsoftmpi", "x86_64-w64-mingw32-libgfortran3-cxx11-mpi+microsoftmpi", "x86_64-w64-mingw32-libgfortran4-cxx11-mpi+microsoftmpi", "x86_64-w64-mingw32-libgfortran5-cxx11-mpi+microsoftmpi"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "5.3.1"
+name = "MPItrampoline_jll"
+platforms = ["i686-linux-gnu-libgfortran3-cxx03-mpi+mpitrampoline", "i686-linux-gnu-libgfortran4-cxx03-mpi+mpitrampoline", "i686-linux-gnu-libgfortran5-cxx03-mpi+mpitrampoline", "i686-linux-gnu-libgfortran3-cxx11-mpi+mpitrampoline", "i686-linux-gnu-libgfortran4-cxx11-mpi+mpitrampoline", "i686-linux-gnu-libgfortran5-cxx11-mpi+mpitrampoline", "x86_64-linux-gnu-libgfortran3-cxx03-mpi+mpitrampoline", "x86_64-linux-gnu-libgfortran4-cxx03-mpi+mpitrampoline", "x86_64-linux-gnu-libgfortran5-cxx03-mpi+mpitrampoline", "x86_64-linux-gnu-libgfortran3-cxx11-mpi+mpitrampoline", "x86_64-linux-gnu-libgfortran4-cxx11-mpi+mpitrampoline", "x86_64-linux-gnu-libgfortran5-cxx11-mpi+mpitrampoline", "aarch64-linux-gnu-libgfortran3-cxx03-mpi+mpitrampoline", "aarch64-linux-gnu-libgfortran4-cxx03-mpi+mpitrampoline", "aarch64-linux-gnu-libgfortran5-cxx03-mpi+mpitrampoline", "aarch64-linux-gnu-libgfortran3-cxx11-mpi+mpitrampoline", "aarch64-linux-gnu-libgfortran4-cxx11-mpi+mpitrampoline", "aarch64-linux-gnu-libgfortran5-cxx11-mpi+mpitrampoline", "armv6l-linux-gnueabihf-libgfortran3-cxx03-mpi+mpitrampoline", "armv6l-linux-gnueabihf-libgfortran4-cxx03-mpi+mpitrampoline", "armv6l-linux-gnueabihf-libgfortran5-cxx03-mpi+mpitrampoline", "armv6l-linux-gnueabihf-libgfortran3-cxx11-mpi+mpitrampoline", "armv6l-linux-gnueabihf-libgfortran4-cxx11-mpi+mpitrampoline", "armv6l-linux-gnueabihf-libgfortran5-cxx11-mpi+mpitrampoline", "armv7l-linux-gnueabihf-libgfortran3-cxx03-mpi+mpitrampoline", "armv7l-linux-gnueabihf-libgfortran4-cxx03-mpi+mpitrampoline", "armv7l-linux-gnueabihf-libgfortran5-cxx03-mpi+mpitrampoline", "armv7l-linux-gnueabihf-libgfortran3-cxx11-mpi+mpitrampoline", "armv7l-linux-gnueabihf-libgfortran4-cxx11-mpi+mpitrampoline", "armv7l-linux-gnueabihf-libgfortran5-cxx11-mpi+mpitrampoline", "powerpc64le-linux-gnu-libgfortran3-cxx03-mpi+mpitrampoline", "powerpc64le-linux-gnu-libgfortran4-cxx03-mpi+mpitrampoline", "powerpc64le-linux-gnu-libgfortran5-cxx03-mpi+mpitrampoline", "powerpc64le-linux-gnu-libgfortran3-cxx11-mpi+mpitrampoline", "powerpc64le-linux-gnu-libgfortran4-cxx11-mpi+mpitrampoline", "powerpc64le-linux-gnu-libgfortran5-cxx11-mpi+mpitrampoline", "x86_64-apple-darwin-libgfortran3-mpi+mpitrampoline", "x86_64-apple-darwin-libgfortran4-mpi+mpitrampoline", "x86_64-apple-darwin-libgfortran5-mpi+mpitrampoline", "aarch64-apple-darwin-libgfortran5-mpi+mpitrampoline"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "0.1"
+name = "MPIPreferences"
+platforms = ["any"]
+top_level = true
+type = "dependency"
+uuid = "3da0fdf6-3ccc-4f1b-acd9-58baa6c99267"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["h5clear"]
+type = "exe"
+variable_name = "h5clear"
+[[products]]
+binnames = ["h5copy"]
+type = "exe"
+variable_name = "h5copy"
+[[products]]
+binnames = ["h5debug"]
+type = "exe"
+variable_name = "h5debug"
+[[products]]
+binnames = ["h5delete"]
+type = "exe"
+variable_name = "h5delete"
+[[products]]
+binnames = ["h5diff"]
+type = "exe"
+variable_name = "h5diff"
+[[products]]
+binnames = ["h5dump"]
+type = "exe"
+variable_name = "h5dump"
+[[products]]
+binnames = ["h5format_convert"]
+type = "exe"
+variable_name = "h5format_convert"
+[[products]]
+binnames = ["h5import"]
+type = "exe"
+variable_name = "h5import"
+[[products]]
+binnames = ["h5jam"]
+type = "exe"
+variable_name = "h5jam"
+[[products]]
+binnames = ["h5ls"]
+type = "exe"
+variable_name = "h5ls"
+[[products]]
+binnames = ["h5mkgrp"]
+type = "exe"
+variable_name = "h5mkgrp"
+[[products]]
+binnames = ["h5perf_serial"]
+type = "exe"
+variable_name = "h5perf_serial"
+[[products]]
+binnames = ["h5repack"]
+type = "exe"
+variable_name = "h5repack"
+[[products]]
+binnames = ["h5repart"]
+type = "exe"
+variable_name = "h5repart"
+[[products]]
+binnames = ["h5stat"]
+type = "exe"
+variable_name = "h5stat"
+[[products]]
+binnames = ["h5unjam"]
+type = "exe"
+variable_name = "h5unjam"
+[[products]]
+binnames = ["h5watch"]
+type = "exe"
+variable_name = "h5watch"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libhdf5"]
+type = "lib"
+variable_name = "libhdf5"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libhdf5_cpp"]
+type = "lib"
+variable_name = "libhdf5_cpp"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libhdf5_fortran"]
+type = "lib"
+variable_name = "libhdf5_fortran"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libhdf5_hl"]
+type = "lib"
+variable_name = "libhdf5_hl"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libhdf5_hl_cpp"]
+type = "lib"
+variable_name = "libhdf5_hl_cpp"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libhdf5hl_fortran"]
+type = "lib"
+variable_name = "libhdf5_hl_fortran"
+
+[[sources]]
+hash = "9425f224ed75d1280bb46d6f26923dd938f9040e7eaebf57e66ec7357c08f917"
+type = "archive"
+unpack_target = ""
+url = "https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.14/hdf5-1.14.3/src/hdf5-1.14.3.tar.bz2"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

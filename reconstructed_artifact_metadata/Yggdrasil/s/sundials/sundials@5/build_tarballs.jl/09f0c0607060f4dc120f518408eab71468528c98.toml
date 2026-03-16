@@ -1,0 +1,209 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.10"
+lazy_artifacts = false
+name = "Sundials"
+platforms = ["i686-linux-gnu-libgfortran3", "i686-linux-gnu-libgfortran4", "i686-linux-gnu-libgfortran5", "x86_64-linux-gnu-libgfortran3", "x86_64-linux-gnu-libgfortran4", "x86_64-linux-gnu-libgfortran5", "aarch64-linux-gnu-libgfortran3", "aarch64-linux-gnu-libgfortran4", "aarch64-linux-gnu-libgfortran5", "armv6l-linux-gnueabihf-libgfortran3", "armv6l-linux-gnueabihf-libgfortran4", "armv6l-linux-gnueabihf-libgfortran5", "armv7l-linux-gnueabihf-libgfortran3", "armv7l-linux-gnueabihf-libgfortran4", "armv7l-linux-gnueabihf-libgfortran5", "i686-linux-musl-libgfortran3", "i686-linux-musl-libgfortran4", "i686-linux-musl-libgfortran5", "x86_64-linux-musl-libgfortran3", "x86_64-linux-musl-libgfortran4", "x86_64-linux-musl-libgfortran5", "aarch64-linux-musl-libgfortran3", "aarch64-linux-musl-libgfortran4", "aarch64-linux-musl-libgfortran5", "armv6l-linux-musleabihf-libgfortran3", "armv6l-linux-musleabihf-libgfortran4", "armv6l-linux-musleabihf-libgfortran5", "armv7l-linux-musleabihf-libgfortran3", "armv7l-linux-musleabihf-libgfortran4", "armv7l-linux-musleabihf-libgfortran5", "x86_64-apple-darwin-libgfortran3", "x86_64-apple-darwin-libgfortran4", "x86_64-apple-darwin-libgfortran5", "aarch64-apple-darwin-libgfortran5", "x86_64-unknown-freebsd-libgfortran3", "x86_64-unknown-freebsd-libgfortran4", "x86_64-unknown-freebsd-libgfortran5", "i686-w64-mingw32-libgfortran3", "i686-w64-mingw32-libgfortran4", "i686-w64-mingw32-libgfortran5", "x86_64-w64-mingw32-libgfortran3", "x86_64-w64-mingw32-libgfortran4", "x86_64-w64-mingw32-libgfortran5"]
+script = """cd $WORKSPACE/srcdir/sundials*\n\n# Don't run the KLU and LAPACK tests during build since we are in a cross compile environment\natomic_patch -p1 ../patches/Sundials_NoKLUTest.patch\natomic_patch -p1 ../patches/Sundials_NoLAPACKTest.patch\n\nif [[ ${nbits} == 64 ]]; then\n    atomic_patch -p1 $WORKSPACE/srcdir/patches/Sundials_Fortran.patch\nfi\n\n# Set up CFLAGS\nif [[ \"${target}\" == *-mingw* ]]; then\n    LAPACK_NAME=-lblastrampoline-5\n    atomic_patch -p1 ../patches/Sundials_windows.patch\n    # Work around https://github.com/LLNL/sundials/issues/29\n    export CFLAGS=\"-DBUILD_SUNDIALS_LIBRARY\"\n    # See https://github.com/LLNL/sundials/issues/35\n    atomic_patch -p1 ../patches/Sundials_lapackband.patch\n    # When looking for KLU libraries, CMake searches only for import libraries,\n    # this patch ensures we look also for shared libraries.\n    atomic_patch -p1 ../patches/Sundials_findklu_suffixes.patch\nelse\n    LAPACK_NAME=-lblastrampoline\nfi\n\n# Build\nmkdir build && cd build\ncmake -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DCMAKE_TOOLCHAIN_FILE=\"${CMAKE_TARGET_TOOLCHAIN}\" \\\n    -DEXAMPLES_ENABLE_C=OFF \\\n    -DKLU_ENABLE=ON \\\n    -DKLU_INCLUDE_DIR=\"${includedir}\" \\\n    -DKLU_LIBRARY_DIR=\"${libdir}\" \\\n    -DLAPACK_ENABLE=ON \\\n    -DLAPACK_LIBRARIES:STRING=\"${LAPACK_NAME}\" \\\n    ..\nmake -j${nproc}\nmake install\n\n# Move libraries to ${libdir} on Windows\nif [[ \"${target}\" == *-mingw* ]]; then\n    mv ${prefix}/lib/libsundials_*.${dlext} \"${libdir}\"\nfi\n"""
+version = "v5.2.2"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "5.4.0"
+name = "libblastrampoline_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "~7.2"
+name = "SuiteSparse_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsundials_arkode"]
+type = "lib"
+variable_name = "libsundials_arkode"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsundials_cvode"]
+type = "lib"
+variable_name = "libsundials_cvode"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsundials_cvodes"]
+type = "lib"
+variable_name = "libsundials_cvodes"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsundials_ida"]
+type = "lib"
+variable_name = "libsundials_ida"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsundials_idas"]
+type = "lib"
+variable_name = "libsundials_idas"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsundials_kinsol"]
+type = "lib"
+variable_name = "libsundials_kinsol"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsundials_nvecmanyvector"]
+type = "lib"
+variable_name = "libsundials_nvecmanyvector"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsundials_nvecserial"]
+type = "lib"
+variable_name = "libsundials_nvecserial"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsundials_sunlinsolband"]
+type = "lib"
+variable_name = "libsundials_sunlinsolband"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsundials_sunlinsoldense"]
+type = "lib"
+variable_name = "libsundials_sunlinsoldense"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsundials_sunlinsolklu"]
+type = "lib"
+variable_name = "libsundials_sunlinsolklu"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsundials_sunlinsollapackband"]
+type = "lib"
+variable_name = "libsundials_sunlinsollapackband"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsundials_sunlinsollapackdense"]
+type = "lib"
+variable_name = "libsundials_sunlinsollapackdense"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsundials_sunlinsolpcg"]
+type = "lib"
+variable_name = "libsundials_sunlinsolpcg"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsundials_sunlinsolspbcgs"]
+type = "lib"
+variable_name = "libsundials_sunlinsolspbcgs"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsundials_sunlinsolspfgmr"]
+type = "lib"
+variable_name = "libsundials_sunlinsolspfgmr"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsundials_sunlinsolspgmr"]
+type = "lib"
+variable_name = "libsundials_sunlinsolspgmr"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsundials_sunlinsolsptfqmr"]
+type = "lib"
+variable_name = "libsundials_sunlinsolsptfqmr"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsundials_sunmatrixband"]
+type = "lib"
+variable_name = "libsundials_sunmatrixband"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsundials_sunmatrixdense"]
+type = "lib"
+variable_name = "libsundials_sunmatrixdense"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsundials_sunmatrixsparse"]
+type = "lib"
+variable_name = "libsundials_sunmatrixsparse"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsundials_sunnonlinsolfixedpoint"]
+type = "lib"
+variable_name = "libsundials_sunnonlinsolfixedpoint"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsundials_sunnonlinsolnewton"]
+type = "lib"
+variable_name = "libsundials_sunnonlinsolnewton"
+
+[[sources]]
+hash = "8264ba5614fd9578786e5e8a3ba9f703ff795361"
+type = "git"
+unpack_target = ""
+url = "https://github.com/LLNL/sundials.git"
+[[sources]]
+follow_symlinks = false
+path = "../bundled@5"
+target = ""
+type = "directory"

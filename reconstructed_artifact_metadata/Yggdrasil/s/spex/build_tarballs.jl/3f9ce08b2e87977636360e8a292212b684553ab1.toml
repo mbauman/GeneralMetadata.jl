@@ -1,0 +1,59 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "SPEX"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """# Compile GraphBLAS\ncd ${WORKSPACE}/srcdir/SPEX\natomic_patch -p1 ../werror.patch\nCFLAGS=\"${CFLAGS} -std=c99\"\ncd ${WORKSPACE}/srcdir/SPEX/SPEX/SPEX_Util\nif [[ \"${target}\" == *mingw* ]]; then\n    make library -j${nproc} UNAME=Windows SO_OPTS=\"${SO_OPTS} -shared -L${libdir}\"\nelse\n    make library -j${nproc}\nfi\ncp ${WORKSPACE}/srcdir/SPEX/include/SPEX_Util.h ${includedir}\ncp ${WORKSPACE}/srcdir/SPEX/lib/libspexutil* ${libdir}\ncd ${WORKSPACE}/srcdir/SPEX/SPEX/SPEX_Left_LU\nif [[ \"${target}\" == *mingw* ]]; then\n    make library UNAME=Windows SO_OPTS=\"${SO_OPTS} -shared -L${libdir}\"\nelse\n    make library -j${nproc}\nfi\ncp ${WORKSPACE}/srcdir/SPEX/include/SPEX_Left_LU.h ${includedir}\ncp ${WORKSPACE}/srcdir/SPEX/lib/libspexleftlu* ${libdir}\ninstall_license ${WORKSPACE}/srcdir/SPEX/SPEX/LICENSE.txt\n"""
+version = "v1.1.5"
+
+[[dependencies]]
+compat = ""
+name = "SuiteSparse_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "GMP_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MPFR_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libspexutil"]
+type = "lib"
+variable_name = "libspexutil"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libspexleftlu"]
+type = "lib"
+variable_name = "libspexleftlu"
+
+[[sources]]
+hash = "9471682b072419063d73bc950949bf3458b187f9"
+type = "git"
+unpack_target = ""
+url = "https://github.com/clouren/SPEX"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

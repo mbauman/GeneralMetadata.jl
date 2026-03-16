@@ -1,0 +1,41 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "ocl_icd"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "x86_64-w64-mingw32"]
+script = """apk add ruby\n\ncd ${WORKSPACE}/srcdir/ocl-icd\ninstall_license COPYING\n\n# Fix build for Windows based on\n# https://cygwin.com/cgit/cygwin-packages/ocl-icd/tree/ocl-icd-2.3.2-1.src.patch\nif [[ \"${target}\" == *-w64-* ]]; then\n    atomic_patch -p2 ../patches/ocl-icd-2.3.2-1.src.patch\nfi\n\n./bootstrap\n\n# Fix rpl_malloc for musl\nif [[ \"${target}\" == *-musl* ]] || [[ \"${target}\" == *-apple-* ]]; then\n    sed -i '/AC_FUNC_MALLOC/d' ./configure.ac\n    sed -i '/AC_FUNC_REALLOC/d' ./configure.ac\nfi\n\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target}\n\nmake -j${nproc} all\nmake install\n"""
+version = "v2.3.2"
+
+[[dependencies]]
+compat = ""
+name = "dlfcn_win32_jll"
+platforms = ["x86_64-w64-mingw32"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libOpenCL", "OpenCL"]
+type = "lib"
+variable_name = "libocl_icd"
+[[products]]
+paths = ["include/ocl_icd.h"]
+type = "file"
+variable_name = "ocl_icd_h"
+
+[[sources]]
+hash = "fdde6677b21329432db8b481e2637cd10f7d3cb2"
+type = "git"
+unpack_target = ""
+url = "https://github.com/OCL-dev/ocl-icd.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

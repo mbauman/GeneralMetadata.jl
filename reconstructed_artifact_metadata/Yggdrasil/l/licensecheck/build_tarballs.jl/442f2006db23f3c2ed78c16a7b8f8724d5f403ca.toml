@@ -1,0 +1,28 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "licensecheck"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """install_license ${WORKSPACE}/srcdir/licensecheck/LICENSE\ncd $WORKSPACE/srcdir/licensecheck/\n\nif [[ \"${target}\" == *-darwin* ]]; then\n    # Create official Apple-blessed `xcrun`, needed by the CGO linker\n    cat > /usr/bin/xcrun << EOF\n#!/bin/sh\nexec \"\\${@}\"\nEOF\n    chmod +x /usr/bin/xcrun\nfi\n\nmkdir clib\ncp $WORKSPACE/srcdir/main.go clib/main.go\nmkdir -p ${libdir}\nCGO_ENABLED=1 go build -buildmode=c-shared -o ${libdir}/licensecheck.${dlext} clib/main.go \n"""
+version = "v0.3.101"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["licensecheck"]
+type = "lib"
+variable_name = "licensecheck"
+
+[[sources]]
+hash = "5aa300fd3333d0c6592148249397338023cafcce"
+type = "git"
+unpack_target = ""
+url = "https://github.com/google/licensecheck"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

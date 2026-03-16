@@ -1,0 +1,33 @@
+dependencies = []
+lazy_artifacts = false
+name = "GSL"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/gsl-*/\nupdate_configure_scripts\n\n# We need to massage configure script to convince it to build the shared library\n# for PowerPC.\nif [[ \"${target}\" == powerpc64le-* ]]; then\n    autoreconf -vi\nfi\n\n./configure --prefix=$prefix --host=${target}\nmake -j${nproc}\nmake install\n"""
+version = "v2.6.0"
+
+[[products]]
+dir_paths = []
+dont_dlopen = false
+libnames = ["libgslcblas"]
+type = "lib"
+variable_name = "libgslcblas"
+[[products]]
+dir_paths = []
+dont_dlopen = false
+libnames = ["libgsl"]
+type = "lib"
+variable_name = "libgsl"
+[[products]]
+binnames = ["gsl-histogram"]
+type = "exe"
+variable_name = "gsl_histogram"
+[[products]]
+binnames = ["gsl-randist"]
+type = "exe"
+variable_name = "gsl_randist"
+
+[[sources]]
+hash = "b782339fc7a38fe17689cb39966c4d821236c28018b6593ddb6fd59ee40786a8"
+type = "archive"
+unpack_target = ""
+url = "http://ftp.gnu.org/gnu/gsl/gsl-2.6.tar.gz"

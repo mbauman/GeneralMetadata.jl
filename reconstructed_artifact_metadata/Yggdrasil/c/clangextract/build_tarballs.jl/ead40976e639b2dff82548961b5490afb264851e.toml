@@ -1,0 +1,83 @@
+augment_platform_block = """using Base.BinaryPlatforms\nfunction augment_llvm!(platform::Platform)\n    haskey(platform, \"llvm_version\") && return platform\n\n    llvm_version = Base.libllvm_version\n    # does our LLVM build use assertions?\n    llvm_assertions = try\n        cglobal((:_ZN4llvm24DisableABIBreakingChecksE, Base.libllvm_path()), Cvoid)\n        false\n    catch\n        true\n    end\n    platform[\"llvm_version\"] = if llvm_assertions\n        \"$(llvm_version.major).asserts\"\n    else\n        \"$(llvm_version.major)\"\n    end\n    return platform\nend\n\nfunction augment_platform!(platform::Platform)\n    augment_llvm!(platform)\nend"""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = true
+name = "ClangExtract"
+platforms = ["i686-linux-gnu-cxx11-llvm_version+20", "x86_64-linux-gnu-cxx11-llvm_version+20", "aarch64-linux-gnu-cxx11-llvm_version+20", "armv6l-linux-gnueabihf-cxx11-llvm_version+20", "armv7l-linux-gnueabihf-cxx11-llvm_version+20", "powerpc64le-linux-gnu-cxx11-llvm_version+20", "x86_64-linux-musl-cxx11-llvm_version+20", "aarch64-linux-musl-cxx11-llvm_version+20", "armv6l-linux-musleabihf-cxx11-llvm_version+20", "armv7l-linux-musleabihf-cxx11-llvm_version+20", "i686-linux-gnu-cxx11-llvm_version+20.asserts", "x86_64-linux-gnu-cxx11-llvm_version+20.asserts", "aarch64-linux-gnu-cxx11-llvm_version+20.asserts", "armv6l-linux-gnueabihf-cxx11-llvm_version+20.asserts", "armv7l-linux-gnueabihf-cxx11-llvm_version+20.asserts", "powerpc64le-linux-gnu-cxx11-llvm_version+20.asserts", "x86_64-linux-musl-cxx11-llvm_version+20.asserts", "aarch64-linux-musl-cxx11-llvm_version+20.asserts", "armv6l-linux-musleabihf-cxx11-llvm_version+20.asserts", "armv7l-linux-musleabihf-cxx11-llvm_version+20.asserts"]
+script = """cd ${WORKSPACE}/srcdir/clang-extract\n\n# Apply patches from bundled/patches/\n#for patch in ${WORKSPACE}/srcdir/patches/*.patch; do\n#    atomic_patch -p1 \"${patch}\"\n#done\n\n# Fix destructor syntax issues\n# 1. Remove (void) from destructor declaration and definition\nsed -i 's/~ElfObject(void)/~ElfObject()/g' libcextract/ElfCXX.hh\nsed -i 's/~ElfObject(void)/~ElfObject()/g' libcextract/ElfCXX.cpp\n# 2. Fix explicit destructor calls to use this->\nsed -i 's/ElfObject::~ElfObject();/this->~ElfObject();/g' libcextract/ElfCXX.cpp\n\n# Find all C++ source files\nMAIN_SOURCES=\"Main.cpp\"\nINLINE_SOURCES=\"Inline.cpp\"\nLIB_SOURCES=$(find libcextract -name \"*.cpp\" | tr '\\n' ' ')\n\n# Set up compiler flags - use c++2a for GCC 9 C++20 support\nexport CXXFLAGS=\"-std=c++2a -O3 -fPIC\"\nexport CXXFLAGS=\"${CXXFLAGS} -I${prefix}/include\"\nexport CXXFLAGS=\"${CXXFLAGS} -Ilibcextract\"\nexport CXXFLAGS=\"${CXXFLAGS} -D_GNU_SOURCE\"\nexport CXXFLAGS=\"${CXXFLAGS} -DLLVM_VERSION_MAJOR=20\"\n\n# Set up linker flags\nexport LDFLAGS=\"-L${prefix}/lib -L${libdir}\"\nexport LDFLAGS=\"${LDFLAGS} -lclang-cpp -lLLVM\"\nexport LDFLAGS=\"${LDFLAGS} -lelf -lz -lzstd\"\nexport LDFLAGS=\"${LDFLAGS} -lpthread -ldl\"\n\n# Use g++ from the target toolchain\nexport CXX=\"g++\"\n\necho \"Building libcextract static library...\"\necho $nproc\n# First compile all library sources into object files\nmkdir -p build_objs\nfor src in ${LIB_SOURCES}; do\n    obj_file=\"build_objs/$(basename ${src%.cpp}.o)\"\n    echo \"Compiling $src -> $obj_file\"\n    ${CXX} ${CXXFLAGS} -c $src -o $obj_file &\n    ((i=i%nproc)) || true; ((i++==0)) && wait\ndone\nwait\n\n# Create static library\necho \"Creating static library...\"\nar rcs libcextract.a build_objs/*.o\n\n# Build clang-extract executable\necho \"Building clang-extract...\"\n${CXX} ${CXXFLAGS} ${MAIN_SOURCES} -Wl,--start-group libcextract.a ${LDFLAGS} -Wl,--end-group -o clang-extract\n\n# Build ce-inline executable\necho \"Building ce-inline...\"\n${CXX} ${CXXFLAGS} ${INLINE_SOURCES} -Wl,--start-group libcextract.a ${LDFLAGS} -Wl,--end-group -o ce-inline\n\n# Install binaries\ninstall -Dm755 clang-extract ${bindir}/clang-extract\ninstall -Dm755 ce-inline ${bindir}/ce-inline\n\n# Install license\ninstall_license LICENSE.TXT\n"""
+version = "v0.1.0"
+
+[[dependencies]]
+compat = ""
+name = "Elfutils_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zstd_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Clang_jll"
+platforms = ["any"]
+top_level = false
+type = "runtimedependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LLVM_full_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 20
+version-minor = 1
+version-patch = 8
+[[dependencies]]
+compat = ""
+name = "LLVM_full_assert_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 20
+version-minor = 1
+version-patch = 8
+
+[[products]]
+binnames = ["clang-extract"]
+type = "exe"
+variable_name = "clang_extract"
+[[products]]
+binnames = ["ce-inline"]
+type = "exe"
+variable_name = "ce_inline"
+
+[[sources]]
+hash = "5da361949c64396943b2911ed1867a0e2734d1e4"
+type = "git"
+unpack_target = ""
+url = "https://github.com/SUSE/clang-extract.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

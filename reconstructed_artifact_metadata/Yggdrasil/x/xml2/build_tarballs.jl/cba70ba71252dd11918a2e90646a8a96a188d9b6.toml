@@ -1,0 +1,54 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "XML2"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd ${WORKSPACE}/srcdir/libxml2-*\n\n# Remove patches for next version.\natomic_patch -p1 ../patches/0001-fix-pthread-weak-references-in-globals.c.patch\natomic_patch -p1 ../patches/0002-fix-more-pthread-weak-references-in-globals.c.patch\n\n# Work around https://gitlab.gnome.org/GNOME/libxml2/-/issues/625\nif [[ \"${target}\" == i686-*-mingw* ]]; then\n   # Testing for `snprintf` and `vsnprintf` fails on this platform, but the\n   # functions are actually available, inform configure that we can use them.\n   EXTRA_ARGS=( ac_cv_func_snprintf=yes ac_cv_func_vsnprintf=yes )\nfi\n\n./autogen.sh --prefix=${prefix} --build=${MACHTYPE} --host=${target} \\\n    --without-python \\\n    --disable-static \\\n    --with-zlib=${prefix} \\\n    --with-iconv=${prefix} \\\n    \"${EXTRA_ARGS[@]}\"\nmake -j${nproc}\nmake install\n\n# Remove heavy doc directories\nrm -r ${prefix}/share/{doc/libxml2,man}\n"""
+version = "v2.12.0"
+
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Libiconv_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libxml2"]
+type = "lib"
+variable_name = "libxml2"
+[[products]]
+binnames = ["xmlcatalog"]
+type = "exe"
+variable_name = "xmlcatalog"
+[[products]]
+binnames = ["xmllint"]
+type = "exe"
+variable_name = "xmllint"
+
+[[sources]]
+hash = "431521c8e19ca396af4fa97743b5a6bfcccddbba90e16426a15e5374cd64fe0d"
+type = "archive"
+unpack_target = ""
+url = "https://download.gnome.org/sources/libxml2/2.12/libxml2-2.12.0.tar.xz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

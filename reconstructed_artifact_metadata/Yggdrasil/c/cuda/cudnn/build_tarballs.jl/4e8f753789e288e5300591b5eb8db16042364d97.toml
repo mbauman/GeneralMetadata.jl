@@ -1,0 +1,100 @@
+augment_platform_block = """using Base.BinaryPlatforms\n\ntry\n    using CUDA_Runtime_jll\ncatch\n    # during initial package installation, CUDA_Runtime_jll may not be available.\n    # in that case, we just won't select an artifact.\nend\n\n# can't use Preferences for the same reason\nconst CUDA_Runtime_jll_uuid = Base.UUID(\"76a88914-d11a-5bdc-97e0-2f5a05c973a2\")\nconst preferences = Base.get_preferences(CUDA_Runtime_jll_uuid)\nBase.record_compiletime_preference(CUDA_Runtime_jll_uuid, \"version\")\nBase.record_compiletime_preference(CUDA_Runtime_jll_uuid, \"local\")\nconst local_toolkit = something(tryparse(Bool, get(preferences, \"local\", \"false\")), false)\n\nfunction cuda_comparison_strategy(_a::String, _b::String, a_requested::Bool, b_requested::Bool)\n    # if we're using a local toolkit, we can't use artifacts\n    if local_toolkit\n        return false\n    end\n\n    # if either isn't a version number (e.g. \"none\"), perform a simple equality check\n    a = tryparse(VersionNumber, _a)\n    b = tryparse(VersionNumber, _b)\n    if a === nothing || b === nothing\n        return _a == _b\n    end\n\n    # if both b and a requested, then we fall back to equality\n    if a_requested && b_requested\n        return Base.thisminor(a) == Base.thisminor(b)\n    end\n\n    # otherwise, do the comparison between the the single version cap and the single version:\n    function is_compatible(artifact::VersionNumber, host::VersionNumber)\n        if host >= v\"11.0\"\n            # enhanced compatibility, semver-style\n            artifact.major == host.major &&\n            Base.thisminor(artifact) <= Base.thisminor(host)\n        else\n            Base.thisminor(artifact) == Base.thisminor(host)\n        end\n    end\n    if a_requested\n        is_compatible(b, a)\n    else\n        is_compatible(a, b)\n    end\nend\n\nfunction augment_platform!(platform::Platform)\n    if !@isdefined(CUDA_Runtime_jll)\n        # don't set to nothing or Pkg will download any artifact\n        platform[\"cuda\"] = \"none\"\n    end\n\n    if !haskey(platform, \"cuda\")\n        CUDA_Runtime_jll.augment_platform!(platform)\n    end\n    BinaryPlatforms.set_compare_strategy!(platform, \"cuda\", cuda_comparison_strategy)\n\n    # store the fact that we're using a local CUDA toolkit, for debugging purposes\n    platform[\"cuda_local\"] = string(local_toolkit)\n\n    return platform\nend"""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = true
+name = "CUDNN"
+platforms = ["x86_64-linux-gnu-cuda+11.0", "powerpc64le-linux-gnu-cuda+11.0", "aarch64-linux-gnu-cuda+11.0", "x86_64-w64-mingw32-cuda+11.0", "x86_64-linux-gnu-cuda+12.0", "powerpc64le-linux-gnu-cuda+12.0", "aarch64-linux-gnu-cuda+12.0", "x86_64-w64-mingw32-cuda+12.0"]
+script = """mkdir -p ${libdir} ${prefix}/include\n\ncd ${WORKSPACE}/srcdir\nif [[ ${target} == *-linux-gnu ]]; then\n    cd cudnn*\n    find .\n\n    install_license LICENSE\n\n    mv lib/libcudnn*.so* ${libdir}\n    mv include/* ${prefix}/include\nelif [[ ${target} == x86_64-w64-mingw32 ]]; then\n    cd cudnn*\n    find .\n\n    install_license LICENSE\n\n    mv bin/cudnn*64_*.dll ${libdir}\n    mv include/* ${prefix}/include\n\n    mv ../dll_x64/zlibwapi.dll ${libdir}\n\n    # fixup\n    chmod +x ${libdir}/*.dll\nfi\n"""
+version = "v9.0.0"
+
+[[dependencies]]
+compat = ""
+name = "CUDA_Runtime_jll"
+platforms = ["any"]
+top_level = false
+type = "runtimedependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcudnn_graph", "cudnn_graph64_9"]
+type = "lib"
+variable_name = "libcudnn_graph"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcudnn_cnn", "cudnn_cnn64_9"]
+type = "lib"
+variable_name = "libcudnn_cnn"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcudnn_ops", "cudnn_ops64_9"]
+type = "lib"
+variable_name = "libcudnn_ops"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcudnn_adv", "cudnn_adv64_9"]
+type = "lib"
+variable_name = "libcudnn_adv"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcudnn", "cudnn64_9"]
+type = "lib"
+variable_name = "libcudnn"
+
+[[sources]]
+hash = "52fa7088deb25d4555e37996b3d767e61d5d4397b7d45cce50bfc54cd8608a63"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cudnn/redist/cudnn/linux-x86_64/cudnn-linux-x86_64-9.0.0.312_cuda11-archive.tar.xz"
+[[sources]]
+hash = "e8044c8d8932351fd0b0e9794b329ebf68408d7c42cc873ac3e40f6bb6be544d"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cudnn/redist/cudnn/linux-ppc64le/cudnn-linux-ppc64le-9.0.0.312_cuda11-archive.tar.xz"
+[[sources]]
+hash = "997e53e92e4047373edab0512c1efc7f2067111532abdeab974fe395947ae0ef"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cudnn/redist/cudnn/linux-sbsa/cudnn-linux-sbsa-9.0.0.312_cuda11-archive.tar.xz"
+[[sources]]
+hash = "a9b223a5cc3822b4d5d3e2a1aff90a55d1138d4714cb503842379fadacb4c305"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cudnn/redist/cudnn/windows-x86_64/cudnn-windows-x86_64-9.0.0.312_cuda11-archive.zip"
+[[sources]]
+hash = "fd324c6923aa4f45a60413665e0b68bb34a7779d0861849e02d2711ff8efb9a4"
+type = "archive"
+unpack_target = ""
+url = "http://www.winimage.com/zLibDll/zlib123dllx64.zip"
+[[sources]]
+hash = "d3890e609d6530ee5b88ff95b60c8e6b1c1ec7fa966ec533925f20f896fcc630"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cudnn/redist/cudnn/linux-x86_64/cudnn-linux-x86_64-9.0.0.312_cuda12-archive.tar.xz"
+[[sources]]
+hash = "b8ef6f249128e1985893a8787a21de35cb83ec47c6dc6fd1809061dd9a3ffb20"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cudnn/redist/cudnn/linux-ppc64le/cudnn-linux-ppc64le-9.0.0.312_cuda12-archive.tar.xz"
+[[sources]]
+hash = "430fbf5b513c69e989b3a3a5a572369778ce0c214ce1259af6b935f9cab7dd54"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cudnn/redist/cudnn/linux-sbsa/cudnn-linux-sbsa-9.0.0.312_cuda12-archive.tar.xz"
+[[sources]]
+hash = "ee40e0bb0d695e4793979cc88cbbe58ad1d83a0584a57a056c9259743fd86992"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cudnn/redist/cudnn/windows-x86_64/cudnn-windows-x86_64-9.0.0.312_cuda12-archive.zip"

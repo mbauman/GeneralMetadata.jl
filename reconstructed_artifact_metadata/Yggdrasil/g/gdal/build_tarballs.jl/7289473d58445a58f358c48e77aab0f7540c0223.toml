@@ -1,0 +1,184 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "GDAL"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir/gdal-*/\n\nif [[ ${target} == *mingw* ]]; then\n    export LDFLAGS=\"-L${libdir}\"\n    # Apply patch to customise PROJ library\n    atomic_patch -p1 \"$WORKSPACE/srcdir/patches/configure_ac_proj_libs.patch\"\n    autoreconf -vi\n    export PROJ_LIBS=\"proj_9_0\"\nelif [[ \"${target}\" == *-linux-* ]]; then\n    # Hint to find libstdc++, required to link against C++ libs when using C compiler\n    if [[ \"${nbits}\" == 32 ]]; then\n        export CFLAGS=\"-Wl,-rpath-link,/opt/${target}/${target}/lib\"\n    else\n        export CFLAGS=\"-Wl,-rpath-link,/opt/${target}/${target}/lib64\"\n    fi\n    # Use same flags also for GEOS\n    atomic_patch -p1 \"$WORKSPACE/srcdir/patches/geos-m4-extra-cflags.patch\"\n    export EXTRA_GEOS_CFLAGS=\"${CFLAGS}\"\n    if [[ \"${target}\" == powerpc64le-* ]]; then\n        atomic_patch -p1 \"$WORKSPACE/srcdir/patches/sqlite3-m4-extra-libs.patch\"\n        export EXTRA_GEOS_LIBS=\"${EXTRA_GEOS_LIBS} -lm\"\n        export EXTRA_SQLITE3_LIBS=\"-lm\"\n        # libpthread and libldl are needed for libgdal, so let's always use them\n        export LDFLAGS=\"$LDFLAGS -lpthread -ldl\"\n    fi\n    autoreconf -vi\nfi\n\n# same fix as used for PROJ\nif [[ \"${target}\" == x86_64-linux-musl* ]]; then\n    export LDFLAGS=\"$LDFLAGS -lcurl\"\nfi\n\n# Clear out `.la` files since they're often wrong and screw us up\nrm -f ${prefix}/lib/*.la\n\n# Read the options in the log file\n./configure --help\n\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \\\n    --with-geos=${bindir}/geos-config \\\n    --with-proj=$prefix \\\n    --with-tiff=$prefix \\\n    --with-geotiff=$prefix \\\n    --with-libz=$prefix \\\n    --with-expat=$prefix \\\n    --with-zstd=$prefix \\\n    --with-sqlite3=$prefix \\\n    --with-curl=${bindir}/curl-config \\\n    --with-openjpeg \\\n    --with-python=no \\\n    --enable-shared \\\n    --disable-static\n\n# Make sure that some important libraries are found\ngrep \"HAVE_GEOS='yes'\" config.log\ngrep \"HAVE_SQLITE='yes'\" config.log\ngrep \"CURL_SETTING='yes'\" config.log\ngrep \"ZSTD_SETTING='yes'\" config.log\ngrep \"HAVE_EXPAT='yes'\" config.log\n\nmake -j${nproc}\nmake install\n"""
+version = "v300.500.0"
+
+[[dependencies]]
+compat = "~3.10"
+name = "GEOS_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "~900.0"
+name = "PROJ_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "SQLite_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenJpeg_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "2.2.10"
+name = "Expat_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zstd_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "4.3"
+name = "Libtiff_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.7.1"
+name = "libgeotiff_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LibCURL_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgdal"]
+type = "lib"
+variable_name = "libgdal"
+[[products]]
+binnames = ["gdal_contour"]
+type = "exe"
+variable_name = "gdal_contour_path"
+[[products]]
+binnames = ["gdal_grid"]
+type = "exe"
+variable_name = "gdal_grid_path"
+[[products]]
+binnames = ["gdal_rasterize"]
+type = "exe"
+variable_name = "gdal_rasterize_path"
+[[products]]
+binnames = ["gdal_translate"]
+type = "exe"
+variable_name = "gdal_translate_path"
+[[products]]
+binnames = ["gdaladdo"]
+type = "exe"
+variable_name = "gdaladdo_path"
+[[products]]
+binnames = ["gdalbuildvrt"]
+type = "exe"
+variable_name = "gdalbuildvrt_path"
+[[products]]
+binnames = ["gdaldem"]
+type = "exe"
+variable_name = "gdaldem_path"
+[[products]]
+binnames = ["gdalinfo"]
+type = "exe"
+variable_name = "gdalinfo_path"
+[[products]]
+binnames = ["gdallocationinfo"]
+type = "exe"
+variable_name = "gdallocationinfo_path"
+[[products]]
+binnames = ["gdalmanage"]
+type = "exe"
+variable_name = "gdalmanage_path"
+[[products]]
+binnames = ["gdalsrsinfo"]
+type = "exe"
+variable_name = "gdalsrsinfo_path"
+[[products]]
+binnames = ["gdaltindex"]
+type = "exe"
+variable_name = "gdaltindex_path"
+[[products]]
+binnames = ["gdaltransform"]
+type = "exe"
+variable_name = "gdaltransform_path"
+[[products]]
+binnames = ["gdalwarp"]
+type = "exe"
+variable_name = "gdalwarp_path"
+[[products]]
+binnames = ["nearblack"]
+type = "exe"
+variable_name = "nearblack_path"
+[[products]]
+binnames = ["ogr2ogr"]
+type = "exe"
+variable_name = "ogr2ogr_path"
+[[products]]
+binnames = ["ogrinfo"]
+type = "exe"
+variable_name = "ogrinfo_path"
+[[products]]
+binnames = ["ogrlineref"]
+type = "exe"
+variable_name = "ogrlineref_path"
+[[products]]
+binnames = ["ogrtindex"]
+type = "exe"
+variable_name = "ogrtindex_path"
+
+[[sources]]
+hash = "3affc513b8aa5a76b996eca55f45cb3e32acacf4a262ce4f686d4c8bba7ced40"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/OSGeo/gdal/releases/download/v3.5.0/gdal-3.5.0.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

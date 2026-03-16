@@ -1,0 +1,96 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "GCCBootstrap"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+products = []
+script = """cd ${WORKSPACE}/srcdir/crosstool-ng*/\n\n# These tools will help us to bootstrap\napk add build-base texinfo help2man ncurses-dev\n\n# Copy in our extra patches for all packages\nfor package in ${WORKSPACE}/srcdir/patches/*; do\n    package=\"$(basename \"${package}\")\"\n    for version in ${WORKSPACE}/srcdir/patches/${package}/*; do\n        version=\"$(basename \"${version}\")\"\n        if [ ! -d packages/${package}/${version} ]; then\n            continue\n        fi\n        cp -v ${WORKSPACE}/srcdir/patches/${package}/${version}/* packages/${package}/${version}/\n    done\ndone\n\n# Disable some checks that ct-ng performs\nexport CT_ALLOW_BUILD_AS_ROOT_SURE=1\n\n# Unset some things that BB automatically inserts into the environment,\n# but which crosstool-ng rightfully complains about.\nunset LD_LIBRARY_PATH\nfor TOOL in CC CXX LD AS AR FC OBJCOPY OBJDUMP RANLIB STRIP LIPO MESON NM READELF; do\n    unset \"${TOOL}\" \"BUILD_${TOOL}\" \"${TOOL}_BUILD\" \"${TOOL}_FOR_BUILD\" \"HOST${TOOL}\"\ndone\nPATH=\"$(printf \"%s\" \"$(echo -n \"${PATH}\" | tr ':' '\\n' | grep -v \"/opt\")\" | tr '\\n' ':')\"\n\n\n# Build crosstool-ng for the current host\n./configure --enable-local\nmake -j${nproc}\n\n# Generate the appropriate crosstool-ng config file for our current target\n${WORKSPACE}/srcdir/gen_config.sh > .config\ncat .config\n\n# This takes our stripped-down config and fills out all the other options\n./ct-ng upgradeconfig\n\n# Do the actual build!\n./ct-ng build\n\n# Fix case-insensitivity problems in netfilter headers\nif [[ \"${target}\" == *linux* ]]; then\n    NF=\"${prefix}/${target}/sysroot/usr/include/linux/netfilter\"\n    for NAME in CONNMARK DSCP MARK RATEEST TCPMSS; do\n        mv \"${NF}/xt_${NAME}.h\" \"${NF}/xt_${NAME}_.h\"\n    done\n    for NAME in ECN TTL; do\n        mv \"${NF}_ipv4/ipt_${NAME}.h\" \"${NF}_ipv4/ipt_${NAME}_.h\"\n    done\n    mv \"${NF}_ipv6/ip6t_HL.h\" \"${NF}_ipv6/ip6t_HL_.h\"\nfi\n\n# Move licenses to the right spot\nmkdir -p /tmp/GCCBootstrap\nmv ${prefix}/share/licenses/* /tmp/GCCBootstrap\nmv /tmp/GCCBootstrap ${prefix}/share/licenses/\n\n[[ -f \"${bindir}/${target}-gcc\" ]]\n"""
+version = "v9.4.0"
+
+[[sources]]
+hash = "8a839df71bea7b2c411447b41b917f2142482df171733ddb92d615cec2f0f43a"
+type = "archive"
+unpack_target = ""
+url = "http://crosstool-ng.org/download/crosstool-ng/crosstool-ng-1.25.0_rc1.tar.bz2"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"
+[[sources]]
+filename = "gcc-9.4.0.tar.xz"
+hash = "c95da32f440378d7751dd95533186f7fc05ceb4fb65eb5b85234e6299eb9838e"
+type = "file"
+url = "http://mirrors.kernel.org/gnu/gcc/gcc-9.4.0/gcc-9.4.0.tar.xz"
+[[sources]]
+filename = "mpfr-4.1.0.tar.xz"
+hash = "0c98a3f1732ff6ca4ea690552079da9c597872d30e96ec28414ee23c95558a7f"
+type = "file"
+url = "https://mirrors.kernel.org/gnu/mpfr/mpfr-4.1.0.tar.xz"
+[[sources]]
+filename = "mpc-1.2.1.tar.gz"
+hash = "17503d2c395dfcf106b622dc142683c1199431d095367c6aacba6eec30340459"
+type = "file"
+url = "https://mirrors.kernel.org/gnu/mpc/mpc-1.2.1.tar.gz"
+[[sources]]
+filename = "isl-0.24.tar.bz2"
+hash = "fcf78dd9656c10eb8cf9fbd5f59a0b6b01386205fe1934b3b287a0a1898145c0"
+type = "file"
+url = "https://gcc.gnu.org/pub/gcc/infrastructure/isl-0.24.tar.bz2"
+[[sources]]
+filename = "gmp-6.2.1.tar.xz"
+hash = "fd4829912cddd12f84181c3451cc752be224643e87fac497b69edddadc49b4f2"
+type = "file"
+url = "https://mirrors.kernel.org/gnu/gmp/gmp-6.2.1.tar.xz"
+[[sources]]
+filename = "linux-4.1.49.tar.xz"
+hash = "ff2e0ea5c536650aef64447c3aaa49c1a25e8f1db4ec4f7da700d3176f512ba8"
+type = "file"
+url = "http://mirrors.kernel.org/pub/linux/kernel/v4.x/linux-4.1.49.tar.xz"
+[[sources]]
+filename = "glibc-2.19.tar.xz"
+hash = "2d3997f588401ea095a0b27227b1d50cdfdd416236f6567b564549d3b46ea2a2"
+type = "file"
+url = "https://mirrors.kernel.org/gnu/glibc/glibc-2.19.tar.xz"
+[[sources]]
+filename = "musl-1.2.2.tar.gz"
+hash = "9b969322012d796dc23dda27a35866034fa67d8fb67e0e2c45c913c3d43219dd"
+type = "file"
+url = "https://musl.libc.org/releases/musl-1.2.2.tar.gz"
+[[sources]]
+filename = "mingw-w64-v9.0.0.tar.bz2"
+hash = "1929b94b402f5ff4d7d37a9fe88daa9cc55515a6134805c104d1794ae22a4181"
+type = "file"
+url = "https://sourceforge.net/projects/mingw-w64/files/mingw-w64/mingw-w64-release/mingw-w64-v9.0.0.tar.bz2"
+[[sources]]
+filename = "zlib-1.2.11.tar.gz"
+hash = "629380c90a77b964d896ed37163f5c3a34f6e6d897311f1df2a7016355c45eff"
+type = "file"
+url = "https://github.com/madler/zlib/archive/refs/tags/v1.2.11.tar.gz"
+[[sources]]
+filename = "ncurses-6.2.tar.gz"
+hash = "30306e0c76e0f9f1f0de987cf1c82a5c21e1ce6568b9227f7da5b71cbea86c9d"
+type = "file"
+url = "http://mirrors.kernel.org/gnu/ncurses/ncurses-6.2.tar.gz"
+[[sources]]
+filename = "libiconv-1.16.tar.gz"
+hash = "e6a1b1b589654277ee790cce3734f07876ac4ccfaecbee8afa0b649cf529cc04"
+type = "file"
+url = "http://mirrors.kernel.org/gnu/libiconv/libiconv-1.16.tar.gz"
+[[sources]]
+filename = "gettext-0.21.tar.xz"
+hash = "d20fcbb537e02dcf1383197ba05bd0734ef7bf5db06bdb241eb69b7d16b73192"
+type = "file"
+url = "http://mirrors.kernel.org/gnu/gettext/gettext-0.21.tar.xz"
+[[sources]]
+filename = "binutils-2.29.1.tar.xz"
+hash = "e7010a46969f9d3e53b650a518663f98a5dde3c3ae21b7d71e5e6803bc36b577"
+type = "file"
+url = "http://mirrors.kernel.org/gnu/binutils/binutils-2.29.1.tar.xz"
+[[sources]]
+filename = "binutils-2.38.tar.xz"
+hash = "e316477a914f567eccc34d5d29785b8b0f5a10208d36bbacedcc39048ecfe024"
+type = "file"
+url = "http://mirrors.kernel.org/gnu/binutils/binutils-2.38.tar.xz"

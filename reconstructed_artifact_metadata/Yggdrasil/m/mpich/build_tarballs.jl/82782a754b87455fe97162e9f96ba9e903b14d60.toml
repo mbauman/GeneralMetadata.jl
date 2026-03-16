@@ -1,0 +1,48 @@
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "MPICH"
+platforms = ["i686-linux-gnu-libgfortran3", "i686-linux-gnu-libgfortran4", "i686-linux-gnu-libgfortran5", "x86_64-linux-gnu-libgfortran3", "x86_64-linux-gnu-libgfortran4", "x86_64-linux-gnu-libgfortran5", "aarch64-linux-gnu-libgfortran3", "aarch64-linux-gnu-libgfortran4", "aarch64-linux-gnu-libgfortran5", "armv7l-linux-gnueabihf-libgfortran3", "armv7l-linux-gnueabihf-libgfortran4", "armv7l-linux-gnueabihf-libgfortran5", "powerpc64le-linux-gnu-libgfortran3", "powerpc64le-linux-gnu-libgfortran4", "powerpc64le-linux-gnu-libgfortran5", "i686-linux-musl-libgfortran3", "i686-linux-musl-libgfortran4", "i686-linux-musl-libgfortran5", "x86_64-linux-musl-libgfortran3", "x86_64-linux-musl-libgfortran4", "x86_64-linux-musl-libgfortran5", "aarch64-linux-musl-libgfortran3", "aarch64-linux-musl-libgfortran4", "aarch64-linux-musl-libgfortran5", "armv7l-linux-musleabihf-libgfortran3", "armv7l-linux-musleabihf-libgfortran4", "armv7l-linux-musleabihf-libgfortran5", "x86_64-apple-darwin-libgfortran3", "x86_64-apple-darwin-libgfortran4", "x86_64-apple-darwin-libgfortran5", "x86_64-unknown-freebsd-libgfortran3", "x86_64-unknown-freebsd-libgfortran4", "x86_64-unknown-freebsd-libgfortran5", "aarch64-apple-darwin-libgfortran5", "armv6l-linux-gnueabihf-libgfortran3", "armv6l-linux-gnueabihf-libgfortran4", "armv6l-linux-gnueabihf-libgfortran5", "armv6l-linux-musleabihf-libgfortran3", "armv6l-linux-musleabihf-libgfortran4", "armv6l-linux-musleabihf-libgfortran5"]
+script = """# Enter the funzone\ncd ${WORKSPACE}/srcdir/mpich*\n\nif [[ \"${target}\" == powerpc64le-* ]]; then\n    # I don't understand why, but the extra link flags we append in the gfortran\n    # wrapper confuse the build system: the rule to build libmpifort has an\n    # extra lone `-l` flag, without any library to link to.  The following sed\n    # script basically reverts\n    # https://github.com/JuliaPackaging/BinaryBuilder.jl/pull/749, so that the\n    # extra link flags are not appended to the gfortran wrapper\n    sed -i 's/POST_FLAGS+.*/POST_FLAGS=()/g' /opt/bin/${target}*/gfortran\nfi\n\nEXTRA_FLAGS=()\nif [[ \"${target}\" != i686-linux-gnu ]] || [[ \"${target}\" != x86_64-linux-* ]]; then\n    # Define some obscure undocumented variables needed for cross compilation of\n    # the Fortran bindings.  See for example\n    # * https://stackoverflow.com/q/56759636/2442087\n    # * https://github.com/pmodels/mpich/blob/d10400d7a8238dc3c8464184238202ecacfb53c7/doc/installguide/cfile\n    export CROSS_F77_SIZEOF_INTEGER=4\n    export CROSS_F77_TRUE_VALUE=1\n    export CROSS_F77_FALSE_VALUE=0\n\n    export CROSS_F90_ADDRESS_KIND=8\n    export CROSS_F90_OFFSET_KIND=8\n    export CROSS_F90_INTEGER_KIND=4\n    export CROSS_F90_DOUBLE_MODEL=15,307\n    export CROSS_F90_REAL_MODEL=6,37\n\n    if [[ \"${target}\" == i686-linux-musl ]]; then\n        # Our `i686-linux-musl` platform is a bit rotten: it can run C programs,\n        # but not C++ or Fortran.  `configure` runs a C program to determine\n        # whether it's cross-compiling or not, but when it comes to running\n        # Fortran programs, it fails.  In addition, `configure` ignores the\n        # above exported variables if it believes it's doing a native build.\n        # Small hack: edit `configure` script to force `cross_compiling` to be\n        # always \"yes\".\n        sed -i 's/cross_compiling=no/cross_compiling=yes/g' configure\n        EXTRA_FLAGS+=(ac_cv_sizeof_bool=\"1\")\n    fi\nfi\n\nif [[ \"${target}\" == aarch64-apple-* ]]; then\n    export FFLAGS=-fallow-argument-mismatch\nfi\n\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \\\n    --enable-shared=yes --enable-static=no \\\n    --with-device=ch3 --disable-dependency-tracking \\\n    --docdir=/tmp \\\n    \"${EXTRA_FLAGS[@]}\"\n\n# Build the library\nmake -j${nproc}\n\n# Install the library\nmake install\n"""
+version = "v3.4.2"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmpicxx"]
+type = "lib"
+variable_name = "libmpicxx"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmpifort"]
+type = "lib"
+variable_name = "libmpifort"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmpi"]
+type = "lib"
+variable_name = "libmpi"
+[[products]]
+binnames = ["mpiexec"]
+type = "exe"
+variable_name = "mpiexec"
+
+[[sources]]
+hash = "5c19bea8b84e8d74cca5f047e82b147ff3fba096144270e3911ad623d6c587bf"
+type = "archive"
+unpack_target = ""
+url = "https://www.mpich.org/static/downloads/3.4.2/mpich-3.4.2.tar.gz"

@@ -1,0 +1,19 @@
+dependencies = []
+lazy_artifacts = false
+name = "LibOSXUnwind"
+platforms = ["x86_64-apple-darwin14"]
+script = """cd $WORKSPACE/srcdir/libosxunwind*/\n\nEXTRA_CFLAGS=\"-ggdb3 -O0\"\n\nFLAGS=(\n    CC=\"$CC\"\n    CXX=\"$CXX\"\n    CFLAGS=\"${CFLAGS} -ggdb3 -O0\"\n    CXXFLAGS=\"${CXXFLAGS} -ggdb3 -O0\"\n    # We lie aobut this because Apple version numbers have nothing to do with\n    # upstream LLVM version numbers.  Sigh.\n    CLANG_MAJOR_VERSION=10\n    PREFIX=\"${prefix}\"\n)\n\n# Comment out CLANG_MAJOR_VERSION setting, since it is broken in BB due to non-apple clang output\nsed -i.bak -e 's/^CLANG_MAJOR_VERSION := .*$//g' Makefile\n\n# When all you have is a hammer...\nmake -j${nproc} \"${FLAGS[@]}\"\n\n# Manual installation as the osxunwind `Makefile` doesnt' even know how to do this\nmkdir -p ${libdir}\ncp libosxunwind.dylib ${libdir}/\ncp libosxunwind.a ${libdir}/\ncp -aR include ${prefix}/\n"""
+version = "v0.0.5"
+
+[[products]]
+dir_paths = []
+dont_dlopen = false
+libnames = ["libosxunwind"]
+type = "lib"
+variable_name = "libosxunwind"
+
+[[sources]]
+hash = "4ba7b3e24988053870d811afdff58ff103929e7531f156e663f3cf25416c9f46"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/JuliaLang/libosxunwind/archive/v0.0.5.tar.gz"

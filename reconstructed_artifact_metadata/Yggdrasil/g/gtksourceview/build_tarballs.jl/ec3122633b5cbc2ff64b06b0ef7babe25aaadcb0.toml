@@ -1,0 +1,73 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "GtkSourceView"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/gtksourceview-*/\n\n# We need to run native `xmllint` and `glib-compile-resources`\napk add libxml2-utils glib-dev gtk-update-icon-cache\n\n# Don't build broken tests\natomic_patch -p1 ../patches/meson_build_no_tests.patch\n\n# host version needs to be used\nrm -f /workspace/destdir/bin/gtk4-update-icon-cache\n\nmkdir build && cd build\n\nMESON_FLAGS=(-Dintrospection=disabled -Dvapi=false)\n\n# buildtype=plain disables stack-protector-strong, needed for this platform\nif [[ \"${target}\" == i686-linux-musl ]]; then\n    MESON_FLAGS+=(--buildtype=plain)\nfi\n\nmeson .. \\\n    \"${MESON_FLAGS[@]}\" \\\n    --cross-file=\"${MESON_TARGET_TOOLCHAIN}\"\nninja -j${nproc}\nninja install\n"""
+version = "v5.10.0"
+
+[[dependencies]]
+compat = "2.76"
+name = "Glib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "GTK4_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.16.1"
+name = "Cairo_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "FriBidi_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_xorgproto_jll"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-unknown-freebsd"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgtksourceview-5"]
+type = "lib"
+variable_name = "libgtksourceview"
+
+[[sources]]
+hash = "b38a3010c34f59e13b05175e9d20ca02a3110443fec2b1e5747413801bc9c23f"
+type = "archive"
+unpack_target = ""
+url = "https://download.gnome.org/sources/gtksourceview/5.10/gtksourceview-5.10.0.tar.xz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

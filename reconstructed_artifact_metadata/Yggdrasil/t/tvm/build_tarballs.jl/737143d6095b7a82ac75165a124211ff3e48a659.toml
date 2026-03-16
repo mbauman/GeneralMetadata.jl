@@ -1,0 +1,172 @@
+augment_platform_block = """using Base.BinaryPlatforms\nfunction augment_llvm!(platform::Platform)\n    haskey(platform, \"llvm_version\") && return platform\n\n    llvm_version = Base.libllvm_version\n    # does our LLVM build use assertions?\n    llvm_assertions = try\n        cglobal((:_ZN4llvm24DisableABIBreakingChecksE, Base.libllvm_path()), Cvoid)\n        false\n    catch\n        true\n    end\n    platform[\"llvm_version\"] = if llvm_assertions\n        \"$(llvm_version.major).asserts\"\n    else\n        \"$(llvm_version.major)\"\n    end\n    return platform\nend\n\nfunction augment_platform!(platform::Platform)\n    augment_llvm!(platform)\nend"""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = true
+name = "TVM"
+platforms = ["i686-linux-gnu-cxx11-llvm_version+15", "x86_64-linux-gnu-cxx11-llvm_version+15", "aarch64-linux-gnu-cxx11-llvm_version+15", "armv6l-linux-gnueabihf-cxx11-llvm_version+15", "armv7l-linux-gnueabihf-cxx11-llvm_version+15", "powerpc64le-linux-gnu-cxx11-llvm_version+15", "x86_64-apple-darwin-llvm_version+15", "aarch64-apple-darwin-llvm_version+15", "i686-linux-gnu-cxx11-llvm_version+15.asserts", "x86_64-linux-gnu-cxx11-llvm_version+15.asserts", "aarch64-linux-gnu-cxx11-llvm_version+15.asserts", "armv6l-linux-gnueabihf-cxx11-llvm_version+15.asserts", "armv7l-linux-gnueabihf-cxx11-llvm_version+15.asserts", "powerpc64le-linux-gnu-cxx11-llvm_version+15.asserts", "x86_64-apple-darwin-llvm_version+15.asserts", "aarch64-apple-darwin-llvm_version+15.asserts", "i686-linux-gnu-cxx11-llvm_version+16", "x86_64-linux-gnu-cxx11-llvm_version+16", "aarch64-linux-gnu-cxx11-llvm_version+16", "armv6l-linux-gnueabihf-cxx11-llvm_version+16", "armv7l-linux-gnueabihf-cxx11-llvm_version+16", "powerpc64le-linux-gnu-cxx11-llvm_version+16", "x86_64-apple-darwin-llvm_version+16", "aarch64-apple-darwin-llvm_version+16", "i686-linux-gnu-cxx11-llvm_version+16.asserts", "x86_64-linux-gnu-cxx11-llvm_version+16.asserts", "aarch64-linux-gnu-cxx11-llvm_version+16.asserts", "armv6l-linux-gnueabihf-cxx11-llvm_version+16.asserts", "armv7l-linux-gnueabihf-cxx11-llvm_version+16.asserts", "powerpc64le-linux-gnu-cxx11-llvm_version+16.asserts", "x86_64-apple-darwin-llvm_version+16.asserts", "aarch64-apple-darwin-llvm_version+16.asserts", "i686-linux-gnu-cxx11-llvm_version+18", "x86_64-linux-gnu-cxx11-llvm_version+18", "aarch64-linux-gnu-cxx11-llvm_version+18", "armv6l-linux-gnueabihf-cxx11-llvm_version+18", "armv7l-linux-gnueabihf-cxx11-llvm_version+18", "powerpc64le-linux-gnu-cxx11-llvm_version+18", "x86_64-apple-darwin-llvm_version+18", "aarch64-apple-darwin-llvm_version+18", "i686-linux-gnu-cxx11-llvm_version+18.asserts", "x86_64-linux-gnu-cxx11-llvm_version+18.asserts", "aarch64-linux-gnu-cxx11-llvm_version+18.asserts", "armv6l-linux-gnueabihf-cxx11-llvm_version+18.asserts", "armv7l-linux-gnueabihf-cxx11-llvm_version+18.asserts", "powerpc64le-linux-gnu-cxx11-llvm_version+18.asserts", "x86_64-apple-darwin-llvm_version+18.asserts", "aarch64-apple-darwin-llvm_version+18.asserts", "i686-linux-gnu-cxx11-llvm_version+20", "x86_64-linux-gnu-cxx11-llvm_version+20", "aarch64-linux-gnu-cxx11-llvm_version+20", "armv6l-linux-gnueabihf-cxx11-llvm_version+20", "armv7l-linux-gnueabihf-cxx11-llvm_version+20", "powerpc64le-linux-gnu-cxx11-llvm_version+20", "riscv64-linux-gnu-cxx11-llvm_version+20", "x86_64-apple-darwin-llvm_version+20", "aarch64-apple-darwin-llvm_version+20", "i686-linux-gnu-cxx11-llvm_version+20.asserts", "x86_64-linux-gnu-cxx11-llvm_version+20.asserts", "aarch64-linux-gnu-cxx11-llvm_version+20.asserts", "armv6l-linux-gnueabihf-cxx11-llvm_version+20.asserts", "armv7l-linux-gnueabihf-cxx11-llvm_version+20.asserts", "powerpc64le-linux-gnu-cxx11-llvm_version+20.asserts", "riscv64-linux-gnu-cxx11-llvm_version+20.asserts", "x86_64-apple-darwin-llvm_version+20.asserts", "aarch64-apple-darwin-llvm_version+20.asserts"]
+script = ["""if [[ \"${target}\" == x86_64-apple-darwin* ]]; then\nmacos_sdk=10.14\n    echo \"Extracting MacOSX${macos_sdk}.sdk.tar.xz (this may take a while)\"\n    rm -rf /opt/${target}/${target}/sys-root/System\n    rm -rf /opt/${target}/${target}/sys-root/usr/include/libxml2/libxml\n    tar --extract \\\n        --file=${WORKSPACE}/srcdir/MacOSX${macos_sdk}.sdk.tar.xz \\\n        --directory=\"/opt/${target}/${target}/sys-root/.\" \\\n        --strip-components=1 \\\n        MacOSX${macos_sdk}.sdk/System \\\n        MacOSX${macos_sdk}.sdk/usr\n    export MACOSX_DEPLOYMENT_TARGET=${macos_sdk}\nfi\ncd $WORKSPACE/srcdir/tvm\ninstall_license LICENSE \ngit submodule update --init --recursive\n# setup LLVM_LIBS manually for non-Linux OS\nif [[ \"$target\" == *darwin* ]]; then\n    export LLVM_LIBS=\"${libdir}/libLLVM-15.0.dylib\"\nelif [[ \"$target\" == *mingw* ]]; then\n    export LLVM_LIBS=\"${bindir}/libLLVM-15jl.dll\"\nelse\n    export LLVM_LIBS=\"${libdir}/libLLVM-15jl.so\"\nfi\ncmake -B ../../build -DCMAKE_INSTALL_PREFIX=${prefix} \\\n         -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n         -DUSE_ALTERNATIVE_LINKER=OFF \\\n         -DCMAKE_BUILD_TYPE=Release \\\n         -DUSE_LLVM=ON \\\n         -DLLVM_LIBS=${LLVM_LIBS} \\\n         -G Ninja\nninja -C ../../build\nninja -C ../../build install\n""", """if [[ \"${target}\" == x86_64-apple-darwin* ]]; then\nmacos_sdk=10.14\n    echo \"Extracting MacOSX${macos_sdk}.sdk.tar.xz (this may take a while)\"\n    rm -rf /opt/${target}/${target}/sys-root/System\n    rm -rf /opt/${target}/${target}/sys-root/usr/include/libxml2/libxml\n    tar --extract \\\n        --file=${WORKSPACE}/srcdir/MacOSX${macos_sdk}.sdk.tar.xz \\\n        --directory=\"/opt/${target}/${target}/sys-root/.\" \\\n        --strip-components=1 \\\n        MacOSX${macos_sdk}.sdk/System \\\n        MacOSX${macos_sdk}.sdk/usr\n    export MACOSX_DEPLOYMENT_TARGET=${macos_sdk}\nfi\ncd $WORKSPACE/srcdir/tvm\ninstall_license LICENSE \ngit submodule update --init --recursive\n# setup LLVM_LIBS manually for non-Linux OS\nif [[ \"$target\" == *darwin* ]]; then\n    export LLVM_LIBS=\"${libdir}/libLLVM-16.0.dylib\"\nelif [[ \"$target\" == *mingw* ]]; then\n    export LLVM_LIBS=\"${bindir}/libLLVM-16jl.dll\"\nelse\n    export LLVM_LIBS=\"${libdir}/libLLVM-16jl.so\"\nfi\ncmake -B ../../build -DCMAKE_INSTALL_PREFIX=${prefix} \\\n         -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n         -DUSE_ALTERNATIVE_LINKER=OFF \\\n         -DCMAKE_BUILD_TYPE=Release \\\n         -DUSE_LLVM=ON \\\n         -DLLVM_LIBS=${LLVM_LIBS} \\\n         -G Ninja\nninja -C ../../build\nninja -C ../../build install\n""", """if [[ \"${target}\" == x86_64-apple-darwin* ]]; then\nmacos_sdk=10.14\n    echo \"Extracting MacOSX${macos_sdk}.sdk.tar.xz (this may take a while)\"\n    rm -rf /opt/${target}/${target}/sys-root/System\n    rm -rf /opt/${target}/${target}/sys-root/usr/include/libxml2/libxml\n    tar --extract \\\n        --file=${WORKSPACE}/srcdir/MacOSX${macos_sdk}.sdk.tar.xz \\\n        --directory=\"/opt/${target}/${target}/sys-root/.\" \\\n        --strip-components=1 \\\n        MacOSX${macos_sdk}.sdk/System \\\n        MacOSX${macos_sdk}.sdk/usr\n    export MACOSX_DEPLOYMENT_TARGET=${macos_sdk}\nfi\ncd $WORKSPACE/srcdir/tvm\ninstall_license LICENSE \ngit submodule update --init --recursive\n# setup LLVM_LIBS manually for non-Linux OS\nif [[ \"$target\" == *darwin* ]]; then\n    export LLVM_LIBS=\"${libdir}/libLLVM-18.1.dylib\"\nelif [[ \"$target\" == *mingw* ]]; then\n    export LLVM_LIBS=\"${bindir}/libLLVM-18jl.dll\"\nelse\n    export LLVM_LIBS=\"${libdir}/libLLVM-18jl.so\"\nfi\ncmake -B ../../build -DCMAKE_INSTALL_PREFIX=${prefix} \\\n         -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n         -DUSE_ALTERNATIVE_LINKER=OFF \\\n         -DCMAKE_BUILD_TYPE=Release \\\n         -DUSE_LLVM=ON \\\n         -DLLVM_LIBS=${LLVM_LIBS} \\\n         -G Ninja\nninja -C ../../build\nninja -C ../../build install\n""", """if [[ \"${target}\" == x86_64-apple-darwin* ]]; then\nmacos_sdk=10.14\n    echo \"Extracting MacOSX${macos_sdk}.sdk.tar.xz (this may take a while)\"\n    rm -rf /opt/${target}/${target}/sys-root/System\n    rm -rf /opt/${target}/${target}/sys-root/usr/include/libxml2/libxml\n    tar --extract \\\n        --file=${WORKSPACE}/srcdir/MacOSX${macos_sdk}.sdk.tar.xz \\\n        --directory=\"/opt/${target}/${target}/sys-root/.\" \\\n        --strip-components=1 \\\n        MacOSX${macos_sdk}.sdk/System \\\n        MacOSX${macos_sdk}.sdk/usr\n    export MACOSX_DEPLOYMENT_TARGET=${macos_sdk}\nfi\ncd $WORKSPACE/srcdir/tvm\ninstall_license LICENSE \ngit submodule update --init --recursive\n# setup LLVM_LIBS manually for non-Linux OS\nif [[ \"$target\" == *darwin* ]]; then\n    export LLVM_LIBS=\"${libdir}/libLLVM-20.1.dylib\"\nelif [[ \"$target\" == *mingw* ]]; then\n    export LLVM_LIBS=\"${bindir}/libLLVM-20jl.dll\"\nelse\n    export LLVM_LIBS=\"${libdir}/libLLVM-20jl.so\"\nfi\ncmake -B ../../build -DCMAKE_INSTALL_PREFIX=${prefix} \\\n         -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n         -DUSE_ALTERNATIVE_LINKER=OFF \\\n         -DCMAKE_BUILD_TYPE=Release \\\n         -DUSE_LLVM=ON \\\n         -DLLVM_LIBS=${LLVM_LIBS} \\\n         -G Ninja\nninja -C ../../build\nninja -C ../../build install\n"""]
+version = "v0.22.0"
+
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "XML2_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "libLLVM_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "TVMFFI_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LLVM_full_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 15
+version-minor = 0
+version-patch = 7
+[[dependencies]]
+compat = ""
+name = "MLIR_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 15
+version-minor = 0
+version-patch = 7
+[[dependencies]]
+compat = ""
+name = "LLVM_full_assert_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 15
+version-minor = 0
+version-patch = 7
+[[dependencies]]
+compat = ""
+name = "LLVM_full_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 16
+version-minor = 0
+version-patch = 6
+[[dependencies]]
+compat = ""
+name = "MLIR_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 16
+version-minor = 0
+version-patch = 6
+[[dependencies]]
+compat = ""
+name = "LLVM_full_assert_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 16
+version-minor = 0
+version-patch = 6
+[[dependencies]]
+compat = ""
+name = "LLVM_full_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 18
+version-minor = 1
+version-patch = 7
+[[dependencies]]
+compat = ""
+name = "MLIR_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 18
+version-minor = 1
+version-patch = 7
+[[dependencies]]
+compat = ""
+name = "LLVM_full_assert_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 18
+version-minor = 1
+version-patch = 7
+[[dependencies]]
+compat = ""
+name = "LLVM_full_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 20
+version-minor = 1
+version-patch = 8
+[[dependencies]]
+compat = ""
+name = "MLIR_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 20
+version-minor = 1
+version-patch = 8
+[[dependencies]]
+compat = ""
+name = "LLVM_full_assert_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 20
+version-minor = 1
+version-patch = 8
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libtvm"]
+type = "lib"
+variable_name = "libtvm"
+
+[[sources]]
+hash = "9dbf3f22ff6f44962472f9af310fda368ca85ef2"
+type = "git"
+unpack_target = ""
+url = "https://github.com/apache/tvm.git"
+[[sources]]
+filename = "MacOSX10.14.sdk.tar.xz"
+hash = "0f03869f72df8705b832910517b47dd5b79eb4e160512602f593ed243b28715f"
+type = "file"
+url = "https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.14.sdk.tar.xz"

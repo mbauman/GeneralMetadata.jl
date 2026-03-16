@@ -1,0 +1,43 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.7"
+lazy_artifacts = false
+name = "GMP"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11", "x86_64-linux-gnu-sanitize+memory"]
+script = """cd $WORKSPACE/srcdir/gmp-*\n\n# Include Julia-carried patches\nfor f in $WORKSPACE/srcdir/patches/*.patch; do\n    echo \"Applying patch ${f}\"\n    atomic_patch -p1 ${f}\ndone\n\nflags=(--enable-cxx --enable-shared --disable-static)\n\n# On x86_64 architectures, build fat binary\nif [[ ${proc_family} == intel ]]; then\n    flags+=(--enable-fat)\nfi\n\nif [[ ${bb_full_target} == *-sanitize+memory* ]]; then\n    # Install msan runtime (for clang)\n    cp -rL ${libdir}/linux/* /opt/x86_64-linux-musl/lib/clang/*/lib/linux/\nfi\nautoreconf\n./configure --prefix=$prefix --build=${MACHTYPE} --host=${target} ${flags[@]}\n\nmake -j${nproc}\nmake install\n\n# On Windows, we need to make sure that the non-versioned dll names exist too\nif [[ ${target} == *mingw* ]]; then\n    cp -v ${libdir}/libgmp-*.dll \"${libdir}/libgmp.dll\"\n    cp -v ${libdir}/libgmpxx-*.dll \"${libdir}/libgmpxx.dll\"\nfi\n\n# GMP is dual-licensed, install all license files\ninstall_license COPYING*\n"""
+version = "v6.2.1"
+
+[[dependencies]]
+compat = ""
+name = "LLVMCompilerRT_jll"
+platforms = ["x86_64-linux-gnu-sanitize+memory"]
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgmp"]
+type = "lib"
+variable_name = "libgmp"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgmpxx"]
+type = "lib"
+variable_name = "libgmpxx"
+
+[[sources]]
+hash = "eae9326beb4158c386e39a356818031bd28f3124cf915f8c5b1dc4c7a36b4d7c"
+type = "archive"
+unpack_target = ""
+url = "https://gmplib.org/download/gmp/gmp-6.2.1.tar.bz2"
+[[sources]]
+follow_symlinks = true
+path = "./bundled"
+target = ""
+type = "directory"

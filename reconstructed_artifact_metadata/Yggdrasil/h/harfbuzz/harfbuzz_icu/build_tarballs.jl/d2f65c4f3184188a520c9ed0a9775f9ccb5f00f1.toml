@@ -1,0 +1,109 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "HarfBuzz_ICU"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """ICU=true\ncd $WORKSPACE/srcdir/harfbuzz-*/\n\n# On MacOS, bypass broken check for CoreText\nif [[ \"${target}\" == *-apple-darwin* ]]; then\n    atomic_patch -p1 ../patches/coretext-check-bypass.patch\nfi\n\nmkdir build && cd build\nmeson .. \\\n    --cross-file=\"${MESON_TARGET_TOOLCHAIN}\" \\\n    --buildtype=release \\\n    -Dcairo=enabled \\\n    -Dfreetype=enabled \\\n    -Dglib=enabled \\\n    -Dgobject=enabled \\\n    -Dgraphite=enabled \\\n    -Dintrospection=disabled \\\n    -Ddocs=disabled \\\n    -Dtests=disabled \\\n    -Dicu=auto \\\n    -Dicu_builtin=false \\\n    -Dcoretext=enabled \\\n    -Dgdi=enabled \\\n    -Ddirectwrite=enabled\nninja -j${nproc}\nif [[ \"${ICU}\" == true ]]; then\n    # Remove directories with symbol files (they confuse the `cp` command below)\n    rm -rf src/libharfbuzz-icu*${dlext}*.p\n    # Manually install only ICU-related files\n    cp src/libharfbuzz-icu*${dlext}* ${libdir}/.\n    cp meson-private/harfbuzz-icu.pc ${prefix}/lib/pkgconfig/.\n    cp ../src/hb-icu.h ${includedir}/harfbuzz/.\nelse\n    ninja install\nfi\n"""
+version = "v8.5.0"
+
+[[dependencies]]
+compat = ""
+name = "Cairo_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Fontconfig_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "2.13.3"
+name = "FreeType2_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "2.82.2"
+name = "Glib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Graphite2_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "~3.2.2"
+name = "Libffi_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_xorgproto_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "8.5.0"
+name = "HarfBuzz_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "69.1.0"
+name = "ICU_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libharfbuzz-icu"]
+type = "lib"
+variable_name = "libharfbuzz_icu"
+
+[[sources]]
+hash = "77e4f7f98f3d86bf8788b53e6832fb96279956e1c3961988ea3d4b7ca41ddc27"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/harfbuzz/harfbuzz/releases/download/8.5.0/harfbuzz-8.5.0.tar.xz"
+[[sources]]
+follow_symlinks = false
+path = "../bundled"
+target = ""
+type = "directory"

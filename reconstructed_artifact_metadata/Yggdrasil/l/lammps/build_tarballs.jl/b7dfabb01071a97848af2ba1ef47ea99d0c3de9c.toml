@@ -1,0 +1,283 @@
+augment_platform_block = """    using Base.BinaryPlatforms\n\n    module __CUDA\n        using Base.BinaryPlatforms\n\ntry\n    using CUDA_Runtime_jll\ncatch\n    # during initial package installation, CUDA_Runtime_jll may not be available.\n    # in that case, we just won't select an artifact.\nend\n\n# can't use Preferences for the same reason\nconst CUDA_Runtime_jll_uuid = Base.UUID(\"76a88914-d11a-5bdc-97e0-2f5a05c973a2\")\nconst preferences = Base.get_preferences(CUDA_Runtime_jll_uuid)\nBase.record_compiletime_preference(CUDA_Runtime_jll_uuid, \"version\")\nBase.record_compiletime_preference(CUDA_Runtime_jll_uuid, \"local\")\nconst local_toolkit = something(tryparse(Bool, get(preferences, \"local\", \"false\")), false)\n\nfunction cuda_comparison_strategy(_a::String, _b::String, a_requested::Bool, b_requested::Bool)\n    # if we're using a local toolkit, we can't use artifacts\n    if local_toolkit\n        return false\n    end\n\n    # if either isn't a version number (e.g. \"none\"), perform a simple equality check\n    a = tryparse(VersionNumber, _a)\n    b = tryparse(VersionNumber, _b)\n    if a === nothing || b === nothing\n        return _a == _b\n    end\n\n    # if both b and a requested, then we fall back to equality\n    if a_requested && b_requested\n        return Base.thisminor(a) == Base.thisminor(b)\n    end\n\n    # otherwise, do the comparison between the the single version cap and the single version:\n    function is_compatible(artifact::VersionNumber, host::VersionNumber)\n        if host >= v\"11.0\"\n            # enhanced compatibility, semver-style\n            artifact.major == host.major &&\n            Base.thisminor(artifact) <= Base.thisminor(host)\n        else\n            Base.thisminor(artifact) == Base.thisminor(host)\n        end\n    end\n    if a_requested\n        is_compatible(b, a)\n    else\n        is_compatible(a, b)\n    end\nend\n\nfunction augment_platform!(platform::Platform)\n    if !@isdefined(CUDA_Runtime_jll)\n        # don't set to nothing or Pkg will download any artifact\n        platform[\"cuda\"] = \"none\"\n    end\n\n    if !haskey(platform, \"cuda\")\n        CUDA_Runtime_jll.augment_platform!(platform)\n    end\n    BinaryPlatforms.set_compare_strategy!(platform, \"cuda\", cuda_comparison_strategy)\n\n    return platform\nend\n    end\n\n    # Can't use Preferences since we might be running this very early with a non-existing Manifest\nMPIPreferences_UUID = Base.UUID(\"3da0fdf6-3ccc-4f1b-acd9-58baa6c99267\")\nconst preferences = Base.get_preferences(MPIPreferences_UUID)\n\n# Keep logic in sync with MPIPreferences.jl\nfunction augment_mpi!(platform)\n    # Doesn't need to be `const` since we depend on MPIPreferences so we\n    # invalidate the cache when it changes.\n    # Note: MPIPreferences uses `Sys.iswindows()` without the `platform` argument.\n    binary = get(preferences, \"binary\", Sys.iswindows(platform) ? \"MicrosoftMPI_jll\" : \"MPICH_jll\")\n\n    abi = if binary == \"system\"\n        let abi = get(preferences, \"abi\", nothing)\n            if abi === nothing\n                error(\"MPIPreferences: Inconsistent state detected, binary set to system, but no ABI set.\")\n            else\n                abi\n            end\n        end\n    elseif binary == \"MicrosoftMPI_jll\"\n        \"MicrosoftMPI\"\n    elseif binary == \"MPICH_jll\"\n        \"MPICH\"\n    elseif binary == \"OpenMPI_jll\"\n        \"OpenMPI\"\n    elseif binary == \"MPItrampoline_jll\"\n        \"MPItrampoline\"\n    else\n        error(\"Unknown binary: $binary\")\n    end\n\n    if !haskey(platform, \"mpi\")\n        platform[\"mpi\"] = abi\n    end\n    return platform\nend\n\n\n    function augment_platform!(platform::Platform)\n        augment_mpi!(platform)\n        __CUDA.augment_platform!(platform)\n    end\n"""
+init_block = ""
+julia_compat = "1.7"
+lazy_artifacts = true
+name = "LAMMPS"
+platforms = ["i686-linux-gnu-cxx03-mpi+none", "i686-linux-gnu-cxx11-mpi+none", "x86_64-linux-gnu-cxx03-cuda+none-mpi+none", "x86_64-linux-gnu-cxx11-cuda+none-mpi+none", "aarch64-linux-gnu-cxx03-cuda+none-mpi+none", "aarch64-linux-gnu-cxx11-cuda+none-mpi+none", "armv6l-linux-gnueabihf-cxx03-mpi+none", "armv6l-linux-gnueabihf-cxx11-mpi+none", "armv7l-linux-gnueabihf-cxx03-mpi+none", "armv7l-linux-gnueabihf-cxx11-mpi+none", "powerpc64le-linux-gnu-cxx03-cuda+none-mpi+none", "powerpc64le-linux-gnu-cxx11-cuda+none-mpi+none", "riscv64-linux-gnu-cxx03-mpi+none", "riscv64-linux-gnu-cxx11-mpi+none", "x86_64-apple-darwin-mpi+none", "aarch64-apple-darwin-mpi+none", "i686-w64-mingw32-cxx03-mpi+none", "i686-w64-mingw32-cxx11-mpi+none", "x86_64-w64-mingw32-cxx03-mpi+none", "x86_64-w64-mingw32-cxx11-mpi+none", "x86_64-linux-gnu-cxx03-mpi+none-cuda+11.4", "x86_64-linux-gnu-cxx11-mpi+none-cuda+11.4", "x86_64-linux-gnu-cxx03-mpi+none-cuda+11.5", "x86_64-linux-gnu-cxx11-mpi+none-cuda+11.5", "x86_64-linux-gnu-cxx03-mpi+none-cuda+11.6", "x86_64-linux-gnu-cxx11-mpi+none-cuda+11.6", "x86_64-linux-gnu-cxx03-mpi+none-cuda+11.7", "x86_64-linux-gnu-cxx11-mpi+none-cuda+11.7", "x86_64-linux-gnu-cxx03-mpi+none-cuda+11.8", "x86_64-linux-gnu-cxx11-mpi+none-cuda+11.8", "x86_64-linux-gnu-cxx03-mpi+none-cuda+12.0", "x86_64-linux-gnu-cxx11-mpi+none-cuda+12.0", "x86_64-linux-gnu-cxx03-mpi+none-cuda+12.1", "x86_64-linux-gnu-cxx11-mpi+none-cuda+12.1", "x86_64-linux-gnu-cxx03-mpi+none-cuda+12.2", "x86_64-linux-gnu-cxx11-mpi+none-cuda+12.2", "x86_64-linux-gnu-cxx03-mpi+none-cuda+12.3", "x86_64-linux-gnu-cxx11-mpi+none-cuda+12.3", "x86_64-linux-gnu-cxx03-mpi+none-cuda+12.4", "x86_64-linux-gnu-cxx11-mpi+none-cuda+12.4", "x86_64-linux-gnu-cxx03-mpi+none-cuda+12.5", "x86_64-linux-gnu-cxx11-mpi+none-cuda+12.5", "x86_64-linux-gnu-cxx03-mpi+none-cuda+12.6", "x86_64-linux-gnu-cxx11-mpi+none-cuda+12.6", "x86_64-linux-gnu-cxx03-mpi+none-cuda+12.8", "x86_64-linux-gnu-cxx11-mpi+none-cuda+12.8", "i686-linux-gnu-cxx03-mpi+mpich", "i686-linux-gnu-cxx11-mpi+mpich", "x86_64-linux-gnu-cxx03-cuda+none-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+none-mpi+mpich", "aarch64-linux-gnu-cxx03-cuda+none-mpi+mpich", "aarch64-linux-gnu-cxx11-cuda+none-mpi+mpich", "armv6l-linux-gnueabihf-cxx03-mpi+mpich", "armv6l-linux-gnueabihf-cxx11-mpi+mpich", "armv7l-linux-gnueabihf-cxx03-mpi+mpich", "armv7l-linux-gnueabihf-cxx11-mpi+mpich", "powerpc64le-linux-gnu-cxx03-cuda+none-mpi+mpich", "powerpc64le-linux-gnu-cxx11-cuda+none-mpi+mpich", "riscv64-linux-gnu-cxx03-mpi+mpich", "riscv64-linux-gnu-cxx11-mpi+mpich", "x86_64-apple-darwin-mpi+mpich", "aarch64-apple-darwin-mpi+mpich", "i686-linux-gnu-cxx03-mpi+mpitrampoline", "i686-linux-gnu-cxx11-mpi+mpitrampoline", "x86_64-linux-gnu-cxx03-cuda+none-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+none-mpi+mpitrampoline", "aarch64-linux-gnu-cxx03-cuda+none-mpi+mpitrampoline", "aarch64-linux-gnu-cxx11-cuda+none-mpi+mpitrampoline", "armv6l-linux-gnueabihf-cxx03-mpi+mpitrampoline", "armv6l-linux-gnueabihf-cxx11-mpi+mpitrampoline", "armv7l-linux-gnueabihf-cxx03-mpi+mpitrampoline", "armv7l-linux-gnueabihf-cxx11-mpi+mpitrampoline", "powerpc64le-linux-gnu-cxx03-cuda+none-mpi+mpitrampoline", "powerpc64le-linux-gnu-cxx11-cuda+none-mpi+mpitrampoline", "x86_64-apple-darwin-mpi+mpitrampoline", "aarch64-apple-darwin-mpi+mpitrampoline", "i686-w64-mingw32-cxx03-mpi+microsoftmpi", "i686-w64-mingw32-cxx11-mpi+microsoftmpi", "x86_64-w64-mingw32-cxx03-mpi+microsoftmpi", "x86_64-w64-mingw32-cxx11-mpi+microsoftmpi", "i686-linux-gnu-cxx03-mpi+openmpi", "i686-linux-gnu-cxx11-mpi+openmpi", "x86_64-linux-gnu-cxx03-cuda+none-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+none-mpi+openmpi", "aarch64-linux-gnu-cxx03-cuda+none-mpi+openmpi", "aarch64-linux-gnu-cxx11-cuda+none-mpi+openmpi", "armv7l-linux-gnueabihf-cxx03-mpi+openmpi", "armv7l-linux-gnueabihf-cxx11-mpi+openmpi", "powerpc64le-linux-gnu-cxx03-cuda+none-mpi+openmpi", "powerpc64le-linux-gnu-cxx11-cuda+none-mpi+openmpi", "x86_64-apple-darwin-mpi+openmpi", "aarch64-apple-darwin-mpi+openmpi", "x86_64-linux-gnu-cxx03-cuda+11.4-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+11.4-mpi+mpich", "x86_64-linux-gnu-cxx03-cuda+11.5-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+11.5-mpi+mpich", "x86_64-linux-gnu-cxx03-cuda+11.6-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+11.6-mpi+mpich", "x86_64-linux-gnu-cxx03-cuda+11.7-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+11.7-mpi+mpich", "x86_64-linux-gnu-cxx03-cuda+11.8-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+11.8-mpi+mpich", "x86_64-linux-gnu-cxx03-cuda+12.0-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+12.0-mpi+mpich", "x86_64-linux-gnu-cxx03-cuda+12.1-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+12.1-mpi+mpich", "x86_64-linux-gnu-cxx03-cuda+12.2-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+12.2-mpi+mpich", "x86_64-linux-gnu-cxx03-cuda+12.3-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+12.3-mpi+mpich", "x86_64-linux-gnu-cxx03-cuda+12.4-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+12.4-mpi+mpich", "x86_64-linux-gnu-cxx03-cuda+12.5-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+12.5-mpi+mpich", "x86_64-linux-gnu-cxx03-cuda+12.6-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+12.6-mpi+mpich", "x86_64-linux-gnu-cxx03-cuda+12.8-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+12.8-mpi+mpich", "x86_64-linux-gnu-cxx03-cuda+11.4-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+11.4-mpi+mpitrampoline", "x86_64-linux-gnu-cxx03-cuda+11.5-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+11.5-mpi+mpitrampoline", "x86_64-linux-gnu-cxx03-cuda+11.6-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+11.6-mpi+mpitrampoline", "x86_64-linux-gnu-cxx03-cuda+11.7-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+11.7-mpi+mpitrampoline", "x86_64-linux-gnu-cxx03-cuda+11.8-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+11.8-mpi+mpitrampoline", "x86_64-linux-gnu-cxx03-cuda+12.0-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+12.0-mpi+mpitrampoline", "x86_64-linux-gnu-cxx03-cuda+12.1-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+12.1-mpi+mpitrampoline", "x86_64-linux-gnu-cxx03-cuda+12.2-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+12.2-mpi+mpitrampoline", "x86_64-linux-gnu-cxx03-cuda+12.3-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+12.3-mpi+mpitrampoline", "x86_64-linux-gnu-cxx03-cuda+12.4-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+12.4-mpi+mpitrampoline", "x86_64-linux-gnu-cxx03-cuda+12.5-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+12.5-mpi+mpitrampoline", "x86_64-linux-gnu-cxx03-cuda+12.6-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+12.6-mpi+mpitrampoline", "x86_64-linux-gnu-cxx03-cuda+12.8-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+12.8-mpi+mpitrampoline", "x86_64-linux-gnu-cxx03-cuda+11.4-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+11.4-mpi+openmpi", "x86_64-linux-gnu-cxx03-cuda+11.5-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+11.5-mpi+openmpi", "x86_64-linux-gnu-cxx03-cuda+11.6-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+11.6-mpi+openmpi", "x86_64-linux-gnu-cxx03-cuda+11.7-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+11.7-mpi+openmpi", "x86_64-linux-gnu-cxx03-cuda+11.8-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+11.8-mpi+openmpi", "x86_64-linux-gnu-cxx03-cuda+12.0-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+12.0-mpi+openmpi", "x86_64-linux-gnu-cxx03-cuda+12.1-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+12.1-mpi+openmpi", "x86_64-linux-gnu-cxx03-cuda+12.2-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+12.2-mpi+openmpi", "x86_64-linux-gnu-cxx03-cuda+12.3-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+12.3-mpi+openmpi", "x86_64-linux-gnu-cxx03-cuda+12.4-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+12.4-mpi+openmpi", "x86_64-linux-gnu-cxx03-cuda+12.5-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+12.5-mpi+openmpi", "x86_64-linux-gnu-cxx03-cuda+12.6-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+12.6-mpi+openmpi", "x86_64-linux-gnu-cxx03-cuda+12.8-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+12.8-mpi+openmpi"]
+script = """# For this specific target during the audit liblammps.so fails to find libgfortran.so\n# This is the same hack as used by MPITrampoline:\n# <https://github.com/JuliaPackaging/Yggdrasil/pull/5028#issuecomment-1166388492>\nif [[ \"${bb_full_target}\" == *cxx11* && \"${bb_full_target}\" == *mpi+mpitrampoline* ]]; then\n    INSTALL_RPATH=(-DCMAKE_INSTALL_RPATH='$ORIGIN')\nelse\n    INSTALL_RPATH=()\nfi\n\ncmake_extra_args=\"\"\n\n# The MPI enabled LAMMPS_jll doesn't load properly on windows\nif [[ \"${bb_full_target}\" == *mingw* ]] || [[ \"${bb_full_target}\" == *mpi\\+none* ]]; then\n    MPI_OPTION=\"OFF\"\nelse\n    MPI_OPTION=\"ON\"\nfi\n\nif [[ \"${bb_full_target}\" == *cuda\\+none* || \"${bb_full_target}\" != *cuda* ]]; then\n    GPU_OPTION=\"OFF\"\nelse\n    GPU_OPTION=\"ON\"\n    export PATH=$PATH:$prefix/cuda/bin/\n    export CUDA_PATH=$prefix/cuda/\n    ln -s $prefix/cuda/lib/stubs/libcuda.so $prefix/cuda/lib/libcuda.so\n    cmake_extra_args=\"\\\n        -DCUDA_TOOLKIT_ROOT_DIR=$prefix/cuda/ \\\n        -DCMAKE_EXE_LINKER_FLAGS=-Wl,--allow-shlib-undefined -Wl,--allow-undefined-file=libcuda.so.1 \\\n    \"\nfi\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    LBT=blastrampoline-5\nelse\n    LBT=blastrampoline\nfi\n\ncd $WORKSPACE/srcdir/lammps/\nmkdir build && cd build/\ncmake -C ../cmake/presets/most.cmake -C ../cmake/presets/nolib.cmake ../cmake -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN%.*}_gcc.cmake \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    \"${INSTALL_RPATH[@]}\" \\\n    -DBUILD_SHARED_LIBS=ON \\\n    -DLAMMPS_EXCEPTIONS=ON \\\n    -DBUILD_MPI=${MPI_OPTION} \\\n    -DBUILD_OMP=ON \\\n    -DUSE_INTERNAL_LINALG=OFF \\\n    -DBLAS_LIBRARIES=\"-l${LBT}\" \\\n    -DLAPACK_LIBRARIES=\"-l${LBT}\" \\\n    -DPKG_EXTRA-FIX=ON \\\n    -DPKG_ML-SNAP=ON \\\n    -DPKG_ML-PACE=ON \\\n    -DPKG_ML-POD=ON \\\n    -DPKG_DPD-BASIC=ON \\\n    -DPKG_DPD-MESO=ON \\\n    -DPKG_DPD-REACT=ON \\\n    -DPKG_DPD-SMOOTH=ON \\\n    -DPKG_USER-MESODPD=ON \\\n    -DPKG_USER-DPD=ON \\\n    -DPKG_USER-SDPD=ON \\\n    -DPKG_MANYBODY=ON \\\n    -DPKG_MOLECULE=ON \\\n    -DPKG_REPLICA=ON \\\n    -DPKG_SHOCK=ON \\\n    -DLEPTON_ENABLE_JIT=no \\\n    -DPKG_GPU=${GPU_OPTION} \\\n    -DGPU_API=cuda \\\n    ${cmake_extra_args} \\\n\nmake -j${nproc}\nmake install\n\nif [[ \"${bb_full_target}\" == *mingw* ]]; then\n    cp *.dll ${prefix}/bin/\nfi\n\nif [[ \"${bb_full_target}\" != *cuda\\+none* && \"${bb_full_target}\" == *cuda* ]]; then\n    unlink $prefix/cuda/lib/libcuda.so\nfi\n"""
+version = "v2.8.0"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LLVMOpenMP_jll"
+platforms = ["x86_64-apple-darwin-mpi+none", "aarch64-apple-darwin-mpi+none", "x86_64-unknown-freebsd-mpi+none", "aarch64-unknown-freebsd-mpi+none"]
+top_level = false
+type = "dependency"
+uuid = "1d63c593-3942-5779-bab2-d838dc0a180e"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "5.4"
+name = "libblastrampoline_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "8e850b90-86db-534c-a0d3-1478176c7d93"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "FFTW_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 11
+version-minor = 4
+version-patch = 4
+[[dependencies]]
+compat = ""
+name = "CUDA_Runtime_jll"
+platforms = ["any"]
+top_level = false
+type = "runtimedependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CUDA_Driver_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 11
+version-minor = 5
+version-patch = 2
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 11
+version-minor = 6
+version-patch = 2
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 11
+version-minor = 7
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 11
+version-minor = 8
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 0
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 1
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 2
+version-patch = 2
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 3
+version-patch = 2
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 4
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 5
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 6
+version-patch = 3
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 8
+version-patch = 1
+[[dependencies]]
+compat = "4.3.0 - 4"
+name = "MPICH_jll"
+platforms = ["i686-linux-gnu-cxx03-mpi+mpich", "i686-linux-gnu-cxx11-mpi+mpich", "x86_64-linux-gnu-cxx03-cuda+none-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+none-mpi+mpich", "aarch64-linux-gnu-cxx03-cuda+none-mpi+mpich", "aarch64-linux-gnu-cxx11-cuda+none-mpi+mpich", "armv6l-linux-gnueabihf-cxx03-mpi+mpich", "armv6l-linux-gnueabihf-cxx11-mpi+mpich", "armv7l-linux-gnueabihf-cxx03-mpi+mpich", "armv7l-linux-gnueabihf-cxx11-mpi+mpich", "powerpc64le-linux-gnu-cxx03-cuda+none-mpi+mpich", "powerpc64le-linux-gnu-cxx11-cuda+none-mpi+mpich", "riscv64-linux-gnu-cxx03-mpi+mpich", "riscv64-linux-gnu-cxx11-mpi+mpich", "i686-linux-musl-cxx03-mpi+mpich", "i686-linux-musl-cxx11-mpi+mpich", "x86_64-linux-musl-cxx03-cuda+none-mpi+mpich", "x86_64-linux-musl-cxx11-cuda+none-mpi+mpich", "aarch64-linux-musl-cxx03-cuda+none-mpi+mpich", "aarch64-linux-musl-cxx11-cuda+none-mpi+mpich", "armv6l-linux-musleabihf-cxx03-mpi+mpich", "armv6l-linux-musleabihf-cxx11-mpi+mpich", "armv7l-linux-musleabihf-cxx03-mpi+mpich", "armv7l-linux-musleabihf-cxx11-mpi+mpich", "x86_64-apple-darwin-mpi+mpich", "aarch64-apple-darwin-mpi+mpich", "x86_64-unknown-freebsd-mpi+mpich", "aarch64-unknown-freebsd-mpi+mpich"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "5.3.1"
+name = "MPItrampoline_jll"
+platforms = ["i686-linux-gnu-cxx03-mpi+mpitrampoline", "i686-linux-gnu-cxx11-mpi+mpitrampoline", "x86_64-linux-gnu-cxx03-cuda+none-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+none-mpi+mpitrampoline", "aarch64-linux-gnu-cxx03-cuda+none-mpi+mpitrampoline", "aarch64-linux-gnu-cxx11-cuda+none-mpi+mpitrampoline", "armv6l-linux-gnueabihf-cxx03-mpi+mpitrampoline", "armv6l-linux-gnueabihf-cxx11-mpi+mpitrampoline", "armv7l-linux-gnueabihf-cxx03-mpi+mpitrampoline", "armv7l-linux-gnueabihf-cxx11-mpi+mpitrampoline", "powerpc64le-linux-gnu-cxx03-cuda+none-mpi+mpitrampoline", "powerpc64le-linux-gnu-cxx11-cuda+none-mpi+mpitrampoline", "riscv64-linux-gnu-cxx03-mpi+mpitrampoline", "riscv64-linux-gnu-cxx11-mpi+mpitrampoline", "x86_64-apple-darwin-mpi+mpitrampoline", "aarch64-apple-darwin-mpi+mpitrampoline", "x86_64-unknown-freebsd-mpi+mpitrampoline", "aarch64-unknown-freebsd-mpi+mpitrampoline"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MicrosoftMPI_jll"
+platforms = ["i686-w64-mingw32-cxx03-mpi+microsoftmpi", "i686-w64-mingw32-cxx11-mpi+microsoftmpi", "x86_64-w64-mingw32-cxx03-mpi+microsoftmpi", "x86_64-w64-mingw32-cxx11-mpi+microsoftmpi"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "4.1.6, 5"
+name = "OpenMPI_jll"
+platforms = ["i686-linux-gnu-cxx03-mpi+openmpi", "i686-linux-gnu-cxx11-mpi+openmpi", "x86_64-linux-gnu-cxx03-cuda+none-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+none-mpi+openmpi", "aarch64-linux-gnu-cxx03-cuda+none-mpi+openmpi", "aarch64-linux-gnu-cxx11-cuda+none-mpi+openmpi", "armv7l-linux-gnueabihf-cxx03-mpi+openmpi", "armv7l-linux-gnueabihf-cxx11-mpi+openmpi", "powerpc64le-linux-gnu-cxx03-cuda+none-mpi+openmpi", "powerpc64le-linux-gnu-cxx11-cuda+none-mpi+openmpi", "riscv64-linux-gnu-cxx03-mpi+openmpi", "riscv64-linux-gnu-cxx11-mpi+openmpi", "i686-linux-musl-cxx03-mpi+openmpi", "i686-linux-musl-cxx11-mpi+openmpi", "x86_64-linux-musl-cxx03-cuda+none-mpi+openmpi", "x86_64-linux-musl-cxx11-cuda+none-mpi+openmpi", "aarch64-linux-musl-cxx03-cuda+none-mpi+openmpi", "aarch64-linux-musl-cxx11-cuda+none-mpi+openmpi", "armv6l-linux-musleabihf-cxx03-mpi+openmpi", "armv6l-linux-musleabihf-cxx11-mpi+openmpi", "armv7l-linux-musleabihf-cxx03-mpi+openmpi", "armv7l-linux-musleabihf-cxx11-mpi+openmpi", "x86_64-apple-darwin-mpi+openmpi", "aarch64-apple-darwin-mpi+openmpi", "x86_64-unknown-freebsd-mpi+openmpi", "aarch64-unknown-freebsd-mpi+openmpi"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "0.1"
+name = "MPIPreferences"
+platforms = ["any"]
+top_level = true
+type = "runtimedependency"
+uuid = "3da0fdf6-3ccc-4f1b-acd9-58baa6c99267"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "4.3.0 - 4"
+name = "MPICH_jll"
+platforms = ["x86_64-linux-gnu-cxx03-cuda+11.4-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+11.4-mpi+mpich", "x86_64-linux-gnu-cxx03-cuda+11.5-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+11.5-mpi+mpich", "x86_64-linux-gnu-cxx03-cuda+11.6-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+11.6-mpi+mpich", "x86_64-linux-gnu-cxx03-cuda+11.7-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+11.7-mpi+mpich", "x86_64-linux-gnu-cxx03-cuda+11.8-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+11.8-mpi+mpich", "x86_64-linux-gnu-cxx03-cuda+12.0-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+12.0-mpi+mpich", "x86_64-linux-gnu-cxx03-cuda+12.1-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+12.1-mpi+mpich", "x86_64-linux-gnu-cxx03-cuda+12.2-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+12.2-mpi+mpich", "x86_64-linux-gnu-cxx03-cuda+12.3-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+12.3-mpi+mpich", "x86_64-linux-gnu-cxx03-cuda+12.4-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+12.4-mpi+mpich", "x86_64-linux-gnu-cxx03-cuda+12.5-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+12.5-mpi+mpich", "x86_64-linux-gnu-cxx03-cuda+12.6-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+12.6-mpi+mpich", "x86_64-linux-gnu-cxx03-cuda+12.8-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+12.8-mpi+mpich"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "5.3.1"
+name = "MPItrampoline_jll"
+platforms = ["x86_64-linux-gnu-cxx03-cuda+11.4-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+11.4-mpi+mpitrampoline", "x86_64-linux-gnu-cxx03-cuda+11.5-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+11.5-mpi+mpitrampoline", "x86_64-linux-gnu-cxx03-cuda+11.6-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+11.6-mpi+mpitrampoline", "x86_64-linux-gnu-cxx03-cuda+11.7-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+11.7-mpi+mpitrampoline", "x86_64-linux-gnu-cxx03-cuda+11.8-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+11.8-mpi+mpitrampoline", "x86_64-linux-gnu-cxx03-cuda+12.0-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+12.0-mpi+mpitrampoline", "x86_64-linux-gnu-cxx03-cuda+12.1-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+12.1-mpi+mpitrampoline", "x86_64-linux-gnu-cxx03-cuda+12.2-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+12.2-mpi+mpitrampoline", "x86_64-linux-gnu-cxx03-cuda+12.3-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+12.3-mpi+mpitrampoline", "x86_64-linux-gnu-cxx03-cuda+12.4-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+12.4-mpi+mpitrampoline", "x86_64-linux-gnu-cxx03-cuda+12.5-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+12.5-mpi+mpitrampoline", "x86_64-linux-gnu-cxx03-cuda+12.6-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+12.6-mpi+mpitrampoline", "x86_64-linux-gnu-cxx03-cuda+12.8-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+12.8-mpi+mpitrampoline"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MicrosoftMPI_jll"
+platforms = []
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "4.1.6, 5"
+name = "OpenMPI_jll"
+platforms = ["x86_64-linux-gnu-cxx03-cuda+11.4-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+11.4-mpi+openmpi", "x86_64-linux-gnu-cxx03-cuda+11.5-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+11.5-mpi+openmpi", "x86_64-linux-gnu-cxx03-cuda+11.6-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+11.6-mpi+openmpi", "x86_64-linux-gnu-cxx03-cuda+11.7-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+11.7-mpi+openmpi", "x86_64-linux-gnu-cxx03-cuda+11.8-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+11.8-mpi+openmpi", "x86_64-linux-gnu-cxx03-cuda+12.0-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+12.0-mpi+openmpi", "x86_64-linux-gnu-cxx03-cuda+12.1-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+12.1-mpi+openmpi", "x86_64-linux-gnu-cxx03-cuda+12.2-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+12.2-mpi+openmpi", "x86_64-linux-gnu-cxx03-cuda+12.3-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+12.3-mpi+openmpi", "x86_64-linux-gnu-cxx03-cuda+12.4-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+12.4-mpi+openmpi", "x86_64-linux-gnu-cxx03-cuda+12.5-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+12.5-mpi+openmpi", "x86_64-linux-gnu-cxx03-cuda+12.6-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+12.6-mpi+openmpi", "x86_64-linux-gnu-cxx03-cuda+12.8-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+12.8-mpi+openmpi"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["liblammps"]
+type = "lib"
+variable_name = "liblammps"
+[[products]]
+binnames = ["lmp"]
+type = "exe"
+variable_name = "lmp"
+
+[[sources]]
+hash = "7b4c33630d544953d2abe12eccdf0fab5ba0e7d1"
+type = "git"
+unpack_target = ""
+url = "https://github.com/lammps/lammps.git"

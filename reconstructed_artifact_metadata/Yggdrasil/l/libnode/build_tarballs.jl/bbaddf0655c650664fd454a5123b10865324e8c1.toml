@@ -1,0 +1,26 @@
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "libnode"
+platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11"]
+script = """cd $WORKSPACE/srcdir\ncd node-*\n\nexport CC_host=$HOSTCC\nexport CXX_host=$HOSTCXX\n# Build & install libnode\nif [[ $target == $MACHTYPE ]]\nthen\n    ./configure --prefix=${prefix} --shared --without-inspector --no-cross-compiling\nelse\n    DEST_CPU=x86_64\n    if [[ $target == *aarch64* ]]; then DEST_CPU=arm64; fi\n    DEST_OS=linux\n    ./configure --prefix=${prefix} --shared --without-inspector --without-intl --cross-compiling --dest-cpu=$DEST_CPU --dest-os=$DEST_OS\nfi\n\nexport LDFLAGS=-lrt\nexport CPPFLAGS=-D__STDC_FORMAT_MACROS\nmake -j`nproc`\nmake install\ncp ./out/Release/node ${bindir}\ninstall_license ./LICENSE\n"""
+version = "v14.17.3"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnode"]
+type = "lib"
+variable_name = "libnode"
+[[products]]
+binnames = ["node"]
+type = "exe"
+variable_name = "node"
+
+[[sources]]
+hash = "dcbd156506ee79ee48439257626ca0a6db3d7eab8cb0208db6979125ae7d3a95"
+type = "archive"
+unpack_target = ""
+url = "https://nodejs.org/dist/v14.17.3/node-v14.17.3.tar.gz"

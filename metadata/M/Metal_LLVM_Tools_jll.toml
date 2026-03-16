@@ -5,51 +5,10 @@ registered = 2022-03-18T08:53:16.000Z
     [["0.1.0+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.1.0+0/Metal_LLVM_Tools.v0.1.0.aarch64-apple-darwin-llvm_version+13.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.1.0+0/Metal_LLVM_Tools.v0.1.0.aarch64-apple-darwin-llvm_version+13.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.1.0+0/Metal_LLVM_Tools.v0.1.0.x86_64-apple-darwin-llvm_version+13.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.1.0+0/Metal_LLVM_Tools.v0.1.0.x86_64-apple-darwin-llvm_version+13.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/dc44537130745e2cedcf501f42db1b572b50ddfe/M/Metal_LLVM_Tools/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/m/metal_llvm_tools/build_tarballs.jl/dc44537130745e2cedcf501f42db1b572b50ddfe.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.5.2"
-
-        ["0.1.0+0".artifact_metadata.metadata]
-        augment_platform_block = """using Base.BinaryPlatforms\n\n    function augment_llvm!(platform::Platform)\n        haskey(platform, \"llvm_version\") && return p\n\n        llvm_version = Base.libllvm_version\n        # does our LLVM build use assertions?\n        llvm_assertions = try\n            cglobal((:_ZN4llvm24DisableABIBreakingChecksE, Base.libllvm_path()), Cvoid)\n            false\n        catch\n            true\n        end\n        platform[\"llvm_version\"] = if llvm_assertions\n            \"$(llvm_version.major).asserts\"\n        else\n            \"$(llvm_version.major)\"\n        end\n        return platform\n    end\n\n\nfunction augment_platform!(platform::Platform)\n    augment_llvm!(platform)\nend"""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = true
-        name = "Metal_LLVM_Tools"
-        platforms = ["x86_64-apple-darwin-llvm_version+13", "aarch64-apple-darwin-llvm_version+13", "x86_64-apple-darwin-llvm_version+13.asserts", "aarch64-apple-darwin-llvm_version+13.asserts"]
-        script = """cd llvm-metal/llvm\nLLVM_SRCDIR=$(pwd)\n\ninstall_license LICENSE.TXT\n\n# The very first thing we need to do is to build llvm-tblgen for x86_64-linux-muslc\n# This is because LLVM's cross-compile setup is kind of borked, so we just\n# build the tools natively ourselves, directly.  :/\n\n# Build llvm-tblgen and llvm-config\nmkdir ${WORKSPACE}/bootstrap\npushd ${WORKSPACE}/bootstrap\nCMAKE_FLAGS=()\nCMAKE_FLAGS+=(-DLLVM_TARGETS_TO_BUILD:STRING=host)\nCMAKE_FLAGS+=(-DLLVM_HOST_TRIPLE=${MACHTYPE})\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\nCMAKE_FLAGS+=(-DLLVM_ENABLE_PROJECTS='llvm')\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING=False)\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_HOST_TOOLCHAIN})\ncmake -GNinja ${LLVM_SRCDIR} ${CMAKE_FLAGS[@]}\nninja -j${nproc} llvm-tblgen llvm-config\npopd\n\n# Let's do the actual build within the `build` subdirectory\nmkdir ${WORKSPACE}/build && cd ${WORKSPACE}/build\nCMAKE_FLAGS=()\n\n# Tell LLVM where our pre-built tblgen tools are\nCMAKE_FLAGS+=(-DLLVM_TABLEGEN=${WORKSPACE}/bootstrap/bin/llvm-tblgen)\nCMAKE_FLAGS+=(-DLLVM_CONFIG_PATH=${WORKSPACE}/bootstrap/bin/llvm-config)\n\n# Install things into $prefix\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix})\n\n# Explicitly use our cmake toolchain file and tell CMake we're cross-compiling\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING:BOOL=ON)\n\n# Release build for best performance\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\n\n# Only build the Metal back-end\nCMAKE_FLAGS+=(-DLLVM_TARGETS_TO_BUILD=Metal)\n\ncmake -GNinja ${LLVM_SRCDIR} ${CMAKE_FLAGS[@]}\nninja -j${nproc} \\\n    tools/metallib-as/install \\\n    tools/metallib-dis/install\n"""
-        version = "v0.1.0"
-
-            [["0.1.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVM_full_jll"
-            platforms = ["any"]
-            type = "builddependency"
-            version-major = 13
-            version-minor = 0
-            version-patch = 1
-            [["0.1.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVM_full_assert_jll"
-            platforms = ["any"]
-            type = "builddependency"
-            version-major = 13
-            version-minor = 0
-            version-patch = 1
-
-            [["0.1.0+0".artifact_metadata.metadata.products]]
-            binnames = ["metallib-as"]
-            type = "exe"
-            variable_name = "metallib_as"
-            [["0.1.0+0".artifact_metadata.metadata.products]]
-            binnames = ["metallib-dis"]
-            type = "exe"
-            variable_name = "metallib_dis"
-
-            [["0.1.0+0".artifact_metadata.metadata.sources]]
-            hash = "c7e15c7e199a2019b39633906b3acaf964916bd2"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/JuliaGPU/llvm-metal"
 
 ["0.2.0+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.2.0+0/Metal_LLVM_Tools.v0.2.0.aarch64-apple-darwin-llvm_version+13.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.2.0+0/Metal_LLVM_Tools.v0.2.0.aarch64-apple-darwin-llvm_version+13.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.2.0+0/Metal_LLVM_Tools.v0.2.0.x86_64-apple-darwin-llvm_version+13.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.2.0+0/Metal_LLVM_Tools.v0.2.0.x86_64-apple-darwin-llvm_version+13.tar.gz"]
@@ -58,51 +17,10 @@ registered = 2022-06-14T09:39:10.000Z
     [["0.2.0+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.2.0+0/Metal_LLVM_Tools.v0.2.0.aarch64-apple-darwin-llvm_version+13.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.2.0+0/Metal_LLVM_Tools.v0.2.0.aarch64-apple-darwin-llvm_version+13.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.2.0+0/Metal_LLVM_Tools.v0.2.0.x86_64-apple-darwin-llvm_version+13.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.2.0+0/Metal_LLVM_Tools.v0.2.0.x86_64-apple-darwin-llvm_version+13.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/9d131ba0e4aa393b00f4d71ef5a3f909419a70a7/M/Metal_LLVM_Tools/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/m/metal_llvm_tools/build_tarballs.jl/9d131ba0e4aa393b00f4d71ef5a3f909419a70a7.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.5.5"
-
-        ["0.2.0+0".artifact_metadata.metadata]
-        augment_platform_block = """using Base.BinaryPlatforms\n\n    function augment_llvm!(platform::Platform)\n        haskey(platform, \"llvm_version\") && return platform\n\n        llvm_version = Base.libllvm_version\n        # does our LLVM build use assertions?\n        llvm_assertions = try\n            cglobal((:_ZN4llvm24DisableABIBreakingChecksE, Base.libllvm_path()), Cvoid)\n            false\n        catch\n            true\n        end\n        platform[\"llvm_version\"] = if llvm_assertions\n            \"$(llvm_version.major).asserts\"\n        else\n            \"$(llvm_version.major)\"\n        end\n        return platform\n    end\n\n\nfunction augment_platform!(platform::Platform)\n    augment_llvm!(platform)\nend"""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = true
-        name = "Metal_LLVM_Tools"
-        platforms = ["x86_64-apple-darwin-llvm_version+13", "aarch64-apple-darwin-llvm_version+13", "x86_64-apple-darwin-llvm_version+13.asserts", "aarch64-apple-darwin-llvm_version+13.asserts"]
-        script = """cd llvm-metal/llvm\nLLVM_SRCDIR=$(pwd)\n\ninstall_license LICENSE.TXT\n\n# The very first thing we need to do is to build llvm-tblgen for x86_64-linux-muslc\n# This is because LLVM's cross-compile setup is kind of borked, so we just\n# build the tools natively ourselves, directly.  :/\n\n# Build llvm-tblgen and llvm-config\nmkdir ${WORKSPACE}/bootstrap\npushd ${WORKSPACE}/bootstrap\nCMAKE_FLAGS=()\nCMAKE_FLAGS+=(-DLLVM_TARGETS_TO_BUILD:STRING=host)\nCMAKE_FLAGS+=(-DLLVM_HOST_TRIPLE=${MACHTYPE})\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\nCMAKE_FLAGS+=(-DLLVM_ENABLE_PROJECTS='llvm')\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING=False)\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_HOST_TOOLCHAIN})\ncmake -GNinja ${LLVM_SRCDIR} ${CMAKE_FLAGS[@]}\nninja -j${nproc} llvm-tblgen llvm-config\npopd\n\n# Let's do the actual build within the `build` subdirectory\nmkdir ${WORKSPACE}/build && cd ${WORKSPACE}/build\nCMAKE_FLAGS=()\n\n# Tell LLVM where our pre-built tblgen tools are\nCMAKE_FLAGS+=(-DLLVM_TABLEGEN=${WORKSPACE}/bootstrap/bin/llvm-tblgen)\nCMAKE_FLAGS+=(-DLLVM_CONFIG_PATH=${WORKSPACE}/bootstrap/bin/llvm-config)\n\n# Install things into $prefix\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix})\n\n# Explicitly use our cmake toolchain file and tell CMake we're cross-compiling\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING:BOOL=ON)\n\n# Release build for best performance\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\n\n# Only build the Metal back-end\nCMAKE_FLAGS+=(-DLLVM_TARGETS_TO_BUILD=Metal)\n\ncmake -GNinja ${LLVM_SRCDIR} ${CMAKE_FLAGS[@]}\nninja -j${nproc} \\\n    tools/metallib-as/install \\\n    tools/metallib-dis/install\n"""
-        version = "v0.2.0"
-
-            [["0.2.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVM_full_jll"
-            platforms = ["any"]
-            type = "builddependency"
-            version-major = 13
-            version-minor = 0
-            version-patch = 1
-            [["0.2.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVM_full_assert_jll"
-            platforms = ["any"]
-            type = "builddependency"
-            version-major = 13
-            version-minor = 0
-            version-patch = 1
-
-            [["0.2.0+0".artifact_metadata.metadata.products]]
-            binnames = ["metallib-as"]
-            type = "exe"
-            variable_name = "metallib_as"
-            [["0.2.0+0".artifact_metadata.metadata.products]]
-            binnames = ["metallib-dis"]
-            type = "exe"
-            variable_name = "metallib_dis"
-
-            [["0.2.0+0".artifact_metadata.metadata.sources]]
-            hash = "aff6fc4f74785554643ae123a4df7c81074a6cbc"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/JuliaGPU/llvm-metal"
 
 ["0.3.0+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.3.0+0/Metal_LLVM_Tools.v0.3.0.aarch64-apple-darwin-llvm_version+13.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.3.0+0/Metal_LLVM_Tools.v0.3.0.aarch64-apple-darwin-llvm_version+13.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.3.0+0/Metal_LLVM_Tools.v0.3.0.x86_64-apple-darwin-llvm_version+13.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.3.0+0/Metal_LLVM_Tools.v0.3.0.x86_64-apple-darwin-llvm_version+13.tar.gz"]
@@ -111,51 +29,10 @@ registered = 2022-06-16T14:43:34.000Z
     [["0.3.0+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.3.0+0/Metal_LLVM_Tools.v0.3.0.aarch64-apple-darwin-llvm_version+13.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.3.0+0/Metal_LLVM_Tools.v0.3.0.aarch64-apple-darwin-llvm_version+13.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.3.0+0/Metal_LLVM_Tools.v0.3.0.x86_64-apple-darwin-llvm_version+13.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.3.0+0/Metal_LLVM_Tools.v0.3.0.x86_64-apple-darwin-llvm_version+13.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/f73b0dc8ce7f6927c49d9616487092b52aff5a28/M/Metal_LLVM_Tools/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/m/metal_llvm_tools/build_tarballs.jl/f73b0dc8ce7f6927c49d9616487092b52aff5a28.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.5.5"
-
-        ["0.3.0+0".artifact_metadata.metadata]
-        augment_platform_block = """using Base.BinaryPlatforms\n\n    function augment_llvm!(platform::Platform)\n        haskey(platform, \"llvm_version\") && return platform\n\n        llvm_version = Base.libllvm_version\n        # does our LLVM build use assertions?\n        llvm_assertions = try\n            cglobal((:_ZN4llvm24DisableABIBreakingChecksE, Base.libllvm_path()), Cvoid)\n            false\n        catch\n            true\n        end\n        platform[\"llvm_version\"] = if llvm_assertions\n            \"$(llvm_version.major).asserts\"\n        else\n            \"$(llvm_version.major)\"\n        end\n        return platform\n    end\n\n\nfunction augment_platform!(platform::Platform)\n    augment_llvm!(platform)\nend"""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = true
-        name = "Metal_LLVM_Tools"
-        platforms = ["x86_64-apple-darwin-llvm_version+13", "aarch64-apple-darwin-llvm_version+13", "x86_64-apple-darwin-llvm_version+13.asserts", "aarch64-apple-darwin-llvm_version+13.asserts"]
-        script = """cd llvm-metal/llvm\nLLVM_SRCDIR=$(pwd)\n\ninstall_license LICENSE.TXT\n\n# The very first thing we need to do is to build llvm-tblgen for x86_64-linux-muslc\n# This is because LLVM's cross-compile setup is kind of borked, so we just\n# build the tools natively ourselves, directly.  :/\n\n# Build llvm-tblgen and llvm-config\nmkdir ${WORKSPACE}/bootstrap\npushd ${WORKSPACE}/bootstrap\nCMAKE_FLAGS=()\nCMAKE_FLAGS+=(-DLLVM_TARGETS_TO_BUILD:STRING=host)\nCMAKE_FLAGS+=(-DLLVM_HOST_TRIPLE=${MACHTYPE})\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\nCMAKE_FLAGS+=(-DLLVM_ENABLE_PROJECTS='llvm')\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING=False)\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_HOST_TOOLCHAIN})\ncmake -GNinja ${LLVM_SRCDIR} ${CMAKE_FLAGS[@]}\nninja -j${nproc} llvm-tblgen llvm-config\npopd\n\n# Let's do the actual build within the `build` subdirectory\nmkdir ${WORKSPACE}/build && cd ${WORKSPACE}/build\nCMAKE_FLAGS=()\n\n# Tell LLVM where our pre-built tblgen tools are\nCMAKE_FLAGS+=(-DLLVM_TABLEGEN=${WORKSPACE}/bootstrap/bin/llvm-tblgen)\nCMAKE_FLAGS+=(-DLLVM_CONFIG_PATH=${WORKSPACE}/bootstrap/bin/llvm-config)\n\n# Install things into $prefix\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix})\n\n# Explicitly use our cmake toolchain file and tell CMake we're cross-compiling\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING:BOOL=ON)\n\n# Release build for best performance\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\n\n# Only build the Metal back-end\nCMAKE_FLAGS+=(-DLLVM_TARGETS_TO_BUILD=Metal)\n\ncmake -GNinja ${LLVM_SRCDIR} ${CMAKE_FLAGS[@]}\nninja -j${nproc} \\\n    tools/metallib-as/install \\\n    tools/metallib-dis/install\n"""
-        version = "v0.3.0"
-
-            [["0.3.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVM_full_jll"
-            platforms = ["any"]
-            type = "builddependency"
-            version-major = 13
-            version-minor = 0
-            version-patch = 1
-            [["0.3.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVM_full_assert_jll"
-            platforms = ["any"]
-            type = "builddependency"
-            version-major = 13
-            version-minor = 0
-            version-patch = 1
-
-            [["0.3.0+0".artifact_metadata.metadata.products]]
-            binnames = ["metallib-as"]
-            type = "exe"
-            variable_name = "metallib_as"
-            [["0.3.0+0".artifact_metadata.metadata.products]]
-            binnames = ["metallib-dis"]
-            type = "exe"
-            variable_name = "metallib_dis"
-
-            [["0.3.0+0".artifact_metadata.metadata.sources]]
-            hash = "355123f9415581fa1f5fabb0f7e7227bfbc9f43d"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/JuliaGPU/llvm-metal"
 
 ["0.3.0+1"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.3.0+1/Metal_LLVM_Tools.v0.3.0.aarch64-apple-darwin-llvm_version+13.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.3.0+1/Metal_LLVM_Tools.v0.3.0.aarch64-apple-darwin-llvm_version+13.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.3.0+1/Metal_LLVM_Tools.v0.3.0.aarch64-apple-darwin-llvm_version+14.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.3.0+1/Metal_LLVM_Tools.v0.3.0.aarch64-apple-darwin-llvm_version+14.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.3.0+1/Metal_LLVM_Tools.v0.3.0.x86_64-apple-darwin-llvm_version+13.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.3.0+1/Metal_LLVM_Tools.v0.3.0.x86_64-apple-darwin-llvm_version+13.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.3.0+1/Metal_LLVM_Tools.v0.3.0.x86_64-apple-darwin-llvm_version+14.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.3.0+1/Metal_LLVM_Tools.v0.3.0.x86_64-apple-darwin-llvm_version+14.tar.gz"]
@@ -164,72 +41,10 @@ registered = 2022-06-21T09:30:33.000Z
     [["0.3.0+1".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.3.0+1/Metal_LLVM_Tools.v0.3.0.aarch64-apple-darwin-llvm_version+13.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.3.0+1/Metal_LLVM_Tools.v0.3.0.aarch64-apple-darwin-llvm_version+13.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.3.0+1/Metal_LLVM_Tools.v0.3.0.aarch64-apple-darwin-llvm_version+14.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.3.0+1/Metal_LLVM_Tools.v0.3.0.aarch64-apple-darwin-llvm_version+14.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.3.0+1/Metal_LLVM_Tools.v0.3.0.x86_64-apple-darwin-llvm_version+13.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.3.0+1/Metal_LLVM_Tools.v0.3.0.x86_64-apple-darwin-llvm_version+13.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.3.0+1/Metal_LLVM_Tools.v0.3.0.x86_64-apple-darwin-llvm_version+14.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.3.0+1/Metal_LLVM_Tools.v0.3.0.x86_64-apple-darwin-llvm_version+14.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/9d5cad20e15be4302e2daeaaccf9e8beadf1b655/M/Metal_LLVM_Tools/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/m/metal_llvm_tools/build_tarballs.jl/9d5cad20e15be4302e2daeaaccf9e8beadf1b655.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.5.5"
-
-        ["0.3.0+1".artifact_metadata.metadata]
-        augment_platform_block = """using Base.BinaryPlatforms\n\n    function augment_llvm!(platform::Platform)\n        haskey(platform, \"llvm_version\") && return platform\n\n        llvm_version = Base.libllvm_version\n        # does our LLVM build use assertions?\n        llvm_assertions = try\n            cglobal((:_ZN4llvm24DisableABIBreakingChecksE, Base.libllvm_path()), Cvoid)\n            false\n        catch\n            true\n        end\n        platform[\"llvm_version\"] = if llvm_assertions\n            \"$(llvm_version.major).asserts\"\n        else\n            \"$(llvm_version.major)\"\n        end\n        return platform\n    end\n\n\nfunction augment_platform!(platform::Platform)\n    augment_llvm!(platform)\nend"""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = true
-        name = "Metal_LLVM_Tools"
-        platforms = ["x86_64-apple-darwin-llvm_version+13", "aarch64-apple-darwin-llvm_version+13", "x86_64-apple-darwin-llvm_version+13.asserts", "aarch64-apple-darwin-llvm_version+13.asserts", "x86_64-apple-darwin-llvm_version+14", "aarch64-apple-darwin-llvm_version+14", "x86_64-apple-darwin-llvm_version+14.asserts", "aarch64-apple-darwin-llvm_version+14.asserts"]
-        script = """cd llvm-metal/llvm\nLLVM_SRCDIR=$(pwd)\n\ninstall_license LICENSE.TXT\n\n# The very first thing we need to do is to build llvm-tblgen for x86_64-linux-muslc\n# This is because LLVM's cross-compile setup is kind of borked, so we just\n# build the tools natively ourselves, directly.  :/\n\n# Build llvm-tblgen and llvm-config\nmkdir ${WORKSPACE}/bootstrap\npushd ${WORKSPACE}/bootstrap\nCMAKE_FLAGS=()\nCMAKE_FLAGS+=(-DLLVM_TARGETS_TO_BUILD:STRING=host)\nCMAKE_FLAGS+=(-DLLVM_HOST_TRIPLE=${MACHTYPE})\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\nCMAKE_FLAGS+=(-DLLVM_ENABLE_PROJECTS='llvm')\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING=False)\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_HOST_TOOLCHAIN})\ncmake -GNinja ${LLVM_SRCDIR} ${CMAKE_FLAGS[@]}\nninja -j${nproc} llvm-tblgen llvm-config\npopd\n\n# Let's do the actual build within the `build` subdirectory\nmkdir ${WORKSPACE}/build && cd ${WORKSPACE}/build\nCMAKE_FLAGS=()\n\n# Tell LLVM where our pre-built tblgen tools are\nCMAKE_FLAGS+=(-DLLVM_TABLEGEN=${WORKSPACE}/bootstrap/bin/llvm-tblgen)\nCMAKE_FLAGS+=(-DLLVM_CONFIG_PATH=${WORKSPACE}/bootstrap/bin/llvm-config)\n\n# Install things into $prefix\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix})\n\n# Explicitly use our cmake toolchain file and tell CMake we're cross-compiling\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING:BOOL=ON)\n\n# Release build for best performance\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\n\n# Only build the Metal back-end\nCMAKE_FLAGS+=(-DLLVM_TARGETS_TO_BUILD=Metal)\n\ncmake -GNinja ${LLVM_SRCDIR} ${CMAKE_FLAGS[@]}\nninja -j${nproc} \\\n    tools/metallib-as/install \\\n    tools/metallib-dis/install\n"""
-        version = "v0.3.0"
-
-            [["0.3.0+1".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVM_full_jll"
-            platforms = ["any"]
-            type = "builddependency"
-            version-major = 13
-            version-minor = 0
-            version-patch = 1
-            [["0.3.0+1".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVM_full_assert_jll"
-            platforms = ["any"]
-            type = "builddependency"
-            version-major = 13
-            version-minor = 0
-            version-patch = 1
-            [["0.3.0+1".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVM_full_jll"
-            platforms = ["any"]
-            type = "builddependency"
-            version-major = 14
-            version-minor = 0
-            version-patch = 2
-            [["0.3.0+1".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVM_full_assert_jll"
-            platforms = ["any"]
-            type = "builddependency"
-            version-major = 14
-            version-minor = 0
-            version-patch = 2
-
-            [["0.3.0+1".artifact_metadata.metadata.products]]
-            binnames = ["metallib-as"]
-            type = "exe"
-            variable_name = "metallib_as"
-            [["0.3.0+1".artifact_metadata.metadata.products]]
-            binnames = ["metallib-dis"]
-            type = "exe"
-            variable_name = "metallib_dis"
-
-            [["0.3.0+1".artifact_metadata.metadata.sources]]
-            hash = "ccbd19019272cda3fe2296f5df8ec39f4828be05"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/JuliaGPU/llvm-metal"
-            [["0.3.0+1".artifact_metadata.metadata.sources]]
-            hash = "fa7eef519540e8c79b2b2f908f4d15427c5285c8"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/JuliaGPU/llvm-metal"
 
 ["0.3.0+2"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.3.0+2/Metal_LLVM_Tools.v0.3.0.aarch64-apple-darwin-llvm_version+13.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.3.0+2/Metal_LLVM_Tools.v0.3.0.aarch64-apple-darwin-llvm_version+13.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.3.0+2/Metal_LLVM_Tools.v0.3.0.aarch64-apple-darwin-llvm_version+14.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.3.0+2/Metal_LLVM_Tools.v0.3.0.aarch64-apple-darwin-llvm_version+14.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.3.0+2/Metal_LLVM_Tools.v0.3.0.x86_64-apple-darwin-llvm_version+13.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.3.0+2/Metal_LLVM_Tools.v0.3.0.x86_64-apple-darwin-llvm_version+13.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.3.0+2/Metal_LLVM_Tools.v0.3.0.x86_64-apple-darwin-llvm_version+14.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.3.0+2/Metal_LLVM_Tools.v0.3.0.x86_64-apple-darwin-llvm_version+14.tar.gz"]
@@ -238,80 +53,10 @@ registered = 2022-09-15T13:33:05.000Z
     [["0.3.0+2".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.3.0+2/Metal_LLVM_Tools.v0.3.0.aarch64-apple-darwin-llvm_version+13.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.3.0+2/Metal_LLVM_Tools.v0.3.0.aarch64-apple-darwin-llvm_version+13.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.3.0+2/Metal_LLVM_Tools.v0.3.0.aarch64-apple-darwin-llvm_version+14.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.3.0+2/Metal_LLVM_Tools.v0.3.0.aarch64-apple-darwin-llvm_version+14.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.3.0+2/Metal_LLVM_Tools.v0.3.0.x86_64-apple-darwin-llvm_version+13.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.3.0+2/Metal_LLVM_Tools.v0.3.0.x86_64-apple-darwin-llvm_version+13.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.3.0+2/Metal_LLVM_Tools.v0.3.0.x86_64-apple-darwin-llvm_version+14.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.3.0+2/Metal_LLVM_Tools.v0.3.0.x86_64-apple-darwin-llvm_version+14.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/86a4221f71ee8ca5c0fd1056829a1fe2b28c879b/M/Metal_LLVM_Tools/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/m/metal_llvm_tools/build_tarballs.jl/86a4221f71ee8ca5c0fd1056829a1fe2b28c879b.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.5.5"
-
-        ["0.3.0+2".artifact_metadata.metadata]
-        augment_platform_block = """using Base.BinaryPlatforms\n\n    function augment_llvm!(platform::Platform)\n        haskey(platform, \"llvm_version\") && return platform\n\n        llvm_version = Base.libllvm_version\n        # does our LLVM build use assertions?\n        llvm_assertions = try\n            cglobal((:_ZN4llvm24DisableABIBreakingChecksE, Base.libllvm_path()), Cvoid)\n            false\n        catch\n            true\n        end\n        platform[\"llvm_version\"] = if llvm_assertions\n            \"$(llvm_version.major).asserts\"\n        else\n            \"$(llvm_version.major)\"\n        end\n        return platform\n    end\n\n\nfunction augment_platform!(platform::Platform)\n    augment_llvm!(platform)\nend"""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = true
-        name = "Metal_LLVM_Tools"
-        platforms = ["x86_64-apple-darwin-llvm_version+13", "aarch64-apple-darwin-llvm_version+13", "x86_64-apple-darwin-llvm_version+13.asserts", "aarch64-apple-darwin-llvm_version+13.asserts", "x86_64-apple-darwin-llvm_version+14", "aarch64-apple-darwin-llvm_version+14", "x86_64-apple-darwin-llvm_version+14.asserts", "aarch64-apple-darwin-llvm_version+14.asserts"]
-        script = """cd llvm-metal/llvm\nLLVM_SRCDIR=$(pwd)\n\ninstall_license LICENSE.TXT\n\n# The very first thing we need to do is to build llvm-tblgen for x86_64-linux-muslc\n# This is because LLVM's cross-compile setup is kind of borked, so we just\n# build the tools natively ourselves, directly.  :/\n\n# Build llvm-tblgen and llvm-config\nmkdir ${WORKSPACE}/bootstrap\npushd ${WORKSPACE}/bootstrap\nCMAKE_FLAGS=()\nCMAKE_FLAGS+=(-DLLVM_TARGETS_TO_BUILD:STRING=host)\nCMAKE_FLAGS+=(-DLLVM_HOST_TRIPLE=${MACHTYPE})\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\nCMAKE_FLAGS+=(-DLLVM_ENABLE_PROJECTS='llvm')\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING=False)\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_HOST_TOOLCHAIN})\ncmake -GNinja ${LLVM_SRCDIR} ${CMAKE_FLAGS[@]}\nninja -j${nproc} llvm-tblgen llvm-config\npopd\n\n# Let's do the actual build within the `build` subdirectory\nmkdir ${WORKSPACE}/build && cd ${WORKSPACE}/build\nCMAKE_FLAGS=()\n\n# Tell LLVM where our pre-built tblgen tools are\nCMAKE_FLAGS+=(-DLLVM_TABLEGEN=${WORKSPACE}/bootstrap/bin/llvm-tblgen)\nCMAKE_FLAGS+=(-DLLVM_CONFIG_PATH=${WORKSPACE}/bootstrap/bin/llvm-config)\n\n# Install things into $prefix\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix})\n\n# Explicitly use our cmake toolchain file and tell CMake we're cross-compiling\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING:BOOL=ON)\n\n# Release build for best performance\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\n\n# Only build the Metal back-end\nCMAKE_FLAGS+=(-DLLVM_TARGETS_TO_BUILD=Metal)\n\n# Turn on ZLIB\nCMAKE_FLAGS+=(-DLLVM_ENABLE_ZLIB=ON)\n# Turn off XML2\nCMAKE_FLAGS+=(-DLLVM_ENABLE_LIBXML2=OFF)\n\n# Disable useless things like docs, terminfo, etc....\nCMAKE_FLAGS+=(-DLLVM_INCLUDE_DOCS=Off)\nCMAKE_FLAGS+=(-DLLVM_ENABLE_TERMINFO=Off)\nCMAKE_FLAGS+=(-DHAVE_HISTEDIT_H=Off)\nCMAKE_FLAGS+=(-DHAVE_LIBEDIT=Off)\n\ncmake -GNinja ${LLVM_SRCDIR} ${CMAKE_FLAGS[@]}\nninja -j${nproc} \\\n    tools/metallib-as/install \\\n    tools/metallib-dis/install\n"""
-        version = "v0.3.0"
-
-            [["0.3.0+2".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVM_full_jll"
-            platforms = ["any"]
-            type = "builddependency"
-            version-major = 13
-            version-minor = 0
-            version-patch = 1
-            [["0.3.0+2".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Zlib_jll"
-            platforms = ["any"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["0.3.0+2".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVM_full_assert_jll"
-            platforms = ["any"]
-            type = "builddependency"
-            version-major = 13
-            version-minor = 0
-            version-patch = 1
-            [["0.3.0+2".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVM_full_jll"
-            platforms = ["any"]
-            type = "builddependency"
-            version-major = 14
-            version-minor = 0
-            version-patch = 2
-            [["0.3.0+2".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVM_full_assert_jll"
-            platforms = ["any"]
-            type = "builddependency"
-            version-major = 14
-            version-minor = 0
-            version-patch = 2
-
-            [["0.3.0+2".artifact_metadata.metadata.products]]
-            binnames = ["metallib-as"]
-            type = "exe"
-            variable_name = "metallib_as"
-            [["0.3.0+2".artifact_metadata.metadata.products]]
-            binnames = ["metallib-dis"]
-            type = "exe"
-            variable_name = "metallib_dis"
-
-            [["0.3.0+2".artifact_metadata.metadata.sources]]
-            hash = "ccbd19019272cda3fe2296f5df8ec39f4828be05"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/JuliaGPU/llvm-metal"
-            [["0.3.0+2".artifact_metadata.metadata.sources]]
-            hash = "fa7eef519540e8c79b2b2f908f4d15427c5285c8"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/JuliaGPU/llvm-metal"
 
 ["0.4.0+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.4.0+0/Metal_LLVM_Tools.v0.4.0.aarch64-apple-darwin-llvm_version+13.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.4.0+0/Metal_LLVM_Tools.v0.4.0.aarch64-apple-darwin-llvm_version+13.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.4.0+0/Metal_LLVM_Tools.v0.4.0.aarch64-apple-darwin-llvm_version+14.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.4.0+0/Metal_LLVM_Tools.v0.4.0.aarch64-apple-darwin-llvm_version+14.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.4.0+0/Metal_LLVM_Tools.v0.4.0.x86_64-apple-darwin-llvm_version+13.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.4.0+0/Metal_LLVM_Tools.v0.4.0.x86_64-apple-darwin-llvm_version+13.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.4.0+0/Metal_LLVM_Tools.v0.4.0.x86_64-apple-darwin-llvm_version+14.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.4.0+0/Metal_LLVM_Tools.v0.4.0.x86_64-apple-darwin-llvm_version+14.tar.gz"]
@@ -320,85 +65,10 @@ registered = 2023-04-28T13:08:55.000Z
     [["0.4.0+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.4.0+0/Metal_LLVM_Tools.v0.4.0.aarch64-apple-darwin-llvm_version+13.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.4.0+0/Metal_LLVM_Tools.v0.4.0.aarch64-apple-darwin-llvm_version+13.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.4.0+0/Metal_LLVM_Tools.v0.4.0.aarch64-apple-darwin-llvm_version+14.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.4.0+0/Metal_LLVM_Tools.v0.4.0.aarch64-apple-darwin-llvm_version+14.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.4.0+0/Metal_LLVM_Tools.v0.4.0.x86_64-apple-darwin-llvm_version+13.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.4.0+0/Metal_LLVM_Tools.v0.4.0.x86_64-apple-darwin-llvm_version+13.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.4.0+0/Metal_LLVM_Tools.v0.4.0.x86_64-apple-darwin-llvm_version+14.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.4.0+0/Metal_LLVM_Tools.v0.4.0.x86_64-apple-darwin-llvm_version+14.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/4adac87c7a5b167713afd622259e0480c01c383f/M/Metal_LLVM_Tools/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/m/metal_llvm_tools/build_tarballs.jl/4adac87c7a5b167713afd622259e0480c01c383f.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.5.6"
-
-        ["0.4.0+0".artifact_metadata.metadata]
-        augment_platform_block = """using Base.BinaryPlatforms\n\nfunction augment_llvm!(platform::Platform)\n    haskey(platform, \"llvm_version\") && return platform\n\n    llvm_version = Base.libllvm_version\n    # does our LLVM build use assertions?\n    llvm_assertions = try\n        cglobal((:_ZN4llvm24DisableABIBreakingChecksE, Base.libllvm_path()), Cvoid)\n        false\n    catch\n        true\n    end\n    platform[\"llvm_version\"] = if llvm_assertions\n        \"$(llvm_version.major).asserts\"\n    else\n        \"$(llvm_version.major)\"\n    end\n    return platform\nend\n\n\nfunction augment_platform!(platform::Platform)\n    augment_llvm!(platform)\nend"""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = true
-        name = "Metal_LLVM_Tools"
-        platforms = ["x86_64-apple-darwin-llvm_version+13", "aarch64-apple-darwin-llvm_version+13", "x86_64-apple-darwin-llvm_version+13.asserts", "aarch64-apple-darwin-llvm_version+13.asserts", "x86_64-apple-darwin-llvm_version+14", "aarch64-apple-darwin-llvm_version+14", "x86_64-apple-darwin-llvm_version+14.asserts", "aarch64-apple-darwin-llvm_version+14.asserts"]
-        script = """cd llvm-metal/llvm\nLLVM_SRCDIR=$(pwd)\n\ninstall_license LICENSE.TXT\n\n# The very first thing we need to do is to build llvm-tblgen for x86_64-linux-muslc\n# This is because LLVM's cross-compile setup is kind of borked, so we just\n# build the tools natively ourselves, directly.  :/\n\n# Build llvm-tblgen and llvm-config\nmkdir ${WORKSPACE}/bootstrap\npushd ${WORKSPACE}/bootstrap\nCMAKE_FLAGS=()\nCMAKE_FLAGS+=(-DLLVM_TARGETS_TO_BUILD:STRING=host)\nCMAKE_FLAGS+=(-DLLVM_HOST_TRIPLE=${MACHTYPE})\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\nCMAKE_FLAGS+=(-DLLVM_ENABLE_PROJECTS='llvm')\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING=False)\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_HOST_TOOLCHAIN})\ncmake -GNinja ${LLVM_SRCDIR} ${CMAKE_FLAGS[@]}\nninja -j${nproc} llvm-tblgen llvm-config\npopd\n\n# Let's do the actual build within the `build` subdirectory\nmkdir ${WORKSPACE}/build && cd ${WORKSPACE}/build\nCMAKE_FLAGS=()\n\n# Tell LLVM where our pre-built tblgen tools are\nCMAKE_FLAGS+=(-DLLVM_TABLEGEN=${WORKSPACE}/bootstrap/bin/llvm-tblgen)\nCMAKE_FLAGS+=(-DLLVM_CONFIG_PATH=${WORKSPACE}/bootstrap/bin/llvm-config)\n\n# Install things into $prefix\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix})\n\n# Explicitly use our cmake toolchain file and tell CMake we're cross-compiling\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING:BOOL=ON)\n\n# Release build for best performance\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\n\n# Only build the Metal back-end\nCMAKE_FLAGS+=(-DLLVM_TARGETS_TO_BUILD=Metal)\n\n# Turn on ZLIB\nCMAKE_FLAGS+=(-DLLVM_ENABLE_ZLIB=ON)\n# Turn off XML2\nCMAKE_FLAGS+=(-DLLVM_ENABLE_LIBXML2=OFF)\n\n# Disable useless things like docs, terminfo, etc....\nCMAKE_FLAGS+=(-DLLVM_INCLUDE_DOCS=Off)\nCMAKE_FLAGS+=(-DLLVM_ENABLE_TERMINFO=Off)\nCMAKE_FLAGS+=(-DHAVE_HISTEDIT_H=Off)\nCMAKE_FLAGS+=(-DHAVE_LIBEDIT=Off)\n\ncmake -GNinja ${LLVM_SRCDIR} ${CMAKE_FLAGS[@]}\nninja -j${nproc} \\\n    tools/metallib-as/install \\\n    tools/metallib-dis/install\n"""
-        version = "v0.4.0"
-
-            [["0.4.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVM_full_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "builddependency"
-            version-major = 13
-            version-minor = 0
-            version-patch = 1
-            [["0.4.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Zlib_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["0.4.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVM_full_assert_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "builddependency"
-            version-major = 13
-            version-minor = 0
-            version-patch = 1
-            [["0.4.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVM_full_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "builddependency"
-            version-major = 14
-            version-minor = 0
-            version-patch = 6
-            [["0.4.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVM_full_assert_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "builddependency"
-            version-major = 14
-            version-minor = 0
-            version-patch = 6
-
-            [["0.4.0+0".artifact_metadata.metadata.products]]
-            binnames = ["metallib-as"]
-            type = "exe"
-            variable_name = "metallib_as"
-            [["0.4.0+0".artifact_metadata.metadata.products]]
-            binnames = ["metallib-dis"]
-            type = "exe"
-            variable_name = "metallib_dis"
-
-            [["0.4.0+0".artifact_metadata.metadata.sources]]
-            hash = "45993e2b59fb6d91779ec45fbfba6809e8e40f0b"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/JuliaGPU/llvm-metal"
-            [["0.4.0+0".artifact_metadata.metadata.sources]]
-            hash = "021763731e8638dcf14cc19c1af606c60adaa6a0"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/JuliaGPU/llvm-metal"
 
 ["0.5.0+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.5.0+0/Metal_LLVM_Tools.v0.5.0.aarch64-apple-darwin-llvm_version+13.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.5.0+0/Metal_LLVM_Tools.v0.5.0.aarch64-apple-darwin-llvm_version+13.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.5.0+0/Metal_LLVM_Tools.v0.5.0.aarch64-apple-darwin-llvm_version+14.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.5.0+0/Metal_LLVM_Tools.v0.5.0.aarch64-apple-darwin-llvm_version+14.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.5.0+0/Metal_LLVM_Tools.v0.5.0.aarch64-apple-darwin-llvm_version+15.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.5.0+0/Metal_LLVM_Tools.v0.5.0.aarch64-apple-darwin-llvm_version+15.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.5.0+0/Metal_LLVM_Tools.v0.5.0.x86_64-apple-darwin-llvm_version+13.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.5.0+0/Metal_LLVM_Tools.v0.5.0.x86_64-apple-darwin-llvm_version+13.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.5.0+0/Metal_LLVM_Tools.v0.5.0.x86_64-apple-darwin-llvm_version+14.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.5.0+0/Metal_LLVM_Tools.v0.5.0.x86_64-apple-darwin-llvm_version+14.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.5.0+0/Metal_LLVM_Tools.v0.5.0.x86_64-apple-darwin-llvm_version+15.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.5.0+0/Metal_LLVM_Tools.v0.5.0.x86_64-apple-darwin-llvm_version+15.tar.gz"]
@@ -407,108 +77,10 @@ registered = 2023-05-17T14:50:20.000Z
     [["0.5.0+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.5.0+0/Metal_LLVM_Tools.v0.5.0.aarch64-apple-darwin-llvm_version+13.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.5.0+0/Metal_LLVM_Tools.v0.5.0.aarch64-apple-darwin-llvm_version+13.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.5.0+0/Metal_LLVM_Tools.v0.5.0.aarch64-apple-darwin-llvm_version+14.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.5.0+0/Metal_LLVM_Tools.v0.5.0.aarch64-apple-darwin-llvm_version+14.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.5.0+0/Metal_LLVM_Tools.v0.5.0.aarch64-apple-darwin-llvm_version+15.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.5.0+0/Metal_LLVM_Tools.v0.5.0.aarch64-apple-darwin-llvm_version+15.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.5.0+0/Metal_LLVM_Tools.v0.5.0.x86_64-apple-darwin-llvm_version+13.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.5.0+0/Metal_LLVM_Tools.v0.5.0.x86_64-apple-darwin-llvm_version+13.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.5.0+0/Metal_LLVM_Tools.v0.5.0.x86_64-apple-darwin-llvm_version+14.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.5.0+0/Metal_LLVM_Tools.v0.5.0.x86_64-apple-darwin-llvm_version+14.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.5.0+0/Metal_LLVM_Tools.v0.5.0.x86_64-apple-darwin-llvm_version+15.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.5.0+0/Metal_LLVM_Tools.v0.5.0.x86_64-apple-darwin-llvm_version+15.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/38e8819f1e4034f63c9e412a10083c14219f7af4/M/Metal_LLVM_Tools/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/m/metal_llvm_tools/build_tarballs.jl/38e8819f1e4034f63c9e412a10083c14219f7af4.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.5.6"
-
-        ["0.5.0+0".artifact_metadata.metadata]
-        augment_platform_block = """using Base.BinaryPlatforms\n\nfunction augment_llvm!(platform::Platform)\n    haskey(platform, \"llvm_version\") && return platform\n\n    llvm_version = Base.libllvm_version\n    # does our LLVM build use assertions?\n    llvm_assertions = try\n        cglobal((:_ZN4llvm24DisableABIBreakingChecksE, Base.libllvm_path()), Cvoid)\n        false\n    catch\n        true\n    end\n    platform[\"llvm_version\"] = if llvm_assertions\n        \"$(llvm_version.major).asserts\"\n    else\n        \"$(llvm_version.major)\"\n    end\n    return platform\nend\n\n\nfunction augment_platform!(platform::Platform)\n    augment_llvm!(platform)\nend"""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = true
-        name = "Metal_LLVM_Tools"
-        platforms = ["x86_64-apple-darwin-llvm_version+13", "aarch64-apple-darwin-llvm_version+13", "x86_64-apple-darwin-llvm_version+13.asserts", "aarch64-apple-darwin-llvm_version+13.asserts", "x86_64-apple-darwin-llvm_version+14", "aarch64-apple-darwin-llvm_version+14", "x86_64-apple-darwin-llvm_version+14.asserts", "aarch64-apple-darwin-llvm_version+14.asserts", "x86_64-apple-darwin-llvm_version+15", "aarch64-apple-darwin-llvm_version+15", "x86_64-apple-darwin-llvm_version+15.asserts", "aarch64-apple-darwin-llvm_version+15.asserts"]
-        script = """cd llvm-metal/llvm\nLLVM_SRCDIR=$(pwd)\n\ninstall_license LICENSE.TXT\n\n# The very first thing we need to do is to build llvm-tblgen for x86_64-linux-muslc\n# This is because LLVM's cross-compile setup is kind of borked, so we just\n# build the tools natively ourselves, directly.  :/\n\n# Build llvm-tblgen and llvm-config\nmkdir ${WORKSPACE}/bootstrap\npushd ${WORKSPACE}/bootstrap\nCMAKE_FLAGS=()\nCMAKE_FLAGS+=(-DLLVM_TARGETS_TO_BUILD:STRING=host)\nCMAKE_FLAGS+=(-DLLVM_HOST_TRIPLE=${MACHTYPE})\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\nCMAKE_FLAGS+=(-DLLVM_ENABLE_PROJECTS='llvm')\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING=False)\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_HOST_TOOLCHAIN})\ncmake -GNinja ${LLVM_SRCDIR} ${CMAKE_FLAGS[@]}\nninja -j${nproc} llvm-tblgen llvm-config\npopd\n\n# Let's do the actual build within the `build` subdirectory\nmkdir ${WORKSPACE}/build && cd ${WORKSPACE}/build\nCMAKE_FLAGS=()\n\n# Tell LLVM where our pre-built tblgen tools are\nCMAKE_FLAGS+=(-DLLVM_TABLEGEN=${WORKSPACE}/bootstrap/bin/llvm-tblgen)\nCMAKE_FLAGS+=(-DLLVM_CONFIG_PATH=${WORKSPACE}/bootstrap/bin/llvm-config)\n\n# Install things into $prefix\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix})\n\n# Explicitly use our cmake toolchain file and tell CMake we're cross-compiling\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING:BOOL=ON)\n\n# Release build for best performance\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\n\n# Only build the Metal back-end\nCMAKE_FLAGS+=(-DLLVM_TARGETS_TO_BUILD=Metal)\n\n# Turn on ZLIB\nCMAKE_FLAGS+=(-DLLVM_ENABLE_ZLIB=ON)\n# Turn off XML2\nCMAKE_FLAGS+=(-DLLVM_ENABLE_LIBXML2=OFF)\n\n# Disable useless things like docs, terminfo, etc....\nCMAKE_FLAGS+=(-DLLVM_INCLUDE_DOCS=Off)\nCMAKE_FLAGS+=(-DLLVM_ENABLE_TERMINFO=Off)\nCMAKE_FLAGS+=(-DHAVE_HISTEDIT_H=Off)\nCMAKE_FLAGS+=(-DHAVE_LIBEDIT=Off)\n\ncmake -GNinja ${LLVM_SRCDIR} ${CMAKE_FLAGS[@]}\nninja -j${nproc} \\\n    tools/metallib-as/install \\\n    tools/metallib-dis/install\n"""
-        version = "v0.5.0"
-
-            [["0.5.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVM_full_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "builddependency"
-            version-major = 13
-            version-minor = 0
-            version-patch = 1
-            [["0.5.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Zlib_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["0.5.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVM_full_assert_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "builddependency"
-            version-major = 13
-            version-minor = 0
-            version-patch = 1
-            [["0.5.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVM_full_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "builddependency"
-            version-major = 14
-            version-minor = 0
-            version-patch = 6
-            [["0.5.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVM_full_assert_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "builddependency"
-            version-major = 14
-            version-minor = 0
-            version-patch = 6
-            [["0.5.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVM_full_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "builddependency"
-            version-major = 15
-            version-minor = 0
-            version-patch = 7
-            [["0.5.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVM_full_assert_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "builddependency"
-            version-major = 15
-            version-minor = 0
-            version-patch = 7
-
-            [["0.5.0+0".artifact_metadata.metadata.products]]
-            binnames = ["metallib-as"]
-            type = "exe"
-            variable_name = "metallib_as"
-            [["0.5.0+0".artifact_metadata.metadata.products]]
-            binnames = ["metallib-dis"]
-            type = "exe"
-            variable_name = "metallib_dis"
-
-            [["0.5.0+0".artifact_metadata.metadata.sources]]
-            hash = "98b59c32d21c708adc0b7bb5fa5b92ec20d21124"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/JuliaGPU/llvm-metal"
-            [["0.5.0+0".artifact_metadata.metadata.sources]]
-            hash = "1a409d88ad3df63b757747bf0b8191b5ee18e4b3"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/JuliaGPU/llvm-metal"
-            [["0.5.0+0".artifact_metadata.metadata.sources]]
-            hash = "f53c800ce5d1bdd456f87053479b7de96276a500"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/JuliaGPU/llvm-metal"
 
 ["0.5.1+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.5.1+0/Metal_LLVM_Tools.v0.5.1.aarch64-apple-darwin-llvm_version+13.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.5.1+0/Metal_LLVM_Tools.v0.5.1.aarch64-apple-darwin-llvm_version+13.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.5.1+0/Metal_LLVM_Tools.v0.5.1.aarch64-apple-darwin-llvm_version+14.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.5.1+0/Metal_LLVM_Tools.v0.5.1.aarch64-apple-darwin-llvm_version+14.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.5.1+0/Metal_LLVM_Tools.v0.5.1.aarch64-apple-darwin-llvm_version+15.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.5.1+0/Metal_LLVM_Tools.v0.5.1.aarch64-apple-darwin-llvm_version+15.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.5.1+0/Metal_LLVM_Tools.v0.5.1.x86_64-apple-darwin-llvm_version+13.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.5.1+0/Metal_LLVM_Tools.v0.5.1.x86_64-apple-darwin-llvm_version+13.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.5.1+0/Metal_LLVM_Tools.v0.5.1.x86_64-apple-darwin-llvm_version+14.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.5.1+0/Metal_LLVM_Tools.v0.5.1.x86_64-apple-darwin-llvm_version+14.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.5.1+0/Metal_LLVM_Tools.v0.5.1.x86_64-apple-darwin-llvm_version+15.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.5.1+0/Metal_LLVM_Tools.v0.5.1.x86_64-apple-darwin-llvm_version+15.tar.gz"]
@@ -517,105 +89,7 @@ registered = 2023-05-19T18:47:15.000Z
     [["0.5.1+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.5.1+0/Metal_LLVM_Tools.v0.5.1.aarch64-apple-darwin-llvm_version+13.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.5.1+0/Metal_LLVM_Tools.v0.5.1.aarch64-apple-darwin-llvm_version+13.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.5.1+0/Metal_LLVM_Tools.v0.5.1.aarch64-apple-darwin-llvm_version+14.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.5.1+0/Metal_LLVM_Tools.v0.5.1.aarch64-apple-darwin-llvm_version+14.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.5.1+0/Metal_LLVM_Tools.v0.5.1.aarch64-apple-darwin-llvm_version+15.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.5.1+0/Metal_LLVM_Tools.v0.5.1.aarch64-apple-darwin-llvm_version+15.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.5.1+0/Metal_LLVM_Tools.v0.5.1.x86_64-apple-darwin-llvm_version+13.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.5.1+0/Metal_LLVM_Tools.v0.5.1.x86_64-apple-darwin-llvm_version+13.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.5.1+0/Metal_LLVM_Tools.v0.5.1.x86_64-apple-darwin-llvm_version+14.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.5.1+0/Metal_LLVM_Tools.v0.5.1.x86_64-apple-darwin-llvm_version+14.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.5.1+0/Metal_LLVM_Tools.v0.5.1.x86_64-apple-darwin-llvm_version+15.asserts.tar.gz", "https://github.com/JuliaBinaryWrappers/Metal_LLVM_Tools_jll.jl/releases/download/Metal_LLVM_Tools-v0.5.1+0/Metal_LLVM_Tools.v0.5.1.x86_64-apple-darwin-llvm_version+15.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/337ac1b06a029cb798124c73f8139c856727e975/M/Metal_LLVM_Tools/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/m/metal_llvm_tools/build_tarballs.jl/337ac1b06a029cb798124c73f8139c856727e975.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.5.6"
-
-        ["0.5.1+0".artifact_metadata.metadata]
-        augment_platform_block = """using Base.BinaryPlatforms\n\nfunction augment_llvm!(platform::Platform)\n    haskey(platform, \"llvm_version\") && return platform\n\n    llvm_version = Base.libllvm_version\n    # does our LLVM build use assertions?\n    llvm_assertions = try\n        cglobal((:_ZN4llvm24DisableABIBreakingChecksE, Base.libllvm_path()), Cvoid)\n        false\n    catch\n        true\n    end\n    platform[\"llvm_version\"] = if llvm_assertions\n        \"$(llvm_version.major).asserts\"\n    else\n        \"$(llvm_version.major)\"\n    end\n    return platform\nend\n\n\nfunction augment_platform!(platform::Platform)\n    augment_llvm!(platform)\nend"""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = true
-        name = "Metal_LLVM_Tools"
-        platforms = ["x86_64-apple-darwin-llvm_version+13", "aarch64-apple-darwin-llvm_version+13", "x86_64-apple-darwin-llvm_version+13.asserts", "aarch64-apple-darwin-llvm_version+13.asserts", "x86_64-apple-darwin-llvm_version+14", "aarch64-apple-darwin-llvm_version+14", "x86_64-apple-darwin-llvm_version+14.asserts", "aarch64-apple-darwin-llvm_version+14.asserts", "x86_64-apple-darwin-llvm_version+15", "aarch64-apple-darwin-llvm_version+15", "x86_64-apple-darwin-llvm_version+15.asserts", "aarch64-apple-darwin-llvm_version+15.asserts"]
-        script = """cd llvm-metal/llvm\nLLVM_SRCDIR=$(pwd)\n\ninstall_license LICENSE.TXT\n\n# The very first thing we need to do is to build llvm-tblgen for x86_64-linux-muslc\n# This is because LLVM's cross-compile setup is kind of borked, so we just\n# build the tools natively ourselves, directly.  :/\n\n# Build llvm-tblgen and llvm-config\nmkdir ${WORKSPACE}/bootstrap\npushd ${WORKSPACE}/bootstrap\nCMAKE_FLAGS=()\nCMAKE_FLAGS+=(-DLLVM_TARGETS_TO_BUILD:STRING=host)\nCMAKE_FLAGS+=(-DLLVM_HOST_TRIPLE=${MACHTYPE})\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\nCMAKE_FLAGS+=(-DLLVM_ENABLE_PROJECTS='llvm')\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING=False)\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_HOST_TOOLCHAIN})\ncmake -GNinja ${LLVM_SRCDIR} ${CMAKE_FLAGS[@]}\nninja -j${nproc} llvm-tblgen llvm-config\npopd\n\n# Let's do the actual build within the `build` subdirectory\nmkdir ${WORKSPACE}/build && cd ${WORKSPACE}/build\nCMAKE_FLAGS=()\n\n# Tell LLVM where our pre-built tblgen tools are\nCMAKE_FLAGS+=(-DLLVM_TABLEGEN=${WORKSPACE}/bootstrap/bin/llvm-tblgen)\nCMAKE_FLAGS+=(-DLLVM_CONFIG_PATH=${WORKSPACE}/bootstrap/bin/llvm-config)\n\n# Install things into $prefix\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix})\n\n# Explicitly use our cmake toolchain file and tell CMake we're cross-compiling\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING:BOOL=ON)\n\n# Release build for best performance\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\n\n# Only build the Metal back-end\nCMAKE_FLAGS+=(-DLLVM_TARGETS_TO_BUILD=Metal)\n\n# Turn on ZLIB\nCMAKE_FLAGS+=(-DLLVM_ENABLE_ZLIB=ON)\n# Turn off XML2\nCMAKE_FLAGS+=(-DLLVM_ENABLE_LIBXML2=OFF)\n\n# Disable useless things like docs, terminfo, etc....\nCMAKE_FLAGS+=(-DLLVM_INCLUDE_DOCS=Off)\nCMAKE_FLAGS+=(-DLLVM_ENABLE_TERMINFO=Off)\nCMAKE_FLAGS+=(-DHAVE_HISTEDIT_H=Off)\nCMAKE_FLAGS+=(-DHAVE_LIBEDIT=Off)\n\ncmake -GNinja ${LLVM_SRCDIR} ${CMAKE_FLAGS[@]}\nninja -j${nproc} \\\n    tools/metallib-as/install \\\n    tools/metallib-dis/install\n"""
-        version = "v0.5.1"
-
-            [["0.5.1+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVM_full_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "builddependency"
-            version-major = 13
-            version-minor = 0
-            version-patch = 1
-            [["0.5.1+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Zlib_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["0.5.1+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVM_full_assert_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "builddependency"
-            version-major = 13
-            version-minor = 0
-            version-patch = 1
-            [["0.5.1+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVM_full_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "builddependency"
-            version-major = 14
-            version-minor = 0
-            version-patch = 6
-            [["0.5.1+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVM_full_assert_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "builddependency"
-            version-major = 14
-            version-minor = 0
-            version-patch = 6
-            [["0.5.1+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVM_full_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "builddependency"
-            version-major = 15
-            version-minor = 0
-            version-patch = 7
-            [["0.5.1+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVM_full_assert_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "builddependency"
-            version-major = 15
-            version-minor = 0
-            version-patch = 7
-
-            [["0.5.1+0".artifact_metadata.metadata.products]]
-            binnames = ["metallib-as"]
-            type = "exe"
-            variable_name = "metallib_as"
-            [["0.5.1+0".artifact_metadata.metadata.products]]
-            binnames = ["metallib-dis"]
-            type = "exe"
-            variable_name = "metallib_dis"
-
-            [["0.5.1+0".artifact_metadata.metadata.sources]]
-            hash = "d4332ddfb2a573e8de7c567b8f2116d5c5c697ea"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/JuliaGPU/llvm-metal"
-            [["0.5.1+0".artifact_metadata.metadata.sources]]
-            hash = "859feded2a5cad7d96943e686edca2eb4afb1664"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/JuliaGPU/llvm-metal"
-            [["0.5.1+0".artifact_metadata.metadata.sources]]
-            hash = "b7f9ec094a19439c59e4095d3c92e506eb6c1285"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/JuliaGPU/llvm-metal"

@@ -1,0 +1,52 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "libevent"
+platforms = ["i686-w64-mingw32", "x86_64-w64-mingw32", "i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd"]
+script = """cd $WORKSPACE/srcdir/libevent-*\nif [[ \"${target}\" == aarch64-apple-* ]]; then\n    # Build without `-Wl,--no-undefined`\n    atomic_patch -p1 ../patches/build_with_no_undefined.patch\nelif [[ \"${target}\" == *-mingw* ]]; then\n     # Required to find OpenSSL\n     export LDFLAGS=\"${LDFLAGS} -L${bindir}\"\nfi\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target}\nmake -j${nproc}\nmake install\n"""
+version = "v2.1.15"
+
+[[dependencies]]
+compat = "3.0.15"
+name = "OpenSSL_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "458c3c95-2e84-50aa-8efc-19380b2a3a95"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libevent", "libevent-2-1"]
+type = "lib"
+variable_name = "libevent"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libevent_core", "libevent_core-2-1"]
+type = "lib"
+variable_name = "libevent_core"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libevent_pthreads", "libevent_pthreads-2-1"]
+type = "lib"
+variable_name = "libevent_pthreads"
+
+[[sources]]
+hash = "92e6de1be9ec176428fd2367677e61ceffc2ee1cb119035037a27d346b0403bb"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/libevent/libevent/releases/download/release-2.1.12-stable/libevent-2.1.12-stable.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "bundled"
+target = ""
+type = "directory"

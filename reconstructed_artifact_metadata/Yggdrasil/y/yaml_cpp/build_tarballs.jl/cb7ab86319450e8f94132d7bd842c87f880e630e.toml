@@ -1,0 +1,37 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "yaml_cpp"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir/yaml-cpp*/\n\npatch -p1 < ../patches/missing_boost_next_prior_include.patch\n\nif [[ $target == *-apple-darwin* || $target == *-freebsd* ]]; then\n    cmake_extra_args=-DCMAKE_C_FLAGS=-D_LIBCPP_ENABLE_CXX17_REMOVED_FEATURES\nfi\n\nmkdir build && cd build\ncmake .. \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DBUILD_SHARED_LIBS=ON \\\n    -DYAML_CPP_BUILD_TOOLS=OFF \\\n    $cmake_extra_args\n\nmake -j${nproc}\nmake install\n"""
+version = "v0.5.3"
+
+[[dependencies]]
+compat = ""
+name = "boost_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 1
+version-minor = 76
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libyaml-cpp", "yaml-cpp"]
+type = "lib"
+variable_name = "libyaml_cpp"
+
+[[sources]]
+hash = "b57efe94e7d445713c29f863adb8c23438eaa217"
+type = "git"
+unpack_target = ""
+url = "https://github.com/jbeder/yaml-cpp.git"
+[[sources]]
+follow_symlinks = false
+path = "bundled"
+target = ""
+type = "directory"

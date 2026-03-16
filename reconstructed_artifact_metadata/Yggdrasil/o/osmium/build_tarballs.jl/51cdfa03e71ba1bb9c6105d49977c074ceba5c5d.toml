@@ -1,0 +1,104 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "osmium"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "riscv64-linux-gnu-cxx03", "riscv64-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir/osmium-tool\n\nif [[ \"${target}\" == x86_64-apple-darwin* ]]; then\n    # Install a newer SDK to work around compilation failures\n    pushd $WORKSPACE/srcdir/MacOSX10.*.sdk\n    rm -rf /opt/${target}/${target}/sys-root/System\n    cp -ra usr/* \"/opt/${target}/${target}/sys-root/usr/.\"\n    cp -ra System \"/opt/${target}/${target}/sys-root/.\"\n    popd\n    export MACOSX_DEPLOYMENT_TARGET=10.15\nfi\n\nmkdir build && cd build\n\ncmake .. \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DNLOHMANN_INCLUDE_DIR=${includedir} \\\n    -DBoost_INCLUDE_DIR=${includedir} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DCMAKE_CXX_STANDARD=17\n\nmake -j${nproc}\nmake install\n\ninstall_license ../LICENSE.txt\n"""
+version = "v1.17.0"
+
+[[dependencies]]
+compat = ""
+name = "libosmium_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+uuid = "7f0a2ee1-9b43-5740-ae82-b54233cf7071"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "protozero_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+uuid = "e2028600-4f28-5e5c-ab86-957950af6e0a"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "nlohmann_json_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "=1.87.0"
+name = "boost_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "28df3c45-c428-5900-9ff8-a3135698ca75"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.0.9"
+name = "Bzip2_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "6e34b625-4abd-537c-b88f-471c36dfa7a0"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "83775a58-1f1d-513f-b197-d71354ab007a"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Lz4_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "5ced341a-0733-55b8-9ab6-a4889d929147"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "2.6.5"
+name = "Expat_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "2e619515-83b5-522b-bb60-26c02a35a201"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["osmium"]
+type = "exe"
+variable_name = "osmium"
+
+[[sources]]
+hash = "02b70f2c0df142f09ca24ffa633b6d3d1ec1e3eb"
+type = "git"
+unpack_target = ""
+url = "https://github.com/osmcode/osmium-tool.git"
+[[sources]]
+hash = "2408d07df7f324d3beea818585a6d990ba99587c218a3969f924dfcc4de93b62"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.15.sdk.tar.xz"

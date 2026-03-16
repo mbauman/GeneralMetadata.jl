@@ -1,0 +1,32 @@
+dependencies = []
+lazy_artifacts = false
+name = "liblinear"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir\nfor f in ${WORKSPACE}/srcdir/patches/*.patch; do\n    atomic_patch -p1 ${f}\ndone\ncd liblinear-230/\nmkdir -p ${prefix}/bin\nmkdir -p ${prefix}/lib\nif [[ \"${target}\" == *-freebsd* ]] || [[ \"${target}\" == *-apple-* ]]; then\n    CC=gcc\n    CXX=g++\nfi\nmake \nmake lib\ncp train${exeext} ${bindir}\ncp predict${exeext} ${bindir}\ncp liblinear.${dlext} ${libdir}\n"""
+version = "v2.30.0"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["liblinear"]
+type = "lib"
+variable_name = "liblinear"
+[[products]]
+binnames = ["train"]
+type = "exe"
+variable_name = "train"
+[[products]]
+binnames = ["predict"]
+type = "exe"
+variable_name = "predict"
+
+[[sources]]
+hash = "9b57710078206d4dbbe75e9015d4cf7fabe4464013fe0e89b8a2fe40038f8f51"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/cjlin1/liblinear/archive/v230.tar.gz"
+[[sources]]
+path = "./bundled"
+target = ""
+type = "directory"

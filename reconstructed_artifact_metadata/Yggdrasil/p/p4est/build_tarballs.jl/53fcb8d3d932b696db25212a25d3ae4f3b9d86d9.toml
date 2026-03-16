@@ -1,0 +1,42 @@
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "P4est"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "aarch64-apple-darwin", "armv6l-linux-gnueabihf", "armv6l-linux-musleabihf"]
+script = """cd p4est-*\nif [[ \"${target}\" == *-freebsd* ]]; then\n  export LIBS=\"-lm\"\nelif [[ \"${target}\" == x86_64-linux-musl ]]; then\n  # We can't run Fortran programs for the native platform, so a check that the\n  # Fortran compiler works would fail.  Small hack: swear that we're\n  # cross-compiling.  See:\n  # https://github.com/JuliaPackaging/BinaryBuilderBase.jl/issues/50.\n  sed -i 's/cross_compiling=no/cross_compiling=yes/' configure\n  sed -i 's/cross_compiling=no/cross_compiling=yes/' sc/configure\nfi\n\n# Set default preprocessor and linker flags\nexport CPPFLAGS=\"-I${includedir}\"\nexport LDFLAGS=\"-L${libdir}\"\n\n# Special Windows treatment\nFLAGS=()\nif [[ \"${target}\" == *-mingw* ]]; then\n  # Set linker flags only at build time (see https://docs.binarybuilder.org/v0.3/troubleshooting/#Windows)\n  FLAGS+=(LDFLAGS=\"$LDFLAGS -no-undefined\")\n\n  # Add manual definitions to fix missing `htonl` according to `INSTALL_WINDOWS` file\n  # (see https://github.com/cburstedde/p4est/blob/master/INSTALL_WINDOWS)\n  sed -i \"1s/^/#define htonl(_val) ( ((uint16_t)(_val) \\& 0xff00) >> 8 | ((uint16_t)(_val) \\& 0xff) << 8 )\\n/\" src/p4est_algorithms.c src/p8est_algorithms.c src/p6est.c src/p4est_ghost.c\n\n  # Add patch to hotfix `p4est_save_ext`/`p6est_save_ext` until\n  # https://github.com/cburstedde/p4est/issues/113 is fixed and released\n  atomic_patch -p1 $WORKSPACE/srcdir/patches/fix-bad-ftell-return-value-windows.patch\nfi\n\n# Configure, build, install\n# Note: BLAS is disabled since it is only needed for SC if it is used outside of p4est\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} --disable-static --without-blas\nmake -j${nproc} \"${FLAGS[@]}\"\nmake install\n"""
+version = "v2.3.1"
+
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+type = "dependency"
+uuid = "83775a58-1f1d-513f-b197-d71354ab007a"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libp4est"]
+type = "lib"
+variable_name = "libp4est"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsc"]
+type = "lib"
+variable_name = "libsc"
+
+[[sources]]
+hash = "be66893b039fb3f27aca3d5d00acff42c67bfad5aa09cea9253cdd628b2bdc9a"
+type = "archive"
+unpack_target = ""
+url = "https://p4est.github.io/release/p4est-2.3.1.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

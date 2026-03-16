@@ -1,0 +1,413 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.7"
+lazy_artifacts = false
+name = "mlpack"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd ${WORKSPACE}/srcdir/mlpack-*/\n\n# On macOS, we need to compile with 10.14 as a target to work around\n# std::optional availability issues.\nif [[ \"${target}\" == x86_64-apple-darwin* ]]; then\n    pushd ${WORKSPACE}/srcdir/MacOSX10.*.sdk\n    rm -rf /opt/${target}/${target}/sys-root/System\n    cp -ra usr/* \"/opt/${target}/${target}/sys-root/usr/.\"\n    cp -ra System \"/opt/${target}/${target}/sys-root/.\"\n    export MACOSX_DEPLOYMENT_TARGET=10.14\n    popd\nfi\n\nmkdir build && cd build\n\n# In order to convince mlpack to build Julia bindings, we have to use CMake\n# to specify the location of the Julia program.  But... it turns out that\n# all that CMake needs is some kind of executable program that prints the\n# version.  So we'll just create a crappy little script, since Julia may not\n# be available in the build environment.\necho \"#!/bin/bash\" > julia\necho \"echo \"Fake Julia version 1.9.4\"\" >> julia\nchmod +x julia\n\nFLAGS=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN}\n       -DCMAKE_CROSSCOMPILING=OFF\n       -DCMAKE_INSTALL_PREFIX=${prefix}\n       -DUSE_OPENMP=ON\n       -DBUILD_JULIA_BINDINGS=ON\n       -DBUILD_SHARED_LIBS=ON\n       -DJULIA_EXECUTABLE=\"${PWD}/julia\"\n       -DBUILD_CLI_EXECUTABLES=OFF\n       -DBUILD_GO_BINDINGS=OFF\n       -DBUILD_R_BINDINGS=OFF\n       -DBUILD_PYTHON_BINDINGS=OFF\n       -DBUILD_TESTS=OFF)\n\nif [[ \"${nbits}\" == 64 ]]; then\n    # We need to rename some functions for compatibility with Julia's OpenBLAS\n    SYMB_DEFS=()\n    for sym in cgbcon cgbsv cgbsvx cgbtrf cgbtrs cgecon cgees cgeev cgeevx cgehrd cgels cgelsd cgemm cgemv cgeqp3 cgeqrf cgesdd cgesv cgesvd cgesvx cgetrf cgetri cgetrs cgges cggev cgtsv cgtsvx checon cheev cheevd cherk chetrf chetri chetrs clangb clange clanhe clansy cpbtrf cpocon cposv cposvx cpotrf cpotri cpotrs cpstrf ctrcon ctrsyl ctrtri ctrtrs cungqr dasum ddot dgbcon dgbsv dgbsvx dgbtrf dgbtrs dgecon dgees dgeev dgeevx dgehrd dgels dgelsd dgemm dgemv dgeqp3 dgeqrf dgesdd dgesv dgesvd dgesvx dgetrf dgetri dgetrs dgges dggev dgtsv dgtsvx dlahqr dlangb dlange dlansy dlarnv dnrm2 dorgqr dpbtrf dpocon dposv dposvx dpotrf dpotri dpotrs dpstrf dstedc dsycon dsyev dsyevd dsyrk dsytrf dsytri dsytrs dtrcon dtrevc dtrsyl dtrtri dtrtrs ilaenv sasum sdot sgbcon sgbsv sgbsvx sgbtrf sgbtrs sgecon sgees sgeev sgeevx sgehrd sgels sgelsd sgemm sgemv sgeqrf sgeqp3 sgesdd sgesv sgesvd sgesvx sgetrf sgetri sgetrs sgges sggev sgtsv sgtsvx slahqr slangb slange slansy slarnv snrm2 sorgqr spbtrf spocon sposv sposvx spotrf spotri spotrs spstrf sstedc ssycon ssyev ssyevd ssyrk ssytrf ssytri ssytrs strcon strevc strsyl strtri strtrs zgbcon zgbsv zgbsvx zgbtrf zgbtrs zgecon zgees zgeev zgeevx zgehrd zgels zgelsd zgemm zgemv zgeqp3 zgeqrf zgesdd zgesv zgesvd zgesvx zgetrf zgetri zgetrs zgges zggev zgtsv zgtsvx zhecon zheev zheevd zherk zhetrf zhetri zhetrs zlangb zlange zlanhe zlansy zpbtrf zpocon zposv zposvx zpotrf zpotri zpotrs zpstrf ztrcon ztrsyl ztrtri ztrtrs zungqr; do\n        SYMB_DEFS+=(\"-D${sym}=${sym}_64\")\n    done\n    export CXXFLAGS=\"${SYMB_DEFS[@]}\"\nfi\n\nif [[ $target == *powerpc* ]]; then\n    FLAGS+=(-DCMAKE_EXE_LINKER_FLAGS=\"-L/opt/${target}/${target}/lib${arch_ext}/ -lgomp -pthread -ldl\")\nfi\n\nif [[ $target == *apple* ]]; then\n    FLAGS+=(-DCMAKE_SYSTEM_NAME=\"Darwin\")\nelif [[ $target == *mingw* ]]; then\n    # We need to remove bigobj support, but we also need to force the linker\n    # to export all symbols because Windows DLLs have the concept of\n    # \"exported\" and \"not exported\" functions.\n    sed -i 's/-Wa,-mbig-obj/-Wl,--export-all-symbols/' ../CMakeLists.txt\n\n    # For Windows configuration, we need to manually specify the OpenBLAS\n    # libraries as CMake variables.\n    if [[ \"${nbits}\" == 64 ]]; then\n        arch_ext=\"64_\";\n    else\n        arch_ext=\"\";\n    fi\n    FLAGS+=(-DLAPACK_LIBRARY=${libdir}/libopenblas${arch_ext}.${dlext})\n    FLAGS+=(-DBLAS_LIBRARY=${libdir}/libopenblas${arch_ext}.${dlext})\nfi\n\nif [[ ${target} != *darwin* ]]; then\n    # Needed to find libgfortran for OpenBLAS.\n    export CXXFLAGS=\"-Wl,-rpath-link,/opt/${target}/${target}/lib -Wl,-rpath-link,/opt/${target}/${target}/lib64 ${CXXFLAGS}\"\nfi\n\n# Reduce number of cores used for builds on FreeBSD or ARM (they run out of\n# memory).\nif [[ $target == *freebsd* ]] || [[ $target == *arm* ]] || [[ $target == *mingw* ]]; then\n  nproc=1;\nfi\n\ncmake .. \"${FLAGS[@]}\"\nmake -j${nproc}\nmake install\n\nif [[ ${target} == *mingw* ]]; then\n    cp -v libmlpack_julia*.dll \"${libdir}\"\nelse\n    cp -v src/mlpack/bindings/julia/mlpack/src/*.${dlext} \"${libdir}\"\nfi\n\ninstall_license ../LICENSE.txt\n"""
+version = "v4.5.1"
+
+[[dependencies]]
+compat = "12.2.0"
+name = "armadillo_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenBLAS_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LLVMOpenMP_jll"
+platforms = ["x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "cereal_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "ensmallen_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "stb_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmlpack_julia_util"]
+type = "lib"
+variable_name = "libmlpack_julia_util"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmlpack_julia_adaboost"]
+type = "lib"
+variable_name = "libmlpack_julia_adaboost"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmlpack_julia_approx_kfn"]
+type = "lib"
+variable_name = "libmlpack_julia_approx_kfn"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmlpack_julia_bayesian_linear_regression"]
+type = "lib"
+variable_name = "libmlpack_julia_bayesian_linear_regression"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmlpack_julia_cf"]
+type = "lib"
+variable_name = "libmlpack_julia_cf"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmlpack_julia_dbscan"]
+type = "lib"
+variable_name = "libmlpack_julia_dbscan"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmlpack_julia_decision_tree"]
+type = "lib"
+variable_name = "libmlpack_julia_decision_tree"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmlpack_julia_det"]
+type = "lib"
+variable_name = "libmlpack_julia_det"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmlpack_julia_emst"]
+type = "lib"
+variable_name = "libmlpack_julia_emst"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmlpack_julia_fastmks"]
+type = "lib"
+variable_name = "libmlpack_julia_fastmks"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmlpack_julia_gmm_generate"]
+type = "lib"
+variable_name = "libmlpack_julia_gmm_generate"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmlpack_julia_gmm_probability"]
+type = "lib"
+variable_name = "libmlpack_julia_gmm_probability"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmlpack_julia_gmm_train"]
+type = "lib"
+variable_name = "libmlpack_julia_gmm_train"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmlpack_julia_hmm_generate"]
+type = "lib"
+variable_name = "libmlpack_julia_hmm_generate"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmlpack_julia_hmm_loglik"]
+type = "lib"
+variable_name = "libmlpack_julia_hmm_loglik"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmlpack_julia_hmm_train"]
+type = "lib"
+variable_name = "libmlpack_julia_hmm_train"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmlpack_julia_hmm_viterbi"]
+type = "lib"
+variable_name = "libmlpack_julia_hmm_viterbi"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmlpack_julia_hoeffding_tree"]
+type = "lib"
+variable_name = "libmlpack_julia_hoeffding_tree"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmlpack_julia_image_converter"]
+type = "lib"
+variable_name = "libmlpack_julia_image_converter"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmlpack_julia_kde"]
+type = "lib"
+variable_name = "libmlpack_julia_kde"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmlpack_julia_kernel_pca"]
+type = "lib"
+variable_name = "libmlpack_julia_kernel_pca"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmlpack_julia_kfn"]
+type = "lib"
+variable_name = "libmlpack_julia_kfn"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmlpack_julia_kmeans"]
+type = "lib"
+variable_name = "libmlpack_julia_kmeans"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmlpack_julia_knn"]
+type = "lib"
+variable_name = "libmlpack_julia_knn"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmlpack_julia_krann"]
+type = "lib"
+variable_name = "libmlpack_julia_krann"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmlpack_julia_lars"]
+type = "lib"
+variable_name = "libmlpack_julia_lars"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmlpack_julia_linear_regression"]
+type = "lib"
+variable_name = "libmlpack_julia_linear_regression"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmlpack_julia_linear_svm"]
+type = "lib"
+variable_name = "libmlpack_julia_linear_svm"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmlpack_julia_lmnn"]
+type = "lib"
+variable_name = "libmlpack_julia_lmnn"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmlpack_julia_local_coordinate_coding"]
+type = "lib"
+variable_name = "libmlpack_julia_local_coordinate_coding"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmlpack_julia_logistic_regression"]
+type = "lib"
+variable_name = "libmlpack_julia_logistic_regression"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmlpack_julia_lsh"]
+type = "lib"
+variable_name = "libmlpack_julia_lsh"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmlpack_julia_mean_shift"]
+type = "lib"
+variable_name = "libmlpack_julia_mean_shift"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmlpack_julia_nbc"]
+type = "lib"
+variable_name = "libmlpack_julia_nbc"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmlpack_julia_nca"]
+type = "lib"
+variable_name = "libmlpack_julia_nca"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmlpack_julia_nmf"]
+type = "lib"
+variable_name = "libmlpack_julia_nmf"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmlpack_julia_pca"]
+type = "lib"
+variable_name = "libmlpack_julia_pca"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmlpack_julia_perceptron"]
+type = "lib"
+variable_name = "libmlpack_julia_perceptron"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmlpack_julia_preprocess_binarize"]
+type = "lib"
+variable_name = "libmlpack_julia_preprocess_binarize"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmlpack_julia_preprocess_describe"]
+type = "lib"
+variable_name = "libmlpack_julia_preprocess_describe"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmlpack_julia_preprocess_one_hot_encoding"]
+type = "lib"
+variable_name = "libmlpack_julia_preprocess_one_hot_encoding"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmlpack_julia_preprocess_scale"]
+type = "lib"
+variable_name = "libmlpack_julia_preprocess_scale"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmlpack_julia_preprocess_split"]
+type = "lib"
+variable_name = "libmlpack_julia_preprocess_split"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmlpack_julia_radical"]
+type = "lib"
+variable_name = "libmlpack_julia_radical"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmlpack_julia_random_forest"]
+type = "lib"
+variable_name = "libmlpack_julia_random_forest"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmlpack_julia_softmax_regression"]
+type = "lib"
+variable_name = "libmlpack_julia_softmax_regression"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmlpack_julia_sparse_coding"]
+type = "lib"
+variable_name = "libmlpack_julia_sparse_coding"
+
+[[sources]]
+hash = "58059b911a78b8bda91eef4cfc6278383b24e71865263c2e0569cf5faa59dda3"
+type = "archive"
+unpack_target = ""
+url = "https://www.mlpack.org/files/mlpack-4.5.1.tar.gz"
+[[sources]]
+hash = "0f03869f72df8705b832910517b47dd5b79eb4e160512602f593ed243b28715f"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.14.sdk.tar.xz"

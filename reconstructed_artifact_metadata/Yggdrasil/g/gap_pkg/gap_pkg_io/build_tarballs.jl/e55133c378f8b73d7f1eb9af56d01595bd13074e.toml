@@ -1,0 +1,38 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "GAP_pkg_io"
+platforms = ["x86_64-linux-gnu", "aarch64-linux-gnu", "powerpc64le-linux-gnu", "x86_64-linux-musl", "aarch64-linux-musl", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd"]
+script = """# HACK WORKAROUND GAP_jll deficiencies\n# must add -lgap to the linker flags used by gac\nperl -pi -e 's/c_addlibs=\"\"/c_addlibs=\"-lgap\"/' ${prefix}/bin/gac\ncd io*\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} --with-gaproot=${prefix}/lib/gap\nmake -j${nproc}\n\n# copy the loadable module\nmkdir -p ${prefix}/lib/gap\ncp bin/*/*.so ${prefix}/lib/gap/\n\ninstall_license LICENSE\n"""
+version = "v400.700.202"
+
+[[dependencies]]
+compat = "~400.1200.0"
+name = "GAP_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "~400.1200.0"
+name = "GAP_lib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+paths = ["lib/gap/io.so"]
+type = "file"
+variable_name = "io"
+
+[[sources]]
+hash = "9769d930c57d9793f3b2354ac6c43fb12b0f85c1dfabb435c7891c0518262513"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/gap-packages/io/releases/download/v4.7.2/io-4.7.2.tar.gz"

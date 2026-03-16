@@ -1,0 +1,270 @@
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "IOAPI"
+platforms = ["x86_64-linux-gnu-libgfortran3", "x86_64-linux-gnu-libgfortran4", "x86_64-linux-gnu-libgfortran5", "x86_64-apple-darwin-libgfortran3", "x86_64-apple-darwin-libgfortran4", "x86_64-apple-darwin-libgfortran5", "aarch64-linux-gnu-libgfortran3", "aarch64-linux-gnu-libgfortran4", "aarch64-linux-gnu-libgfortran5"]
+script = """apk add tcsh # Build script is in csh\n\ncd $WORKSPACE/srcdir/ioapi-3.2/ioapi/\ninstall_license ../LICENSE\nexport HOME=${WORKSPACE}/srcdir\nexport BIN=tmp\nexport BINDIR=${HOME}/ioapi-3.2/${BIN}\nmkdir $BINDIR\n\nsed -i 's/-ffast-math /-fPIC /g' Makeinclude* # Get rid of forbidden -ffast-math flag\nsed -i 's/-DNEED_ARGS=1/-DNEED_ARGS=1 -DIOAPI_NCF4=1/g' Makeinclude* # Specify NetCDF v4\n\nif [[ \"${nbits}\" == 32 ]]; then\n    sed -i 's/-m64/-m32/g' Makeinclude* # Specify 32-bit build\nelif [[ \"${target}\" == *aarch64* ]]; then\n    sed -i 's/-m64//g' Makeinclude* # Get rid of x86 flag\nfi\n\nif [[ \"${target}\" == *mingw* ]]; then\n    # Add missing stdint header.\n    sed -i 's/<stdio.h>/<stdio.h>\\n\\#include <stdint.h>/g' bufint3.c\n\n    # This sys/wait.h header is not available and doesn't seem to be used.\n    sed -i 's/\\#include <sys\\/wait.h>//g' systemf.c\nfi\n\ncp Makefile.nocpl Makefile\ncp Makeinclude.Linux2_x86_64gfort Makeinclude.$BIN\n\nmake # Parallel make (-j > 1) does not work\n\ncp *.h ${includedir} # C header files\ncp fixed_src/* ${includedir} # FORTRAN .EXT (include) files\n\n# Convert static library to dynamic library\ngfortran -shared -fPIC -fopenmp -o ${libdir}/libioapi.${dlext} -L${libdir} -Wl,$(flagon --whole-archive) ${BINDIR}/libioapi.a -Wl,$(flagon --no-whole-archive | cut -d' ' -f1) -lnetcdf -Wl,$(flagon --no-whole-archive | cut -d' ' -f1) -lnetcdff\nrm ${BINDIR}/libioapi.a\n\ncd ../m3tools/\ncp Makefile.nocpl Makefile\nmake\n\ncd $BINDIR\n\nrm *.o \nmv *.mod ${includedir} # Move FORTRAN mod files to include dir, they are used by some dependencies\nmv * $bindir # Move executables to bindir\n"""
+version = "v3.2.0"
+
+[[dependencies]]
+compat = ""
+name = "NetCDF_jll"
+type = "dependency"
+uuid = "7243133f-43d8-5620-bbf4-c2c921802cf3"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "NetCDFF_jll"
+type = "dependency"
+uuid = "78e728a9-57fe-5d11-897c-5014b89e5f84"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["dayagg"]
+type = "exe"
+variable_name = "dayagg"
+[[products]]
+binnames = ["wrftom3"]
+type = "exe"
+variable_name = "wrftom3"
+[[products]]
+binnames = ["kfxtract"]
+type = "exe"
+variable_name = "kfxtract"
+[[products]]
+binnames = ["m3combo"]
+type = "exe"
+variable_name = "m3combo"
+[[products]]
+binnames = ["m3wndw"]
+type = "exe"
+variable_name = "m3wndw"
+[[products]]
+binnames = ["wrfgriddesc"]
+type = "exe"
+variable_name = "wrfgriddesc"
+[[products]]
+binnames = ["m3probe"]
+type = "exe"
+variable_name = "m3probe"
+[[products]]
+binnames = ["m3agmax"]
+type = "exe"
+variable_name = "m3agmax"
+[[products]]
+binnames = ["m3totxt"]
+type = "exe"
+variable_name = "m3totxt"
+[[products]]
+binnames = ["timediff"]
+type = "exe"
+variable_name = "timediff"
+[[products]]
+binnames = ["factor"]
+type = "exe"
+variable_name = "factor"
+[[products]]
+binnames = ["presz"]
+type = "exe"
+variable_name = "presz"
+[[products]]
+binnames = ["presterp"]
+type = "exe"
+variable_name = "presterp"
+[[products]]
+binnames = ["gregdate"]
+type = "exe"
+variable_name = "gregdate"
+[[products]]
+binnames = ["m3stat"]
+type = "exe"
+variable_name = "m3stat"
+[[products]]
+binnames = ["m3pair"]
+type = "exe"
+variable_name = "m3pair"
+[[products]]
+binnames = ["projtool"]
+type = "exe"
+variable_name = "projtool"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libioapi"]
+type = "lib"
+variable_name = "libioapi"
+[[products]]
+binnames = ["datshift"]
+type = "exe"
+variable_name = "datshift"
+[[products]]
+binnames = ["juldate"]
+type = "exe"
+variable_name = "juldate"
+[[products]]
+binnames = ["m3cple"]
+type = "exe"
+variable_name = "m3cple"
+[[products]]
+binnames = ["wndwdesc"]
+type = "exe"
+variable_name = "wndwdesc"
+[[products]]
+binnames = ["mpasstat"]
+type = "exe"
+variable_name = "mpasstat"
+[[products]]
+binnames = ["vertintegral"]
+type = "exe"
+variable_name = "vertintegral"
+[[products]]
+binnames = ["jul2greg"]
+type = "exe"
+variable_name = "jul2greg"
+[[products]]
+binnames = ["m3fake"]
+type = "exe"
+variable_name = "m3fake"
+[[products]]
+binnames = ["m3merge"]
+type = "exe"
+variable_name = "m3merge"
+[[products]]
+binnames = ["greg2jul"]
+type = "exe"
+variable_name = "greg2jul"
+[[products]]
+binnames = ["latlon"]
+type = "exe"
+variable_name = "latlon"
+[[products]]
+binnames = ["mpasdiff"]
+type = "exe"
+variable_name = "mpasdiff"
+[[products]]
+binnames = ["airs2m3"]
+type = "exe"
+variable_name = "airs2m3"
+[[products]]
+binnames = ["m3edhdr"]
+type = "exe"
+variable_name = "m3edhdr"
+[[products]]
+binnames = ["m3diff"]
+type = "exe"
+variable_name = "m3diff"
+[[products]]
+binnames = ["randomstat"]
+type = "exe"
+variable_name = "randomstat"
+[[products]]
+binnames = ["mtxbuild"]
+type = "exe"
+variable_name = "mtxbuild"
+[[products]]
+binnames = ["mtxcple"]
+type = "exe"
+variable_name = "mtxcple"
+[[products]]
+binnames = ["insertgrid"]
+type = "exe"
+variable_name = "insertgrid"
+[[products]]
+binnames = ["m3xtract"]
+type = "exe"
+variable_name = "m3xtract"
+[[products]]
+binnames = ["vertot"]
+type = "exe"
+variable_name = "vertot"
+[[products]]
+binnames = ["juldiff"]
+type = "exe"
+variable_name = "juldiff"
+[[products]]
+binnames = ["camxtom3"]
+type = "exe"
+variable_name = "camxtom3"
+[[products]]
+binnames = ["mpastom3"]
+type = "exe"
+variable_name = "mpastom3"
+[[products]]
+binnames = ["vertimeproc"]
+type = "exe"
+variable_name = "vertimeproc"
+[[products]]
+binnames = ["findwndw"]
+type = "exe"
+variable_name = "findwndw"
+[[products]]
+binnames = ["m3hdr"]
+type = "exe"
+variable_name = "m3hdr"
+[[products]]
+binnames = ["m3tproc"]
+type = "exe"
+variable_name = "m3tproc"
+[[products]]
+binnames = ["mtxblend"]
+type = "exe"
+variable_name = "mtxblend"
+[[products]]
+binnames = ["selmrg2d"]
+type = "exe"
+variable_name = "selmrg2d"
+[[products]]
+binnames = ["m3tshift"]
+type = "exe"
+variable_name = "m3tshift"
+[[products]]
+binnames = ["timeshift"]
+type = "exe"
+variable_name = "timeshift"
+[[products]]
+binnames = ["julshift"]
+type = "exe"
+variable_name = "julshift"
+[[products]]
+binnames = ["bcwndw"]
+type = "exe"
+variable_name = "bcwndw"
+[[products]]
+binnames = ["gridprobe"]
+type = "exe"
+variable_name = "gridprobe"
+[[products]]
+binnames = ["m3agmask"]
+type = "exe"
+variable_name = "m3agmask"
+[[products]]
+binnames = ["m3interp"]
+type = "exe"
+variable_name = "m3interp"
+[[products]]
+binnames = ["m3mask"]
+type = "exe"
+variable_name = "m3mask"
+[[products]]
+binnames = ["mtxcalc"]
+type = "exe"
+variable_name = "mtxcalc"
+
+[[sources]]
+hash = "ef5d5f4e112c249b593b19426421f25d79ae094b"
+type = "git"
+unpack_target = ""
+url = "https://github.com/cjcoats/ioapi-3.2.git"

@@ -1,0 +1,41 @@
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "ONNXRuntime"
+platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir\n\nif [[ $target == *-w64-mingw32* ]]; then\n    chmod 755 onnxruntime-$target/onnxruntime-*/lib/*\n    mkdir -p $includedir $libdir\n    cp -av onnxruntime-$target/onnxruntime-*/include/* $includedir\n    cp -av onnxruntime-$target/onnxruntime-*/lib/* $libdir\n    install_license onnxruntime-$target/onnxruntime-*/LICENSE\nelse\n    # Cross-compiling for aarch64-apple-darwin on x86_64 requires setting arch.: https://github.com/microsoft/onnxruntime/blob/v1.10.0/cmake/CMakeLists.txt#L186\n    if [[ $target == aarch64-apple-darwin* ]]; then\n        cmake_extra_args=\"-DCMAKE_OSX_ARCHITECTURES='arm64'\"\n    fi\n\n    cd onnxruntime\n    git submodule update --init --recursive\n    mkdir -p build\n    cd build\n    cmake $WORKSPACE/srcdir/onnxruntime/cmake \\\n        -DCMAKE_INSTALL_PREFIX=$prefix \\\n        -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n        -DCMAKE_BUILD_TYPE=Release \\\n        -DONNX_CUSTOM_PROTOC_EXECUTABLE=$host_bindir/protoc \\\n        -Donnxruntime_BUILD_SHARED_LIB=ON \\\n        -Donnxruntime_BUILD_UNIT_TESTS=OFF \\\n        -Donnxruntime_DISABLE_RTTI=OFF \\\n        $cmake_extra_args\n    make -j $nproc\n    make install\n    install_license $WORKSPACE/srcdir/onnxruntime/LICENSE\nfi\n"""
+version = "v1.10.0"
+
+[[dependencies]]
+compat = ""
+name = "protoc_jll"
+platforms = ["any"]
+type = "hostdependency"
+uuid = "c7845625-083e-5bbe-8504-b32d602b7110"
+version-major = 3
+version-minor = 16
+version-patch = 1
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libonnxruntime", "onnxruntime"]
+type = "lib"
+variable_name = "libonnxruntime"
+
+[[sources]]
+hash = "0d9030e79888d1d5828730b254fedc53c7b640c1"
+type = "git"
+unpack_target = ""
+url = "https://github.com/microsoft/onnxruntime.git"
+[[sources]]
+hash = "a0c6db3cff65bd282f6ba4a57789e619c27e55203321aa08c023019fe9da50d7"
+type = "archive"
+unpack_target = "onnxruntime-x86_64-w64-mingw32"
+url = "https://github.com/microsoft/onnxruntime/releases/download/v1.10.0/onnxruntime-win-x64-1.10.0.zip"
+[[sources]]
+hash = "fd1680fa7248ec334efc2564086e9c5e0d6db78337b55ec32e7b666164bdb88c"
+type = "archive"
+unpack_target = "onnxruntime-i686-w64-mingw32"
+url = "https://github.com/microsoft/onnxruntime/releases/download/v1.10.0/onnxruntime-win-x86-1.10.0.zip"

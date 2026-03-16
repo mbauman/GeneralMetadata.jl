@@ -1,0 +1,116 @@
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "ADIOS2"
+platforms = ["x86_64-linux-gnu-libgfortran3-cxx03", "x86_64-linux-gnu-libgfortran4-cxx03", "x86_64-linux-gnu-libgfortran5-cxx03", "x86_64-linux-gnu-libgfortran3-cxx11", "x86_64-linux-gnu-libgfortran4-cxx11", "x86_64-linux-gnu-libgfortran5-cxx11", "aarch64-linux-gnu-libgfortran3-cxx03", "aarch64-linux-gnu-libgfortran4-cxx03", "aarch64-linux-gnu-libgfortran5-cxx03", "aarch64-linux-gnu-libgfortran3-cxx11", "aarch64-linux-gnu-libgfortran4-cxx11", "aarch64-linux-gnu-libgfortran5-cxx11", "powerpc64le-linux-gnu-libgfortran3-cxx03", "powerpc64le-linux-gnu-libgfortran4-cxx03", "powerpc64le-linux-gnu-libgfortran5-cxx03", "powerpc64le-linux-gnu-libgfortran3-cxx11", "powerpc64le-linux-gnu-libgfortran4-cxx11", "powerpc64le-linux-gnu-libgfortran5-cxx11", "x86_64-linux-musl-libgfortran3-cxx03", "x86_64-linux-musl-libgfortran4-cxx03", "x86_64-linux-musl-libgfortran5-cxx03", "x86_64-linux-musl-libgfortran3-cxx11", "x86_64-linux-musl-libgfortran4-cxx11", "x86_64-linux-musl-libgfortran5-cxx11", "aarch64-linux-musl-libgfortran3-cxx03", "aarch64-linux-musl-libgfortran4-cxx03", "aarch64-linux-musl-libgfortran5-cxx03", "aarch64-linux-musl-libgfortran3-cxx11", "aarch64-linux-musl-libgfortran4-cxx11", "aarch64-linux-musl-libgfortran5-cxx11", "x86_64-apple-darwin-libgfortran3", "x86_64-apple-darwin-libgfortran4", "x86_64-apple-darwin-libgfortran5", "x86_64-unknown-freebsd-libgfortran3", "x86_64-unknown-freebsd-libgfortran4", "x86_64-unknown-freebsd-libgfortran5", "x86_64-w64-mingw32-libgfortran3-cxx03", "x86_64-w64-mingw32-libgfortran4-cxx03", "x86_64-w64-mingw32-libgfortran5-cxx03", "x86_64-w64-mingw32-libgfortran3-cxx11", "x86_64-w64-mingw32-libgfortran4-cxx11", "x86_64-w64-mingw32-libgfortran5-cxx11"]
+script = """cd $WORKSPACE/srcdir\ncd ADIOS2-2.7.1\n# Don't define clock_gettime on macOS\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/clock_gettime.patch\n# See <https://github.com/ornladios/ADIOS2/issues/2705>\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/gettid.patch\n# PR <https://github.com/ornladios/ADIOS2/pull/2712>\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/ndims.patch\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/shlwapi.patch\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/sockaddr_in.patch\n# PR <https://github.com/ornladios/ADIOS2/issues/2808>\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/adios2_init_config_serial.patch\n\nmkdir build\ncd build\narchopts=\nif [[ \"$target\" == *-apple-* ]]; then\n    # MPICH's pkgconfig file \"mpich.pc\" lists these options:\n    #     Libs:     -framework OpenCL -Wl,-flat_namespace -Wl,-commons,use_dylibs -L${libdir} -lmpi -lpmpi -lm    -lpthread\n    #     Cflags:   -I${includedir}\n    # cmake doesn't know how to handle the \"-framework OpenCL\" option\n    # and wants to use \"-framework\" as a stand-alone option. This fails\n    # gloriously, and cmake concludes that MPI is not available.\n    archopts=\"-DMPI_C_ADDITIONAL_INCLUDE_DIRS='' -DMPI_C_LIBRARIES='-Wl,-flat_namespace;-Wl,-commons,use_dylibs;-lmpi;-lpmpi' -DMPI_CXX_ADDITIONAL_INCLUDE_DIRS='' -DMPI_CXX_LIBRARIES='-Wl,-flat_namespace;-Wl,-commons,use_dylibs;-lmpi;-lpmpi'\"\nelif [[ \"$target\" == x86_64-w64-mingw32 ]]; then\n    # - The MSMPI Fortran bindings are missing a function; see\n    #   <https://github.com/microsoft/Microsoft-MPI/issues/7>\n    echo 'void __guard_check_icall_fptr(unsigned long ptr) {}' >cfg_stub.c\n    gcc -c cfg_stub.c\n    ar -crs libcfg_stub.a cfg_stub.o\n    cp libcfg_stub.a $prefix/lib\n    # - cmake's auto-detection for MPI doesn't work on Windows.\n    # - The SST and Table ADIOS2 components don't build on Windows\n    #   (reported in <https://github.com/ornladios/ADIOS2/issues/2705>)\n    export FFLAGS=\"-I$prefix/src -I$prefix/include -fno-range-check\"\n    archopts=\"-DMPI_GUESS_LIBRARY_NAME=MSMPI -DMPI_C_LIBRARIES=msmpi64 -DMPI_CXX_LIBRARIES=msmpi64 -DMPI_Fortran_LIBRARIES='msmpifec64;msmpi64;cfg_stub' -DADIOS2_USE_SST=OFF -DADIOS2_USE_Table=OFF\"\nelif [[ \"$target\" == *-mingw* ]]; then\n    archopts=\"-DMPI_GUESS_LIBRARY_NAME=MSMPI -DADIOS2_USE_SST=OFF -DADIOS2_USE_Table=OFF\"\nfi\n# Fortran is not supported with Clang\ncmake \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_FIND_ROOT_PATH=$prefix \\\n    -DADIOS2_USE_Blosc=ON \\\n    -DADIOS2_USE_Fortran=OFF \\\n    -DADIOS2_USE_MPI=ON \\\n    -DADIOS2_USE_PNG=ON \\\n    -DADIOS2_USE_ZFP=ON \\\n    -DADIOS2_USE_ZeroMQ=ON \\\n    -DADIOS2_BUILD_EXAMPLES=OFF \\\n    -DBUILD_TESTING=OFF \\\n    -DMPI_HOME=$prefix \\\n    ${archopts} \\\n    -DADIOS2_INSTALL_GENERATE_CONFIG=OFF \\\n    -DCMAKE_INSTALL_PREFIX=$prefix \\\n    ..\ncmake --build . --config RelWithDebInfo --parallel $nproc\ncmake --build . --config RelWithDebInfo --parallel $nproc --target install\ninstall_license ../Copyright.txt ../LICENSE\n"""
+version = "v2.7.1"
+
+[[dependencies]]
+compat = ""
+name = "Blosc_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MPICH_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MicrosoftMPI_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "ZeroMQ_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "libpng_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "zfp_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["bpls"]
+type = "exe"
+variable_name = "bpls"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libadios2_c"]
+type = "lib"
+variable_name = "libadios2_c"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libadios2_c_mpi"]
+type = "lib"
+variable_name = "libadios2_c_mpi"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libadios2_core"]
+type = "lib"
+variable_name = "libadios2_core"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libadios2_core_mpi"]
+type = "lib"
+variable_name = "libadios2_core_mpi"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libadios2_cxx11"]
+type = "lib"
+variable_name = "libadios2_cxx11"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libadios2_cxx11_mpi"]
+type = "lib"
+variable_name = "libadios2_cxx11_mpi"
+
+[[sources]]
+hash = "c8e237fd51f49d8a62a0660db12b72ea5067512aa7970f3fcf80b70e3f87ca3e"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/ornladios/ADIOS2/archive/refs/tags/v2.7.1.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

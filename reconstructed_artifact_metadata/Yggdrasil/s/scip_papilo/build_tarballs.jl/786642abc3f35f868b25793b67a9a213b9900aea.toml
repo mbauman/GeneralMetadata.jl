@@ -1,0 +1,141 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "SCIP_PaPILO"
+platforms = ["i686-linux-gnu-libgfortran4-cxx03", "i686-linux-gnu-libgfortran5-cxx03", "i686-linux-gnu-libgfortran4-cxx11", "i686-linux-gnu-libgfortran5-cxx11", "x86_64-linux-gnu-libgfortran4-cxx03", "x86_64-linux-gnu-libgfortran5-cxx03", "x86_64-linux-gnu-libgfortran4-cxx11", "x86_64-linux-gnu-libgfortran5-cxx11", "aarch64-linux-gnu-libgfortran4-cxx03", "aarch64-linux-gnu-libgfortran5-cxx03", "aarch64-linux-gnu-libgfortran4-cxx11", "aarch64-linux-gnu-libgfortran5-cxx11", "armv6l-linux-gnueabihf-libgfortran4-cxx03", "armv6l-linux-gnueabihf-libgfortran5-cxx03", "armv6l-linux-gnueabihf-libgfortran4-cxx11", "armv6l-linux-gnueabihf-libgfortran5-cxx11", "armv7l-linux-gnueabihf-libgfortran4-cxx03", "armv7l-linux-gnueabihf-libgfortran5-cxx03", "armv7l-linux-gnueabihf-libgfortran4-cxx11", "armv7l-linux-gnueabihf-libgfortran5-cxx11", "powerpc64le-linux-gnu-libgfortran4-cxx03", "powerpc64le-linux-gnu-libgfortran5-cxx03", "powerpc64le-linux-gnu-libgfortran4-cxx11", "powerpc64le-linux-gnu-libgfortran5-cxx11", "i686-linux-musl-libgfortran4-cxx03", "i686-linux-musl-libgfortran5-cxx03", "i686-linux-musl-libgfortran4-cxx11", "i686-linux-musl-libgfortran5-cxx11", "x86_64-linux-musl-libgfortran4-cxx03", "x86_64-linux-musl-libgfortran5-cxx03", "x86_64-linux-musl-libgfortran4-cxx11", "x86_64-linux-musl-libgfortran5-cxx11", "aarch64-linux-musl-libgfortran4-cxx03", "aarch64-linux-musl-libgfortran5-cxx03", "aarch64-linux-musl-libgfortran4-cxx11", "aarch64-linux-musl-libgfortran5-cxx11", "armv6l-linux-musleabihf-libgfortran4-cxx03", "armv6l-linux-musleabihf-libgfortran5-cxx03", "armv6l-linux-musleabihf-libgfortran4-cxx11", "armv6l-linux-musleabihf-libgfortran5-cxx11", "armv7l-linux-musleabihf-libgfortran4-cxx03", "armv7l-linux-musleabihf-libgfortran5-cxx03", "armv7l-linux-musleabihf-libgfortran4-cxx11", "armv7l-linux-musleabihf-libgfortran5-cxx11", "x86_64-apple-darwin-libgfortran4", "x86_64-apple-darwin-libgfortran5", "aarch64-apple-darwin-libgfortran5", "x86_64-unknown-freebsd-libgfortran4", "x86_64-unknown-freebsd-libgfortran5", "i686-w64-mingw32-libgfortran4-cxx03", "i686-w64-mingw32-libgfortran5-cxx03", "i686-w64-mingw32-libgfortran4-cxx11", "i686-w64-mingw32-libgfortran5-cxx11", "x86_64-w64-mingw32-libgfortran4-cxx03", "x86_64-w64-mingw32-libgfortran5-cxx03", "x86_64-w64-mingw32-libgfortran4-cxx11", "x86_64-w64-mingw32-libgfortran5-cxx11"]
+script = """# This requires macOS 10.13\nif [[ \"${target}\" == x86_64-apple-darwin* ]]; then\n    pushd $WORKSPACE/srcdir/MacOSX10.*.sdk\n    rm -rf /opt/${target}/${target}/sys-root/System\n    cp -ra usr/* \"/opt/${target}/${target}/sys-root/usr/.\"\n    cp -ra System \"/opt/${target}/${target}/sys-root/.\"\n    export MACOSX_DEPLOYMENT_TARGET=10.13\n    popd\nfi\n\ncd scipoptsuite*\n\n# for soplex threadlocal\nexport CXXFLAGS=\"-DTHREADLOCAL=''\"\n\n# Enable large file support on mingw\nif [[ \"${target}\" == *-mingw* ]]; then\n    export CXXFLAGS=\"-Wa,-mbig-obj\"\nfi\n\n# Patch to fix linking with gfortran's library on mingw\n# https://github.com/JuliaPackaging/Yggdrasil/pull/8224#issuecomment-2034941690\natomic_patch -p0 $WORKSPACE/srcdir/patches/papilo_cmake.patch\n\nmkdir build\ncd build/\ncmake -DCMAKE_INSTALL_PREFIX=$prefix\\\n  -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN}\\\n  -DCMAKE_BUILD_TYPE=Release\\\n  -DZIMPL=OFF\\\n  -DUG=0\\\n  -DAMPL=0\\\n  -DGCG=0\\\n  -DBOOST=ON\\\n  -DSYM=snauty\\\n  -DTPI=tny\\\n  -DIPOPT_DIR=${prefix} \\\n  -DIPOPT_LIBRARIES=${libdir} \\\n  -DBLISS_INCLUDE_DIR=${includedir} \\\n  -DBLISS_LIBRARY=bliss \\\n  -DBUILD_TESTING=OFF \\\n  ..\nmake -j${nproc} scip\nmake papilo-executable\n\nmake install\ncp bin/papilo${exeext} \"${bindir}/papilo${exeext}\"\n\nmkdir -p ${prefix}/share/licenses/SCIP_PaPILO\nfor dir in scip soplex gcg; do\n    cp $WORKSPACE/srcdir/scipoptsuite*/${dir}/LICENSE ${prefix}/share/licenses/SCIP_PaPILO/LICENSE_${dir}\ndone\ncp $WORKSPACE/srcdir/scipoptsuite*/papilo/COPYING ${prefix}/share/licenses/SCIP_PaPILO/LICENSE_papilo\n"""
+version = "v900.200.100"
+
+[[dependencies]]
+compat = "=0.77.0"
+name = "bliss_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "508c9074-7a14-5c94-9582-3d4bc1871065"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "=1.79.0"
+name = "boost_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "28df3c45-c428-5900-9ff8-a3135698ca75"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.0.9"
+name = "Bzip2_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "6e34b625-4abd-537c-b88f-471c36dfa7a0"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "6.2.1"
+name = "GMP_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "781609d7-10c4-51f6-84f2-b8444358ff6d"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "=300.1400.1400"
+name = "Ipopt_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "9cc047cb-c261-5740-88fc-0cf96f7bdcc7"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "0.3.10"
+name = "OpenBLAS32_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "656ef2d0-ae68-5445-9ca0-591084a874a2"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "2022.0.0"
+name = "oneTBB_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "1317d2d5-d96f-522e-a858-c73665f53c3e"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Readline_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "05236dd9-4125-5232-aa7c-9ec0c9b2c25a"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "83775a58-1f1d-513f-b197-d71354ab007a"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["papilo"]
+type = "exe"
+variable_name = "papilo"
+[[products]]
+binnames = ["scip"]
+type = "exe"
+variable_name = "scip"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libscip"]
+type = "lib"
+variable_name = "libscip"
+
+[[sources]]
+hash = "41b71a57af773403e9a6724f78c37d8396ac4b6b270a9bbf3716d67f1af12edf"
+type = "archive"
+unpack_target = ""
+url = "https://scipopt.org/download/release/scipoptsuite-9.2.1.tgz"
+[[sources]]
+hash = "a3a077385205039a7c6f9e2c98ecdf2a720b2a819da715e03e0630c75782c1e4"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.13.sdk.tar.xz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled/"
+target = ""
+type = "directory"

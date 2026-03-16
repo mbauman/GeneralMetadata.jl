@@ -1,0 +1,213 @@
+augment_platform_block = ""
+init_block = """ENV[\"ECCODES_DEFINITION_PATH\"] = eccodes_definitions\n"""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "eccodes"
+platforms = ["x86_64-linux-gnu-libgfortran5-cxx11", "aarch64-linux-gnu-libgfortran5-cxx11", "powerpc64le-linux-gnu-libgfortran5-cxx11", "x86_64-linux-musl-libgfortran5-cxx11", "aarch64-linux-musl-libgfortran5-cxx11", "x86_64-apple-darwin-libgfortran5", "aarch64-apple-darwin-libgfortran5", "x86_64-unknown-freebsd-libgfortran5", "x86_64-w64-mingw32-libgfortran5-cxx11"]
+script = """macos_sdk_version=11.1\nmacosx_deployment_target=10.14\nif [[ \"${target}\" == x86_64-apple-darwin* ]]; then\n    echo \"Extracting MacOSX${macos_sdk_version}.sdk.tar.xz (this may take a while)\"\n    rm -rf /opt/${target}/${target}/sys-root/System\n    rm -rf /opt/${target}/${target}/sys-root/usr/include/libxml2/libxml\n    # extract the tarball into the sys-root so all compilers pick it up\n    # automatically, and use --warning=no-unknown-keyword to hide harmless\n    # warnings about unsupported pax header keywords like \"SCHILY.fflags\"\n    tar --extract \\\n        --file=${WORKSPACE}/srcdir/MacOSX${macos_sdk_version}.sdk.tar.xz \\\n        --directory=\"/opt/${target}/${target}/sys-root/.\" \\\n        --strip-components=1 \\\n        --warning=no-unknown-keyword \\\n        MacOSX${macos_sdk_version}.sdk/System \\\n        MacOSX${macos_sdk_version}.sdk/usr\n    export MACOSX_DEPLOYMENT_TARGET=${macosx_deployment_target}\nfi\ncd $WORKSPACE/srcdir/eccodes-*-Source\nif [[ ${target} = *-mingw* ]] ; then\n    chmod +x cmake/ecbuild_windows_replace_symlinks.sh\n    atomic_patch -p1 /workspace/srcdir/patches/windows.patch\nfi\natomic_patch -p1 /workspace/srcdir/patches/unix.patch\natomic_patch -p1 /workspace/srcdir/patches/kinds.patch\nmkdir build\ncd build\nexport CFLAGS=\"-I${includedir}\"\ncmake -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DENABLE_EXAMPLES=OFF \\\n    -DENABLE_TESTS=OFF \\\n    -DENABLE_NETCDF=OFF \\\n    -DENABLE_PNG=ON \\\n    -DENABLE_FORTRAN=ON \\\n    -DENABLE_ECCODES_THREADS=ON \\\n    -DENABLE_AEC=ON $maccmakeargs \\\n    ..\nmake -j${nproc}\nmake install\ninstall_license ../LICENSE\n"""
+version = "v2.45.0"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "~1.6.43"
+name = "libpng_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "~2.5.2"
+name = "OpenJpeg_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "~1.1.5"
+name = "libaec_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libeccodes"]
+type = "lib"
+variable_name = "eccodes"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libeccodes_f90"]
+type = "lib"
+variable_name = "libeccodes_f90"
+[[products]]
+binnames = ["bufr_compare"]
+type = "exe"
+variable_name = "bufr_compare"
+[[products]]
+binnames = ["bufr_copy"]
+type = "exe"
+variable_name = "bufr_copy"
+[[products]]
+binnames = ["bufr_count"]
+type = "exe"
+variable_name = "bufr_count"
+[[products]]
+binnames = ["bufr_dump"]
+type = "exe"
+variable_name = "bufr_dump"
+[[products]]
+binnames = ["bufr_get"]
+type = "exe"
+variable_name = "bufr_get"
+[[products]]
+binnames = ["bufr_index_build"]
+type = "exe"
+variable_name = "bufr_index_build"
+[[products]]
+binnames = ["bufr_ls"]
+type = "exe"
+variable_name = "bufr_ls"
+[[products]]
+binnames = ["bufr_set"]
+type = "exe"
+variable_name = "bufr_set"
+[[products]]
+binnames = ["codes_bufr_filter"]
+type = "exe"
+variable_name = "codes_bufr_filter"
+[[products]]
+binnames = ["codes_count"]
+type = "exe"
+variable_name = "codes_count"
+[[products]]
+binnames = ["codes_export_resource"]
+type = "exe"
+variable_name = "codes_export_resource"
+[[products]]
+binnames = ["codes_info"]
+type = "exe"
+variable_name = "codes_info"
+[[products]]
+binnames = ["codes_parser"]
+type = "exe"
+variable_name = "codes_parser"
+[[products]]
+binnames = ["codes_split_file"]
+type = "exe"
+variable_name = "codes_split_file"
+[[products]]
+binnames = ["grib2ppm"]
+type = "exe"
+variable_name = "grib2ppm"
+[[products]]
+binnames = ["grib_compare"]
+type = "exe"
+variable_name = "grib_compare"
+[[products]]
+binnames = ["grib_copy"]
+type = "exe"
+variable_name = "grib_copy"
+[[products]]
+binnames = ["grib_count"]
+type = "exe"
+variable_name = "grib_count"
+[[products]]
+binnames = ["grib_dump"]
+type = "exe"
+variable_name = "grib_dump"
+[[products]]
+binnames = ["grib_filter"]
+type = "exe"
+variable_name = "grib_filter"
+[[products]]
+binnames = ["grib_get_data"]
+type = "exe"
+variable_name = "grib_get_data"
+[[products]]
+binnames = ["grib_get"]
+type = "exe"
+variable_name = "grib_get"
+[[products]]
+binnames = ["grib_histogram"]
+type = "exe"
+variable_name = "grib_histogram"
+[[products]]
+binnames = ["grib_index_build"]
+type = "exe"
+variable_name = "grib_index_build"
+[[products]]
+binnames = ["grib_ls"]
+type = "exe"
+variable_name = "grib_ls"
+[[products]]
+binnames = ["grib_set"]
+type = "exe"
+variable_name = "grib_set"
+[[products]]
+binnames = ["gts_compare"]
+type = "exe"
+variable_name = "gts_compare"
+[[products]]
+binnames = ["gts_copy"]
+type = "exe"
+variable_name = "gts_copy"
+[[products]]
+binnames = ["gts_count"]
+type = "exe"
+variable_name = "gts_count"
+[[products]]
+binnames = ["gts_dump"]
+type = "exe"
+variable_name = "gts_dump"
+[[products]]
+binnames = ["gts_filter"]
+type = "exe"
+variable_name = "gts_filter"
+[[products]]
+binnames = ["gts_get"]
+type = "exe"
+variable_name = "gts_get"
+[[products]]
+binnames = ["gts_ls"]
+type = "exe"
+variable_name = "gts_ls"
+[[products]]
+paths = ["share/eccodes/definitions"]
+type = "file"
+variable_name = "eccodes_definitions"
+
+[[sources]]
+hash = "6c84b39d7cc5e3b8330eeabe880f3e337f9b2ee1ebce20ea03eecd785f6c39a1"
+type = "archive"
+unpack_target = ""
+url = "https://confluence.ecmwf.int/download/attachments/45757960/eccodes-2.45.0-Source.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"
+[[sources]]
+filename = "MacOSX11.1.sdk.tar.xz"
+hash = "9b86eab03176c56bb526de30daa50fa819937c54b280364784ce431885341bf6"
+type = "file"
+url = "https://github.com/phracker/MacOSX-SDKs/releases/download/11.0-11.1/MacOSX11.1.sdk.tar.xz"

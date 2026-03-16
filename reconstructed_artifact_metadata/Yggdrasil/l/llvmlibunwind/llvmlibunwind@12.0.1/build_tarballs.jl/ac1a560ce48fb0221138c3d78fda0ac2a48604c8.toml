@@ -1,0 +1,27 @@
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "LLVMLibUnwind"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "aarch64-apple-darwin", "armv6l-linux-gnueabihf", "armv6l-linux-musleabihf"]
+script = """cd $WORKSPACE/srcdir/libunwind*\n\nCMAKE_FLAGS=()\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=$prefix)\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=MinSizeRel)  # Note: Disables debug messages\nCMAKE_FLAGS+=(-DLIBUNWIND_INCLUDE_DOCS=OFF)\nCMAKE_FLAGS+=(-DLIBUNWIND_ENABLE_PEDANTIC=OFF)\n\nif [[ ${target} == x86_64-w64-mingw32 ]]; then\n    # Support for threading requires Windows Vista.\n    export CXXFLAGS=\"-D_WIN32_WINNT=0x0600\"\nfi\n\n# Apply all our patches\nif [ -d $WORKSPACE/srcdir/patches ]; then\n    for f in $WORKSPACE/srcdir/patches/*.patch; do\n        echo \"Applying patch ${f}\"\n        atomic_patch -p2 ${f}\n    done\nfi\n\nmkdir build && cd build\ncmake \"${CMAKE_FLAGS[@]}\" ..\nmake -j${nprocs}\nmake install\n\n# Install header files. Required to access patched in functions\ncp -aR ../include ${prefix}/\n\n# Move over the DLL. TODO: There may be a CMAKE flag for this.\nif [[ ${target} == *mingw32* ]]; then\n    mkdir -p \"${libdir}\"\n    mv -v lib/libunwind.dll \"${libdir}\"\nfi\n"""
+version = "v12.0.1"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libunwind"]
+type = "lib"
+variable_name = "libunwind"
+
+[[sources]]
+hash = "0bea6089518395ca65cf58b0a450716c5c99ce1f041079d3aa42d280ace15ca4"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/llvm/llvm-project/releases/download/llvmorg-12.0.1/libunwind-12.0.1.src.tar.xz"
+[[sources]]
+follow_symlinks = true
+path = "./bundled"
+target = ""
+type = "directory"

@@ -1,0 +1,48 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "AMReX"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir\ncd amrex\nmkdir build\ncd build\nif [[ \"$target\" == *-apple-* ]]; then\n    # Apple's Clang does not support OpenMP\n    omp_opts=\"-DAMReX_OMP=OFF\"\nelse\n    omp_opts=\"-DAMReX_OMP=ON\"\nfi\nif [[ \"$target\" == *-apple-* ]]; then\n    # MPICH's pkgconfig file \"mpich.pc\" lists these options:\n    #     Libs:     -framework OpenCL -Wl,-flat_namespace -Wl,-commons,use_dylibs -L${libdir} -lmpi -lpmpi -lm    -lpthread\n    #     Cflags:   -I${includedir}\n    # cmake doesn't know how to handle the \"-framework OpenCL\" option\n    # and wants to use \"-framework\" as a stand-alone option. This fails,\n    # and cmake concludes that MPI is not available.\n    mpiopts=\"-DMPI_C_ADDITIONAL_INCLUDE_DIRS='' -DMPI_C_LIBRARIES='-Wl,-flat_namespace;-Wl,-commons,use_dylibs;-lmpi;-lpmpi' -DMPI_CXX_ADDITIONAL_INCLUDE_DIRS='' -DMPI_CXX_LIBRARIES='-Wl,-flat_namespace;-Wl,-commons,use_dylibs;-lmpi;-lpmpi'\"\nelif [[ \"$target\" == x86_64-w64-mingw32 ]]; then\n    mpiopts=\"-DMPI_HOME=$prefix -DMPI_GUESS_LIBRARY_NAME=MSMPI -DMPI_C_LIBRARIES=msmpi64 -DMPI_CXX_LIBRARIES=msmpi64\"\nelif [[ \"$target\" == *-mingw* ]]; then\n    mpiopts=\"-DMPI_HOME=$prefix -DMPI_GUESS_LIBRARY_NAME=MSMPI\"\nelse\n    mpiopts=\nfi\ncmake \\\n    -DCMAKE_INSTALL_PREFIX=$prefix \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DAMReX_FORTRAN=OFF \\\n    -DAMReX_MPI=ON \\\n    -DAMReX_PARTICLES=ON \\\n    -DBUILD_SHARED_LIBS=ON \\\n    ${ompopts} \\\n    ${mpiopts} \\\n    ..\ncmake --build . --config RelWithDebInfo --parallel $nproc\ncmake --build . --config RelWithDebInfo --parallel $nproc --target install\n"""
+version = "v22.6.0"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MPICH_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MicrosoftMPI_jll"
+platforms = ["i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libamrex"]
+type = "lib"
+variable_name = "libamrex"
+
+[[sources]]
+hash = "d8aa58e72c86a3da9a7be5a5947294fd3eaac6b233f563366f9e000d833726db"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/AMReX-Codes/amrex/releases/download/22.06/amrex-22.06.tar.gz"

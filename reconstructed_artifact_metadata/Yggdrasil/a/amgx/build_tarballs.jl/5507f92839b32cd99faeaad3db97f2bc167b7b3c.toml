@@ -1,0 +1,39 @@
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "AMGX"
+platforms = ["x86_64-linux-gnu-cxx11"]
+script = """# nvcc writes to /tmp, which is a small tmpfs in our sandbox.\n# make it use the workspace instead\nexport TMPDIR=${WORKSPACE}/tmpdir\nmkdir ${TMPDIR}\n\n# the build system doesn't find libgcc and libstdc++\nif [[ \"${nbits}\" == 32 ]]; then\n    export CFLAGS=\"-Wl,-rpath-link,/opt/${target}/${target}/lib\"\nelif [[ \"${target}\" != *-apple-* ]]; then\n    export CFLAGS=\"-Wl,-rpath-link,/opt/${target}/${target}/lib64\"\nfi\n\ncd ${WORKSPACE}/srcdir/AMGX*\ninstall_license LICENSE\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/fix-regex-syntax-cmake.patch\"\n\nmkdir build\ncd build\nCMAKE_POLICY_DEFAULT_CMP0021=OLD \\\nCUDA_BIN_PATH=${prefix}/cuda/bin \\\nCUDA_LIB_PATH=${prefix}/cuda/lib64 \\\nCUDA_INC_PATH=${prefix}/cuda/include \\\ncmake -DCMAKE_TOOLCHAIN_FILE=\"${CMAKE_TARGET_TOOLCHAIN}\" \\\n      -DCMAKE_INSTALL_PREFIX=${prefix} \\\n      -DCMAKE_FIND_ROOT_PATH=\"${prefix}\" \\\n      -DCMAKE_BUILD_TYPE=Release \\\n      -DCUDA_TOOLKIT_ROOT_DIR=\"${prefix}/cuda\" \\\n      -DCMAKE_EXE_LINKER_FLAGS=\"-Wl,-rpath-link,/opt/${target}/${target}/lib64\" \\\n      -Wno-dev \\\n      ..\n\nmake -j${nproc} all\nmake install\n\n# clean-up\n## unneeded static libraries\nrm ${libdir}/*.a ${libdir}/sublibs/*.a\n"""
+version = "v2.1.0"
+
+[[dependencies]]
+name = "CUDA_full_jll"
+type = "builddependency"
+version-major = 10
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "CUDA_jll"
+type = "dependency"
+version-major = 10
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libamgxsh"]
+type = "lib"
+variable_name = "libamgxsh"
+
+[[sources]]
+hash = "6245112b768a1dc3486b2b3c049342e232eb6281a6021fffa8b20c11631f63cc"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/NVIDIA/AMGX/archive/v2.1.0.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

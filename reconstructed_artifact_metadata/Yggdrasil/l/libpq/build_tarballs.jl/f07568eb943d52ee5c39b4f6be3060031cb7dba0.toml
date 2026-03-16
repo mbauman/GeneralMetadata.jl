@@ -1,0 +1,34 @@
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "LibPQ"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "aarch64-apple-darwin", "armv6l-linux-gnueabihf", "armv6l-linux-musleabihf"]
+script = """cd $WORKSPACE/srcdir\nmake CC=$BUILD_CC VERSION_DEPS= zic\nexport ZIC=$WORKSPACE/srcdir/zic\ncd postgresql-*/\nif [[ \"${target}\" == i686-linux-musl ]]; then\n    # Small hack: swear that we're cross-compiling.  Our `i686-linux-musl` is\n    # bugged and it can run only a few programs, with the result that the\n    # configure test to check whether we're cross-compiling returns that we're\n    # doing a native build, but then it fails to run a bunch of programs during\n    # other tests.\n    sed -i 's/cross_compiling=no/cross_compiling=yes/' configure\nfi\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} --with-includes=$prefix/include --with-libraries=$prefix/lib --without-readline --without-zlib --with-openssl\nmake -C src/interfaces/libpq install\ninstall_license COPYRIGHT\n"""
+version = "v14.1.0"
+
+[[dependencies]]
+compat = ""
+name = "OpenSSL_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libpq"]
+type = "lib"
+variable_name = "LIBPQ_HANDLE"
+
+[[sources]]
+hash = "b29030525e1314d676f41e6007a96d4489ba0d03fa93e67b477c1d5386790c8f"
+type = "archive"
+unpack_target = ""
+url = "https://ftp.postgresql.org/pub/source/v14.1/postgresql-14.1.tar.gz"
+[[sources]]
+hash = "584666393a5424d13d27ec01183da17703273664742e049d4f62f62dab631775"
+type = "archive"
+unpack_target = ""
+url = "https://data.iana.org/time-zones/releases/tzcode2021e.tar.gz"

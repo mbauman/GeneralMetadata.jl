@@ -1,0 +1,33 @@
+init_block = ""
+julia_compat = "1.7"
+lazy_artifacts = false
+name = "ROCmDeviceLibs"
+platforms = ["x86_64-linux-gnu", "x86_64-linux-musl"]
+script = """cd ${WORKSPACE}/srcdir/ROCm-Device-Libs*/\nmkdir build && cd build\n\n# we set CMAKE_TOOLCHAIN_FILE because it builds a host executable for use in the build process\n# we don't ship any executable code, so this is ok\ncmake -DCMAKE_PREFIX_PATH=${prefix} \\\n      -DCMAKE_INSTALL_PREFIX=${prefix} \\\n      -DCMAKE_BUILD_TYPE=Release \\\n      -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN%.*}_clang.cmake \\\n      -DLLVM_DIR=\"${prefix}/lib/cmake/llvm\" \\\n      -DClang_DIR=\"${prefix}/lib/cmake/clang\" \\\n      -DLLD_DIR=\"${prefix}/lib/cmake/ldd\" \\\n      ..\nmake -j${nproc}\nmake install\n"""
+version = "v4.2.0"
+
+[[dependencies]]
+compat = ""
+name = "LLVM_full_jll"
+type = "builddependency"
+version-major = 12
+version-minor = 0
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+paths = ["amdgcn/bitcode/"]
+type = "file"
+variable_name = "bitcode_path"
+
+[[sources]]
+hash = "34a2ac39b9bb7cfa8175cbab05d30e7f3c06aaffce99eed5f79c616d0f910f5f"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/RadeonOpenCompute/ROCm-Device-Libs/archive/rocm-4.2.0.tar.gz"

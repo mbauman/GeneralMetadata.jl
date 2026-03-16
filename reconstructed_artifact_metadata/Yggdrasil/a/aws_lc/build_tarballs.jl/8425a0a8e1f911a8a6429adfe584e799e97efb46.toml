@@ -1,0 +1,29 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "aws_lc"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "riscv64-linux-gnu-cxx03", "riscv64-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd"]
+script = """cd $WORKSPACE/srcdir/aws-lc\n\n# Patch for finding definition of AT_HWCAP2 for PowerPC\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/ppc64le_auxvec.patch\"\n\nif [[ \"${target}\" == arm-linux-* ]]; then\n   # They force using `-Werror` _and_ they have warnings:\n   # <https://github.com/aws/aws-lc/issues/1185>.\n   sed -i 's/-Werror//g' CMakeLists.txt\nfi\n\nmkdir build && cd build\ncmake -DCMAKE_INSTALL_PREFIX=${prefix} \\\n\t-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n\t-DBUILD_TESTING=OFF \\\n\t-DCMAKE_BUILD_TYPE=Release \\\n        -DDISABLE_GO=ON \\\n        -DBUILD_SHARED_LIBS=OFF \\\n\t-GNinja \\\n\t..\nninja -j${nproc}\nninja install\n"""
+version = "v1.57.1"
+
+[[products]]
+paths = ["lib/libcrypto.a"]
+type = "file"
+variable_name = "libcrypto"
+[[products]]
+paths = ["lib/libssl.a"]
+type = "file"
+variable_name = "libssl"
+
+[[sources]]
+hash = "1dd4333bf1e5ff94194167433a99ec0e52cbe677"
+type = "git"
+unpack_target = ""
+url = "https://github.com/awslabs/aws-lc.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

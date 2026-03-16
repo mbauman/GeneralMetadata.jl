@@ -1,0 +1,44 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "CUTEst"
+platforms = ["i686-linux-gnu-libgfortran4", "i686-linux-gnu-libgfortran5", "x86_64-linux-gnu-libgfortran4", "x86_64-linux-gnu-libgfortran5", "aarch64-linux-gnu-libgfortran4", "aarch64-linux-gnu-libgfortran5", "armv6l-linux-gnueabihf-libgfortran4", "armv6l-linux-gnueabihf-libgfortran5", "armv7l-linux-gnueabihf-libgfortran4", "armv7l-linux-gnueabihf-libgfortran5", "powerpc64le-linux-gnu-libgfortran4", "powerpc64le-linux-gnu-libgfortran5", "i686-linux-musl-libgfortran4", "i686-linux-musl-libgfortran5", "x86_64-linux-musl-libgfortran4", "x86_64-linux-musl-libgfortran5", "aarch64-linux-musl-libgfortran4", "aarch64-linux-musl-libgfortran5", "armv6l-linux-musleabihf-libgfortran4", "armv6l-linux-musleabihf-libgfortran5", "armv7l-linux-musleabihf-libgfortran4", "armv7l-linux-musleabihf-libgfortran5", "x86_64-apple-darwin-libgfortran4", "x86_64-apple-darwin-libgfortran5", "aarch64-apple-darwin-libgfortran5", "x86_64-unknown-freebsd-libgfortran4", "x86_64-unknown-freebsd-libgfortran5", "i686-w64-mingw32-libgfortran4", "i686-w64-mingw32-libgfortran5", "x86_64-w64-mingw32-libgfortran4", "x86_64-w64-mingw32-libgfortran5"]
+script = """# Update Ninja\ncp ${host_prefix}/bin/ninja /usr/bin/ninja\n\nQUADRUPLE=\"true\"\nif [[ \"${target}\" == *arm* ]]; then\n    QUADRUPLE=\"false\"\nfi\n\ncd ${WORKSPACE}/srcdir/CUTEst\n\nmeson setup builddir --cross-file=${MESON_TARGET_TOOLCHAIN%.*}_gcc.meson \\\n                     --prefix=$prefix \\\n                     -Dquadruple=${QUADRUPLE}\n\nmeson compile -C builddir\nmeson install -C builddir\n\n# meson setup builddir_shared --cross-file=${MESON_TARGET_TOOLCHAIN%.*}_gcc.meson \\\n#                             --prefix=$prefix \\\n#                             -Dquadruple=${QUADRUPLE} \\\n#                             -Ddefault_library=shared\n\n# meson compile -C builddir_shared\n# meson install -C builddir_shared\n\ninstall_license lgpl-3.0.txt\n\n# build incomplete shared libraries\nif [[ \"${target}\" != *mingw* ]]; then\n    extra=\"\"\n    if [[ \"${target}\" == *-apple-* ]]; then\n      extra=\"-Wl,-undefined -Wl,dynamic_lookup -headerpad_max_install_names\"\n    fi\n    cd $libdir\n    gfortran -fPIC -shared ${extra} $(flagon -Wl,--whole-archive) libcutest_single.a $(flagon -Wl,--no-whole-archive) -o libcutest_single.${dlext}\n    gfortran -fPIC -shared ${extra} $(flagon -Wl,--whole-archive) libcutest_double.a $(flagon -Wl,--no-whole-archive) -o libcutest_double.${dlext}\n    if [[ \"${target}\" != *arm* ]]; then\n        gfortran -fPIC -shared ${extra} $(flagon -Wl,--whole-archive) libcutest_quadruple.a $(flagon -Wl,--no-whole-archive) -o libcutest_quadruple.${dlext}\n    fi\nfi\n"""
+version = "v2.2.3"
+
+[[dependencies]]
+compat = ""
+name = "Ninja_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+uuid = "76642167-d241-5cee-8c94-7a494e8cb7b7"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+paths = ["lib/libcutest_single.a"]
+type = "file"
+variable_name = "libcutest_single_a"
+[[products]]
+paths = ["lib/libcutest_double.a"]
+type = "file"
+variable_name = "libcutest_double_a"
+
+[[sources]]
+hash = "074fb7b577f36b7cc91a83dcbfe6b9d809c276a3"
+type = "git"
+unpack_target = ""
+url = "https://github.com/ralna/CUTEst.git"

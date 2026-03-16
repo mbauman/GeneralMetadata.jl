@@ -1,0 +1,17 @@
+dependencies = []
+name = "Zstd"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "arm-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "arm-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd ${WORKSPACE}/srcdir/zstd-*/\natomic_patch -p1 ../patches/timefn_h_windows.patch\nmkdir build-zstd && cd build-zstd\nif [[ \"${target}\" == aarch64-linux-gnu ]]; then\n    # Work around https://github.com/facebook/zstd/issues/1872\n    export CFLAGS=-D_POSIX_C_SOURCE\nfi\ncmake -DCMAKE_INSTALL_PREFIX=${prefix} -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} -DCMAKE_BUILD_TYPE=Release ../build/cmake/\nmake -j${nproc}\nmake install\n"""
+sources = [{"https://github.com/facebook/zstd/releases/download/v1.4.4/zstd-1.4.4.tar.gz" = "59ef70ebb757ffe74a7b3fe9c305e2ba3350021a918d168a046c6300aeea9315"}, "./bundled"]
+version = "v1.4.4"
+
+[[products]]
+dir_paths = []
+dont_dlopen = false
+libnames = ["libzstd"]
+type = "lib"
+variable_name = "libzstd"
+[[products]]
+binnames = ["zstd"]
+type = "exe"
+variable_name = "zstd"

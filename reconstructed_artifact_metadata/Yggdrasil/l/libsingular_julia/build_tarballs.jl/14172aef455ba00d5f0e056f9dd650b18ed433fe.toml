@@ -1,0 +1,46 @@
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "libsingular_julia"
+platforms = ["x86_64-linux-gnu-cxx11", "x86_64-apple-darwin14-cxx11"]
+script = """# remove $libdir from LD_LIBRARY_PATH as this causes issues with perl\nif [[ -n \"$LD_LIBRARY_PATH\" ]]; then\nLD_LIBRARY_PATH=$(echo -n $LD_LIBRARY_PATH | sed -e \"s|[:^]$libdir\\w*|:|g\")\nfi\n\ncmake libsingular-j*/ -B build \\\n   -DJulia_PREFIX=\"$prefix\" \\\n   -DCMAKE_INSTALL_PREFIX=\"$prefix\" \\\n   -DCMAKE_FIND_ROOT_PATH=\"$prefix\" \\\n   -DCMAKE_TOOLCHAIN_FILE=\"${CMAKE_TARGET_TOOLCHAIN}\" \\\n   -DCMAKE_CXX_STANDARD=14 \\\n   -DCMAKE_BUILD_TYPE=Release\n\nVERBOSE=ON cmake --build build --config Release --target install -- -j${nproc}\n\ninstall_license $WORKSPACE/srcdir/libsingular-j*/LICENSE.md\n"""
+version = "v0.2.0"
+
+[[dependencies]]
+name = "CompilerSupportLibraries_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Julia_jll"
+type = "builddependency"
+version-major = 1
+version-minor = 4
+version-patch = 1
+[[dependencies]]
+name = "libcxxwrap_julia_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Singular_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsingular_julia"]
+type = "lib"
+variable_name = "libsingular_julia"
+
+[[sources]]
+hash = "ee4e5ef96caf9d18553600d87f922e5d40cb1c7d30a1697c92b23b493498db1a"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/oscar-system/libsingular-julia/archive/v0.2.0.tar.gz"

@@ -1,0 +1,38 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "DynarePreprocessor"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "riscv64-linux-gnu-cxx03", "riscv64-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin-cxx03", "x86_64-apple-darwin-cxx11", "aarch64-apple-darwin-cxx03", "aarch64-apple-darwin-cxx11", "x86_64-unknown-freebsd-cxx03", "x86_64-unknown-freebsd-cxx11", "aarch64-unknown-freebsd-cxx03", "aarch64-unknown-freebsd-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd ${WORKSPACE}/srcdir/preprocessor\n\n# Use flex from `flex_jll` instead of the one under /usr/bin,\n# because there is no /usr/include/FlexLexer.hh\necho -e \"[binaries]\\nflex = '${host_bindir}/flex'\\n\" > flex.ini\n\n# We enforce GCC on all platforms (i.e. incl. macOS and FreeBSD), by using the GCC toolchain file\n# See https://docs.binarybuilder.org/stable/build_tips/#Using-GCC-on-macOS-and-FreeBSD\nmeson setup --cross-file=\"${MESON_TARGET_TOOLCHAIN%.*}_gcc.meson\" --cross-file=flex.ini --buildtype=release build\n\nninja -j${nproc} -v -C build\nninja -C build install\n\nstrip \"${bindir}/dynare-preprocessor${exeext}\"\n\ninstall_license COPYING\n"""
+version = "v7.0.0"
+
+[[dependencies]]
+compat = ""
+name = "boost_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "flex_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["dynare-preprocessor"]
+type = "exe"
+variable_name = "dynare_preprocessor"
+
+[[sources]]
+hash = "e4ba46115a6d896b1cdec043bd5612628f7c43a5"
+type = "git"
+unpack_target = ""
+url = "https://git.dynare.org/Dynare/preprocessor.git"

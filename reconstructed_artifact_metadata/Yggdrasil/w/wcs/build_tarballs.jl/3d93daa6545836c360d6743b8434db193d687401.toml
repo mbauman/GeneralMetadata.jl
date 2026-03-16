@@ -1,0 +1,27 @@
+dependencies = []
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "WCS"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/wcslib-*/\nif [[ \"${target}\" == *mingw* ]]; then\n    atomic_patch -p1 \"${WORKSPACE}/srcdir/patches/configure-mingw.patch\"\n    autoconf\n    export CFLAGS=\"${CFLAGS} -DNO_OLDNAMES\"\nfi\n./configure --prefix=$prefix --host=$target --disable-fortran --without-cfitsio --without-pgplot --disable-utils\nmake -j${nproc}\nmake install\n\n# Remove static library\nrm \"${prefix}/lib/\"libwcs*.a\n\n# Install all license files\ninstall_license COPYING*\n"""
+version = "v7.4.0"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libwcs"]
+type = "lib"
+variable_name = "libwcs"
+
+[[sources]]
+hash = "a21c964136055ad1d68ca9d3e9714374a9dc3ff2f7072622af08cc4f5a0c511c"
+type = "archive"
+unpack_target = ""
+url = "https://cache.julialang.org/ftp://ftp.atnf.csiro.au/pub/software/wcslib/wcslib-7.4.tar.bz2"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

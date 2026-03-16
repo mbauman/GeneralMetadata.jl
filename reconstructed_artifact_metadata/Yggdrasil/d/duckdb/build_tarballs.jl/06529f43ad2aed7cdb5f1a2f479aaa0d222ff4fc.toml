@@ -1,0 +1,27 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "DuckDB"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "riscv64-linux-gnu-cxx03", "riscv64-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir/duckdb/\n\ncmake -B build \\\n      -DCMAKE_INSTALL_PREFIX=${prefix} \\\n      -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n      -DCMAKE_BUILD_TYPE=Release \\\n      -DENABLE_SANITIZER=FALSE \\\n      -DBUILD_EXTENSIONS='parquet;json' \\\n      -DSKIP_EXTENSIONS=jemalloc \\\n      -DENABLE_EXTENSION_AUTOLOADING=1 \\\n      -DENABLE_EXTENSION_AUTOINSTALL=1 \\\n      -DBUILD_UNITTESTS=FALSE \\\n      -DBUILD_SHELL=TRUE \\\n      -DDUCKDB_EXPLICIT_PLATFORM=\"${target}\"\ncmake --build build --parallel ${nproc}\ncmake --install build\n\nif [[ \"${target}\" == *-mingw32 ]]; then\n    install -Dvm 755 \"build/src/libduckdb.${dlext}\" -t \"${libdir}\"\nfi\n"""
+version = "v1.2.2"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libduckdb"]
+type = "lib"
+variable_name = "libduckdb"
+[[products]]
+binnames = ["duckdb"]
+type = "exe"
+variable_name = "duckdb"
+
+[[sources]]
+hash = "7c039464e452ddc3330e2691d3fa6d305521d09b"
+type = "git"
+unpack_target = ""
+url = "https://github.com/duckdb/duckdb.git"

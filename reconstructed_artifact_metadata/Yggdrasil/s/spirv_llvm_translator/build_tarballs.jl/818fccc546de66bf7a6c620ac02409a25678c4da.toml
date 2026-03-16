@@ -1,0 +1,55 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "SPIRV_LLVM_Translator"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "riscv64-linux-gnu-cxx03", "riscv64-linux-gnu-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd SPIRV-LLVM-Translator\ninstall_license LICENSE.TXT\n\natomic_patch -p1 ../patches/visibility.patch\n\nif [[ (\"${target}\" == x86_64-apple-darwin*) ]]; then\n    # LLVM 15+ requires macOS SDK 10.14\n    pushd $WORKSPACE/srcdir/MacOSX10.*.sdk\n    rm -rf /opt/${target}/${target}/sys-root/System\n    cp -ra usr/* \"/opt/${target}/${target}/sys-root/usr/.\"\n    cp -ra System \"/opt/${target}/${target}/sys-root/.\"\n    export MACOSX_DEPLOYMENT_TARGET=10.14\n    popd\nfi\n\nCMAKE_FLAGS=()\n\n# Release build for best performance\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\n\n# Install things into $prefix\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix})\n\n# Explicitly use our cmake toolchain file and tell CMake we're cross-compiling\nif [[ \"${target}\" == *mingw* ]]; then\n    # on Windows, we run into \"multiple definition\" errors when linking with gcc\n    CMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN%.*}_clang.cmake)\nelse\n    CMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\nfi\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING:BOOL=ON)\n\n# More hacks for Windows\nif [[ \"${target}\" == *mingw* ]]; then\n    CMAKE_FLAGS+=(-DCMAKE_SHARED_LIBRARY_CXX_FLAGS=\"-pthread\")\n    CMAKE_FLAGS+=(-DCMAKE_EXE_LINKER_FLAGS=\"-pthread\")\nfi\n\n# Tell CMake where LLVM is\nCMAKE_FLAGS+=(-DLLVM_DIR=\"${prefix}/lib/cmake/llvm\")\n\n# Build the library\nCMAKE_FLAGS+=(-DBUILD_SHARED_LIBS=ON)\n\n# Don't link dynamically against libLLVM, but statically against each component\n#CMAKE_FLAGS+=(-DLLVM_LINK_LLVM_DYLIB=OFF)\n# XXX: doesn't seem to work, so patch the CMakeLists.txt instead\nsed -i '/add_llvm_library(/a DISABLE_LLVM_LINK_LLVM_DYLIB' lib/SPIRV/CMakeLists.txt\nsed -i '/add_llvm_tool(/a DISABLE_LLVM_LINK_LLVM_DYLIB' tools/llvm-spirv/CMakeLists.txt\n\n# Use our LLVM version\nCMAKE_FLAGS+=(-DBASE_LLVM_VERSION=20.1.0)\n\n# Make sure libLLVMSPIRV doesn't re-export all of libLLVM. This matters on Unix-style\n# dynamic linkers, wheter otherwise LLVM symbols could be resolved to the wrong library.\nif [[ \"${target}\" == *-linux-* ]]; then\n    CMAKE_FLAGS+=(-DCMAKE_SHARED_LINKER_FLAGS=\"-Wl,--exclude-libs,ALL\")\nelif [[ (\"${target}\" == *-apple-darwin*) ]]; then\n    # macOS' linker doesn't support --exclude-libs; we have to use -hidden-l instead\n    atomic_patch --follow-symlinks -d $prefix/lib/cmake/llvm /workspace/srcdir/patches/addllvm_hidden_l.patch\n\n    # this is more strict than --exclude-libs, so we need to depend on more components.\n    # (this is based on the output of `llvm-config --link-static --libs` on macOS)\n    sed -i '/LINK_COMPONENTS/,/DEPENDS/{ /LINK_COMPONENTS/!{ /DEPENDS/!d; } }' lib/SPIRV/CMakeLists.txt\n    sed -i '/SPIRVLib/,/)/{ /SPIRVLib/!{ /)/!d; } }' tools/llvm-spirv/CMakeLists.txt\n    for component in Passes HipStdPar CFGuard Coroutines ipo Vectorize SandboxIR Linker Instrumentation FrontendOpenMP FrontendOffloading FrontendAtomic CodeGen Target ObjCARCOpts CodeGenTypes CGData IRPrinter ScalarOpts InstCombine AggressiveInstCombine TransformUtils BitWriter Analysis ProfileData DebugInfoDWARF Object TextAPI MCParser IRReader AsmParser MC BitReader Core Remarks BitstreamReader BinaryFormat TargetParser Support Demangle; do\n        sed -i \"/LINK_COMPONENTS/a $component\" lib/SPIRV/CMakeLists.txt\n        sed -i \"/set(LLVM_LINK_COMPONENTS/a $component\" tools/llvm-spirv/CMakeLists.txt\n    done\n    sed -i '/set(LLVM_LINK_COMPONENTS \"\")/d' tools/llvm-spirv/CMakeLists.txt\n\n    # for some reason it doesn't link against zstd?\n    echo 'target_link_libraries(LLVMSPIRVLib PRIVATE z zstd)' >> lib/SPIRV/CMakeLists.txt\nfi\n\ncmake -B build -S . -GNinja ${CMAKE_FLAGS[@]}\nninja -C build -j ${nproc} llvm-spirv install\ninstall -Dm755 build/tools/llvm-spirv/llvm-spirv${exeext} -t ${bindir}\n"""
+version = "v20.1.0"
+
+[[dependencies]]
+compat = ""
+name = "LLVM_full_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 20
+version-minor = 1
+version-patch = 2
+[[dependencies]]
+compat = ""
+name = "Zstd_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libLLVMSPIRVLib", "LLVMSPIRVLib"]
+type = "lib"
+variable_name = "libLLVMSPIRV"
+[[products]]
+binnames = ["llvm-spirv"]
+type = "exe"
+variable_name = "llvm_spirv"
+
+[[sources]]
+hash = "dee371987a59ed8654083c09c5f1d5c54f5db318"
+type = "git"
+unpack_target = ""
+url = "https://github.com/KhronosGroup/SPIRV-LLVM-Translator.git"
+[[sources]]
+follow_symlinks = false
+path = "bundled"
+target = ""
+type = "directory"
+[[sources]]
+hash = "0f03869f72df8705b832910517b47dd5b79eb4e160512602f593ed243b28715f"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.14.sdk.tar.xz"

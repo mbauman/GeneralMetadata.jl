@@ -1,0 +1,46 @@
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Readline"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "aarch64-apple-darwin", "armv6l-linux-gnueabihf", "armv6l-linux-musleabihf"]
+script = """cd $WORKSPACE/srcdir/readline-*/\n\natomic_patch -p0 ${WORKSPACE}/srcdir/readline81-001\n# Patch from https://aur.archlinux.org/cgit/aur.git/tree/fix_signal.diff?h=mingw-w64-readline\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/mingw-fix_signal.patch\n\nexport CPPFLAGS=\"-I${includedir}\"\nif [[ \"${target}\" == *-mingw* ]]; then\n    # Only on Windows the library name embeds the ABI version\n    export NCURSES_ABI_VER=6\n    export LDFLAGS=\"-L${libdir}\"\nfi\n\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} --with-curses\nmake -j${nproc} SHLIB_LIBS=\"-lncurses${NCURSES_ABI_VER}\"\nmake install\ninstall_license COPYING\n"""
+version = "v8.1.1"
+
+[[dependencies]]
+compat = ""
+name = "Ncurses_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libhistory", "libhistory8"]
+type = "lib"
+variable_name = "libhistory"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libreadline", "libreadline8"]
+type = "lib"
+variable_name = "libreadline"
+
+[[sources]]
+hash = "f8ceb4ee131e3232226a17f51b164afc46cd0b9e6cef344be87c65962cb82b02"
+type = "archive"
+unpack_target = ""
+url = "https://ftp.gnu.org/gnu/readline/readline-8.1.tar.gz"
+[[sources]]
+filename = "readline81-001"
+hash = "682a465a68633650565c43d59f0b8cdf149c13a874682d3c20cb4af6709b9144"
+type = "file"
+url = "https://ftp.gnu.org/gnu/readline/readline-8.1-patches/readline81-001"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

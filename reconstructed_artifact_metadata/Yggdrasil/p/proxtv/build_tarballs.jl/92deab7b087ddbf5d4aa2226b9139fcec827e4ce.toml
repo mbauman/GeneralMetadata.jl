@@ -1,0 +1,33 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "proxTV"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/proxTV/src\ncp *.h ${includedir}\n\nif [[ \"${target}\" == *mingw* ]]; then\n  LBT=\"${libdir}/libblastrampoline-5.dll\"\nelse\n  LBT=\"-lblastrampoline\"\nfi\n\n${CXX} -DNOMATLAB -c -fPIC -O3 -I${includedir} *.cpp\n${CXX} -shared -o libproxtv.${dlext} ${LBT} *.o\n\ninstall -Dvm 755 libproxtv.${dlext} -t ${libdir}\n\ninstall_license ../LICENSE.txt\n"""
+version = "v3.4.0"
+
+[[dependencies]]
+compat = "5.4.0"
+name = "libblastrampoline_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "8e850b90-86db-534c-a0d3-1478176c7d93"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libproxtv"]
+type = "lib"
+variable_name = "libproxtv"
+
+[[sources]]
+hash = "2a5181108d769b72880a301d212c0c72a129816f"
+type = "git"
+unpack_target = ""
+url = "https://github.com/amontoison/proxTV"

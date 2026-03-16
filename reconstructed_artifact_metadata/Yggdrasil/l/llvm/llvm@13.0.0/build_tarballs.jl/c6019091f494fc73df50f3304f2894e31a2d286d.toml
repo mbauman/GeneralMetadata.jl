@@ -1,0 +1,59 @@
+init_block = ""
+julia_compat = "1.8"
+lazy_artifacts = false
+name = "LLVM"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11", "aarch64-apple-darwin", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11"]
+script = """# First, find (true) LLVM library directory in ~/.artifacts somewhere\nLLVM_ARTIFACT_DIR=$(dirname $(dirname $(realpath ${prefix}/tools/opt${exeext})))\n\n# Clear out our `${prefix}`\nrm -rf ${prefix}/*\n\n# Copy over everything, but eliminate things already put inside `Clang_jll` or `libLLVM_jll`:\nmv -v ${LLVM_ARTIFACT_DIR}/* ${prefix}/\nrm -vrf ${prefix}/include/{clang*,llvm*,mlir*}\nrm -vrf ${prefix}/bin/{clang*,llvm-config,mlir*}\nrm -vrf ${prefix}/tools/{clang*,llvm-config,mlir*}\nrm -vrf ${libdir}/libclang*.${dlext}*\nrm -vrf ${libdir}/*LLVM*.${dlext}*\nrm -vrf ${libdir}/*MLIR*.${dlext}*\nrm -vrf ${prefix}/lib/*LLVM*.a\nrm -vrf ${prefix}/lib/libclang*.a\nrm -vrf ${prefix}/lib/clang\nrm -vrf ${prefix}/lib/mlir\n"""
+sources = []
+version = "v13.0.0"
+
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LLVM_full_jll"
+type = "builddependency"
+uuid = "a3ccf953-465e-511d-b87f-60a6490c289d"
+version-major = 13
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "13.0.0"
+name = "libLLVM_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["LTO", "libLTO"]
+type = "lib"
+variable_name = "liblto"
+[[products]]
+binnames = ["opt"]
+dir_path = "tools"
+type = "exe"
+variable_name = "opt"
+[[products]]
+binnames = ["llc"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llc"
+[[products]]
+binnames = ["llvm-mca"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_mca"
+[[products]]
+binnames = ["lld"]
+dir_path = "bin"
+type = "exe"
+variable_name = "lld"

@@ -1,0 +1,111 @@
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "MUMPS"
+platforms = ["i686-linux-gnu-libgfortran3", "i686-linux-gnu-libgfortran4", "i686-linux-gnu-libgfortran5", "x86_64-linux-gnu-libgfortran3", "x86_64-linux-gnu-libgfortran4", "x86_64-linux-gnu-libgfortran5", "aarch64-linux-gnu-libgfortran3", "aarch64-linux-gnu-libgfortran4", "aarch64-linux-gnu-libgfortran5", "armv6l-linux-gnueabihf-libgfortran3", "armv6l-linux-gnueabihf-libgfortran4", "armv6l-linux-gnueabihf-libgfortran5", "armv7l-linux-gnueabihf-libgfortran3", "armv7l-linux-gnueabihf-libgfortran4", "armv7l-linux-gnueabihf-libgfortran5", "i686-linux-musl-libgfortran3", "i686-linux-musl-libgfortran4", "i686-linux-musl-libgfortran5", "x86_64-linux-musl-libgfortran3", "x86_64-linux-musl-libgfortran4", "x86_64-linux-musl-libgfortran5", "aarch64-linux-musl-libgfortran3", "aarch64-linux-musl-libgfortran4", "aarch64-linux-musl-libgfortran5", "armv6l-linux-musleabihf-libgfortran3", "armv6l-linux-musleabihf-libgfortran4", "armv6l-linux-musleabihf-libgfortran5", "armv7l-linux-musleabihf-libgfortran3", "armv7l-linux-musleabihf-libgfortran4", "armv7l-linux-musleabihf-libgfortran5", "x86_64-apple-darwin-libgfortran3", "x86_64-apple-darwin-libgfortran4", "x86_64-apple-darwin-libgfortran5", "aarch64-apple-darwin-libgfortran5", "x86_64-unknown-freebsd-libgfortran3", "x86_64-unknown-freebsd-libgfortran4", "x86_64-unknown-freebsd-libgfortran5"]
+script = """mkdir -p ${libdir}\ncd $WORKSPACE/srcdir/MUMPS*\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/mumps_int32.patch\n\nmakefile=\"Makefile.G95.PAR\"\ncp Make.inc/${makefile} Makefile.inc\n\nif [[ \"${target}\" == aarch64-apple-darwin* ]]; then\n    # Fix the error:\n    #     Type mismatch in argument ‘s’ at (1); passed INTEGER(4) to LOGICAL(4)\n    FFLAGS=(\"-fallow-argument-mismatch\")\nfi\n\nif [[ \"${target}\" == *-apple* ]]; then\n  CFLAGS=(\"-fno-stack-check\")\nfi\n\nmake_args+=(OPTF=-O \\\n            CDEFS=-DAdd_ \\\n            LMETISDIR=${prefix} \\\n            IMETIS=\"-I${includedir}\" \\\n            LMETIS=\"-L${libdir} -lparmetis -lmetis\" \\\n            ORDERINGSF=\"-Dpord -Dparmetis\" \\\n            CC=\"mpicc -fPIC ${CFLAGS[@]}\" \\\n            FC=\"mpif90 -fPIC ${FFLAGS[@]}\" \\\n            FL=\"mpif90 -fPIC\" \\\n            SCALAP=\"${libdir}/scalapack32.${dlext} ${libdir}/libopenblas.${dlext}\" \\\n            INCPAR= \\\n            LIBPAR=-lscalapack32 \\\n            LIBBLAS=-lopenblas)\n\n# Options for SCOTCH\n# LSCOTCHDIR=${prefix}\n# ISCOTCH=\"-I${includedir}\"\n# LSCOTCH=\"-L${libdir} -lesmumps -lscotch -lscotcherr\"\n# ORDERINGSF=\"-Dpord -Dparmetis -Dscotch\"\n\nif [[ \"${target}\" == *-apple* ]]; then\n  make_args+=(RANLIB=echo)\nfi\n\n# NB: parallel build fails\nmake all \"${make_args[@]}\"\n\n# build shared libs\nall_load=\"--whole-archive\"\nnoall_load=\"--no-whole-archive\"\nextra=\"\"\nif [[ \"${target}\" == *-apple-* ]]; then\n    all_load=\"-all_load\"\n    noall_load=\"-noall_load\"\n    extra=\"-Wl,-undefined -Wl,dynamic_lookup -headerpad_max_install_names\"\nfi\n\ncd lib\nlibs=(-lparmetis -lmetis -lscalapack32 -lopenblas)\nmpif90 -fPIC -shared -Wl,${all_load} libpord.a ${libs[@]} -Wl,${noall_load} ${extra[@]} -o libpord.${dlext}\ncp libpord.${dlext} ${libdir}\n\nlibs+=(-L${libdir} -lpord)\nmpif90 -fPIC -shared -Wl,${all_load} libmumps_common.a ${libs[@]} -Wl,${noall_load} ${extra[@]} -o libmumps_common.${dlext}\ncp libmumps_common.${dlext} ${libdir}\n\nlibs+=(-lmumps_common)\nfor libname in cmumps dmumps smumps zmumps\ndo\n  mpif90 -fPIC -shared -Wl,${all_load} lib${libname}.a ${libs[@]} -Wl,${noall_load} ${extra[@]} -o lib${libname}.${dlext}\ndone\ncp *.${dlext} ${libdir}\ncd ..\n\ncp include/* ${prefix}/include\n"""
+version = "v5.4.2"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MPICH_jll"
+platforms = ["any"]
+type = "dependency"
+uuid = "7cb0a576-ebde-5e09-9194-50597f1243b4"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "METIS_jll"
+platforms = ["any"]
+type = "dependency"
+uuid = "d00139f3-1899-568f-a2f0-47f597d42d70"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "SCOTCH_jll"
+platforms = ["any"]
+type = "dependency"
+uuid = "a8d0f55d-b80e-548d-aff6-1a04c175f0f9"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "PARMETIS_jll"
+platforms = ["any"]
+type = "dependency"
+uuid = "b247a4be-ddc1-5759-8008-7e02fe3dbdaa"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "SCALAPACK32_jll"
+platforms = ["any"]
+type = "dependency"
+uuid = "aabda75e-bfe4-5a37-92e3-ffe54af3c273"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenBLAS32_jll"
+platforms = ["any"]
+type = "dependency"
+uuid = "656ef2d0-ae68-5445-9ca0-591084a874a2"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsmumps"]
+type = "lib"
+variable_name = "libsmumps"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libdmumps"]
+type = "lib"
+variable_name = "libdmumps"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcmumps"]
+type = "lib"
+variable_name = "libcmumps"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libzmumps"]
+type = "lib"
+variable_name = "libzmumps"
+
+[[sources]]
+hash = "93034a1a9fe0876307136dcde7e98e9086e199de76f1c47da822e7d4de987fa8"
+type = "archive"
+unpack_target = ""
+url = "http://mumps.enseeiht.fr/MUMPS_5.4.1.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

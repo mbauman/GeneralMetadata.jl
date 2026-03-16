@@ -1,0 +1,32 @@
+dependencies = []
+lazy_artifacts = false
+name = "tree_sitter_c"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir\necho 'cmake_minimum_required(VERSION 3.13)\nproject(treesitter)\nset(CMAKE_C_STANDARD 99)\n\ninclude_directories(tree-sitter/lib/include tree-sitter/lib/src)\n\nadd_library(treesitter SHARED tree-sitter/lib/src/lib.c)\n\ninclude_directories(tree-sitter-c/src)\nadd_library(treesitter_c SHARED tree-sitter-c/src/parser.c)\n\ninstall(TARGETS treesitter_c DESTINATION lib CONFIGURATIONS Release)\ninstall(TARGETS treesitter DESTINATION lib CONFIGURATIONS Release)' > CMakeLists.txt\n\nBUILD_FLAGS=(-DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${prefix} -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\nmkdir build && cd build\ncmake .. \"${BUILD_FLAGS[@]}\"\nmake -j${nproc}\nmake install\nmkdir ${prefix}/include\ncp ../tree-sitter/lib/include/tree_sitter/api.h ${prefix}/include/\ninstall_license ../tree-sitter/LICENSE\n"""
+version = "v0.16.0"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libtreesitter_c"]
+type = "lib"
+variable_name = "libtreesitter_c"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libtreesitter"]
+type = "lib"
+variable_name = "libtreesitter"
+
+[[sources]]
+hash = "d8c3f472d23ad79f519651d5cf715b56467d35d0"
+type = "git"
+unpack_target = ""
+url = "https://github.com/tree-sitter/tree-sitter.git"
+[[sources]]
+hash = "6002fcd5e86bb1e8670157bb008b97dbaf656d95"
+type = "git"
+unpack_target = ""
+url = "https://github.com/tree-sitter/tree-sitter-c.git"

@@ -1,0 +1,27 @@
+lazy_artifacts = false
+name = "rr"
+platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11"]
+script = """pip3 install pexpect\n\ncd $WORKSPACE/srcdir/rr-*/\n\n# Patches for very old glibc\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/rr_old_glibc.patch\n\nmkdir build && cd build\ncmake -DCMAKE_BUILD_TYPE=Release \\\n      -DCMAKE_INSTALL_PREFIX=${prefix} -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n      -Ddisable32bit=ON -DBUILD_TESTS=OFF -DWILL_RUN_TESTS=OFF ..\nmake -j${nproc}\nmake install\n"""
+version = "v5.3.0"
+
+[[dependencies]]
+name = "capnproto_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["rr"]
+type = "exe"
+variable_name = "rr"
+
+[[sources]]
+hash = "440e90a68557a8111f483fc40ab5ed65d21d6b11426b3245e4221b930a86ca69"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/mozilla/rr/archive/5.3.0.tar.gz"
+[[sources]]
+path = "./bundled"
+target = ""
+type = "directory"

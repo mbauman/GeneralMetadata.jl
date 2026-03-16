@@ -1,0 +1,351 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Qemu"
+platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11"]
+script = """cd $WORKSPACE/srcdir/qemu-*\ninstall_license COPYING\n\n# check if we need to use a more recent glibc\nif [[ -f \"$prefix/usr/include/sched.h\" ]]; then\n    GLIBC_ARTIFACT_DIR=$(dirname $(dirname $(dirname $(realpath $prefix/usr/include/sched.h))))\n    rsync --archive ${GLIBC_ARTIFACT_DIR}/ /opt/${target}/${target}/sys-root/\nfi\n\n# include `falloc` header in `strace.c` (requires glibc 2.25)\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/qemu_falloc.patch\"\n\nif [[ \"${target}\" == *-*-musl ]]; then\n    # fix messy header situation on musl\n    atomic_patch -p1 \"${WORKSPACE}/srcdir/patches/qemu_syscall.patch\"\n\n    # include kernel headers for a definition of speculation control prctls (musl 1.1.20)\n    sed -i 's/#include <sys\\/prctl.h>/#include <linux\\/prctl.h>/g' linux-user/syscall.c\nfi\n\n# disable tests\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/qemu_disable_tests.patch\"\n\n# properly link to rt\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/qemu_link_rt.patch\"\n\n# hacks for macOS\n## adapter for `clock_gettime()` on macOS 10.12-\n#atomic_patch -p1 \"${WORKSPACE}/srcdir/patches/qemu_clock_gettime.patch\"\n## disable adding the icon to the binary\n#echo '#!/bin/true ' > /usr/bin/Rez\n#echo '#!/bin/true ' > /usr/bin/SetFile\n#chmod +x /usr/bin/Rez\n#chmod +x /usr/bin/SetFile\n\n## fix pointer mismatch between `size_t` and `uint64_t`\n#atomic_patch -p1 \"${WORKSPACE}/srcdir/patches/qemu_size_uint64.patch\"\n\n# Configure, ignoring some warnings that we don't need, etc...\n./configure --prefix=$prefix --host-cc=\"${HOSTCC}\" \\\n    --extra-cflags=\"-I${prefix}/include -Wno-unused-result\" \\\n    --disable-cocoa\n\nmake -j${nproc}\n\nmake install\n"""
+version = "v7.1.0"
+
+[[dependencies]]
+compat = ""
+name = "Pixman_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "2.68.1"
+name = "Glib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "PCRE_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Gettext_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "libcap_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Glibc_jll"
+platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11"]
+top_level = false
+type = "builddependency"
+version-major = 2
+version-minor = 17
+version-patch = 0
+
+[[products]]
+binnames = ["qemu-system-aarch64"]
+type = "exe"
+variable_name = "qemu_system_aarch64"
+[[products]]
+binnames = ["qemu-system-alpha"]
+type = "exe"
+variable_name = "qemu_system_alpha"
+[[products]]
+binnames = ["qemu-system-arm"]
+type = "exe"
+variable_name = "qemu_system_arm"
+[[products]]
+binnames = ["qemu-system-avr"]
+type = "exe"
+variable_name = "qemu_system_avr"
+[[products]]
+binnames = ["qemu-system-cris"]
+type = "exe"
+variable_name = "qemu_system_cris"
+[[products]]
+binnames = ["qemu-system-hppa"]
+type = "exe"
+variable_name = "qemu_system_hppa"
+[[products]]
+binnames = ["qemu-system-i386"]
+type = "exe"
+variable_name = "qemu_system_i386"
+[[products]]
+binnames = ["qemu-system-m68k"]
+type = "exe"
+variable_name = "qemu_system_m68k"
+[[products]]
+binnames = ["qemu-system-microblaze"]
+type = "exe"
+variable_name = "qemu_system_microblaze"
+[[products]]
+binnames = ["qemu-system-microblazeel"]
+type = "exe"
+variable_name = "qemu_system_microblazeel"
+[[products]]
+binnames = ["qemu-system-mips"]
+type = "exe"
+variable_name = "qemu_system_mips"
+[[products]]
+binnames = ["qemu-system-mips64"]
+type = "exe"
+variable_name = "qemu_system_mips64"
+[[products]]
+binnames = ["qemu-system-mips64el"]
+type = "exe"
+variable_name = "qemu_system_mips64el"
+[[products]]
+binnames = ["qemu-system-mipsel"]
+type = "exe"
+variable_name = "qemu_system_mipsel"
+[[products]]
+binnames = ["qemu-system-nios2"]
+type = "exe"
+variable_name = "qemu_system_nios2"
+[[products]]
+binnames = ["qemu-system-or1k"]
+type = "exe"
+variable_name = "qemu_system_or1k"
+[[products]]
+binnames = ["qemu-system-ppc"]
+type = "exe"
+variable_name = "qemu_system_ppc"
+[[products]]
+binnames = ["qemu-system-ppc64"]
+type = "exe"
+variable_name = "qemu_system_ppc64"
+[[products]]
+binnames = ["qemu-system-riscv32"]
+type = "exe"
+variable_name = "qemu_system_riscv32"
+[[products]]
+binnames = ["qemu-system-riscv64"]
+type = "exe"
+variable_name = "qemu_system_riscv64"
+[[products]]
+binnames = ["qemu-system-rx"]
+type = "exe"
+variable_name = "qemu_system_rx"
+[[products]]
+binnames = ["qemu-system-s390x"]
+type = "exe"
+variable_name = "qemu_system_s390x"
+[[products]]
+binnames = ["qemu-system-sh4"]
+type = "exe"
+variable_name = "qemu_system_sh4"
+[[products]]
+binnames = ["qemu-system-sh4eb"]
+type = "exe"
+variable_name = "qemu_system_sh4eb"
+[[products]]
+binnames = ["qemu-system-sparc"]
+type = "exe"
+variable_name = "qemu_system_sparc"
+[[products]]
+binnames = ["qemu-system-sparc64"]
+type = "exe"
+variable_name = "qemu_system_sparc64"
+[[products]]
+binnames = ["qemu-system-tricore"]
+type = "exe"
+variable_name = "qemu_system_tricore"
+[[products]]
+binnames = ["qemu-system-x86_64"]
+type = "exe"
+variable_name = "qemu_system_x86_64"
+[[products]]
+binnames = ["qemu-system-xtensa"]
+type = "exe"
+variable_name = "qemu_system_xtensa"
+[[products]]
+binnames = ["qemu-system-xtensaeb"]
+type = "exe"
+variable_name = "qemu_system_xtensaeb"
+[[products]]
+binnames = ["qemu-aarch64"]
+type = "exe"
+variable_name = "qemu_aarch64"
+[[products]]
+binnames = ["qemu-aarch64_be"]
+type = "exe"
+variable_name = "qemu_aarch64_be"
+[[products]]
+binnames = ["qemu-alpha"]
+type = "exe"
+variable_name = "qemu_alpha"
+[[products]]
+binnames = ["qemu-arm"]
+type = "exe"
+variable_name = "qemu_arm"
+[[products]]
+binnames = ["qemu-armeb"]
+type = "exe"
+variable_name = "qemu_armeb"
+[[products]]
+binnames = ["qemu-cris"]
+type = "exe"
+variable_name = "qemu_cris"
+[[products]]
+binnames = ["qemu-edid"]
+type = "exe"
+variable_name = "qemu_edid"
+[[products]]
+binnames = ["qemu-ga"]
+type = "exe"
+variable_name = "qemu_ga"
+[[products]]
+binnames = ["qemu-hexagon"]
+type = "exe"
+variable_name = "qemu_hexagon"
+[[products]]
+binnames = ["qemu-hppa"]
+type = "exe"
+variable_name = "qemu_hppa"
+[[products]]
+binnames = ["qemu-i386"]
+type = "exe"
+variable_name = "qemu_i386"
+[[products]]
+binnames = ["qemu-img"]
+type = "exe"
+variable_name = "qemu_img"
+[[products]]
+binnames = ["qemu-io"]
+type = "exe"
+variable_name = "qemu_io"
+[[products]]
+binnames = ["qemu-m68k"]
+type = "exe"
+variable_name = "qemu_m68k"
+[[products]]
+binnames = ["qemu-microblaze"]
+type = "exe"
+variable_name = "qemu_microblaze"
+[[products]]
+binnames = ["qemu-microblazeel"]
+type = "exe"
+variable_name = "qemu_microblazeel"
+[[products]]
+binnames = ["qemu-mips"]
+type = "exe"
+variable_name = "qemu_mips"
+[[products]]
+binnames = ["qemu-mips64"]
+type = "exe"
+variable_name = "qemu_mips64"
+[[products]]
+binnames = ["qemu-mips64el"]
+type = "exe"
+variable_name = "qemu_mips64el"
+[[products]]
+binnames = ["qemu-mipsel"]
+type = "exe"
+variable_name = "qemu_mipsel"
+[[products]]
+binnames = ["qemu-mipsn32"]
+type = "exe"
+variable_name = "qemu_mipsn32"
+[[products]]
+binnames = ["qemu-mipsn32el"]
+type = "exe"
+variable_name = "qemu_mipsn32el"
+[[products]]
+binnames = ["qemu-nbd"]
+type = "exe"
+variable_name = "qemu_nbd"
+[[products]]
+binnames = ["qemu-nios2"]
+type = "exe"
+variable_name = "qemu_nios2"
+[[products]]
+binnames = ["qemu-or1k"]
+type = "exe"
+variable_name = "qemu_or1k"
+[[products]]
+binnames = ["qemu-ppc"]
+type = "exe"
+variable_name = "qemu_ppc"
+[[products]]
+binnames = ["qemu-ppc64"]
+type = "exe"
+variable_name = "qemu_ppc64"
+[[products]]
+binnames = ["qemu-ppc64le"]
+type = "exe"
+variable_name = "qemu_ppc64le"
+[[products]]
+binnames = ["qemu-riscv32"]
+type = "exe"
+variable_name = "qemu_riscv32"
+[[products]]
+binnames = ["qemu-riscv64"]
+type = "exe"
+variable_name = "qemu_riscv64"
+[[products]]
+binnames = ["qemu-s390x"]
+type = "exe"
+variable_name = "qemu_s390x"
+[[products]]
+binnames = ["qemu-sh4"]
+type = "exe"
+variable_name = "qemu_sh4"
+[[products]]
+binnames = ["qemu-sh4eb"]
+type = "exe"
+variable_name = "qemu_sh4eb"
+[[products]]
+binnames = ["qemu-sparc"]
+type = "exe"
+variable_name = "qemu_sparc"
+[[products]]
+binnames = ["qemu-sparc32plus"]
+type = "exe"
+variable_name = "qemu_sparc32plus"
+[[products]]
+binnames = ["qemu-sparc64"]
+type = "exe"
+variable_name = "qemu_sparc64"
+[[products]]
+binnames = ["qemu-x86_64"]
+type = "exe"
+variable_name = "qemu_x86_64"
+[[products]]
+binnames = ["qemu-xtensa"]
+type = "exe"
+variable_name = "qemu_xtensa"
+[[products]]
+binnames = ["qemu-xtensaeb"]
+type = "exe"
+variable_name = "qemu_xtensaeb"
+
+[[sources]]
+hash = "a0634e536bded57cf38ec8a751adb124b89c776fe0846f21ab6c6728f1cbbbe6"
+type = "archive"
+unpack_target = ""
+url = "https://download.qemu.org/qemu-7.1.0.tar.xz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

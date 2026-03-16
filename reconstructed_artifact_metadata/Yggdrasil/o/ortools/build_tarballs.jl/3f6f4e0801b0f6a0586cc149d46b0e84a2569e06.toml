@@ -1,0 +1,199 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.9"
+lazy_artifacts = false
+name = "ORTools"
+platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "x86_64-unknown-freebsd"]
+script = """# OR-Tools 9.12 starts requiring CMake 3.24+. Thus, uninstall the previous version to use the one from CMake_jll.\napk del cmake\n\n# Prepare the source directory.\ncd $WORKSPACE/srcdir/or-tools*\nmkdir build\ncmake --version\n\n# Make the host compile tools easily accessible when cross-compiling.\n# Otherwise, CMake will use the cross-compiler for host tools.\nexport AR=$HOSTAR\nexport AS=$HOSTAS\nexport CC=$HOSTCC\nexport CXX=$HOSTCXX\nexport DSYMUTIL=$HOSTDSYMUTIL\nexport FC=$HOSTFC\nexport includedir=$host_includedir\nexport libdir=$host_libdir\nexport LIPO=$HOSTLIPO\nexport LD=$HOSTLD\nexport NM=$HOSTNM\nexport OBJCOPY=$HOSTOBJCOPY\nexport OBJDUMP=$HOSTOBJDUMP\nexport RANLIB=$HOSTRANLIB\nexport READELF=$HOSTREADELF\nexport STRIP=$HOSTSTRIP\n\n# Build OR-Tools.\ncmake -S. -Bbuild \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DBUILD_DEPS:BOOL=ON \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DBUILD_EXAMPLES:BOOL=OFF \\\n    -DBUILD_SAMPLES:BOOL=OFF \\\n    -DUSE_SCIP:BOOL=OFF \\\n    -DUSE_HIGHS:BOOL=OFF \\\n    -DUSE_COINOR:BOOL=OFF \\\n    -DUSE_GLPK:BOOL=OFF\ncmake --build build\ncmake --build build --target install\n\n# Finish installing: the ProtoBuf definitions.\ninstall -Dvm 644 ortools/bop/bop_parameters.proto ${prefix}/include/ortools/bop/bop_parameters.proto\ninstall -Dvm 644 ortools/constraint_solver/assignment.proto ${prefix}/include/ortools/constraint_solver/assignment.proto\ninstall -Dvm 644 ortools/constraint_solver/demon_profiler.proto ${prefix}/include/ortools/constraint_solver/demon_profiler.proto\ninstall -Dvm 644 ortools/constraint_solver/search_limit.proto ${prefix}/include/ortools/constraint_solver/search_limit.proto\ninstall -Dvm 644 ortools/constraint_solver/search_stats.proto ${prefix}/include/ortools/constraint_solver/search_stats.proto\ninstall -Dvm 644 ortools/constraint_solver/solver_parameters.proto ${prefix}/include/ortools/constraint_solver/solver_parameters.proto\ninstall -Dvm 644 ortools/constraint_solver/routing_enums.proto ${prefix}/include/ortools/constraint_solver/routing_enums.proto\ninstall -Dvm 644 ortools/constraint_solver/routing_ils.proto ${prefix}/include/ortools/constraint_solver/routing_ils.proto\ninstall -Dvm 644 ortools/constraint_solver/routing_parameters.proto ${prefix}/include/ortools/constraint_solver/routing_parameters.proto\ninstall -Dvm 644 ortools/glop/parameters.proto ${prefix}/include/ortools/glop/parameters.proto\ninstall -Dvm 644 ortools/graph/flow_problem.proto ${prefix}/include/ortools/graph/flow_problem.proto\ninstall -Dvm 644 ortools/gscip/gscip.proto ${prefix}/include/ortools/gscip/gscip.proto\ninstall -Dvm 644 ortools/linear_solver/linear_solver.proto ${prefix}/include/ortools/linear_solver/linear_solver.proto\ninstall -Dvm 644 ortools/math_opt/callback.proto ${prefix}/include/ortools/math_opt/callback.proto\ninstall -Dvm 644 ortools/math_opt/infeasible_subsystem.proto ${prefix}/include/ortools/math_opt/infeasible_subsystem.proto\ninstall -Dvm 644 ortools/math_opt/model.proto ${prefix}/include/ortools/math_opt/model.proto\ninstall -Dvm 644 ortools/math_opt/model_parameters.proto ${prefix}/include/ortools/math_opt/model_parameters.proto\ninstall -Dvm 644 ortools/math_opt/model_update.proto ${prefix}/include/ortools/math_opt/model_update.proto\ninstall -Dvm 644 ortools/math_opt/result.proto ${prefix}/include/ortools/math_opt/result.proto\ninstall -Dvm 644 ortools/math_opt/solution.proto ${prefix}/include/ortools/math_opt/solution.proto\ninstall -Dvm 644 ortools/math_opt/parameters.proto ${prefix}/include/ortools/math_opt/parameters.proto\ninstall -Dvm 644 ortools/math_opt/solvers/glpk.proto ${prefix}/include/ortools/math_opt/solvers/glpk.proto\ninstall -Dvm 644 ortools/math_opt/solvers/gurobi.proto ${prefix}/include/ortools/math_opt/solvers/gurobi.proto\ninstall -Dvm 644 ortools/math_opt/solvers/highs.proto ${prefix}/include/ortools/math_opt/solvers/highs.proto\ninstall -Dvm 644 ortools/math_opt/solvers/osqp.proto ${prefix}/include/ortools/math_opt/solvers/osqp.proto\ninstall -Dvm 644 ortools/math_opt/sparse_containers.proto ${prefix}/include/ortools/math_opt/sparse_containers.proto\ninstall -Dvm 644 ortools/packing/multiple_dimensions_bin_packing.proto ${prefix}/include/ortools/packing/multiple_dimensions_bin_packing.proto\ninstall -Dvm 644 ortools/packing/vector_bin_packing.proto ${prefix}/include/ortools/packing/vbp/vector_bin_packing.proto\ninstall -Dvm 644 ortools/pdlp/solve_log.proto ${prefix}/include/ortools/pdlp/solve_log.proto\ninstall -Dvm 644 ortools/pdlp/solvers.proto ${prefix}/include/ortools/pdlp/solvers.proto\ninstall -Dvm 644 ortools/sat/cp_model.proto ${prefix}/include/ortools/sat/cp_model.proto\ninstall -Dvm 644 ortools/sat/sat_parameters.proto ${prefix}/include/ortools/sat/sat_parameters.proto\ninstall -Dvm 644 ortools/sat/boolean_problem.proto ${prefix}/include/ortools/sat/boolean_problem.proto\ninstall -Dvm 644 ortools/util/optional_boolean.proto ${prefix}/include/ortools/util/optional_boolean.proto\ninstall -Dvm 644 ortools/scheduling/course_scheduling.proto ${prefix}/include/ortools/scheduling/course_scheduling.proto\ninstall -Dvm 644 ortools/scheduling/rcpsp.proto ${prefix}/include/ortools/scheduling/rcpsp/rcpsp.proto\ninstall -Dvm 644 ortools/scheduling/jobshop_scheduling.proto ${prefix}/include/ortools/scheduling/jssp/jobshop_scheduling.proto\n"""
+version = "v9.14.0"
+
+[[dependencies]]
+compat = ""
+name = "CMake_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 3
+version-minor = 28
+version-patch = 1
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libortools"]
+type = "lib"
+variable_name = "libortools"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libortools_flatzinc"]
+type = "lib"
+variable_name = "libortools_flatzinc"
+[[products]]
+binnames = ["fzn-cp-sat"]
+type = "exe"
+variable_name = "fzncpsat"
+[[products]]
+binnames = ["sat_runner"]
+type = "exe"
+variable_name = "sat_runner"
+[[products]]
+binnames = ["solve"]
+type = "exe"
+variable_name = "solve"
+[[products]]
+paths = ["include/ortools/bop/bop_parameters.proto"]
+type = "file"
+variable_name = "proto_bop_parameters"
+[[products]]
+paths = ["include/ortools/constraint_solver/assignment.proto"]
+type = "file"
+variable_name = "proto_constraint_solver_assignment"
+[[products]]
+paths = ["include/ortools/constraint_solver/demon_profiler.proto"]
+type = "file"
+variable_name = "proto_constraint_solver_demon_profiler"
+[[products]]
+paths = ["include/ortools/constraint_solver/search_limit.proto"]
+type = "file"
+variable_name = "proto_constraint_solver_search_limit"
+[[products]]
+paths = ["include/ortools/constraint_solver/search_stats.proto"]
+type = "file"
+variable_name = "proto_constraint_solver_search_stats"
+[[products]]
+paths = ["include/ortools/constraint_solver/solver_parameters.proto"]
+type = "file"
+variable_name = "proto_constraint_solver_solver_parameters"
+[[products]]
+paths = ["include/ortools/constraint_solver/routing_enums.proto"]
+type = "file"
+variable_name = "proto_constraint_solver_routing_enums"
+[[products]]
+paths = ["include/ortools/constraint_solver/routing_ils.proto"]
+type = "file"
+variable_name = "proto_constraint_solver_routing_ils"
+[[products]]
+paths = ["include/ortools/constraint_solver/routing_parameters.proto"]
+type = "file"
+variable_name = "proto_constraint_solver_routing_parameters"
+[[products]]
+paths = ["include/ortools/glop/parameters.proto"]
+type = "file"
+variable_name = "ortools_glop_parameters"
+[[products]]
+paths = ["include/ortools/graph/flow_problem.proto"]
+type = "file"
+variable_name = "ortools_graph_flow_problem"
+[[products]]
+paths = ["include/ortools/gscip/gscip.proto"]
+type = "file"
+variable_name = "proto_gscip"
+[[products]]
+paths = ["include/ortools/linear_solver/linear_solver.proto"]
+type = "file"
+variable_name = "proto_linear_solver"
+[[products]]
+paths = ["include/ortools/math_opt/callback.proto"]
+type = "file"
+variable_name = "proto_math_opt_callback"
+[[products]]
+paths = ["include/ortools/math_opt/model.proto"]
+type = "file"
+variable_name = "proto_math_opt_model"
+[[products]]
+paths = ["include/ortools/math_opt/model_parameters.proto"]
+type = "file"
+variable_name = "proto_math_opt_model_parameters"
+[[products]]
+paths = ["include/ortools/math_opt/model_update.proto"]
+type = "file"
+variable_name = "proto_math_opt_model_update"
+[[products]]
+paths = ["include/ortools/math_opt/result.proto"]
+type = "file"
+variable_name = "proto_math_opt_result"
+[[products]]
+paths = ["include/ortools/math_opt/solution.proto"]
+type = "file"
+variable_name = "proto_math_opt_solution"
+[[products]]
+paths = ["include/ortools/math_opt/parameters.proto"]
+type = "file"
+variable_name = "proto_math_opt_parameters"
+[[products]]
+paths = ["include/ortools/math_opt/solvers/glpk.proto"]
+type = "file"
+variable_name = "proto_math_opt_solvers_glpk"
+[[products]]
+paths = ["include/ortools/math_opt/solvers/gurobi.proto"]
+type = "file"
+variable_name = "proto_math_opt_solvers_gurobi"
+[[products]]
+paths = ["include/ortools/math_opt/solvers/highs.proto"]
+type = "file"
+variable_name = "proto_math_opt_solvers_highs"
+[[products]]
+paths = ["include/ortools/math_opt/solvers/osqp.proto"]
+type = "file"
+variable_name = "proto_math_opt_solvers_osqp"
+[[products]]
+paths = ["include/ortools/math_opt/sparse_containers.proto"]
+type = "file"
+variable_name = "proto_math_opt_sparse_containers"
+[[products]]
+paths = ["include/ortools/math_opt/infeasible_subsystem.proto"]
+type = "file"
+variable_name = "proto_math_opt_infeasible_subsystem"
+[[products]]
+paths = ["include/ortools/packing/multiple_dimensions_bin_packing.proto"]
+type = "file"
+variable_name = "proto_packing_multiple_dimensions_bin_packing"
+[[products]]
+paths = ["include/ortools/packing/vbp/vector_bin_packing.proto"]
+type = "file"
+variable_name = "proto_packing_vector_bin_packing"
+[[products]]
+paths = ["include/ortools/pdlp/solve_log.proto"]
+type = "file"
+variable_name = "proto_pdlp_solve_log"
+[[products]]
+paths = ["include/ortools/pdlp/solvers.proto"]
+type = "file"
+variable_name = "proto_pdlp_solvers"
+[[products]]
+paths = ["include/ortools/sat/cp_model.proto"]
+type = "file"
+variable_name = "proto_sat_cp_model"
+[[products]]
+paths = ["include/ortools/sat/sat_parameters.proto"]
+type = "file"
+variable_name = "proto_sat_parameters"
+[[products]]
+paths = ["include/ortools/sat/boolean_problem.proto"]
+type = "file"
+variable_name = "proto_sat_boolean_problem"
+[[products]]
+paths = ["include/ortools/util/optional_boolean.proto"]
+type = "file"
+variable_name = "optional_boolean"
+[[products]]
+paths = ["include/ortools/scheduling/course_scheduling.proto"]
+type = "file"
+variable_name = "proto_scheduling_course_scheduling"
+[[products]]
+paths = ["include/ortools/scheduling/rcpsp/rcpsp.proto"]
+type = "file"
+variable_name = "proto_scheduling_rcpsp"
+[[products]]
+paths = ["include/ortools/scheduling/jssp/jobshop_scheduling.proto"]
+type = "file"
+variable_name = "proto_scheduling_jobshop_scheduling"
+
+[[sources]]
+hash = "0d60e8afe450ec817f510aae965ab8898310cb41"
+type = "git"
+unpack_target = ""
+url = "https://github.com/google/or-tools.git"

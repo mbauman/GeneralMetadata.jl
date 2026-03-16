@@ -1,0 +1,70 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "CFITSIO"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/cfitsio*\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    # This is ridiculous: when CURL is enabled, CFITSIO defines a macro,\n    # `TBYTE`, that has the same name as a mingw macro.  Let's rename all\n    # `TBYTE` to `_TBYTE`.\n    sed -i 's/\\<TBYTE\\>/_TBYTE/g' $(grep -lr '\\<TBYTE\\>')\nfi\n\noptions=(\n    -DCMAKE_BUILD_TYPE=Release\n    -DCMAKE_FIND_ROOT_PATH=${prefix}\n    -DCMAKE_SYSTEM_LIBRARY_PATH=/opt/${target}/${target}/sys-root/usr/lib64/lp64d\n    -DCMAKE_INSTALL_PREFIX=${prefix}\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN}\n    -DBUILD_SHARED_LIBS=ON\n    -DTESTS=OFF\n    -DUSE_BZIP2=ON\n    -DUSE_PTHREADS=ON\n    -DCMAKE_C_FLAGS=-DgFortran\n)\n\nif [[ ${target} == x86_64-* ]]; then\n    options+=(\n        -DUSE_SSE2=ON\n        -DUSE_SSSE3=ON\n    )\nfi\n\ncmake -B builddir \"${options[@]}\"\ncmake --build builddir -j ${nproc}\ncmake --install builddir\ninstall_license licenses/License.txt\n"""
+version = "v4.6.2"
+
+[[dependencies]]
+compat = "1.0.9"
+name = "Bzip2_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "7.73,8"
+name = "LibCURL_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.2.12"
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcfitsio"]
+type = "lib"
+variable_name = "libcfitsio"
+[[products]]
+binnames = ["fpack"]
+type = "exe"
+variable_name = "fpack"
+[[products]]
+binnames = ["funpack"]
+type = "exe"
+variable_name = "funpack"
+[[products]]
+binnames = ["fitscopy"]
+type = "exe"
+variable_name = "fitscopy"
+[[products]]
+binnames = ["fitsverify"]
+type = "exe"
+variable_name = "fitsverify"
+[[products]]
+binnames = ["imcopy"]
+type = "exe"
+variable_name = "imcopy"
+
+[[sources]]
+hash = "66fd078cc0bea896b0d44b120d46d6805421a5361d3a5ad84d9f397b1b5de2cb"
+type = "archive"
+unpack_target = ""
+url = "http://heasarc.gsfc.nasa.gov/FTP/software/fitsio/c/cfitsio-4.6.2.tar.gz"

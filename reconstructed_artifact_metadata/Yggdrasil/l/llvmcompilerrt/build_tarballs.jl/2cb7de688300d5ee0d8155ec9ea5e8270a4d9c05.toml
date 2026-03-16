@@ -1,0 +1,26 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "LLVMCompilerRT"
+platforms = ["aarch64-apple-darwin"]
+products = []
+script = """cd $WORKSPACE/srcdir/compiler-rt*/\n\n# We'll codesign during audit\natomic_patch -p1 ../patches/do-not-codesign.patch\n\nFLAGS=()\nif [[ \"${target}\" == *-apple-* ]]; then\n    # Fake `PlistBuddy` to make detection of aarch64 support work\n    mkdir -p /usr/libexec\n    cat > /usr/libexec/PlistBuddy << EOF\n#!/bin/bash\n\nif [[ \"${target}\" == aarch64-* ]]; then\n    echo \" arm64\"\nelse\n    echo \" $(uname -m)\"\nfi\nEOF\n    chmod +x /usr/libexec/PlistBuddy\n\n    # Create official Apple-blessed `xcrun`\n    cat > $(which xcrun) << EOF\n#!/bin/bash\nif [[ \"\\${@}\" == *\"--show-sdk-path\"* ]]; then\n   echo /opt/${target}/${target}/sys-root\nelif [[ \"\\${@}\" == *\"--show-sdk-version\"* ]]; then\n   echo 10.12\nelse\n   exec \"\\${@}\"\nfi\nEOF\n\n    # We use could use `${MACOSX_DEPLOYMENT_TARGET}` to specify the SDK version, but it's\n    # set to 10.10 on x86_64, but compiler-rt requires at least 10.12 and we actually use\n    # 10.12.  On aarch64 it's 11.0, but the CMake script doesn't seem to like values greater\n    # than 10, so let's just use 10.12 everywhere.\n    FLAGS+=(\n            -DDARWIN_macosx_OVERRIDE_SDK_VERSION:STRING=10.12\n            -DDARWIN_macosx_CACHED_SYSROOT=/opt/${target}/${target}/sys-root\n           )\nfi\n\nmkdir build && cd build\ncmake -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=\"${CMAKE_TARGET_TOOLCHAIN}\" \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DCMAKE_MODULE_PATH=$(realpath ../../cmake-*.src/Modules) \\\n    -DCOMPILER_RT_DEFAULT_TARGET_TRIPLE=${target} \\\n    -DCMAKE_LIBTOOL=$(which libtool) \\\n    \"${FLAGS[@]}\" \\\n    ..\nmake -j${nproc}\nmake install\n\ninstall_license ../LICENSE.TXT\n"""
+version = "v16.0.6"
+
+[[sources]]
+hash = "7911a2a9cca10393a17f637c01a6f5555b0a38f64ff47dc9168413a4190bc2db"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/llvm/llvm-project/releases/download/llvmorg-16.0.6/compiler-rt-16.0.6.src.tar.xz"
+[[sources]]
+hash = "39d342a4161095d2f28fb1253e4585978ac50521117da666e2b1f6f28b62f514"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/llvm/llvm-project/releases/download/llvmorg-16.0.6/cmake-16.0.6.src.tar.xz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

@@ -1,0 +1,431 @@
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "faust"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11", "aarch64-apple-darwin", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11"]
+script = """cd $WORKSPACE/srcdir/faust\n\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/disable_interp.patch\nCMAKE_FLAGS=()\nCMAKE_TARGET=${target}\n\nif [[ \"${target}\" == *musl* ]]; then\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/execinfo.patch\n    export CXXFLAGS=\"-DALPINE\"\nfi\n\nif [[ \"${target}\" == *apple* ]]; then\n    export MACOSX_DEPLOYMENT_TARGET=10.9\n    export LDFLAGS=\"${LDFLAGS} -mmacosx-version-min=10.9\"\n    # If we're building for Apple, CMake gets confused with `aarch64-apple-darwin` and instead prefers\n    # `arm64-apple-darwin`.  If this issue persists, we may have to change our triplet printing.\n    if [[ \"${target}\" == aarch64* ]]; then\n        CMAKE_TARGET=arm64-${target#*-}\n    fi\nfi\n\nif [[ \"${target}\" == *mingw* ]]; then\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/ws2.patch\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/windows-microhttpd.patch\n    export LDFLAGS=\"${LDFLAGS} -lws2_32 -lmicrohttpd\"\nfi\n\nif [[ \"${target}\" == *freebsd* ]]; then\n    export LDFLAGS=\"${LDFLAGS} -lexecinfo\"\nfi\n\nCMAKE_FLAGS+=(-DCMAKE_C_COMPILER_TARGET=${CMAKE_TARGET})\nCMAKE_FLAGS+=(-DCMAKE_CXX_COMPILER_TARGET=${CMAKE_TARGET})\n\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix})\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\n\nCMAKE_FLAGS+=(-DUSE_LLVM_CONFIG=OFF)\nCMAKE_FLAGS+=(-DLLVM_DIR=${prefix}/lib/cmake/llvm)\n\nif [[ \"${bb_full_target}\" == x86_64-linux-musl-*-cxx03 ]]; then\n    # For some reason this target requires \"-lLLVM-11jl\"\n    # while others require \"-lLLVM\" to build.\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/set_llvm_libs_musl_cxx03.patch\nelse\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/set_llvm_libs.patch\nfi\n\nexport CMAKEOPT=\"${CMAKE_FLAGS[@]}\"\nexport PREFIX=$prefix\n\nmake -j$(nproc) all\nmake install\n"""
+version = "v2.32.16"
+
+[[dependencies]]
+compat = ""
+name = "LLVM_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "libmicrohttpd_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "libsndfile_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Ncurses_jll"
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "XML2_jll"
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["faust"]
+type = "exe"
+variable_name = "faust"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libfaust"]
+type = "lib"
+variable_name = "libfaust"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libHTTPDFaust"]
+type = "lib"
+variable_name = "libHTTPDFaust"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libOSCFaust"]
+type = "lib"
+variable_name = "libOSCFaust"
+[[products]]
+paths = ["bin/faust2alqt"]
+type = "file"
+variable_name = "faust2alqt"
+[[products]]
+paths = ["bin/faust2alsaconsole"]
+type = "file"
+variable_name = "faust2alsaconsole"
+[[products]]
+paths = ["bin/faust2alsa"]
+type = "file"
+variable_name = "faust2alsa"
+[[products]]
+paths = ["bin/faust2android"]
+type = "file"
+variable_name = "faust2android"
+[[products]]
+paths = ["bin/faust2androidunity"]
+type = "file"
+variable_name = "faust2androidunity"
+[[products]]
+paths = ["bin/faust2api"]
+type = "file"
+variable_name = "faust2api"
+[[products]]
+paths = ["bin/faust2atomsnippets"]
+type = "file"
+variable_name = "faust2atomsnippets"
+[[products]]
+paths = ["bin/faust2au"]
+type = "file"
+variable_name = "faust2au"
+[[products]]
+paths = ["bin/faust2bela"]
+type = "file"
+variable_name = "faust2bela"
+[[products]]
+paths = ["bin/faust2caqt"]
+type = "file"
+variable_name = "faust2caqt"
+[[products]]
+paths = ["bin/faust2caqtios"]
+type = "file"
+variable_name = "faust2caqtios"
+[[products]]
+paths = ["bin/faust2csound"]
+type = "file"
+variable_name = "faust2csound"
+[[products]]
+paths = ["bin/faust2csvplot"]
+type = "file"
+variable_name = "faust2csvplot"
+[[products]]
+paths = ["bin/faust2dplug"]
+type = "file"
+variable_name = "faust2dplug"
+[[products]]
+paths = ["bin/faust2dssi"]
+type = "file"
+variable_name = "faust2dssi"
+[[products]]
+paths = ["bin/faust2dummy"]
+type = "file"
+variable_name = "faust2dummy"
+[[products]]
+paths = ["bin/faust2dummymem"]
+type = "file"
+variable_name = "faust2dummymem"
+[[products]]
+paths = ["bin/faust2eps"]
+type = "file"
+variable_name = "faust2eps"
+[[products]]
+paths = ["bin/faust2esp32"]
+type = "file"
+variable_name = "faust2esp32"
+[[products]]
+paths = ["bin/faust2faustvst"]
+type = "file"
+variable_name = "faust2faustvst"
+[[products]]
+paths = ["bin/faust2firefox"]
+type = "file"
+variable_name = "faust2firefox"
+[[products]]
+paths = ["bin/faust2gen"]
+type = "file"
+variable_name = "faust2gen"
+[[products]]
+paths = ["bin/faust2graph"]
+type = "file"
+variable_name = "faust2graph"
+[[products]]
+paths = ["bin/faust2graphviewer"]
+type = "file"
+variable_name = "faust2graphviewer"
+[[products]]
+paths = ["bin/faust2ios"]
+type = "file"
+variable_name = "faust2ios"
+[[products]]
+paths = ["bin/faust2jackconsole"]
+type = "file"
+variable_name = "faust2jackconsole"
+[[products]]
+paths = ["bin/faust2jack"]
+type = "file"
+variable_name = "faust2jack"
+[[products]]
+paths = ["bin/faust2jackrust"]
+type = "file"
+variable_name = "faust2jackrust"
+[[products]]
+paths = ["bin/faust2jackserver"]
+type = "file"
+variable_name = "faust2jackserver"
+[[products]]
+paths = ["bin/faust2jaqtchain"]
+type = "file"
+variable_name = "faust2jaqtchain"
+[[products]]
+paths = ["bin/faust2jaqt"]
+type = "file"
+variable_name = "faust2jaqt"
+[[products]]
+paths = ["bin/faust2juce"]
+type = "file"
+variable_name = "faust2juce"
+[[products]]
+paths = ["bin/faust2ladspa"]
+type = "file"
+variable_name = "faust2ladspa"
+[[products]]
+paths = ["bin/faust2linuxunity"]
+type = "file"
+variable_name = "faust2linuxunity"
+[[products]]
+paths = ["bin/faust2lv2"]
+type = "file"
+variable_name = "faust2lv2"
+[[products]]
+paths = ["bin/faust2mathdoc"]
+type = "file"
+variable_name = "faust2mathdoc"
+[[products]]
+paths = ["bin/faust2mathviewer"]
+type = "file"
+variable_name = "faust2mathviewer"
+[[products]]
+paths = ["bin/faust2max6"]
+type = "file"
+variable_name = "faust2max6"
+[[products]]
+paths = ["bin/faust2md"]
+type = "file"
+variable_name = "faust2md"
+[[products]]
+paths = ["bin/faust2msp"]
+type = "file"
+variable_name = "faust2msp"
+[[products]]
+paths = ["bin/faust2netjackconsole"]
+type = "file"
+variable_name = "faust2netjackconsole"
+[[products]]
+paths = ["bin/faust2netjackqt"]
+type = "file"
+variable_name = "faust2netjackqt"
+[[products]]
+paths = ["bin/faust2nodejs"]
+type = "file"
+variable_name = "faust2nodejs"
+[[products]]
+paths = ["bin/faust2octave"]
+type = "file"
+variable_name = "faust2octave"
+[[products]]
+paths = ["bin/faust2osxiosunity"]
+type = "file"
+variable_name = "faust2osxiosunity"
+[[products]]
+paths = ["bin/faust2owl"]
+type = "file"
+variable_name = "faust2owl"
+[[products]]
+paths = ["bin/faust2paqt"]
+type = "file"
+variable_name = "faust2paqt"
+[[products]]
+paths = ["bin/faust2pdf"]
+type = "file"
+variable_name = "faust2pdf"
+[[products]]
+paths = ["bin/faust2plot"]
+type = "file"
+variable_name = "faust2plot"
+[[products]]
+paths = ["bin/faust2png"]
+type = "file"
+variable_name = "faust2png"
+[[products]]
+paths = ["bin/faust2portaudiorust"]
+type = "file"
+variable_name = "faust2portaudiorust"
+[[products]]
+paths = ["bin/faust2puredata"]
+type = "file"
+variable_name = "faust2puredata"
+[[products]]
+paths = ["bin/faust2pure"]
+type = "file"
+variable_name = "faust2pure"
+[[products]]
+paths = ["bin/faust2raqt"]
+type = "file"
+variable_name = "faust2raqt"
+[[products]]
+paths = ["bin/faust2ros"]
+type = "file"
+variable_name = "faust2ros"
+[[products]]
+paths = ["bin/faust2rosgtk"]
+type = "file"
+variable_name = "faust2rosgtk"
+[[products]]
+paths = ["bin/faust2rpialsaconsole"]
+type = "file"
+variable_name = "faust2rpialsaconsole"
+[[products]]
+paths = ["bin/faust2rpinetjackconsole"]
+type = "file"
+variable_name = "faust2rpinetjackconsole"
+[[products]]
+paths = ["bin/faust2sam"]
+type = "file"
+variable_name = "faust2sam"
+[[products]]
+paths = ["bin/faust2sc"]
+type = "file"
+variable_name = "faust2sc"
+[[products]]
+paths = ["bin/faust2sig"]
+type = "file"
+variable_name = "faust2sig"
+[[products]]
+paths = ["bin/faust2sigviewer"]
+type = "file"
+variable_name = "faust2sigviewer"
+[[products]]
+paths = ["bin/faust2smartkeyb"]
+type = "file"
+variable_name = "faust2smartkeyb"
+[[products]]
+paths = ["bin/faust2sndfile"]
+type = "file"
+variable_name = "faust2sndfile"
+[[products]]
+paths = ["bin/faust2soul"]
+type = "file"
+variable_name = "faust2soul"
+[[products]]
+paths = ["bin/faust2supercollider"]
+type = "file"
+variable_name = "faust2supercollider"
+[[products]]
+paths = ["bin/faust2svg"]
+type = "file"
+variable_name = "faust2svg"
+[[products]]
+paths = ["bin/faust2svgviewer"]
+type = "file"
+variable_name = "faust2svgviewer"
+[[products]]
+paths = ["bin/faust2teensy"]
+type = "file"
+variable_name = "faust2teensy"
+[[products]]
+paths = ["bin/faust2unity"]
+type = "file"
+variable_name = "faust2unity"
+[[products]]
+paths = ["bin/faust2vcvrack"]
+type = "file"
+variable_name = "faust2vcvrack"
+[[products]]
+paths = ["bin/faust2vst"]
+type = "file"
+variable_name = "faust2vst"
+[[products]]
+paths = ["bin/faust2vsti"]
+type = "file"
+variable_name = "faust2vsti"
+[[products]]
+paths = ["bin/faust2w32max6"]
+type = "file"
+variable_name = "faust2w32max6"
+[[products]]
+paths = ["bin/faust2w32msp"]
+type = "file"
+variable_name = "faust2w32msp"
+[[products]]
+paths = ["bin/faust2w32puredata"]
+type = "file"
+variable_name = "faust2w32puredata"
+[[products]]
+paths = ["bin/faust2w32vst"]
+type = "file"
+variable_name = "faust2w32vst"
+[[products]]
+paths = ["bin/faust2w64max6"]
+type = "file"
+variable_name = "faust2w64max6"
+[[products]]
+paths = ["bin/faust2w64vst"]
+type = "file"
+variable_name = "faust2w64vst"
+[[products]]
+paths = ["bin/faust2wasm"]
+type = "file"
+variable_name = "faust2wasm"
+[[products]]
+paths = ["bin/faust2webaudiowasm"]
+type = "file"
+variable_name = "faust2webaudiowasm"
+[[products]]
+paths = ["bin/faust2webaudiowast"]
+type = "file"
+variable_name = "faust2webaudiowast"
+[[products]]
+paths = ["bin/faust2winunity"]
+type = "file"
+variable_name = "faust2winunity"
+[[products]]
+paths = ["bin/faustoptflags"]
+type = "file"
+variable_name = "faustoptflags"
+[[products]]
+paths = ["bin/usage.sh"]
+type = "file"
+variable_name = "usage_sh"
+[[products]]
+paths = ["share/faust/stdfaust.lib"]
+type = "file"
+variable_name = "stdfaust_lib"
+
+[[sources]]
+hash = "53055b47f0ac81bee92b32db3c12729759e005f4"
+type = "git"
+unpack_target = ""
+url = "https://github.com/grame-cncm/faust.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

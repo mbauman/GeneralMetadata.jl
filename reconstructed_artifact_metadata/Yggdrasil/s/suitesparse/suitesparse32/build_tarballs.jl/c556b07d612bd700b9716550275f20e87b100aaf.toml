@@ -1,0 +1,35 @@
+dependencies = []
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "SuiteSparse32"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/SuiteSparse\n\n# Disable OpenMP as it will probably interfere with blas threads and Julia threads\nFLAGS+=(INSTALL=\"${prefix}\" INSTALL_LIB=\"${libdir}\" INSTALL_INCLUDE=\"${prefix}/include\" CFOPENMP=)\n\nFLAGS+=(LDFLAGS=\"${LDFLAGS} -L${libdir}\")\nif [[ ${target} == *mingw32* ]]; then\n    FLAGS+=(UNAME=Windows)\nelse\n    FLAGS+=(UNAME=\"$(uname)\")\nfi\n\nmkdir -p ${prefix}/include\nmake -j${nproc} -C SuiteSparse_config \"${FLAGS[@]}\" config\ncp SuiteSparse_config/SuiteSparse_config.h ${prefix}/include\nfor proj in SuiteSparse_config AMD BTF COLAMD KLU; do\n    make -j${nproc} -C $proj \"${FLAGS[@]}\" static CFOPENMP=\"$CFOPENMP\"\n    [[ -d ${proj}/Include ]] && cp ${proj}/Include/*.h ${prefix}/include\ndone\n\n# Move the static libraries into place\nmkdir -p $libdir\npat=\"*.a\"\nif [[ ${target} == *mingw32* ]]; then\n    pat=\"*.lib\"\nfi\nfind . -name \"$pat\" -exec mv {} ${libdir} \\;\n\ninstall_license LICENSE.txt\n"""
+version = "v5.8.1"
+
+[[products]]
+paths = ["lib/libsuitesparseconfig.a", "bin/libsuitesparseconfig.lib"]
+type = "file"
+variable_name = "libsuitesparseconfig_a"
+[[products]]
+paths = ["lib/libamd.a", "bin/libamd.lib"]
+type = "file"
+variable_name = "libamd_a"
+[[products]]
+paths = ["lib/libbtf.a", "bin/libbtf.lib"]
+type = "file"
+variable_name = "libbtf_a"
+[[products]]
+paths = ["lib/libcolamd.a", "bin/libcolamd.lib"]
+type = "file"
+variable_name = "libcolamd_a"
+[[products]]
+paths = ["lib/libklu.a", "bin/libklu.lib"]
+type = "file"
+variable_name = "libklu_a"
+
+[[sources]]
+hash = "1869379f464f0f8dac471edb4e6d010b2b0e639d"
+type = "git"
+unpack_target = ""
+url = "https://github.com/DrTimothyAldenDavis/SuiteSparse.git"

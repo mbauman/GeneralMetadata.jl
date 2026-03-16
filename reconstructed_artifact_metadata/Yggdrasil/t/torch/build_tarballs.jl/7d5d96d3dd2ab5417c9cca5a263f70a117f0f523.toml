@@ -1,0 +1,49 @@
+lazy_artifacts = false
+name = "Torch"
+platforms = ["x86_64-linux-gnu-cxx11"]
+script = """cd $WORKSPACE/srcdir\n\nmv cudnn $prefix\nmv libtorch/share/* $prefix/share/\nmv libtorch/lib/* $prefix/lib/\nrm -r libtorch/lib\nrm -r libtorch/share\nmv libtorch/* $prefix\nrm -r libtorch\n\nmkdir -p /usr/local/cuda/lib64\ncd /usr/local/cuda/lib64\nln -s ${prefix}/cuda/lib64/libcudart.so libcudart.so\nln -s ${prefix}/cuda/lib64/libnvToolsExt.so libnvToolsExt.so\n\ncd $WORKSPACE/srcdir/Torch.jl/build\nmkdir build && cd build\ncmake -DCMAKE_PREFIX_PATH=$prefix -DTorch_DIR=$prefix/share/cmake/Torch -DCUDA_TOOLKIT_ROOT_DIR=$prefix/cuda ..\ncmake --build .\n\nmkdir -p \"${libdir}\"\ncp -r $WORKSPACE/srcdir/Torch.jl/build/build/*.${dlext} \"${libdir}\"\nrm -rf $prefix/cuda\ninstall_license ${WORKSPACE}/srcdir/Torch.jl/LICENSE\n"""
+version = "v1.4.0"
+
+[[dependencies]]
+name = "CUDA_full_jll"
+type = "builddependency"
+version-major = 10
+version-minor = 1
+version-patch = 243
+[[dependencies]]
+name = "CompilerSupportLibraries_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libdoeye_caml"]
+type = "lib"
+variable_name = "libdoeye_caml"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libtorch"]
+type = "lib"
+variable_name = "libtorch"
+
+[[sources]]
+hash = "85bd08d39e7fba29ec4a643f60dd006ed8be8ede"
+type = "git"
+unpack_target = ""
+url = "https://github.com/dhairyagandhi96/Torch.jl.git"
+[[sources]]
+hash = "f214bfde532877aa5d4e0803e51a28fa8edd97b6a44b6615f75a70352b6b542e"
+type = "archive"
+unpack_target = ""
+url = "https://download.pytorch.org/libtorch/cu101/libtorch-cxx11-abi-shared-with-deps-1.4.0.zip"
+[[sources]]
+hash = "79de5b5085a33bc144b87028e998a1d295a15c3424d6d45b25defe500f616974"
+type = "archive"
+unpack_target = "cudnn"
+url = "https://github.com/JuliaGPU/CUDABuilder/releases/download/v0.3.0/CUDNN+CUDA10.1.v7.6.5.x86_64-linux-gnu.tar.gz"

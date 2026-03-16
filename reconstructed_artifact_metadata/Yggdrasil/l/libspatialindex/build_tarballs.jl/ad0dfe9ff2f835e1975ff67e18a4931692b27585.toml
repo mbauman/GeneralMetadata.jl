@@ -1,0 +1,31 @@
+dependencies = []
+lazy_artifacts = false
+name = "LibSpatialIndex"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin14-cxx03", "x86_64-apple-darwin14-cxx11", "x86_64-unknown-freebsd11.1-cxx03", "x86_64-unknown-freebsd11.1-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir\n\ncd spatialindex-src-*\n\npatch < ${WORKSPACE}/srcdir/makefile.patch\nrm Makefile.am.orig\n\nif [ $target = \"x86_64-w64-mingw32\" ] || [ $target = \"i686-w64-mingw32\" ]; then\n  patch < ${WORKSPACE}/srcdir/header-check.patch\nfi\n\naclocal\nautoconf\nautomake --add-missing --foreign\n\n# Show options in the log\n./configure --help\n\n./configure --prefix=${prefix} --host=$target --build=${MACHTYPE} --enable-static=no\nmake\nmake install\ninstall_license COPYING\n"""
+version = "v1.8.5"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libspatialindex_c"]
+type = "lib"
+variable_name = "libspatialindex_c"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libspatialindex"]
+type = "lib"
+variable_name = "libspatialindex"
+
+[[sources]]
+hash = "31ec0a9305c3bd6b4ad60a5261cba5402366dd7d1969a8846099717778e9a50a"
+type = "archive"
+unpack_target = ""
+url = "http://download.osgeo.org/libspatialindex/spatialindex-src-1.8.5.tar.bz2"
+[[sources]]
+path = "./patches"
+target = ""
+type = "directory"

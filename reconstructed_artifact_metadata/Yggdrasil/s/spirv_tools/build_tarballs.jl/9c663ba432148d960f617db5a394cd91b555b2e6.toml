@@ -1,0 +1,63 @@
+dependencies = []
+lazy_artifacts = false
+name = "SPIRV_Tools"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin14-cxx03", "x86_64-apple-darwin14-cxx11", "x86_64-unknown-freebsd11.1-cxx03", "x86_64-unknown-freebsd11.1-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """# put vendored dependencies in places they will be picked up by the build system\nmv SPIRV-Headers SPIRV-Tools/external/spirv-headers\nmv effcee SPIRV-Tools/external/effcee\nmv re2 SPIRV-Tools/external/re2\n\ncd SPIRV-Tools\ninstall_license LICENSE\n\nCMAKE_FLAGS=()\n\n# Release build for best performance\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\n\n# Install things into $prefix\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix})\n\n# Explicitly use our cmake toolchain file\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\n\n# Skip tests\nCMAKE_FLAGS+=(-DSPIRV_SKIP_TESTS=ON)\n\n# Don't use -Werror\nCMAKE_FLAGS+=(-DSPIRV_WERROR=OFF)\n\ncmake -B build -S . -GNinja ${CMAKE_FLAGS[@]}\nninja -C build -j ${nproc} install\n"""
+version = "v2020.2.0"
+
+[[products]]
+binnames = ["spirv-as"]
+type = "exe"
+variable_name = "spirv_as"
+[[products]]
+binnames = ["spirv-cfg"]
+type = "exe"
+variable_name = "spirv_cfg"
+[[products]]
+binnames = ["spirv-dis"]
+type = "exe"
+variable_name = "spirv_dis"
+[[products]]
+binnames = ["spirv-link"]
+type = "exe"
+variable_name = "spirv_link"
+[[products]]
+binnames = ["spirv-opt"]
+type = "exe"
+variable_name = "spirv_opt"
+[[products]]
+binnames = ["spirv-reduce"]
+type = "exe"
+variable_name = "spirv_reduce"
+[[products]]
+binnames = ["spirv-val"]
+type = "exe"
+variable_name = "spirv_val"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libSPIRV-Tools-shared"]
+type = "lib"
+variable_name = "libSPIRV_Tools"
+
+[[sources]]
+hash = "fd8e130510a6b002b28eee5885a9505040a9bdc9"
+type = "git"
+unpack_target = ""
+url = "https://github.com/KhronosGroup/SPIRV-Tools.git"
+[[sources]]
+hash = "2ad0492fb00919d99500f1da74abf5ad3c870e4e"
+type = "git"
+unpack_target = ""
+url = "https://github.com/KhronosGroup/SPIRV-Headers.git"
+[[sources]]
+hash = "6fa2a03cebb4fb18fbad086d53d1054928bef54e"
+type = "git"
+unpack_target = ""
+url = "https://github.com/google/effcee.git"
+[[sources]]
+hash = "209eda1b607909cf3c9ad084264039546155aeaa"
+type = "git"
+unpack_target = ""
+url = "https://github.com/google/re2.git"

@@ -1,0 +1,33 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "wolfSSL"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/wolfssl*\natomic_patch -p1 ../patches/mingw32-link-with-ws2_32.patch\n\nif [[ \"${target}\" == x86_64-apple-darwin* ]]; then\n    pushd ${WORKSPACE}/srcdir/MacOSX10.*.sdk\n    rm -rf /opt/${target}/${target}/sys-root/System\n    cp -ra usr/* \"/opt/${target}/${target}/sys-root/usr/.\"\n    cp -ra System \"/opt/${target}/${target}/sys-root/.\"\n    export MACOSX_DEPLOYMENT_TARGET=10.14\n    popd\nfi\n\nmkdir build && cd build\n\ncmake .. \\\n-DCMAKE_INSTALL_PREFIX=${prefix} \\\n-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n-DCMAKE_BUILD_TYPE=Release \\\n-DWOLFSSL_EXAMPLES=no \\\n-DWOLFSSL_CRYPT_TESTS=no \\\n-DBUILD_SHARED_LIBS=ON\n\nmake -j${nproc}\nmake install\n\n"""
+version = "v5.7.2"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libwolfssl"]
+type = "lib"
+variable_name = "libwolfssl"
+
+[[sources]]
+hash = "00e42151ca061463ba6a95adb2290f678cbca472"
+type = "git"
+unpack_target = ""
+url = "https://github.com/wolfSSL/wolfssl.git"
+[[sources]]
+hash = "0f03869f72df8705b832910517b47dd5b79eb4e160512602f593ed243b28715f"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.14.sdk.tar.xz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

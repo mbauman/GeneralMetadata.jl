@@ -1,0 +1,53 @@
+augment_platform_block = ""
+init_block = """if Sys.isunix()\n    path = joinpath(artifact_dir, \"share\", \"terminfo\")\n    old = get(ENV, \"TERMINFO_DIRS\", nothing)\n    if old === nothing\n        ENV[\"TERMINFO_DIRS\"] = path\n    else\n        ENV[\"TERMINFO_DIRS\"] = old * \":\" * path\n    end\nend\n"""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Ncurses"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/ncurses-*\n\nargs=(\n    --disable-rpath\n    --disable-static\n    --enable-assertions\n    --enable-colorfgbg\n    --enable-database\n    --enable-ext-colors\n    --enable-ext-mouse\n    --enable-pc-files\n    --enable-warnings\n    --enable-widec\n    --with-normal\n    --with-shared\n    --without-ada\n    --without-cxx-binding\n    --without-debug\n    --without-manpages\n    --without-tests\n)\n\nif [[ ${target} == *-darwin* ]]; then\n    args+=(\n        --disable-stripping\n    )\nelif [[ \"${target}\" == *-mingw* ]]; then\n    args+=(\n        --enable-sp-funcs\n        --enable-term-driver\n    )\nfi\n\n# Ncurses check whether we're building on a \"multi-user system\". (We're\n# not, since we're building in a container.) If not, it disables access\n# to environment variables when running as root (i.e. usually when\n# running in a container). This breaks our `TERMINFO_DIRS` mechanism\n# below.\nexport cf_cv_multiuser=yes\n\n./configure --build=${MACHTYPE} --host=${target} --prefix=${prefix} \"${args[@]}\"\nmake -j${nproc}\nmake install\n\n# Remove duplicates that don't work on case-insensitive filesystems\nrm -f  ${prefix}/share/terminfo/2/2621a\nrm -rf ${prefix}/share/terminfo/a\nrm -rf ${prefix}/share/terminfo/e\nrm -f  ${prefix}/share/terminfo/h/hp2621a\nrm -f  ${prefix}/share/terminfo/h/hp70092a\nrm -rf ${prefix}/share/terminfo/l\nrm -rf ${prefix}/share/terminfo/m\nrm -rf ${prefix}/share/terminfo/n\nrm -rf ${prefix}/share/terminfo/p\nrm -rf ${prefix}/share/terminfo/q\nrm -rf ${prefix}/share/terminfo/X\n\n# Install pc files and fool packages looking for non-wide-character ncurses\nfor lib in ncurses form panel menu; do\n    if [[ \"${target}\" == *-mingw* ]]; then\n        # O Windows, Windows, wherefore art thou Windows?\n        abiver=6\n    fi\n    install -Dm644 \"misc/${lib}w.pc\" \"${prefix}/lib/pkgconfig/${lib}w.pc\"\n    ln -s \"${lib}w.pc\" \"${prefix}/lib/pkgconfig/${lib}.pc\"\n    ln -s \"lib${lib}w${abiver}.${dlext}\" \"${libdir}/lib${lib}${abiver}.${dlext}\"\ndone\nln -s ncursesw ${includedir}/ncurses\n"""
+version = "v6.6.0"
+
+[[dependencies]]
+compat = ""
+name = "Ncurses_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 6
+version-minor = 5
+version-patch = 1
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libform", "libform6"]
+type = "lib"
+variable_name = "libform"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmenu", "libmenu6"]
+type = "lib"
+variable_name = "libmenu"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libncurses", "libncurses6"]
+type = "lib"
+variable_name = "libncurses"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libpanel", "libpanel6"]
+type = "lib"
+variable_name = "libpanel"
+
+[[sources]]
+hash = "355b4cbbed880b0381a04c46617b7656e362585d52e9cf84a67e2009b749ff11"
+type = "archive"
+unpack_target = ""
+url = "https://ftpmirror.gnu.org/pub/gnu/ncurses/ncurses-6.6.tar.gz"

@@ -1,0 +1,82 @@
+augment_platform_block = """    using Base.BinaryPlatforms\n    # Can't use Preferences since we might be running this very early with a non-existing Manifest\nMPIPreferences_UUID = Base.UUID(\"3da0fdf6-3ccc-4f1b-acd9-58baa6c99267\")\nconst preferences = Base.get_preferences(MPIPreferences_UUID)\n\n# Keep logic in sync with MPIPreferences.jl\nfunction augment_mpi!(platform)\n    # Doesn't need to be `const` since we depend on MPIPreferences so we\n    # invalidate the cache when it changes.\n    # Note: MPIPreferences uses `Sys.iswindows()` without the `platform` argument.\n    binary = get(preferences, \"binary\", Sys.iswindows(platform) ? \"MicrosoftMPI_jll\" : \"MPICH_jll\")\n\n    abi = if binary == \"system\"\n        let abi = get(preferences, \"abi\", nothing)\n            if abi === nothing\n                error(\"MPIPreferences: Inconsistent state detected, binary set to system, but no ABI set.\")\n            else\n                abi\n            end\n        end\n    elseif binary == \"MicrosoftMPI_jll\"\n        \"MicrosoftMPI\"\n    elseif binary == \"MPICH_jll\"\n        \"MPICH\"\n    elseif binary == \"OpenMPI_jll\"\n        \"OpenMPI\"\n    elseif binary == \"MPItrampoline_jll\"\n        \"MPItrampoline\"\n    else\n        error(\"Unknown binary: $binary\")\n    end\n\n    if !haskey(platform, \"mpi\")\n        platform[\"mpi\"] = abi\n    end\n    return platform\nend\n\n    augment_platform!(platform::Platform) = augment_mpi!(platform)\n"""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = true
+name = "LAMMPS"
+platforms = ["i686-linux-gnu-cxx03-mpi+mpich", "i686-linux-gnu-cxx11-mpi+mpich", "x86_64-linux-gnu-cxx03-mpi+mpich", "x86_64-linux-gnu-cxx11-mpi+mpich", "aarch64-linux-gnu-cxx03-mpi+mpich", "aarch64-linux-gnu-cxx11-mpi+mpich", "armv6l-linux-gnueabihf-cxx03-mpi+mpich", "armv6l-linux-gnueabihf-cxx11-mpi+mpich", "armv7l-linux-gnueabihf-cxx03-mpi+mpich", "armv7l-linux-gnueabihf-cxx11-mpi+mpich", "powerpc64le-linux-gnu-cxx03-mpi+mpich", "powerpc64le-linux-gnu-cxx11-mpi+mpich", "x86_64-apple-darwin-mpi+mpich", "aarch64-apple-darwin-mpi+mpich", "i686-linux-gnu-cxx03-mpi+openmpi", "i686-linux-gnu-cxx11-mpi+openmpi", "x86_64-linux-gnu-cxx03-mpi+openmpi", "x86_64-linux-gnu-cxx11-mpi+openmpi", "aarch64-linux-gnu-cxx03-mpi+openmpi", "aarch64-linux-gnu-cxx11-mpi+openmpi", "armv7l-linux-gnueabihf-cxx03-mpi+openmpi", "armv7l-linux-gnueabihf-cxx11-mpi+openmpi", "powerpc64le-linux-gnu-cxx03-mpi+openmpi", "powerpc64le-linux-gnu-cxx11-mpi+openmpi", "x86_64-apple-darwin-mpi+openmpi", "aarch64-apple-darwin-mpi+openmpi", "i686-w64-mingw32-cxx03-mpi+microsoftmpi", "i686-w64-mingw32-cxx11-mpi+microsoftmpi", "x86_64-w64-mingw32-cxx03-mpi+microsoftmpi", "x86_64-w64-mingw32-cxx11-mpi+microsoftmpi", "i686-linux-gnu-cxx03-mpi+mpitrampoline", "i686-linux-gnu-cxx11-mpi+mpitrampoline", "x86_64-linux-gnu-cxx03-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-mpi+mpitrampoline", "aarch64-linux-gnu-cxx03-mpi+mpitrampoline", "aarch64-linux-gnu-cxx11-mpi+mpitrampoline", "armv6l-linux-gnueabihf-cxx03-mpi+mpitrampoline", "armv6l-linux-gnueabihf-cxx11-mpi+mpitrampoline", "armv7l-linux-gnueabihf-cxx03-mpi+mpitrampoline", "armv7l-linux-gnueabihf-cxx11-mpi+mpitrampoline", "powerpc64le-linux-gnu-cxx03-mpi+mpitrampoline", "powerpc64le-linux-gnu-cxx11-mpi+mpitrampoline", "x86_64-apple-darwin-mpi+mpitrampoline", "aarch64-apple-darwin-mpi+mpitrampoline"]
+script = """# For this specific target during the audit liblammps.so fails to find libgfortran.so\n# This is the same hack as used by MPITrampoline:\n# <https://github.com/JuliaPackaging/Yggdrasil/pull/5028#issuecomment-1166388492>\nif [[ \"${target}\" == x86_64-linux-gnu-cxx11-mpi+mpitrampoline ]]; then\n    INSTALL_RPATH=(-DCMAKE_INSTALL_RPATH='$ORIGIN')\nelse\n    INSTALL_RPATH=()\nfi\n\n# The MPI enabled LAMMPS_jll doesn't load properly on windows\nif [[ \"${target}\" == *mingw* ]]; then\n    MPI_OPTION=\"OFF\"\nelse\n    MPI_OPTION=\"ON\"\nfi\n\ncd $WORKSPACE/srcdir/lammps/\nmkdir build && cd build/\ncmake -C ../cmake/presets/most.cmake -C ../cmake/presets/nolib.cmake ../cmake -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN%.*}_gcc.cmake \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    \"${INSTALL_RPATH[@]}\" \\\n    -DBUILD_SHARED_LIBS=ON \\\n    -DLAMMPS_EXCEPTIONS=ON \\\n    -DBUILD_MPI=${MPI_OPTION} \\\n    -DPKG_EXTRA-FIX=ON \\\n    -DPKG_ML-SNAP=ON \\\n    -DPKG_ML-PACE=ON \\\n    -DPKG_ML-POD=ON \\\n    -DPKG_DPD-BASIC=ON \\\n    -DPKG_DPD-MESO=ON \\\n    -DPKG_DPD-REACT=ON \\\n    -DPKG_DPD-SMOOTH=ON \\\n    -DPKG_USER-MESODPD=ON \\\n    -DPKG_USER-DPD=ON \\\n    -DPKG_USER-SDPD=ON \\\n    -DPKG_MANYBODY=ON \\\n    -DPKG_MOLECULE=ON \\\n    -DPKG_REPLICA=ON \\\n    -DPKG_SHOCK=ON \\\n    -DLEPTON_ENABLE_JIT=no\n\nmake -j${nproc}\nmake install\n\nif [[ \"${target}\" == *mingw* ]]; then\n    cp *.dll ${prefix}/bin/\nfi\n"""
+version = "v2.6.0"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MPICH_jll"
+platforms = ["i686-linux-gnu-cxx03-mpi+mpich", "i686-linux-gnu-cxx11-mpi+mpich", "x86_64-linux-gnu-cxx03-mpi+mpich", "x86_64-linux-gnu-cxx11-mpi+mpich", "aarch64-linux-gnu-cxx03-mpi+mpich", "aarch64-linux-gnu-cxx11-mpi+mpich", "armv6l-linux-gnueabihf-cxx03-mpi+mpich", "armv6l-linux-gnueabihf-cxx11-mpi+mpich", "armv7l-linux-gnueabihf-cxx03-mpi+mpich", "armv7l-linux-gnueabihf-cxx11-mpi+mpich", "powerpc64le-linux-gnu-cxx03-mpi+mpich", "powerpc64le-linux-gnu-cxx11-mpi+mpich", "i686-linux-musl-cxx03-mpi+mpich", "i686-linux-musl-cxx11-mpi+mpich", "x86_64-linux-musl-cxx03-mpi+mpich", "x86_64-linux-musl-cxx11-mpi+mpich", "aarch64-linux-musl-cxx03-mpi+mpich", "aarch64-linux-musl-cxx11-mpi+mpich", "armv6l-linux-musleabihf-cxx03-mpi+mpich", "armv6l-linux-musleabihf-cxx11-mpi+mpich", "armv7l-linux-musleabihf-cxx03-mpi+mpich", "armv7l-linux-musleabihf-cxx11-mpi+mpich", "x86_64-apple-darwin-mpi+mpich", "aarch64-apple-darwin-mpi+mpich", "x86_64-unknown-freebsd-mpi+mpich"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "4.1.6, 5"
+name = "OpenMPI_jll"
+platforms = ["i686-linux-gnu-cxx03-mpi+openmpi", "i686-linux-gnu-cxx11-mpi+openmpi", "x86_64-linux-gnu-cxx03-mpi+openmpi", "x86_64-linux-gnu-cxx11-mpi+openmpi", "aarch64-linux-gnu-cxx03-mpi+openmpi", "aarch64-linux-gnu-cxx11-mpi+openmpi", "armv7l-linux-gnueabihf-cxx03-mpi+openmpi", "armv7l-linux-gnueabihf-cxx11-mpi+openmpi", "powerpc64le-linux-gnu-cxx03-mpi+openmpi", "powerpc64le-linux-gnu-cxx11-mpi+openmpi", "i686-linux-musl-cxx03-mpi+openmpi", "i686-linux-musl-cxx11-mpi+openmpi", "x86_64-linux-musl-cxx03-mpi+openmpi", "x86_64-linux-musl-cxx11-mpi+openmpi", "aarch64-linux-musl-cxx03-mpi+openmpi", "aarch64-linux-musl-cxx11-mpi+openmpi", "armv6l-linux-musleabihf-cxx03-mpi+openmpi", "armv6l-linux-musleabihf-cxx11-mpi+openmpi", "armv7l-linux-musleabihf-cxx03-mpi+openmpi", "armv7l-linux-musleabihf-cxx11-mpi+openmpi", "x86_64-apple-darwin-mpi+openmpi", "aarch64-apple-darwin-mpi+openmpi", "x86_64-unknown-freebsd-mpi+openmpi"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MicrosoftMPI_jll"
+platforms = ["i686-w64-mingw32-cxx03-mpi+microsoftmpi", "i686-w64-mingw32-cxx11-mpi+microsoftmpi", "x86_64-w64-mingw32-cxx03-mpi+microsoftmpi", "x86_64-w64-mingw32-cxx11-mpi+microsoftmpi"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "5.3.1"
+name = "MPItrampoline_jll"
+platforms = ["i686-linux-gnu-cxx03-mpi+mpitrampoline", "i686-linux-gnu-cxx11-mpi+mpitrampoline", "x86_64-linux-gnu-cxx03-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-mpi+mpitrampoline", "aarch64-linux-gnu-cxx03-mpi+mpitrampoline", "aarch64-linux-gnu-cxx11-mpi+mpitrampoline", "armv6l-linux-gnueabihf-cxx03-mpi+mpitrampoline", "armv6l-linux-gnueabihf-cxx11-mpi+mpitrampoline", "armv7l-linux-gnueabihf-cxx03-mpi+mpitrampoline", "armv7l-linux-gnueabihf-cxx11-mpi+mpitrampoline", "powerpc64le-linux-gnu-cxx03-mpi+mpitrampoline", "powerpc64le-linux-gnu-cxx11-mpi+mpitrampoline", "x86_64-apple-darwin-mpi+mpitrampoline", "aarch64-apple-darwin-mpi+mpitrampoline"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "0.1"
+name = "MPIPreferences"
+platforms = ["any"]
+top_level = true
+type = "dependency"
+uuid = "3da0fdf6-3ccc-4f1b-acd9-58baa6c99267"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["liblammps"]
+type = "lib"
+variable_name = "liblammps"
+[[products]]
+binnames = ["lmp"]
+type = "exe"
+variable_name = "lmp"
+
+[[sources]]
+hash = "570c9d190fee556c62e5bd0a9c6797c4dffcc271"
+type = "git"
+unpack_target = ""
+url = "https://github.com/lammps/lammps.git"

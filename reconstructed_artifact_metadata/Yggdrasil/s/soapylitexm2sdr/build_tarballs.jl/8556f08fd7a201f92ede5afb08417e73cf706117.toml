@@ -1,0 +1,37 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "SoapyLiteXM2SDR"
+platforms = ["i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx11"]
+script = """cd ${WORKSPACE}/srcdir/litex_m2sdr\n\n# Apply patches\natomic_patch -p1 ../patches/fix_cmake_liteeth.patch\natomic_patch -p1 ../patches/fix_util_h_macros.patch\n\n# Build user libraries first\necho \"Building user libraries...\"\ncd litex_m2sdr/software/user\nmake INTERFACE=USE_LITEPCIE liblitepcie/liblitepcie.a libm2sdr/libm2sdr.a ad9361/libad9361_m2sdr.a\n\n# Verify libraries were built\nif [ ! -f liblitepcie/liblitepcie.a ] || [ ! -f libm2sdr/libm2sdr.a ]; then\n    echo \"Error: Failed to build user libraries\"\n    exit 1\nfi\n\necho \"User libraries built successfully\"\n\n# Build SoapySDR module\necho \"Building SoapySDR module...\"\ncd ../soapysdr\nmkdir build\ncd build\n\ncmake .. \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DUSE_LITEETH=OFF\n\nmake -j${nproc}\n\n# Install the module\ninstall -Dvm 755 \"libSoapyLiteXM2SDR.${dlext}\" \"${libdir}/SoapySDR/modules0.8/libSoapyLiteXM2SDR.${dlext}\"\n\n# Install license\ninstall_license ${WORKSPACE}/srcdir/litex_m2sdr/LICENSE\n"""
+version = "v0.1.0"
+
+[[dependencies]]
+compat = "0.8.0"
+name = "soapysdr_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = ["lib/SoapySDR/modules0.8/"]
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libSoapyLiteXM2SDR"]
+type = "lib"
+variable_name = "libSoapyLiteXM2SDR"
+
+[[sources]]
+hash = "1f15d3f0ca082b7df232ca698f9413ef9ca0d77f"
+type = "git"
+unpack_target = ""
+url = "https://github.com/enjoy-digital/litex_m2sdr.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

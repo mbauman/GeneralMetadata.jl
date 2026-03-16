@@ -1,0 +1,65 @@
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "Birch_Standard"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "x86_64-unknown-freebsd"]
+script = """# add libraries for building birch on host\napk add boost-dev yaml-dev\n\n# build and install driver on host system\ncd ${WORKSPACE}/srcdir/Birch/driver/\nmkdir -p ${WORKSPACE}/srcdir/build_host\nautoreconf -vi\nCXX=${HOSTCXX} CPPFLAGS=-I/usr/include LDFLAGS=-L/usr/lib ./configure --prefix=${WORKSPACE}/srcdir/build_host --build=${MACHTYPE} --host=${MACHTYPE}\nmake clean\nmake -j${nproc}\nmake install\n\n# build and install the standard library\ncd ${WORKSPACE}/srcdir/Birch/libraries/Standard/\nexport BIRCH_PREFIX=${WORKSPACE}/srcdir/build_host\nexport PATH=${WORKSPACE}/srcdir/build_host/bin:$PATH\n# musl c library does not define stdin, stdout, and stderr macros as objects\nif [[ \"${target}\" == *-musl* ]]; then\n  atomic_patch -p3 ${WORKSPACE}/srcdir/stdio.patch\nfi\nbirch bootstrap\nCPPFLAGS=\"-I${prefix}/include\" ./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} --enable-debug --enable-release\nmake -j${nproc}\nmake install\n\n# install license\ninstall_license LICENSE\n"""
+version = "v1.104.0"
+
+[[dependencies]]
+name = "boost_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "CompilerSupportLibraries_jll"
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Eigen_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "LibBirch_jll"
+type = "dependency"
+version-major = 1
+version-minor = 104
+version-patch = 0
+[[dependencies]]
+name = "LibYAML_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libbirch-standard"]
+type = "lib"
+variable_name = "libbirch_standard"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libbirch-standard-debug"]
+type = "lib"
+variable_name = "libbirch_standard_debug"
+
+[[sources]]
+hash = "25154eac433bdeaf55dffda2432c666659286350"
+type = "git"
+unpack_target = ""
+url = "https://github.com/lawmurray/Birch.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

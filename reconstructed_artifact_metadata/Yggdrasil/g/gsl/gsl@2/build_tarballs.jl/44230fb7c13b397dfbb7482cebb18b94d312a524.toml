@@ -1,0 +1,43 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "GSL"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/gsl-*/\nif [[ \"${target}\" == aarch64-apple-darwin* ]]; then\n    # aclocal.m4 has some lines where it expects `MACOSX_DEPLOYMENT_TARGET` to be up to\n    # version 10.  Let's pretend to be 10.16, as many tools do to make old build systems\n    # happy.\n    export MACOSX_DEPLOYMENT_TARGET=\"10.16\"\nfi\n\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/0001-remove-unknown-ld-option.patch\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} --disable-static\nmake -j${nproc}\nmake install\n"""
+version = "v2.8.0"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgslcblas"]
+type = "lib"
+variable_name = "libgslcblas"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgsl"]
+type = "lib"
+variable_name = "libgsl"
+[[products]]
+binnames = ["gsl-histogram"]
+type = "exe"
+variable_name = "gsl_histogram"
+[[products]]
+binnames = ["gsl-randist"]
+type = "exe"
+variable_name = "gsl_randist"
+
+[[sources]]
+hash = "6a99eeed15632c6354895b1dd542ed5a855c0f15d9ad1326c6fe2b2c9e423190"
+type = "archive"
+unpack_target = ""
+url = "https://ftp.gnu.org/gnu/gsl/gsl-2.8.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

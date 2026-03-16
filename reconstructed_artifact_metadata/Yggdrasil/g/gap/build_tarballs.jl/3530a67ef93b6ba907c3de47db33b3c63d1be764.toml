@@ -1,0 +1,55 @@
+init_block = """    sym = dlsym(libgap_handle, :GAP_InitJuliaMemoryInterface)\n    ccall(sym, Nothing, (Any, Ptr{Nothing}), @__MODULE__), C_NULL)\n"""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "GAP"
+platforms = ["x86_64-linux-gnu", "aarch64-linux-gnu", "powerpc64le-linux-gnu", "x86_64-linux-musl", "aarch64-linux-musl", "x86_64-apple-darwin", "x86_64-unknown-freebsd"]
+script = """cd ${WORKSPACE}/srcdir/gap*\n\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/configure.patch\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/Makefile.patch\n\n# run autogen.sh if compiling from it source and/or if configure was patched\n./autogen.sh\n\n# compile GAP\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \\\n    --with-gmp=${prefix} \\\n    --with-readline=${prefix} \\\n    --with-zlib=${prefix} \\\n    --with-gc=julia \\\n    --with-julia\nmake -j${nproc}\n\n# install GAP binaries\nmake install-bin install-headers install-libgap\n\n# also install config.h\ncp gen/config.h ${prefix}/include/gap\n\n# get rid of *.la files, they just cause trouble\nrm ${prefix}/lib/*.la\n\n# get rid of the wrapper shell script, which is useless for us\nmv ${prefix}/bin/gap.real ${prefix}/bin/gap\n\n# install gac and sysinfo.gap\nmkdir -p ${prefix}/share/gap/\ncp gac sysinfo.gap ${prefix}/share/gap/\n\n# We deliberately do NOT install the GAP library, documentation, etc. because\n# they are identical across all platforms; instead, we use another platform\n# independent artifact to ship them to the user.\n"""
+version = "v400.1100.1"
+
+[[dependencies]]
+name = "GMP_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Readline_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Zlib_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "libjulia_jll"
+type = "builddependency"
+version-major = 1
+version-minor = 5
+version-patch = 3
+
+[[products]]
+binnames = ["gap"]
+type = "exe"
+variable_name = "gap"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgap"]
+type = "lib"
+variable_name = "libgap"
+
+[[sources]]
+hash = "42b0b58709ccb7272de7ad467ecd6f05f570c817"
+type = "git"
+unpack_target = ""
+url = "https://github.com/gap-system/gap.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

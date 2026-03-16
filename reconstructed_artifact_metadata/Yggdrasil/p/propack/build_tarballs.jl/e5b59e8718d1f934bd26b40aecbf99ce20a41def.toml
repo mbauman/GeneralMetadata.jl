@@ -1,0 +1,33 @@
+dependencies = ["OpenBLAS_jll"]
+name = "PROPACK"
+platforms = ["i686-linux-gnu-libgfortran3", "i686-linux-gnu-libgfortran4", "i686-linux-gnu-libgfortran5", "x86_64-linux-gnu-libgfortran3", "x86_64-linux-gnu-libgfortran4", "x86_64-linux-gnu-libgfortran5", "aarch64-linux-gnu-libgfortran3", "aarch64-linux-gnu-libgfortran4", "aarch64-linux-gnu-libgfortran5", "arm-linux-gnueabihf-libgfortran3", "arm-linux-gnueabihf-libgfortran4", "arm-linux-gnueabihf-libgfortran5", "powerpc64le-linux-gnu-libgfortran3", "powerpc64le-linux-gnu-libgfortran4", "powerpc64le-linux-gnu-libgfortran5", "i686-linux-musl-libgfortran3", "i686-linux-musl-libgfortran4", "i686-linux-musl-libgfortran5", "x86_64-linux-musl-libgfortran3", "x86_64-linux-musl-libgfortran4", "x86_64-linux-musl-libgfortran5", "aarch64-linux-musl-libgfortran3", "aarch64-linux-musl-libgfortran4", "aarch64-linux-musl-libgfortran5", "arm-linux-musleabihf-libgfortran3", "arm-linux-musleabihf-libgfortran4", "arm-linux-musleabihf-libgfortran5", "x86_64-apple-darwin14-libgfortran3", "x86_64-apple-darwin14-libgfortran4", "x86_64-apple-darwin14-libgfortran5", "x86_64-unknown-freebsd11.1-libgfortran3", "x86_64-unknown-freebsd11.1-libgfortran4", "x86_64-unknown-freebsd11.1-libgfortran5", "i686-w64-mingw32-libgfortran3", "i686-w64-mingw32-libgfortran4", "i686-w64-mingw32-libgfortran5", "x86_64-w64-mingw32-libgfortran3", "x86_64-w64-mingw32-libgfortran4", "x86_64-w64-mingw32-libgfortran5"]
+script = """cd $WORKSPACE/srcdir/PROPACK-*/\n\nOPENBLAS=\"-lopenblas\"\nFFLAGS=(-xf77-cpp-input)\nif [[ ${nbits} == 64 ]] && [[ ${target} != aarch64* ]]; then\n  OPENBLAS=\"-lopenblas64_\"\n  FFLAGS+=(-fdefault-integer-8 -fno-align-commons)\n\n  for sym in caxpy cdotc cdotu ccopy cgemv clarnv clascl cscal csscal daxpy dbdsdc dbdsqr dcopy ddot dgemm dgemv dlamch dlapy2 dlarnv dlartg dlascl dnrm2 dznrm2 drot dscal lsame saxpy sbdsdc sbdsqr scnrm2 scopy sdot sgemm sgemv slamch slapy2 slarnv slartg slascl snrm2 srot sscal zaxpy zcopy zdotc zdotu zdscal zgemv zlarnv zlascl zscal\n  do\n    FFLAGS+=(\"-D${sym}=${sym}_64\")\n  done\nfi\n\nmake SLIB=${dlext} FFLAG=\"${FFLAGS[*]}\" BLAS=${OPENBLAS}\ncp complex8/libcpropack.${dlext} complex16/libzpropack.${dlext} single/libspropack.${dlext} double/libdpropack.${dlext} ${libdir}/\n"""
+version = "v0.1.0"
+
+[[products]]
+dir_paths = []
+dont_dlopen = false
+libnames = ["libcpropack"]
+type = "lib"
+variable_name = "libcpropack"
+[[products]]
+dir_paths = []
+dont_dlopen = false
+libnames = ["libzpropack"]
+type = "lib"
+variable_name = "libzpropack"
+[[products]]
+dir_paths = []
+dont_dlopen = false
+libnames = ["libspropack"]
+type = "lib"
+variable_name = "libspropack"
+[[products]]
+dir_paths = []
+dont_dlopen = false
+libnames = ["libdpropack"]
+type = "lib"
+variable_name = "libdpropack"
+
+[[sources]]
+"https://github.com/optimizers/PROPACK/archive/v1.0.tar.gz" = "0d029a4c2cdcdb9b18a4fae77593a562f79406c3f79839ee948782b37974a10e"

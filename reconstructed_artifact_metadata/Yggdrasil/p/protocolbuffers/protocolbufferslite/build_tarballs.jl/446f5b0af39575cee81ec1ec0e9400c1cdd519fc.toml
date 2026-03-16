@@ -1,0 +1,46 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "ProtocolBuffersLite"
+platforms = ["i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx11", "riscv64-linux-gnu-cxx11", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx11"]
+script = """export BB_PROTOBUF_PRODUCT=ProtocolBuffersLite\ncd $WORKSPACE/srcdir/protobuf\n\n# Avoid problems with `-march`, `-ffast-math` etc.\nsed -i -e 's!set(CMAKE_C_COMPILER.*!set(CMAKE_C_COMPILER '${WORKSPACE}/srcdir/files/ccsafe')!' ${CMAKE_TARGET_TOOLCHAIN}\nsed -i -e 's!set(CMAKE_CXX_COMPILER.*!set(CMAKE_CXX_COMPILER '${WORKSPACE}/srcdir/files/c++safe')!' ${CMAKE_TARGET_TOOLCHAIN}\n\natomic_patch -p1 ../patches/protobuf-cmake-install-components.patch\n\ncmake_extra_args=()\n\nif [[ \"$BB_PROTOBUF_PRODUCT\" == ProtocolBuffersSDK_static ]]; then\n    cmake_extra_args+=(\n        -DBUILD_SHARED_LIBS=OFF\n        -DCMAKE_POSITION_INDEPENDENT_CODE=ON\n    )\nelse\n    cmake_extra_args+=(\n        -DBUILD_SHARED_LIBS=ON\n    )\nfi\n\nif [[ \"$BB_PROTOBUF_PRODUCT\" == ProtocolBuffersCompiler ]] || [[ \"$BB_PROTOBUF_PRODUCT\" == ProtocolBuffersSDK* ]]; then\n    cmake_extra_args+=(\n        -Dprotobuf_BUILD_PROTOC_BINARIES=ON\n    )\nelse\n    cmake_extra_args+=(\n        -Dprotobuf_BUILD_PROTOC_BINARIES=OFF\n    )\nfi\n\nif [[ \"$BB_PROTOBUF_PRODUCT\" == ProtocolBuffers ]]; then\n    cmake_extra_args+=(\n        -Dprotobuf_INSTALL_PROTOBUF=ON\n    )\nelse\n    cmake_extra_args+=(\n        -Dprotobuf_INSTALL_PROTOBUF=OFF\n    )\nfi\n\nif [[ \"$BB_PROTOBUF_PRODUCT\" == ProtocolBuffersLite ]]; then\n    cmake_extra_args+=(\n        -Dprotobuf_INSTALL_PROTOBUF_LITE=ON\n    )\nelse\n    cmake_extra_args+=(\n        -Dprotobuf_INSTALL_PROTOBUF_LITE=OFF\n    )\nfi\n\nif [[ \"$BB_PROTOBUF_PRODUCT\" == ProtocolBuffersSDK* ]]; then\n    cmake_extra_args+=(\n        -Dprotobuf_INSTALL_SDK=ON\n    )\nelse\n    cmake_extra_args+=(\n        -Dprotobuf_INSTALL_SDK=OFF\n    )\nfi\n\ncmake \\\n    -B work \\\n    -G Ninja \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DCMAKE_CXX_STANDARD=14 \\\n    -DCMAKE_INSTALL_PREFIX=$prefix \\\n    -DCMAKE_TOOLCHAIN_FILE=$CMAKE_TARGET_TOOLCHAIN \\\n    -Dprotobuf_BUILD_TESTS=OFF \\\n    ${cmake_extra_args[@]} \\\n    cmake\ncmake --build work --parallel $nproc\ncmake --install work\ninstall_license LICENSE\n"""
+version = "v3.16.0"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libprotobuf-lite"]
+type = "lib"
+variable_name = "libprotobuf_lite"
+
+[[sources]]
+hash = "2dc747c574b68a808ea4699d26942c8132fe2b09"
+type = "git"
+unpack_target = ""
+url = "https://github.com/protocolbuffers/protobuf.git"
+[[sources]]
+follow_symlinks = false
+path = "/tmp/jl_HZNYvz/P/ProtocolBuffers/bundled"
+target = ""
+type = "directory"

@@ -1,0 +1,189 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Poppler"
+platforms = ["i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx11", "riscv64-linux-gnu-cxx11", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx11"]
+script = """macos_sdk_version=14.5\nmacosx_deployment_target=11\nif [[ \"${target}\" == *-apple-darwin* ]]; then\n    echo \"Extracting MacOSX${macos_sdk_version}.sdk.tar.xz (this may take a while)\"\n    rm -rf /opt/${target}/${target}/sys-root/System\n    rm -rf /opt/${target}/${target}/sys-root/usr/include/libxml2/libxml\n    # extract the tarball into the sys-root so all compilers pick it up\n    # automatically, and use --warning=no-unknown-keyword to hide harmless\n    # warnings about unsupported pax header keywords like \"SCHILY.fflags\"\n    tar --extract \\\n        --file=${WORKSPACE}/srcdir/MacOSX${macos_sdk_version}.sdk.tar.xz \\\n        --directory=\"/opt/${target}/${target}/sys-root/.\" \\\n        --strip-components=1 \\\n        --warning=no-unknown-keyword \\\n        MacOSX${macos_sdk_version}.sdk/System \\\n        MacOSX${macos_sdk_version}.sdk/usr\n    export MACOSX_DEPLOYMENT_TARGET=${macosx_deployment_target}\nfi\ncd ${WORKSPACE}/srcdir/poppler-*\n\napk del cmake\n\nif [[ \"${target}\" == \"${MACHTYPE}\" ]]; then\n    # When building for the host platform, the system libexpat is picked up\n    rm /usr/lib/libexpat.so*\nfi\n\nexport PATH=${host_bindir}:${PATH}\n\n# cmake doesn't find FreeType2 without help\nexport FREETYPE_DIR=${prefix}\n\ncmake -B build -G Ninja \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DBUILD_CPP_TESTS=OFF \\\n    -DBUILD_GTK_TESTS=OFF \\\n    -DBUILD_MANUAL_TESTS=OFF \\\n    -DBUILD_QT5_TESTS=OFF \\\n    -DBUILD_QT6_TESTS=OFF \\\n    -DENABLE_BOOST=OFF \\\n    -DENABLE_CMS=lcms2 \\\n    -DENABLE_GLIB=ON \\\n    -DENABLE_GPGME=OFF \\\n    -DENABLE_NSS3=OFF \\\n    -DENABLE_QT5=OFF \\\n    -DENABLE_QT6=OFF \\\n    -DENABLE_UNSTABLE_API_ABI_HEADERS=ON \\\n    -DWITH_GObjectIntrospection=OFF\ncmake --build build --parallel ${nproc}\ncmake --install build\n"""
+version = "v25.10.0"
+
+[[dependencies]]
+compat = ""
+name = "CMake_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 3
+version-minor = 22
+version-patch = 2
+[[dependencies]]
+compat = ""
+name = "Xorg_xorgproto_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.18.5"
+name = "Cairo_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "2.16"
+name = "Fontconfig_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "2.13.4"
+name = "FreeType2_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "2.84.0"
+name = "Glib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "3.1.1"
+name = "JpegTurbo_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "7.81,8"
+name = "LibCURL_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "4.7.1"
+name = "Libtiff_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "2.5.4"
+name = "OpenJpeg_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.6.47"
+name = "libpng_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libpoppler-cpp"]
+type = "lib"
+variable_name = "libpoppler_cpp"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libpoppler-glib"]
+type = "lib"
+variable_name = "libpoppler_glib"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libpoppler"]
+type = "lib"
+variable_name = "libpoppler"
+[[products]]
+binnames = ["pdfattach"]
+type = "exe"
+variable_name = "pdfattach"
+[[products]]
+binnames = ["pdfdetach"]
+type = "exe"
+variable_name = "pdfdetach"
+[[products]]
+binnames = ["pdffonts"]
+type = "exe"
+variable_name = "pdffonts"
+[[products]]
+binnames = ["pdfimages"]
+type = "exe"
+variable_name = "pdfimages"
+[[products]]
+binnames = ["pdfinfo"]
+type = "exe"
+variable_name = "pdfinfo"
+[[products]]
+binnames = ["pdfseparate"]
+type = "exe"
+variable_name = "pdfseparate"
+[[products]]
+binnames = ["pdftocairo"]
+type = "exe"
+variable_name = "pdftocairo"
+[[products]]
+binnames = ["pdftohtml"]
+type = "exe"
+variable_name = "pdftohtml"
+[[products]]
+binnames = ["pdftoppm"]
+type = "exe"
+variable_name = "pdftoppm"
+[[products]]
+binnames = ["pdftops"]
+type = "exe"
+variable_name = "pdftops"
+[[products]]
+binnames = ["pdftotext"]
+type = "exe"
+variable_name = "pdftotext"
+[[products]]
+binnames = ["pdfunite"]
+type = "exe"
+variable_name = "pdfunite"
+
+[[sources]]
+hash = "6b5e9bb64dabb15787a14db1675291c7afaf9387438cc93a4fb7f6aec4ee6fe0"
+type = "archive"
+unpack_target = ""
+url = "https://poppler.freedesktop.org/poppler-25.10.0.tar.xz"
+[[sources]]
+filename = "MacOSX14.5.sdk.tar.xz"
+hash = "d2b7784a8b63cfcc686059aef6f1065dc8d2aaeddc39245738f4c0cd9ca6165a"
+type = "file"
+url = "https://github.com/roblabla/MacOSX-SDKs/releases/download/macosx14.5/MacOSX14.5.sdk.tar.xz"

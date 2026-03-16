@@ -1,0 +1,65 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "libssh"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """# Necessary for cmake to find openssl on Windows\nif [[ ${target} == x86_64-*-mingw* ]]; then\n    export OPENSSL_ROOT_DIR=${prefix}/lib64\nfi\n\nDOC_DIR=${prefix}/usr/share/doc/libssh\n\n# Build and install library\ncd $WORKSPACE/srcdir/libssh-*\nmkdir build\ncd build/\n\n# Kerberos_krb5_jll is only built for Linux and FreeBSD, so GSSAPI support is\n# only available on those platforms.\nif [[ ${target} == *linux* || ${target} == *freebsd* ]]; then\n    export GSSAPI_ENABLED=ON\nelse\n    export GSSAPI_ENABLED=OFF\nfi\n\ncmake -DCMAKE_INSTALL_PREFIX=$prefix -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n                                     -DCMAKE_BUILD_TYPE=Release \\\n                                     -DWITH_GSSAPI=${GSSAPI_ENABLED} \\\n                                     -DWITH_EXAMPLES=OFF ..\n\nmake -j${nproc}\nmake docs install\n\n# Install Doxygen tagfile\nmkdir -p ${DOC_DIR}\ninstall -Dv ../doc/tags.xml \"${DOC_DIR}/tags.xml\"\n"""
+version = "v0.11.1"
+
+[[dependencies]]
+compat = ""
+name = "Doxygen_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.19.3"
+name = "Kerberos_krb5_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "3.0.8"
+name = "OpenSSL_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "458c3c95-2e84-50aa-8efc-19380b2a3a95"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.2.13"
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "83775a58-1f1d-513f-b197-d71354ab007a"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libssh"]
+type = "lib"
+variable_name = "libssh"
+[[products]]
+paths = ["usr/share/doc/libssh/tags.xml"]
+type = "file"
+variable_name = "doxygen_tags"
+
+[[sources]]
+hash = "14b7dcc72e91e08151c58b981a7b570ab2663f630e7d2837645d5a9c612c1b79"
+type = "archive"
+unpack_target = ""
+url = "https://www.libssh.org/files/0.11/libssh-0.11.1.tar.xz"

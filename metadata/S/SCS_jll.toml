@@ -5,44 +5,10 @@ registered = 2020-03-29T02:07:53.000Z
     [["2.1.1+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.1+0/SCS.v2.1.1.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.1+0/SCS.v2.1.1.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.1+0/SCS.v2.1.1.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.1+0/SCS.v2.1.1.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.1+0/SCS.v2.1.1.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.1+0/SCS.v2.1.1.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.1+0/SCS.v2.1.1.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.1+0/SCS.v2.1.1.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.1+0/SCS.v2.1.1.x86_64-apple-darwin14.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.1+0/SCS.v2.1.1.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.1+0/SCS.v2.1.1.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.1+0/SCS.v2.1.1.x86_64-unknown-freebsd11.1.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.1+0/SCS.v2.1.1.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/8d6dbb63b9aa848d41390d29767e685fad30cea9/S/SCS/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/s/scs/build_tarballs.jl/8d6dbb63b9aa848d41390d29767e685fad30cea9.toml"
     metadata_source = "retrospective (by timestamp)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.2.4"
-
-        ["2.1.1+0".artifact_metadata.metadata]
-        lazy_artifacts = false
-        name = "SCS"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd $WORKSPACE/srcdir/scs*\nflags=\"DLONG=1 USE_OPENMP=0\"\nblasldflags=\"-L${prefix}/lib\"\n# see https://github.com/JuliaPackaging/Yggdrasil/blob/0bc1abd56fa176e3d2cc2e48e7bf85a26c948c40/OpenBLAS/build_tarballs.jl#L23\nif [[ ${nbits} == 64 ]] && [[ ${target} != aarch64* ]]; then\n    flags=\"${flags} BLAS64=1 BLASSUFFIX=_64_\"\n    blasldflags+=\" -lopenblas64_\"\nelse\n    blasldflags+=\" -lopenblas\"\nfi\n\n# Patch to reverse this WIN64 change: https://github.com/cvxgrp/scs/commit/9858d6b562f499de75493b85286276c19ad84c6f#diff-a9dbab3214616022c64ee2656440f544\n# Looks like it is known that this change causes trouble witn mingw32 (but not for mingw64?):\n# https://github.com/cvxgrp/scs/blob/e6ab81db115bb37502de0a9917041a0bc2ded313/.appveyor.yml#L13-L16\ncd include\ncp glbopts.h glbopts.h.orig\ncat > file.patch <<'END'\n--- glbopts.h.orig\n+++ glbopts.h\n@@ -97,7 +97,7 @@\n #ifdef _WIN64\n /* #include <stdint.h> */\n /* typedef int64_t scs_int; */\n-typedef long scs_int;\n+typedef __int64 scs_int;\n #else\n typedef long scs_int;\n #endif\nEND\npatch -l glbopts.h.orig file.patch -o glbopts.h\ncd ..\n\nmake BLASLDFLAGS=\"${blasldflags}\" ${flags} out/libscsdir.${dlext}\nmake BLASLDFLAGS=\"${blasldflags}\" ${flags} out/libscsindir.${dlext}\n\nmkdir -p ${libdir}\ncp out/libscs*.${dlext} ${libdir}\n"""
-        version = "v2.1.1"
-
-            [["2.1.1+0".artifact_metadata.metadata.dependencies]]
-            name = "OpenBLAS_jll"
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["2.1.1+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libscsindir"]
-            type = "lib"
-            variable_name = "libscsindir"
-            [["2.1.1+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libscsdir"]
-            type = "lib"
-            variable_name = "libscsdir"
-
-            [["2.1.1+0".artifact_metadata.metadata.sources]]
-            hash = "d2c1ae92b8c5c6d45406afd007d1ddad74635cfd"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/cvxgrp/scs.git"
 
 ["2.1.2+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.2+0/SCS.v2.1.2.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.2+0/SCS.v2.1.2.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.2+0/SCS.v2.1.2.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.2+0/SCS.v2.1.2.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.2+0/SCS.v2.1.2.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.2+0/SCS.v2.1.2.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.2+0/SCS.v2.1.2.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.2+0/SCS.v2.1.2.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.2+0/SCS.v2.1.2.x86_64-apple-darwin14.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.2+0/SCS.v2.1.2.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.2+0/SCS.v2.1.2.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.2+0/SCS.v2.1.2.x86_64-unknown-freebsd11.1.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.2+0/SCS.v2.1.2.x86_64-w64-mingw32.tar.gz"]
@@ -51,45 +17,10 @@ registered = 2020-07-22T13:33:11.000Z
     [["2.1.2+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.2+0/SCS.v2.1.2.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.2+0/SCS.v2.1.2.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.2+0/SCS.v2.1.2.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.2+0/SCS.v2.1.2.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.2+0/SCS.v2.1.2.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.2+0/SCS.v2.1.2.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.2+0/SCS.v2.1.2.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.2+0/SCS.v2.1.2.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.2+0/SCS.v2.1.2.x86_64-apple-darwin14.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.2+0/SCS.v2.1.2.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.2+0/SCS.v2.1.2.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.2+0/SCS.v2.1.2.x86_64-unknown-freebsd11.1.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.2+0/SCS.v2.1.2.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/14cf399038752489bd364cb4f7a755d75c5e1e6d/S/SCS/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/s/scs/build_tarballs.jl/14cf399038752489bd364cb4f7a755d75c5e1e6d.toml"
     metadata_source = "retrospective (by timestamp)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.2.5"
-
-        ["2.1.2+0".artifact_metadata.metadata]
-        init_block = ""
-        lazy_artifacts = false
-        name = "SCS"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd $WORKSPACE/srcdir/scs*\nflags=\"DLONG=1 USE_OPENMP=0\"\nblasldflags=\"-L${prefix}/lib\"\n# see https://github.com/JuliaPackaging/Yggdrasil/blob/0bc1abd56fa176e3d2cc2e48e7bf85a26c948c40/OpenBLAS/build_tarballs.jl#L23\nif [[ ${nbits} == 64 ]] && [[ ${target} != aarch64* ]]; then\n    flags=\"${flags} BLAS64=1 BLASSUFFIX=_64_\"\n    blasldflags+=\" -lopenblas64_\"\nelse\n    blasldflags+=\" -lopenblas\"\nfi\n\nmake BLASLDFLAGS=\"${blasldflags}\" ${flags} out/libscsdir.${dlext}\nmake BLASLDFLAGS=\"${blasldflags}\" ${flags} out/libscsindir.${dlext}\n\nmkdir -p ${libdir}\ncp out/libscs*.${dlext} ${libdir}\n"""
-        version = "v2.1.2"
-
-            [["2.1.2+0".artifact_metadata.metadata.dependencies]]
-            name = "OpenBLAS_jll"
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["2.1.2+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libscsindir"]
-            type = "lib"
-            variable_name = "libscsindir"
-            [["2.1.2+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libscsdir"]
-            type = "lib"
-            variable_name = "libscsdir"
-
-            [["2.1.2+0".artifact_metadata.metadata.sources]]
-            hash = "4ed6c2abf28399c01a0417ff3456b2639560afa6"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/cvxgrp/scs.git"
 
 ["2.1.2+1"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.2+0/SCS.v2.1.2.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.2+0/SCS.v2.1.2.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.2+0/SCS.v2.1.2.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.2+0/SCS.v2.1.2.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.2+0/SCS.v2.1.2.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.2+0/SCS.v2.1.2.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.2+0/SCS.v2.1.2.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.2+0/SCS.v2.1.2.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.2+0/SCS.v2.1.2.x86_64-apple-darwin14.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.2+0/SCS.v2.1.2.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.2+0/SCS.v2.1.2.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.2+0/SCS.v2.1.2.x86_64-unknown-freebsd11.1.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.2+0/SCS.v2.1.2.x86_64-w64-mingw32.tar.gz"]
@@ -98,45 +29,10 @@ registered = 2020-11-01T16:30:45.000Z
     [["2.1.2+1".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.2+0/SCS.v2.1.2.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.2+0/SCS.v2.1.2.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.2+0/SCS.v2.1.2.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.2+0/SCS.v2.1.2.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.2+0/SCS.v2.1.2.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.2+0/SCS.v2.1.2.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.2+0/SCS.v2.1.2.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.2+0/SCS.v2.1.2.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.2+0/SCS.v2.1.2.x86_64-apple-darwin14.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.2+0/SCS.v2.1.2.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.2+0/SCS.v2.1.2.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.2+0/SCS.v2.1.2.x86_64-unknown-freebsd11.1.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.2+0/SCS.v2.1.2.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/14cf399038752489bd364cb4f7a755d75c5e1e6d/S/SCS/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/s/scs/build_tarballs.jl/14cf399038752489bd364cb4f7a755d75c5e1e6d.toml"
     metadata_source = "retrospective (by timestamp)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.2.5"
-
-        ["2.1.2+1".artifact_metadata.metadata]
-        init_block = ""
-        lazy_artifacts = false
-        name = "SCS"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd $WORKSPACE/srcdir/scs*\nflags=\"DLONG=1 USE_OPENMP=0\"\nblasldflags=\"-L${prefix}/lib\"\n# see https://github.com/JuliaPackaging/Yggdrasil/blob/0bc1abd56fa176e3d2cc2e48e7bf85a26c948c40/OpenBLAS/build_tarballs.jl#L23\nif [[ ${nbits} == 64 ]] && [[ ${target} != aarch64* ]]; then\n    flags=\"${flags} BLAS64=1 BLASSUFFIX=_64_\"\n    blasldflags+=\" -lopenblas64_\"\nelse\n    blasldflags+=\" -lopenblas\"\nfi\n\nmake BLASLDFLAGS=\"${blasldflags}\" ${flags} out/libscsdir.${dlext}\nmake BLASLDFLAGS=\"${blasldflags}\" ${flags} out/libscsindir.${dlext}\n\nmkdir -p ${libdir}\ncp out/libscs*.${dlext} ${libdir}\n"""
-        version = "v2.1.2"
-
-            [["2.1.2+1".artifact_metadata.metadata.dependencies]]
-            name = "OpenBLAS_jll"
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["2.1.2+1".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libscsindir"]
-            type = "lib"
-            variable_name = "libscsindir"
-            [["2.1.2+1".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libscsdir"]
-            type = "lib"
-            variable_name = "libscsdir"
-
-            [["2.1.2+1".artifact_metadata.metadata.sources]]
-            hash = "4ed6c2abf28399c01a0417ff3456b2639560afa6"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/cvxgrp/scs.git"
 
 ["2.1.3+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.3+0/SCS.v2.1.3.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.3+0/SCS.v2.1.3.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.3+0/SCS.v2.1.3.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.3+0/SCS.v2.1.3.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.3+0/SCS.v2.1.3.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.3+0/SCS.v2.1.3.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.3+0/SCS.v2.1.3.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.3+0/SCS.v2.1.3.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.3+0/SCS.v2.1.3.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.3+0/SCS.v2.1.3.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.3+0/SCS.v2.1.3.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.3+0/SCS.v2.1.3.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.3+0/SCS.v2.1.3.x86_64-w64-mingw32.tar.gz"]
@@ -145,47 +41,10 @@ registered = 2021-04-12T23:22:32.000Z
     [["2.1.3+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.3+0/SCS.v2.1.3.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.3+0/SCS.v2.1.3.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.3+0/SCS.v2.1.3.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.3+0/SCS.v2.1.3.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.3+0/SCS.v2.1.3.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.3+0/SCS.v2.1.3.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.3+0/SCS.v2.1.3.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.3+0/SCS.v2.1.3.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.3+0/SCS.v2.1.3.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.3+0/SCS.v2.1.3.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.3+0/SCS.v2.1.3.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.3+0/SCS.v2.1.3.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.3+0/SCS.v2.1.3.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/46feb04d1af0e98baf62d42850ce200432c2ddb0/S/SCS/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/s/scs/build_tarballs.jl/46feb04d1af0e98baf62d42850ce200432c2ddb0.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.3.1"
-
-        ["2.1.3+0".artifact_metadata.metadata]
-        init_block = ""
-        julia_compat = "1.0"
-        lazy_artifacts = false
-        name = "SCS"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd $WORKSPACE/srcdir/scs*\nflags=\"DLONG=1 USE_OPENMP=0\"\nblasldflags=\"-L${prefix}/lib\"\n# see https://github.com/JuliaPackaging/Yggdrasil/blob/0bc1abd56fa176e3d2cc2e48e7bf85a26c948c40/OpenBLAS/build_tarballs.jl#L23\nif [[ ${nbits} == 64 ]] && [[ ${target} != aarch64* ]]; then\n    flags=\"${flags} BLAS64=1 BLASSUFFIX=_64_\"\n    blasldflags+=\" -lopenblas64_\"\nelse\n    blasldflags+=\" -lopenblas\"\nfi\n\nmake BLASLDFLAGS=\"${blasldflags}\" ${flags} out/libscsdir.${dlext}\nmake BLASLDFLAGS=\"${blasldflags}\" ${flags} out/libscsindir.${dlext}\n\nmkdir -p ${libdir}\ncp out/libscs*.${dlext} ${libdir}\n"""
-        version = "v2.1.3"
-
-            [["2.1.3+0".artifact_metadata.metadata.dependencies]]
-            compat = "<0.3.13"
-            name = "OpenBLAS_jll"
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["2.1.3+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libscsindir"]
-            type = "lib"
-            variable_name = "libscsindir"
-            [["2.1.3+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libscsdir"]
-            type = "lib"
-            variable_name = "libscsdir"
-
-            [["2.1.3+0".artifact_metadata.metadata.sources]]
-            hash = "07ca69c296312c260027c755f545f05bf45156eb"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/cvxgrp/scs.git"
 
 ["2.1.4+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.4+0/SCS.v2.1.4.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.4+0/SCS.v2.1.4.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.4+0/SCS.v2.1.4.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.4+0/SCS.v2.1.4.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.4+0/SCS.v2.1.4.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.4+0/SCS.v2.1.4.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.4+0/SCS.v2.1.4.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.4+0/SCS.v2.1.4.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.4+0/SCS.v2.1.4.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.4+0/SCS.v2.1.4.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.4+0/SCS.v2.1.4.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.4+0/SCS.v2.1.4.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.4+0/SCS.v2.1.4.x86_64-w64-mingw32.tar.gz"]
@@ -194,47 +53,10 @@ registered = 2021-09-08T18:42:40.000Z
     [["2.1.4+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.4+0/SCS.v2.1.4.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.4+0/SCS.v2.1.4.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.4+0/SCS.v2.1.4.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.4+0/SCS.v2.1.4.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.4+0/SCS.v2.1.4.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.4+0/SCS.v2.1.4.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.4+0/SCS.v2.1.4.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.4+0/SCS.v2.1.4.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.4+0/SCS.v2.1.4.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.4+0/SCS.v2.1.4.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.4+0/SCS.v2.1.4.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.4+0/SCS.v2.1.4.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v2.1.4+0/SCS.v2.1.4.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/7ccdd85cfa826a62fe60532f958c841dad0aa061/S/SCS/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/s/scs/build_tarballs.jl/7ccdd85cfa826a62fe60532f958c841dad0aa061.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.4.1"
-
-        ["2.1.4+0".artifact_metadata.metadata]
-        init_block = ""
-        julia_compat = "1.0"
-        lazy_artifacts = false
-        name = "SCS"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd $WORKSPACE/srcdir/scs*\nflags=\"DLONG=1 USE_OPENMP=0\"\nblasldflags=\"-L${prefix}/lib\"\n# see https://github.com/JuliaPackaging/Yggdrasil/blob/0bc1abd56fa176e3d2cc2e48e7bf85a26c948c40/OpenBLAS/build_tarballs.jl#L23\nif [[ ${nbits} == 64 ]] && [[ ${target} != aarch64* ]]; then\n    flags=\"${flags} BLAS64=1 BLASSUFFIX=_64_\"\n    blasldflags+=\" -lopenblas64_\"\nelse\n    blasldflags+=\" -lopenblas\"\nfi\n\nmake BLASLDFLAGS=\"${blasldflags}\" ${flags} out/libscsdir.${dlext}\nmake BLASLDFLAGS=\"${blasldflags}\" ${flags} out/libscsindir.${dlext}\n\nmkdir -p ${libdir}\ncp out/libscs*.${dlext} ${libdir}\n"""
-        version = "v2.1.4"
-
-            [["2.1.4+0".artifact_metadata.metadata.dependencies]]
-            compat = "<0.3.13"
-            name = "OpenBLAS_jll"
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["2.1.4+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libscsindir"]
-            type = "lib"
-            variable_name = "libscsindir"
-            [["2.1.4+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libscsdir"]
-            type = "lib"
-            variable_name = "libscsdir"
-
-            [["2.1.4+0".artifact_metadata.metadata.sources]]
-            hash = "a70a42c8c740ee756f787760ed59a8a41531e891"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/cvxgrp/scs.git"
 
 ["3.0.0+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.0+0/SCS.v3.0.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.0+0/SCS.v3.0.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.0+0/SCS.v3.0.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.0+0/SCS.v3.0.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.0+0/SCS.v3.0.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.0+0/SCS.v3.0.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.0+0/SCS.v3.0.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.0+0/SCS.v3.0.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.0+0/SCS.v3.0.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.0+0/SCS.v3.0.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.0+0/SCS.v3.0.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.0+0/SCS.v3.0.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.0+0/SCS.v3.0.0.x86_64-w64-mingw32.tar.gz"]
@@ -243,47 +65,10 @@ registered = 2021-10-13T05:50:37.000Z
     [["3.0.0+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.0+0/SCS.v3.0.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.0+0/SCS.v3.0.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.0+0/SCS.v3.0.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.0+0/SCS.v3.0.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.0+0/SCS.v3.0.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.0+0/SCS.v3.0.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.0+0/SCS.v3.0.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.0+0/SCS.v3.0.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.0+0/SCS.v3.0.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.0+0/SCS.v3.0.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.0+0/SCS.v3.0.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.0+0/SCS.v3.0.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.0+0/SCS.v3.0.0.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/b4fdb545c3954cff218051d7520c7418991d3416/S/SCS/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/s/scs/build_tarballs.jl/b4fdb545c3954cff218051d7520c7418991d3416.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.4.1"
-
-        ["3.0.0+0".artifact_metadata.metadata]
-        init_block = ""
-        julia_compat = "1.0"
-        lazy_artifacts = false
-        name = "SCS"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd $WORKSPACE/srcdir/scs*\nflags=\"DLONG=1 USE_OPENMP=0\"\nblasldflags=\"-L${prefix}/lib\"\n# see https://github.com/JuliaPackaging/Yggdrasil/blob/0bc1abd56fa176e3d2cc2e48e7bf85a26c948c40/OpenBLAS/build_tarballs.jl#L23\nif [[ ${nbits} == 64 ]] && [[ ${target} != aarch64* ]]; then\n    flags=\"${flags} BLAS64=1 BLASSUFFIX=_64_\"\n    blasldflags+=\" -lopenblas64_\"\nelse\n    blasldflags+=\" -lopenblas\"\nfi\n\nmake BLASLDFLAGS=\"${blasldflags}\" ${flags} out/libscsdir.${dlext}\nmake BLASLDFLAGS=\"${blasldflags}\" ${flags} out/libscsindir.${dlext}\n\nmkdir -p ${libdir}\ncp out/libscs*.${dlext} ${libdir}\n"""
-        version = "v3.0.0"
-
-            [["3.0.0+0".artifact_metadata.metadata.dependencies]]
-            compat = "<0.3.13"
-            name = "OpenBLAS_jll"
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["3.0.0+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libscsindir"]
-            type = "lib"
-            variable_name = "libscsindir"
-            [["3.0.0+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libscsdir"]
-            type = "lib"
-            variable_name = "libscsdir"
-
-            [["3.0.0+0".artifact_metadata.metadata.sources]]
-            hash = "3aaa93c7aa04c7001df5e51b81f21b126dfa99b3"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/cvxgrp/scs.git"
 
 ["3.0.1+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.1+0/SCS.v3.0.1.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.1+0/SCS.v3.0.1.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.1+0/SCS.v3.0.1.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.1+0/SCS.v3.0.1.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.1+0/SCS.v3.0.1.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.1+0/SCS.v3.0.1.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.1+0/SCS.v3.0.1.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.1+0/SCS.v3.0.1.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.1+0/SCS.v3.0.1.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.1+0/SCS.v3.0.1.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.1+0/SCS.v3.0.1.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.1+0/SCS.v3.0.1.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.1+0/SCS.v3.0.1.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.1+0/SCS.v3.0.1.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.1+0/SCS.v3.0.1.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.1+0/SCS.v3.0.1.x86_64-w64-mingw32.tar.gz"]
@@ -292,47 +77,10 @@ registered = 2021-12-02T02:01:39.000Z
     [["3.0.1+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.1+0/SCS.v3.0.1.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.1+0/SCS.v3.0.1.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.1+0/SCS.v3.0.1.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.1+0/SCS.v3.0.1.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.1+0/SCS.v3.0.1.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.1+0/SCS.v3.0.1.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.1+0/SCS.v3.0.1.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.1+0/SCS.v3.0.1.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.1+0/SCS.v3.0.1.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.1+0/SCS.v3.0.1.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.1+0/SCS.v3.0.1.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.1+0/SCS.v3.0.1.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.1+0/SCS.v3.0.1.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.1+0/SCS.v3.0.1.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.1+0/SCS.v3.0.1.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.0.1+0/SCS.v3.0.1.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/d1f0a72016497fe25e7eadc6d612bfc24dd8329b/S/SCS/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/s/scs/build_tarballs.jl/d1f0a72016497fe25e7eadc6d612bfc24dd8329b.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.4.2"
-
-        ["3.0.1+0".artifact_metadata.metadata]
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "SCS"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "aarch64-apple-darwin", "armv6l-linux-gnueabihf", "armv6l-linux-musleabihf"]
-        script = """cd $WORKSPACE/srcdir/scs*\nflags=\"DLONG=1 USE_OPENMP=0\"\nblasldflags=\"-L${prefix}/lib -lopenblas\"\n\nmake BLASLDFLAGS=\"${blasldflags}\" ${flags} out/libscsdir.${dlext}\nmake BLASLDFLAGS=\"${blasldflags}\" ${flags} out/libscsindir.${dlext}\n\nmkdir -p ${libdir}\ncp out/libscs*.${dlext} ${libdir}\n"""
-        version = "v3.0.1"
-
-            [["3.0.1+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "OpenBLAS32_jll"
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["3.0.1+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libscsindir"]
-            type = "lib"
-            variable_name = "libscsindir"
-            [["3.0.1+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libscsdir"]
-            type = "lib"
-            variable_name = "libscsdir"
-
-            [["3.0.1+0".artifact_metadata.metadata.sources]]
-            hash = "3aaa93c7aa04c7001df5e51b81f21b126dfa99b3"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/cvxgrp/scs.git"
 
 ["3.2.0+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.0+0/SCS.v3.2.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.0+0/SCS.v3.2.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.0+0/SCS.v3.2.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.0+0/SCS.v3.2.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.0+0/SCS.v3.2.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.0+0/SCS.v3.2.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.0+0/SCS.v3.2.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.0+0/SCS.v3.2.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.0+0/SCS.v3.2.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.0+0/SCS.v3.2.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.0+0/SCS.v3.2.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.0+0/SCS.v3.2.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.0+0/SCS.v3.2.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.0+0/SCS.v3.2.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.0+0/SCS.v3.2.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.0+0/SCS.v3.2.0.x86_64-w64-mingw32.tar.gz"]
@@ -341,49 +89,10 @@ registered = 2022-02-28T22:16:56.000Z
     [["3.2.0+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.0+0/SCS.v3.2.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.0+0/SCS.v3.2.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.0+0/SCS.v3.2.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.0+0/SCS.v3.2.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.0+0/SCS.v3.2.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.0+0/SCS.v3.2.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.0+0/SCS.v3.2.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.0+0/SCS.v3.2.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.0+0/SCS.v3.2.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.0+0/SCS.v3.2.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.0+0/SCS.v3.2.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.0+0/SCS.v3.2.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.0+0/SCS.v3.2.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.0+0/SCS.v3.2.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.0+0/SCS.v3.2.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.0+0/SCS.v3.2.0.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/f4afdd8e979ec1b5ba43aaf1872d3e33f0622940/S/SCS/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/s/scs/build_tarballs.jl/f4afdd8e979ec1b5ba43aaf1872d3e33f0622940.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.5.2"
-
-        ["3.2.0+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "SCS"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd $WORKSPACE/srcdir/scs*\nflags=\"DLONG=1 USE_OPENMP=0\"\nblasldflags=\"-L${prefix}/lib -lopenblas\"\n\nmake BLASLDFLAGS=\"${blasldflags}\" ${flags} out/libscsdir.${dlext}\nmake BLASLDFLAGS=\"${blasldflags}\" ${flags} out/libscsindir.${dlext}\n\nmkdir -p ${libdir}\ncp out/libscs*.${dlext} ${libdir}\n"""
-        version = "v3.2.0"
-
-            [["3.2.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "OpenBLAS32_jll"
-            platforms = ["any"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["3.2.0+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libscsindir"]
-            type = "lib"
-            variable_name = "libscsindir"
-            [["3.2.0+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libscsdir"]
-            type = "lib"
-            variable_name = "libscsdir"
-
-            [["3.2.0+0".artifact_metadata.metadata.sources]]
-            hash = "ac6840a3b3264950e6c300264cbf3937e0bcc6c5"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/cvxgrp/scs.git"
 
 ["3.2.1+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.1+0/SCS.v3.2.1.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.1+0/SCS.v3.2.1.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.1+0/SCS.v3.2.1.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.1+0/SCS.v3.2.1.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.1+0/SCS.v3.2.1.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.1+0/SCS.v3.2.1.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.1+0/SCS.v3.2.1.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.1+0/SCS.v3.2.1.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.1+0/SCS.v3.2.1.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.1+0/SCS.v3.2.1.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.1+0/SCS.v3.2.1.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.1+0/SCS.v3.2.1.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.1+0/SCS.v3.2.1.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.1+0/SCS.v3.2.1.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.1+0/SCS.v3.2.1.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.1+0/SCS.v3.2.1.x86_64-w64-mingw32.tar.gz"]
@@ -392,50 +101,10 @@ registered = 2022-11-01T02:20:20.000Z
     [["3.2.1+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.1+0/SCS.v3.2.1.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.1+0/SCS.v3.2.1.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.1+0/SCS.v3.2.1.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.1+0/SCS.v3.2.1.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.1+0/SCS.v3.2.1.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.1+0/SCS.v3.2.1.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.1+0/SCS.v3.2.1.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.1+0/SCS.v3.2.1.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.1+0/SCS.v3.2.1.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.1+0/SCS.v3.2.1.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.1+0/SCS.v3.2.1.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.1+0/SCS.v3.2.1.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.1+0/SCS.v3.2.1.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.1+0/SCS.v3.2.1.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.1+0/SCS.v3.2.1.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.1+0/SCS.v3.2.1.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/1e926895c26b578d145db8d483654a91289bac4c/S/SCS/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/s/scs/build_tarballs.jl/1e926895c26b578d145db8d483654a91289bac4c.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.5.6"
-
-        ["3.2.1+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "SCS"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd $WORKSPACE/srcdir/scs*\nflags=\"DLONG=1 USE_OPENMP=0\"\nblasldflags=\"-L${prefix}/lib -lopenblas\"\n\nmake BLASLDFLAGS=\"${blasldflags}\" ${flags} out/libscsdir.${dlext}\nmake BLASLDFLAGS=\"${blasldflags}\" ${flags} out/libscsindir.${dlext}\n\nmkdir -p ${libdir}\ncp out/libscs*.${dlext} ${libdir}\n"""
-        version = "v3.2.1"
-
-            [["3.2.1+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "OpenBLAS32_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["3.2.1+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libscsindir"]
-            type = "lib"
-            variable_name = "libscsindir"
-            [["3.2.1+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libscsdir"]
-            type = "lib"
-            variable_name = "libscsdir"
-
-            [["3.2.1+0".artifact_metadata.metadata.sources]]
-            hash = "f2da64d314d86a97ebb8e957f215f27f9e2a7b79"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/cvxgrp/scs.git"
 
 ["3.2.3+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.3+0/SCS.v3.2.3.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.3+0/SCS.v3.2.3.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.3+0/SCS.v3.2.3.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.3+0/SCS.v3.2.3.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.3+0/SCS.v3.2.3.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.3+0/SCS.v3.2.3.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.3+0/SCS.v3.2.3.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.3+0/SCS.v3.2.3.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.3+0/SCS.v3.2.3.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.3+0/SCS.v3.2.3.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.3+0/SCS.v3.2.3.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.3+0/SCS.v3.2.3.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.3+0/SCS.v3.2.3.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.3+0/SCS.v3.2.3.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.3+0/SCS.v3.2.3.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.3+0/SCS.v3.2.3.x86_64-w64-mingw32.tar.gz"]
@@ -444,50 +113,10 @@ registered = 2023-04-07T02:41:59.000Z
     [["3.2.3+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.3+0/SCS.v3.2.3.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.3+0/SCS.v3.2.3.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.3+0/SCS.v3.2.3.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.3+0/SCS.v3.2.3.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.3+0/SCS.v3.2.3.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.3+0/SCS.v3.2.3.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.3+0/SCS.v3.2.3.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.3+0/SCS.v3.2.3.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.3+0/SCS.v3.2.3.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.3+0/SCS.v3.2.3.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.3+0/SCS.v3.2.3.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.3+0/SCS.v3.2.3.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.3+0/SCS.v3.2.3.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.3+0/SCS.v3.2.3.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.3+0/SCS.v3.2.3.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.3+0/SCS.v3.2.3.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/ac000a923b11270c4b920bf8aa1c238335364827/S/SCS/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/s/scs/build_tarballs.jl/ac000a923b11270c4b920bf8aa1c238335364827.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.5.6"
-
-        ["3.2.3+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "SCS"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd $WORKSPACE/srcdir/scs*\nflags=\"DLONG=1 USE_OPENMP=0\"\nblasldflags=\"-L${prefix}/lib -lopenblas\"\n\nmake BLASLDFLAGS=\"${blasldflags}\" ${flags} out/libscsdir.${dlext}\nmake BLASLDFLAGS=\"${blasldflags}\" ${flags} out/libscsindir.${dlext}\n\nmkdir -p ${libdir}\ncp out/libscs*.${dlext} ${libdir}\n"""
-        version = "v3.2.3"
-
-            [["3.2.3+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "OpenBLAS32_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["3.2.3+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libscsindir"]
-            type = "lib"
-            variable_name = "libscsindir"
-            [["3.2.3+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libscsdir"]
-            type = "lib"
-            variable_name = "libscsdir"
-
-            [["3.2.3+0".artifact_metadata.metadata.sources]]
-            hash = "f0c23340da03bcd663072dc4a90cf1aab8968c61"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/cvxgrp/scs.git"
 
 ["3.2.4+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+0/SCS.v3.2.4.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+0/SCS.v3.2.4.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+0/SCS.v3.2.4.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+0/SCS.v3.2.4.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+0/SCS.v3.2.4.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+0/SCS.v3.2.4.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+0/SCS.v3.2.4.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+0/SCS.v3.2.4.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+0/SCS.v3.2.4.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+0/SCS.v3.2.4.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+0/SCS.v3.2.4.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+0/SCS.v3.2.4.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+0/SCS.v3.2.4.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+0/SCS.v3.2.4.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+0/SCS.v3.2.4.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+0/SCS.v3.2.4.x86_64-w64-mingw32.tar.gz"]
@@ -496,50 +125,10 @@ registered = 2023-11-13T21:04:24.000Z
     [["3.2.4+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+0/SCS.v3.2.4.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+0/SCS.v3.2.4.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+0/SCS.v3.2.4.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+0/SCS.v3.2.4.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+0/SCS.v3.2.4.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+0/SCS.v3.2.4.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+0/SCS.v3.2.4.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+0/SCS.v3.2.4.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+0/SCS.v3.2.4.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+0/SCS.v3.2.4.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+0/SCS.v3.2.4.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+0/SCS.v3.2.4.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+0/SCS.v3.2.4.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+0/SCS.v3.2.4.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+0/SCS.v3.2.4.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+0/SCS.v3.2.4.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/82657bf5b3e19935dddbd39ec0370616fc627209/S/SCS/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/s/scs/build_tarballs.jl/82657bf5b3e19935dddbd39ec0370616fc627209.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.5.6"
-
-        ["3.2.4+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "SCS"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd $WORKSPACE/srcdir/scs*\nflags=\"DLONG=1 USE_OPENMP=0\"\nblasldflags=\"-L${prefix}/lib -lopenblas\"\n\nmake BLASLDFLAGS=\"${blasldflags}\" ${flags} out/libscsdir.${dlext}\nmake BLASLDFLAGS=\"${blasldflags}\" ${flags} out/libscsindir.${dlext}\n\nmkdir -p ${libdir}\ncp out/libscs*.${dlext} ${libdir}\n"""
-        version = "v3.2.4"
-
-            [["3.2.4+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "OpenBLAS32_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["3.2.4+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libscsindir"]
-            type = "lib"
-            variable_name = "libscsindir"
-            [["3.2.4+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libscsdir"]
-            type = "lib"
-            variable_name = "libscsdir"
-
-            [["3.2.4+0".artifact_metadata.metadata.sources]]
-            hash = "9024b8ccc1bba6ee797440fb22354cadb9c81839"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/cvxgrp/scs.git"
 
 ["3.2.4+1"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+1/SCS.v3.2.4.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+1/SCS.v3.2.4.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+1/SCS.v3.2.4.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+1/SCS.v3.2.4.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+1/SCS.v3.2.4.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+1/SCS.v3.2.4.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+1/SCS.v3.2.4.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+1/SCS.v3.2.4.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+1/SCS.v3.2.4.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+1/SCS.v3.2.4.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+1/SCS.v3.2.4.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+1/SCS.v3.2.4.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+1/SCS.v3.2.4.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+1/SCS.v3.2.4.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+1/SCS.v3.2.4.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+1/SCS.v3.2.4.x86_64-w64-mingw32.tar.gz"]
@@ -548,70 +137,10 @@ registered = 2024-04-12T09:40:30.000Z
     [["3.2.4+1".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+1/SCS.v3.2.4.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+1/SCS.v3.2.4.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+1/SCS.v3.2.4.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+1/SCS.v3.2.4.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+1/SCS.v3.2.4.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+1/SCS.v3.2.4.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+1/SCS.v3.2.4.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+1/SCS.v3.2.4.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+1/SCS.v3.2.4.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+1/SCS.v3.2.4.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+1/SCS.v3.2.4.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+1/SCS.v3.2.4.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+1/SCS.v3.2.4.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+1/SCS.v3.2.4.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+1/SCS.v3.2.4.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.4+1/SCS.v3.2.4.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/4ddd84487177a53e6dbcfcd0382e07a6f88b07d1/S/SCS/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/s/scs/build_tarballs.jl/4ddd84487177a53e6dbcfcd0382e07a6f88b07d1.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.5.8"
-
-        ["3.2.4+1".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "SCS"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd $WORKSPACE/srcdir/scs*\nflags=\"DLONG=1 USE_OPENMP=1\"\nblasldflags=\"-L${prefix}/lib -lopenblas\"\n\nmake BLASLDFLAGS=\"${blasldflags}\" ${flags} out/libscsdir.${dlext}\nmake BLASLDFLAGS=\"${blasldflags}\" ${flags} out/libscsindir.${dlext}\n\nmkdir -p ${libdir}\ncp out/libscs*.${dlext} ${libdir}\n"""
-        version = "v3.2.4"
-
-            [["3.2.4+1".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "OpenBLAS32_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["3.2.4+1".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "CompilerSupportLibraries_jll"
-            platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-            top_level = false
-            type = "dependency"
-            uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["3.2.4+1".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVMOpenMP_jll"
-            platforms = ["x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd"]
-            top_level = false
-            type = "dependency"
-            uuid = "1d63c593-3942-5779-bab2-d838dc0a180e"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["3.2.4+1".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libscsindir"]
-            type = "lib"
-            variable_name = "libscsindir"
-            [["3.2.4+1".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libscsdir"]
-            type = "lib"
-            variable_name = "libscsdir"
-
-            [["3.2.4+1".artifact_metadata.metadata.sources]]
-            hash = "9024b8ccc1bba6ee797440fb22354cadb9c81839"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/cvxgrp/scs.git"
 
 ["3.2.6+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.6+0/SCS.v3.2.6.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.6+0/SCS.v3.2.6.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.6+0/SCS.v3.2.6.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.6+0/SCS.v3.2.6.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.6+0/SCS.v3.2.6.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.6+0/SCS.v3.2.6.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.6+0/SCS.v3.2.6.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.6+0/SCS.v3.2.6.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.6+0/SCS.v3.2.6.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.6+0/SCS.v3.2.6.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.6+0/SCS.v3.2.6.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.6+0/SCS.v3.2.6.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.6+0/SCS.v3.2.6.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.6+0/SCS.v3.2.6.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.6+0/SCS.v3.2.6.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.6+0/SCS.v3.2.6.x86_64-w64-mingw32.tar.gz"]
@@ -620,70 +149,10 @@ registered = 2024-07-05T20:45:59.000Z
     [["3.2.6+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.6+0/SCS.v3.2.6.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.6+0/SCS.v3.2.6.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.6+0/SCS.v3.2.6.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.6+0/SCS.v3.2.6.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.6+0/SCS.v3.2.6.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.6+0/SCS.v3.2.6.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.6+0/SCS.v3.2.6.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.6+0/SCS.v3.2.6.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.6+0/SCS.v3.2.6.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.6+0/SCS.v3.2.6.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.6+0/SCS.v3.2.6.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.6+0/SCS.v3.2.6.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.6+0/SCS.v3.2.6.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.6+0/SCS.v3.2.6.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.6+0/SCS.v3.2.6.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.6+0/SCS.v3.2.6.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/e68d4311ec570ea8729cc54beefb3409057ffb90/S/SCS/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/s/scs/build_tarballs.jl/e68d4311ec570ea8729cc54beefb3409057ffb90.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.5.8"
-
-        ["3.2.6+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "SCS"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd $WORKSPACE/srcdir/scs*\nflags=\"DLONG=1 USE_OPENMP=1\"\nblasldflags=\"-L${prefix}/lib -lopenblas\"\n\nmake BLASLDFLAGS=\"${blasldflags}\" ${flags} out/libscsdir.${dlext}\nmake BLASLDFLAGS=\"${blasldflags}\" ${flags} out/libscsindir.${dlext}\n\nmkdir -p ${libdir}\ncp out/libscs*.${dlext} ${libdir}\n"""
-        version = "v3.2.6"
-
-            [["3.2.6+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "OpenBLAS32_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["3.2.6+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "CompilerSupportLibraries_jll"
-            platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-            top_level = false
-            type = "dependency"
-            uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["3.2.6+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVMOpenMP_jll"
-            platforms = ["x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd"]
-            top_level = false
-            type = "dependency"
-            uuid = "1d63c593-3942-5779-bab2-d838dc0a180e"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["3.2.6+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libscsindir"]
-            type = "lib"
-            variable_name = "libscsindir"
-            [["3.2.6+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libscsdir"]
-            type = "lib"
-            variable_name = "libscsdir"
-
-            [["3.2.6+0".artifact_metadata.metadata.sources]]
-            hash = "2b9b03d1b312da8e5db49e664b4998123c8ad6bb"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/cvxgrp/scs.git"
 
 ["3.2.7+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.7+0/SCS.v3.2.7.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.7+0/SCS.v3.2.7.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.7+0/SCS.v3.2.7.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.7+0/SCS.v3.2.7.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.7+0/SCS.v3.2.7.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.7+0/SCS.v3.2.7.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.7+0/SCS.v3.2.7.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.7+0/SCS.v3.2.7.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.7+0/SCS.v3.2.7.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.7+0/SCS.v3.2.7.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.7+0/SCS.v3.2.7.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.7+0/SCS.v3.2.7.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.7+0/SCS.v3.2.7.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.7+0/SCS.v3.2.7.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.7+0/SCS.v3.2.7.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.7+0/SCS.v3.2.7.x86_64-w64-mingw32.tar.gz"]
@@ -692,70 +161,10 @@ registered = 2024-08-27T20:27:37.000Z
     [["3.2.7+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.7+0/SCS.v3.2.7.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.7+0/SCS.v3.2.7.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.7+0/SCS.v3.2.7.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.7+0/SCS.v3.2.7.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.7+0/SCS.v3.2.7.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.7+0/SCS.v3.2.7.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.7+0/SCS.v3.2.7.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.7+0/SCS.v3.2.7.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.7+0/SCS.v3.2.7.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.7+0/SCS.v3.2.7.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.7+0/SCS.v3.2.7.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.7+0/SCS.v3.2.7.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.7+0/SCS.v3.2.7.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.7+0/SCS.v3.2.7.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.7+0/SCS.v3.2.7.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.7+0/SCS.v3.2.7.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/0a1b95895c2baebba3b321c336b716f92c571335/S/SCS/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/s/scs/build_tarballs.jl/0a1b95895c2baebba3b321c336b716f92c571335.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.5.9"
-
-        ["3.2.7+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "SCS"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd $WORKSPACE/srcdir/scs*\nflags=\"DLONG=1 USE_OPENMP=1\"\nblasldflags=\"-L${prefix}/lib -lopenblas\"\n\nmake BLASLDFLAGS=\"${blasldflags}\" ${flags} out/libscsdir.${dlext}\nmake BLASLDFLAGS=\"${blasldflags}\" ${flags} out/libscsindir.${dlext}\n\nmkdir -p ${libdir}\ncp out/libscs*.${dlext} ${libdir}\n"""
-        version = "v3.2.7"
-
-            [["3.2.7+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "OpenBLAS32_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["3.2.7+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "CompilerSupportLibraries_jll"
-            platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-            top_level = false
-            type = "dependency"
-            uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["3.2.7+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVMOpenMP_jll"
-            platforms = ["x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd"]
-            top_level = false
-            type = "dependency"
-            uuid = "1d63c593-3942-5779-bab2-d838dc0a180e"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["3.2.7+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libscsindir"]
-            type = "lib"
-            variable_name = "libscsindir"
-            [["3.2.7+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libscsdir"]
-            type = "lib"
-            variable_name = "libscsdir"
-
-            [["3.2.7+0".artifact_metadata.metadata.sources]]
-            hash = "775a04634e40177573871c9cb6baae254342de39"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/cvxgrp/scs.git"
 
 ["3.2.8+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.8+0/SCS.v3.2.8.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.8+0/SCS.v3.2.8.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.8+0/SCS.v3.2.8.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.8+0/SCS.v3.2.8.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.8+0/SCS.v3.2.8.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.8+0/SCS.v3.2.8.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.8+0/SCS.v3.2.8.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.8+0/SCS.v3.2.8.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.8+0/SCS.v3.2.8.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.8+0/SCS.v3.2.8.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.8+0/SCS.v3.2.8.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.8+0/SCS.v3.2.8.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.8+0/SCS.v3.2.8.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.8+0/SCS.v3.2.8.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.8+0/SCS.v3.2.8.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.8+0/SCS.v3.2.8.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.8+0/SCS.v3.2.8.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.8+0/SCS.v3.2.8.x86_64-w64-mingw32.tar.gz"]
@@ -764,70 +173,10 @@ registered = 2025-08-12T19:37:44.000Z
     [["3.2.8+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.8+0/SCS.v3.2.8.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.8+0/SCS.v3.2.8.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.8+0/SCS.v3.2.8.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.8+0/SCS.v3.2.8.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.8+0/SCS.v3.2.8.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.8+0/SCS.v3.2.8.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.8+0/SCS.v3.2.8.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.8+0/SCS.v3.2.8.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.8+0/SCS.v3.2.8.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.8+0/SCS.v3.2.8.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.8+0/SCS.v3.2.8.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.8+0/SCS.v3.2.8.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.8+0/SCS.v3.2.8.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.8+0/SCS.v3.2.8.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.8+0/SCS.v3.2.8.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.8+0/SCS.v3.2.8.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.8+0/SCS.v3.2.8.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.8+0/SCS.v3.2.8.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/5631cc96c02285f4a4081717e35e06292d9a89bf/S/SCS/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/s/scs/build_tarballs.jl/5631cc96c02285f4a4081717e35e06292d9a89bf.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.6.5"
-
-        ["3.2.8+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "SCS"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd $WORKSPACE/srcdir/scs*\nflags=\"DLONG=1 USE_OPENMP=1\"\nblasldflags=\"-L${prefix}/lib -lopenblas\"\n\nmake BLASLDFLAGS=\"${blasldflags}\" ${flags} out/libscsdir.${dlext}\nmake BLASLDFLAGS=\"${blasldflags}\" ${flags} out/libscsindir.${dlext}\n\nmkdir -p ${libdir}\ncp out/libscs*.${dlext} ${libdir}\n"""
-        version = "v3.2.8"
-
-            [["3.2.8+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "OpenBLAS32_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["3.2.8+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "CompilerSupportLibraries_jll"
-            platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-            top_level = false
-            type = "dependency"
-            uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["3.2.8+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVMOpenMP_jll"
-            platforms = ["x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd"]
-            top_level = false
-            type = "dependency"
-            uuid = "1d63c593-3942-5779-bab2-d838dc0a180e"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["3.2.8+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libscsindir"]
-            type = "lib"
-            variable_name = "libscsindir"
-            [["3.2.8+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libscsdir"]
-            type = "lib"
-            variable_name = "libscsdir"
-
-            [["3.2.8+0".artifact_metadata.metadata.sources]]
-            hash = "ef77ae11181f399ea3e35122944ba3091ee1a77f"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/cvxgrp/scs.git"
 
 ["3.2.9+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.9+0/SCS.v3.2.9.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.9+0/SCS.v3.2.9.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.9+0/SCS.v3.2.9.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.9+0/SCS.v3.2.9.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.9+0/SCS.v3.2.9.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.9+0/SCS.v3.2.9.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.9+0/SCS.v3.2.9.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.9+0/SCS.v3.2.9.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.9+0/SCS.v3.2.9.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.9+0/SCS.v3.2.9.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.9+0/SCS.v3.2.9.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.9+0/SCS.v3.2.9.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.9+0/SCS.v3.2.9.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.9+0/SCS.v3.2.9.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.9+0/SCS.v3.2.9.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.9+0/SCS.v3.2.9.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.9+0/SCS.v3.2.9.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.9+0/SCS.v3.2.9.x86_64-w64-mingw32.tar.gz"]
@@ -836,71 +185,10 @@ registered = 2025-10-14T03:12:06.000Z
     [["3.2.9+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.9+0/SCS.v3.2.9.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.9+0/SCS.v3.2.9.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.9+0/SCS.v3.2.9.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.9+0/SCS.v3.2.9.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.9+0/SCS.v3.2.9.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.9+0/SCS.v3.2.9.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.9+0/SCS.v3.2.9.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.9+0/SCS.v3.2.9.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.9+0/SCS.v3.2.9.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.9+0/SCS.v3.2.9.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.9+0/SCS.v3.2.9.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.9+0/SCS.v3.2.9.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.9+0/SCS.v3.2.9.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.9+0/SCS.v3.2.9.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.9+0/SCS.v3.2.9.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.9+0/SCS.v3.2.9.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.9+0/SCS.v3.2.9.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v3.2.9+0/SCS.v3.2.9.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/be09d11ae98acc59d16e6661f53c8750efa799aa/S/SCS/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/s/scs/build_tarballs.jl/be09d11ae98acc59d16e6661f53c8750efa799aa.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.6.5"
-
-        ["3.2.9+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.10"
-        lazy_artifacts = false
-        name = "SCS"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd $WORKSPACE/srcdir/scs*\nflags=\"DLONG=1 USE_OPENMP=1\"\nif [[ \"${target}\" == *-mingw* ]]; then\n    LBT=blastrampoline-5\nelse\n    LBT=blastrampoline\nfi\nblasldflags=\"-L${prefix}/lib -l${LBT}\"\n\nmake BLASLDFLAGS=\"${blasldflags}\" ${flags} out/libscsdir.${dlext}\nmake BLASLDFLAGS=\"${blasldflags}\" ${flags} out/libscsindir.${dlext}\n\nmkdir -p ${libdir}\ncp out/libscs*.${dlext} ${libdir}\n"""
-        version = "v3.2.9"
-
-            [["3.2.9+0".artifact_metadata.metadata.dependencies]]
-            compat = "5.4.0"
-            name = "libblastrampoline_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            uuid = "8e850b90-86db-534c-a0d3-1478176c7d93"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["3.2.9+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "CompilerSupportLibraries_jll"
-            platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-            top_level = false
-            type = "dependency"
-            uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["3.2.9+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVMOpenMP_jll"
-            platforms = ["x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd"]
-            top_level = false
-            type = "dependency"
-            uuid = "1d63c593-3942-5779-bab2-d838dc0a180e"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["3.2.9+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libscsindir"]
-            type = "lib"
-            variable_name = "libscsindir"
-            [["3.2.9+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libscsdir"]
-            type = "lib"
-            variable_name = "libscsdir"
-
-            [["3.2.9+0".artifact_metadata.metadata.sources]]
-            hash = "c8297172633bcb3a10d4781a19d4769ce5282d29"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/cvxgrp/scs.git"
 
 ["300.200.900+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.900+0/SCS.v300.200.900.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.900+0/SCS.v300.200.900.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.900+0/SCS.v300.200.900.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.900+0/SCS.v300.200.900.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.900+0/SCS.v300.200.900.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.900+0/SCS.v300.200.900.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.900+0/SCS.v300.200.900.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.900+0/SCS.v300.200.900.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.900+0/SCS.v300.200.900.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.900+0/SCS.v300.200.900.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.900+0/SCS.v300.200.900.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.900+0/SCS.v300.200.900.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.900+0/SCS.v300.200.900.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.900+0/SCS.v300.200.900.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.900+0/SCS.v300.200.900.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.900+0/SCS.v300.200.900.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.900+0/SCS.v300.200.900.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.900+0/SCS.v300.200.900.x86_64-w64-mingw32.tar.gz"]
@@ -909,71 +197,10 @@ registered = 2025-10-17T21:46:23.000Z
     [["300.200.900+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.900+0/SCS.v300.200.900.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.900+0/SCS.v300.200.900.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.900+0/SCS.v300.200.900.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.900+0/SCS.v300.200.900.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.900+0/SCS.v300.200.900.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.900+0/SCS.v300.200.900.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.900+0/SCS.v300.200.900.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.900+0/SCS.v300.200.900.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.900+0/SCS.v300.200.900.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.900+0/SCS.v300.200.900.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.900+0/SCS.v300.200.900.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.900+0/SCS.v300.200.900.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.900+0/SCS.v300.200.900.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.900+0/SCS.v300.200.900.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.900+0/SCS.v300.200.900.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.900+0/SCS.v300.200.900.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.900+0/SCS.v300.200.900.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.900+0/SCS.v300.200.900.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/4debf839c9e647ef57f739985aba64bcdfba31e4/S/SCS/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/s/scs/build_tarballs.jl/4debf839c9e647ef57f739985aba64bcdfba31e4.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.6.5"
-
-        ["300.200.900+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.10"
-        lazy_artifacts = false
-        name = "SCS"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd $WORKSPACE/srcdir/scs*\nflags=\"DLONG=1 USE_OPENMP=1 USE_SPECTRAL_CONES=1\"\nif [[ \"${target}\" == *-mingw* ]]; then\n    LBT=blastrampoline-5\nelse\n    LBT=blastrampoline\nfi\nblasldflags=\"-L${prefix}/lib -l${LBT}\"\n\nmake BLASLDFLAGS=\"${blasldflags}\" ${flags} out/libscsdir.${dlext}\nmake BLASLDFLAGS=\"${blasldflags}\" ${flags} out/libscsindir.${dlext}\n\nmkdir -p ${libdir}\ncp out/libscs*.${dlext} ${libdir}\n"""
-        version = "v300.200.900"
-
-            [["300.200.900+0".artifact_metadata.metadata.dependencies]]
-            compat = "5.4.0"
-            name = "libblastrampoline_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            uuid = "8e850b90-86db-534c-a0d3-1478176c7d93"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["300.200.900+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "CompilerSupportLibraries_jll"
-            platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-            top_level = false
-            type = "dependency"
-            uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["300.200.900+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVMOpenMP_jll"
-            platforms = ["x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd"]
-            top_level = false
-            type = "dependency"
-            uuid = "1d63c593-3942-5779-bab2-d838dc0a180e"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["300.200.900+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libscsindir"]
-            type = "lib"
-            variable_name = "libscsindir"
-            [["300.200.900+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libscsdir"]
-            type = "lib"
-            variable_name = "libscsdir"
-
-            [["300.200.900+0".artifact_metadata.metadata.sources]]
-            hash = "c8297172633bcb3a10d4781a19d4769ce5282d29"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/cvxgrp/scs.git"
 
 ["300.200.1000+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1000+0/SCS.v300.200.1000.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1000+0/SCS.v300.200.1000.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1000+0/SCS.v300.200.1000.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1000+0/SCS.v300.200.1000.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1000+0/SCS.v300.200.1000.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1000+0/SCS.v300.200.1000.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1000+0/SCS.v300.200.1000.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1000+0/SCS.v300.200.1000.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1000+0/SCS.v300.200.1000.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1000+0/SCS.v300.200.1000.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1000+0/SCS.v300.200.1000.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1000+0/SCS.v300.200.1000.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1000+0/SCS.v300.200.1000.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1000+0/SCS.v300.200.1000.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1000+0/SCS.v300.200.1000.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1000+0/SCS.v300.200.1000.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1000+0/SCS.v300.200.1000.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1000+0/SCS.v300.200.1000.x86_64-w64-mingw32.tar.gz"]
@@ -982,71 +209,10 @@ registered = 2025-12-28T22:23:12.000Z
     [["300.200.1000+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1000+0/SCS.v300.200.1000.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1000+0/SCS.v300.200.1000.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1000+0/SCS.v300.200.1000.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1000+0/SCS.v300.200.1000.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1000+0/SCS.v300.200.1000.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1000+0/SCS.v300.200.1000.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1000+0/SCS.v300.200.1000.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1000+0/SCS.v300.200.1000.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1000+0/SCS.v300.200.1000.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1000+0/SCS.v300.200.1000.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1000+0/SCS.v300.200.1000.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1000+0/SCS.v300.200.1000.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1000+0/SCS.v300.200.1000.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1000+0/SCS.v300.200.1000.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1000+0/SCS.v300.200.1000.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1000+0/SCS.v300.200.1000.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1000+0/SCS.v300.200.1000.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1000+0/SCS.v300.200.1000.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/d2a1e4a955eb096e6d38b594dc99fb2b42949dba/S/SCS/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/s/scs/build_tarballs.jl/d2a1e4a955eb096e6d38b594dc99fb2b42949dba.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.6.5"
-
-        ["300.200.1000+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.10"
-        lazy_artifacts = false
-        name = "SCS"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd $WORKSPACE/srcdir/scs*\nflags=\"DLONG=1 USE_OPENMP=1 USE_SPECTRAL_CONES=1\"\nif [[ \"${target}\" == *-mingw* ]]; then\n    LBT=blastrampoline-5\nelse\n    LBT=blastrampoline\nfi\nblasldflags=\"-L${prefix}/lib -l${LBT}\"\n\nmake BLASLDFLAGS=\"${blasldflags}\" ${flags} out/libscsdir.${dlext}\nmake BLASLDFLAGS=\"${blasldflags}\" ${flags} out/libscsindir.${dlext}\n\nmkdir -p ${libdir}\ncp out/libscs*.${dlext} ${libdir}\n"""
-        version = "v300.200.1000"
-
-            [["300.200.1000+0".artifact_metadata.metadata.dependencies]]
-            compat = "5.4.0"
-            name = "libblastrampoline_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            uuid = "8e850b90-86db-534c-a0d3-1478176c7d93"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["300.200.1000+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "CompilerSupportLibraries_jll"
-            platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-            top_level = false
-            type = "dependency"
-            uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["300.200.1000+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVMOpenMP_jll"
-            platforms = ["x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd"]
-            top_level = false
-            type = "dependency"
-            uuid = "1d63c593-3942-5779-bab2-d838dc0a180e"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["300.200.1000+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libscsindir"]
-            type = "lib"
-            variable_name = "libscsindir"
-            [["300.200.1000+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libscsdir"]
-            type = "lib"
-            variable_name = "libscsdir"
-
-            [["300.200.1000+0".artifact_metadata.metadata.sources]]
-            hash = "3bb046910ef5f0bd248f76c140d274cdbf6d2a2b"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/cvxgrp/scs.git"
 
 ["300.200.1100+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1100+0/SCS.v300.200.1100.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1100+0/SCS.v300.200.1100.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1100+0/SCS.v300.200.1100.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1100+0/SCS.v300.200.1100.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1100+0/SCS.v300.200.1100.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1100+0/SCS.v300.200.1100.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1100+0/SCS.v300.200.1100.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1100+0/SCS.v300.200.1100.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1100+0/SCS.v300.200.1100.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1100+0/SCS.v300.200.1100.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1100+0/SCS.v300.200.1100.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1100+0/SCS.v300.200.1100.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1100+0/SCS.v300.200.1100.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1100+0/SCS.v300.200.1100.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1100+0/SCS.v300.200.1100.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1100+0/SCS.v300.200.1100.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1100+0/SCS.v300.200.1100.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1100+0/SCS.v300.200.1100.x86_64-w64-mingw32.tar.gz"]
@@ -1055,68 +221,7 @@ registered = 2026-01-11T00:04:40.000Z
     [["300.200.1100+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1100+0/SCS.v300.200.1100.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1100+0/SCS.v300.200.1100.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1100+0/SCS.v300.200.1100.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1100+0/SCS.v300.200.1100.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1100+0/SCS.v300.200.1100.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1100+0/SCS.v300.200.1100.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1100+0/SCS.v300.200.1100.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1100+0/SCS.v300.200.1100.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1100+0/SCS.v300.200.1100.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1100+0/SCS.v300.200.1100.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1100+0/SCS.v300.200.1100.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1100+0/SCS.v300.200.1100.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1100+0/SCS.v300.200.1100.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1100+0/SCS.v300.200.1100.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1100+0/SCS.v300.200.1100.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1100+0/SCS.v300.200.1100.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1100+0/SCS.v300.200.1100.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/SCS_jll.jl/releases/download/SCS-v300.200.1100+0/SCS.v300.200.1100.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/a3f6b6c0251719a61c1289d8731d603954c1bb38/S/SCS/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/s/scs/build_tarballs.jl/a3f6b6c0251719a61c1289d8731d603954c1bb38.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.6.5"
-
-        ["300.200.1100+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.10"
-        lazy_artifacts = false
-        name = "SCS"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd $WORKSPACE/srcdir/scs*\nflags=\"DLONG=1 USE_OPENMP=1 USE_SPECTRAL_CONES=1\"\nif [[ \"${target}\" == *-mingw* ]]; then\n    LBT=blastrampoline-5\nelse\n    LBT=blastrampoline\nfi\nblasldflags=\"-L${prefix}/lib -l${LBT}\"\n\nmake BLASLDFLAGS=\"${blasldflags}\" ${flags} out/libscsdir.${dlext}\nmake BLASLDFLAGS=\"${blasldflags}\" ${flags} out/libscsindir.${dlext}\n\nmkdir -p ${libdir}\ncp out/libscs*.${dlext} ${libdir}\n"""
-        version = "v300.200.1100"
-
-            [["300.200.1100+0".artifact_metadata.metadata.dependencies]]
-            compat = "5.4.0"
-            name = "libblastrampoline_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            uuid = "8e850b90-86db-534c-a0d3-1478176c7d93"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["300.200.1100+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "CompilerSupportLibraries_jll"
-            platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-            top_level = false
-            type = "dependency"
-            uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["300.200.1100+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVMOpenMP_jll"
-            platforms = ["x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd"]
-            top_level = false
-            type = "dependency"
-            uuid = "1d63c593-3942-5779-bab2-d838dc0a180e"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["300.200.1100+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libscsindir"]
-            type = "lib"
-            variable_name = "libscsindir"
-            [["300.200.1100+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libscsdir"]
-            type = "lib"
-            variable_name = "libscsdir"
-
-            [["300.200.1100+0".artifact_metadata.metadata.sources]]
-            hash = "e2f2148b6db2055fbdea58ceae28a29b07cc681d"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/cvxgrp/scs.git"

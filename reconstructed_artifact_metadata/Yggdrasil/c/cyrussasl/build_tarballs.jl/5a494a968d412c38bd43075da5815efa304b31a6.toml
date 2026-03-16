@@ -1,0 +1,107 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "CyrusSASL"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/cyrus-sasl-*/\nif [[ \"${target}\" == *-mingw* ]]; then\n    # Patches from\n    # https://github.com/msys2/MINGW-packages/tree/0e912fe13aa3583d9afd2ec100ca6c285f553e8f/mingw-w64-cyrus-sasl\n    cp ../patches/pathtools.* lib\n    atomic_patch -p1 ../patches/04-manpage-paths.patch\n    atomic_patch -p1 ../patches/16-MinGW-w64-define-WIN32_LEAN_AND_MEAN-avoiding-handle_t-redef.patch\n    atomic_patch -p1 ../patches/19-paths-relocation.patch\n    atomic_patch -p1 ../patches/20-mingw-tchar.patch\n    atomic_patch -p1 ../patches/21-fix-getopt-guard.patch\n    atomic_patch -p1 ../patches/22-autoconf-prevent-full-path-resolution.patch\n    atomic_patch -p1 ../patches/23-Fix-building-digest-plugin.patch\n\n    # Remove incompatible typedef\n    atomic_patch -p1 ../patches/30-remove-extra-incompatible-typedef.patch\nfi\nif [[ \"${target}\" == *-apple-darwin* ]]; then\n    atomic_patch -p1 ../patches/macos-shared-lib-extension.patch\n    atomic_patch -p1 ../patches/macos-libdigestmd5-links-libcrypto.patch\nfi\nautoreconf -vi\nif [[ \"${target}\" == *-mingw* ]]; then\n    # Copy the right header file for Windows into `include/`...\n    cp win32/include/md5global.h include/md5global.h\n\n    # ...and don't regenerate a wrong one with `make.  This patch needs to be\n    # applied _after_ autoreconf, which seems to somehow revert the changes :-(\n    atomic_patch -p1 ../patches/31-do-not-make-mdf5global_h.patch\n\n    if [[ \"${target}\" == x86_64-* ]]; then\n        # On x86_64 mingw32 the import libraries of OpenSSL are in `lib64/`.\n        export LDFLAGS=\"-L${prefix}/lib64\"\n    fi\nfi\n./configure --prefix=${prefix} \\\n    --build=${MACHTYPE} --host=${target} \\\n    --with-openssl=${prefix} \\\n    --with-sqlite3=${prefix} \\\n    --oldincludedir=${includedir} \\\n    --enable-ntlm \\\n    --disable-gssapi \\\n    --with-dblib=gdbm \\\n    --disable-static \\\n    --disable-ldapdb \\\n    --without-saslauthd \\\n    --without-pwcheck \\\n    --without-des \\\n    --without-authdaemond \\\n    --disable-sample \\\n    --with-plugindir=${prefix}/lib/sasl2 \\\n    --with-configdir=${prefix}/etc/sasl2:${prefix}/etc/sasl:${prefix}/lib/sasl2\nmake -j${nproc}\nmake install\n"""
+version = "v2.1.29"
+
+[[dependencies]]
+compat = "3.0.8"
+name = "OpenSSL_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "458c3c95-2e84-50aa-8efc-19380b2a3a95"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "SQLite_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "76ed43ae-9a5d-5a62-8c75-30186b810ce8"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Gdbm_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "54ca2031-c8dd-5cab-9ed4-295edde1660f"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = ["lib/sasl2"]
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libanonymous"]
+type = "lib"
+variable_name = "libanonymous"
+[[products]]
+dir_paths = ["lib/sasl2"]
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libplain"]
+type = "lib"
+variable_name = "libplan"
+[[products]]
+dir_paths = ["lib/sasl2"]
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libscram"]
+type = "lib"
+variable_name = "libscram"
+[[products]]
+dir_paths = ["lib/sasl2"]
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libotp"]
+type = "lib"
+variable_name = "libotp"
+[[products]]
+dir_paths = ["lib/sasl2"]
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libdigestmd5"]
+type = "lib"
+variable_name = "libdigestmd5"
+[[products]]
+dir_paths = ["lib/sasl2"]
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcrammd5"]
+type = "lib"
+variable_name = "libcrammd5"
+[[products]]
+dir_paths = ["lib/sasl2"]
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libntlm"]
+type = "lib"
+variable_name = "libntlm"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsasl2"]
+type = "lib"
+variable_name = "libsasl2"
+
+[[sources]]
+hash = "7ccfc6abd01ed67c1a0924b353e526f1b766b21f42d4562ee635a8ebfc5bb38c"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/cyrusimap/cyrus-sasl/releases/download/cyrus-sasl-2.1.28/cyrus-sasl-2.1.28.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

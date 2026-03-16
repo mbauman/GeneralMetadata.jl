@@ -1,0 +1,23 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Opus"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/opus\n\nif [[ ${target} == *musl* ]]; then\n    # On musl, disable stack protection (https://www.openwall.com/lists/musl/2018/09/11/2)\n    STACK_PROTECTOR=\"--disable-stack-protector\"\nelif [[ \"${target}\" == *-mingw* ]]; then\n    # Fix error\n    #     /opt/x86_64-w64-mingw32/bin/../lib/gcc/x86_64-w64-mingw32/8.1.0/../../../../x86_64-w64-mingw32/bin/ld: src/opus_compare.o: in function `fread':\n    #     /opt/x86_64-w64-mingw32/x86_64-w64-mingw32/sys-root/include/stdio.h:812: undefined reference to `__chk_fail'\n    # See https://github.com/msys2/MINGW-packages/issues/5868#issuecomment-544107564\n    export LDFLAGS=\"-lssp\"\nfi\n\n./autogen.sh\n./configure --prefix=$prefix --host=$target --build=${MACHTYPE} \\\n            --disable-static \\\n            --enable-custom-modes \\\n            ${STACK_PROTECTOR}\nmake -j${nproc}\nmake install\n"""
+version = "v1.5.2"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libopus"]
+type = "lib"
+variable_name = "libopus"
+
+[[sources]]
+hash = "ddbe48383984d56acd9e1ab6a090c54ca6b735a6"
+type = "git"
+unpack_target = ""
+url = "https://gitlab.xiph.org/xiph/opus"

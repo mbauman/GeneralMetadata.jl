@@ -1,0 +1,50 @@
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "LibCURL"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "aarch64-apple-darwin", "armv6l-linux-gnueabihf", "armv6l-linux-musleabihf"]
+script = """cd $WORKSPACE/srcdir/curl-*\n\n# Holy crow we really configure the bitlets out of this thing\nFLAGS=(\n    # Disable....almost everything\n    --without-ssl --without-gnutls --without-gssapi\n    --without-libidn --without-libidn2 --without-libmetalink --without-librtmp\n    --without-nss --without-polarssl\n    --without-spnego --without-libpsl --disable-ares --disable-manual\n    --disable-ldap --disable-ldaps --without-zsh-functions-dir\n    --disable-static\n\n    # A few things we actually enable\n    --with-libssh2=${prefix} --with-zlib=${prefix} --with-nghttp2=${prefix}\n)\n\n\nif [[ ${target} == *mingw* ]]; then\n    # We need to tell it where to find libssh2 on windows\n    FLAGS+=(LDFLAGS=\"${LDFLAGS} -L${prefix}/bin\")\n\n    # We also need to tell it to link against schannel (native TLS library)\n    FLAGS+=(--with-schannel)\nelif [[ ${target} == *darwin* ]]; then\n    # On Darwin, we need to use SecureTransport (native TLS library)\n    FLAGS+=(--with-secure-transport)\nelse\n    # On all other systems, we use MbedTLS\n    FLAGS+=(--with-mbedtls=${prefix})\nfi\n\n./configure --prefix=$prefix --host=$target --build=${MACHTYPE} \"${FLAGS[@]}\"\nmake -j${nproc}\nmake install\ninstall_license COPYING\n"""
+version = "v7.73.0"
+
+[[dependencies]]
+name = "LibSSH2_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Zlib_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "nghttp2_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "MbedTLS_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcurl"]
+type = "lib"
+variable_name = "libcurl"
+[[products]]
+binnames = ["curl"]
+type = "exe"
+variable_name = "curl"
+
+[[sources]]
+hash = "ba98332752257b47b9dea6d8c0ad25ec1745c20424f1dd3ff2c99ab59e97cf91"
+type = "archive"
+unpack_target = ""
+url = "https://curl.haxx.se/download/curl-7.73.0.tar.gz"

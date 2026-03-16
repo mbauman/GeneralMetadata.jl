@@ -1,0 +1,32 @@
+init_block = ""
+lazy_artifacts = false
+name = "LibPQ"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir\nmake CC=$BUILD_CC VERSION_DEPS= zic\nexport ZIC=$WORKSPACE/srcdir/zic\ncd postgresql-*/\nif [[ \"${target}\" == i686-linux-musl ]]; then\n    # Small hack: swear that we're cross-compiling.  Our `i686-linux-musl` is\n    # bugged and it can run only a few programs, with the result that the\n    # configure test to check whether we're cross-compiling returns that we're\n    # doing a native build, but then it fails to run a bunch of programs during\n    # other tests.\n    sed -i 's/cross_compiling=no/cross_compiling=yes/' configure\nfi\n./configure --prefix=$prefix --host=$target --with-includes=$prefix/include --with-libraries=$prefix/lib --without-readline --without-zlib --with-openssl\nmake -C src/interfaces/libpq install\ninstall_license COPYRIGHT\n"""
+version = "v12.3.0"
+
+[[dependencies]]
+name = "OpenSSL_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libpq"]
+type = "lib"
+variable_name = "LIBPQ_HANDLE"
+
+[[sources]]
+hash = "708fd5b32a97577679d3c13824c633936f886a733fc55ab5a9240b615a105f50"
+type = "archive"
+unpack_target = ""
+url = "https://ftp.postgresql.org/pub/source/v12.3/postgresql-12.3.tar.gz"
+[[sources]]
+hash = "7d2af7120ee03df71fbca24031ccaf42404752e639196fe93c79a41b38a6d669"
+type = "archive"
+unpack_target = ""
+url = "https://data.iana.org/time-zones/releases/tzcode2020a.tar.gz"

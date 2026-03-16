@@ -1,0 +1,72 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "crun"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu"]
+script = """# check if we need to use a more recent glibc\nif [[ -f \"$prefix/usr/include/sched.h\" ]]; then\n    GLIBC_ARTIFACT_DIR=$(dirname $(dirname $(dirname $(realpath $prefix/usr/include/sched.h))))\n    rsync --archive ${GLIBC_ARTIFACT_DIR}/ /opt/${target}/${target}/sys-root/\nfi\n\ncd crun\ninstall_license COPYING\n\n./autogen.sh\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \\\n            --enable-shared --enable-dynamic \\\n            --disable-criu # missing JLL\nmake -j${nproc}\nmake install\n"""
+version = "v1.7.1"
+
+[[dependencies]]
+compat = ""
+name = "YAJL_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "libcap_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "systemd_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "libseccomp_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Glibc_jll"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "powerpc64le-linux-gnu"]
+top_level = false
+type = "builddependency"
+version-major = 2
+version-minor = 17
+version-patch = 0
+
+[[products]]
+binnames = ["crun"]
+type = "exe"
+variable_name = "crun"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcrun"]
+type = "lib"
+variable_name = "libcrun"
+
+[[sources]]
+hash = "0356bf4aff9a133d655dc13b1d9ac9424706cac4"
+type = "git"
+unpack_target = ""
+url = "https://github.com/containers/crun"

@@ -1,0 +1,55 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.7"
+lazy_artifacts = false
+name = "LibUnwind"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-unknown-freebsd", "x86_64-linux-gnu-sanitize+memory"]
+script = """cd $WORKSPACE/srcdir/libunwind*/\n\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/libunwind-prefer-extbl.patch\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/libunwind-static-arm.patch\natomic_patch -p0 ${WORKSPACE}/srcdir/patches/libunwind-configure-ppc64le.patch\natomic_patch -p0 ${WORKSPACE}/srcdir/patches/libunwind-configure-static-lzma.patch\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/libunwind-cfa-rsp.patch\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/libunwind-dwarf-table.patch\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/libunwind-non-empty-structs.patch\n\nif [[ ${bb_full_target} == *-sanitize+memory* ]]; then\n    # Install msan runtime (for clang)\n    cp -rL ${libdir}/linux/* /opt/x86_64-linux-musl/lib/clang/*/lib/linux/\nfi\n\nexport CFLAGS=\"-DPI -fPIC\"\n./configure \\\n    --prefix=${prefix} \\\n    --build=${MACHTYPE} \\\n    --host=${target} \\\n    --libdir=${libdir} \\\n    --enable-minidebuginfo \\\n    --enable-zlibdebuginfo \\\n    --disable-tests \\\n    --disable-conservative-checks\nmake -j${nproc}\nmake install\n\n# Shoe-horn liblzma.a into libunwind.a\nmkdir -p unpacked/{liblzma,libunwind}\n(cd unpacked/liblzma; ar -x ${prefix}/lib/liblzma.a)\n(cd unpacked/libunwind; ar -x ${prefix}/lib/libunwind.a)\nrm -f ${prefix}/lib/libunwind.a\nar -qc ${prefix}/lib/libunwind.a unpacked/**/*\n"""
+version = "v1.5.0"
+
+[[dependencies]]
+compat = ""
+name = "XZ_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LLVMCompilerRT_jll"
+platforms = ["x86_64-linux-gnu-sanitize+memory"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libunwind"]
+type = "lib"
+variable_name = "libunwind"
+
+[[sources]]
+hash = "90337653d92d4a13de590781371c604f9031cdb50520366aa1e3a91e1efb1017"
+type = "archive"
+unpack_target = ""
+url = "https://download.savannah.nongnu.org/releases/libunwind/libunwind-1.5.0.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

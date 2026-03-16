@@ -1,0 +1,38 @@
+lazy_artifacts = false
+name = "NetCDF"
+platforms = ["x86_64-linux-gnu", "i686-linux-gnu", "aarch64-linux-gnu", "x86_64-apple-darwin14", "x86_64-w64-mingw32", "i686-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/netcdf-c-*\n\nexport CPPFLAGS=\"-I$prefix/include\"\nexport LDFLAGS=\"-L${libdir}\"\n\nif [[ ${target} == *-mingw* ]]; then\n   export LDFLAGS=\"-L${libdir} -lhdf5-0 -lhdf5_hl-0 -lcurl-4\"\n\n   if [ ! -f ${WORKSPACE}/destdir/bin/libzlib1.dll ]; then\n       ln -s ${WORKSPACE}/destdir/bin/libz.dll ${WORKSPACE}/destdir/bin/libzlib1.dll\n   fi\n\n   ./configure --prefix=$prefix --build=${MACHTYPE} --host=${target}  --disable-utilities --enable-shared --disable-static\n\n   # linking fails with: \"libtool:   error: can't build x86_64-w64-mingw32 shared library unless -no-undefined is specified\"\n   # unless -no-undefined is added to LDFLAGS\n   make LDFLAGS=\"-no-undefined -L$prefix/bin -lhdf5-0 -lhdf5_hl-0 -lcurl-4\" -j${nproc}\n\nelif [[ \"${target}\" == *-apple-* ]]; then\n    # this file is referenced by hdf.h by not installed\n    touch /workspace/destdir/include/features.h\n\n    if [ ! -f ${libdir}/libhdf5.dylib ]; then\n        ln -s ${libdir}/libhdf5.*.dylib ${libdir}/libhdf5.dylib\n    fi\n\n    if [ ! -f ${libdir}/libhdf5_hl.dylib ]; then\n        ln -s ${libdir}/libhdf5_hl.*.dylib ${libdir}/libhdf5_hl.dylib\n    fi\n\n   ./configure --prefix=$prefix --build=${MACHTYPE} --host=${target}  --disable-utilities --enable-shared --disable-static\n   make -j${nproc}\nelse\n    # do not exist on Linux(:x86_64)\n    if [ ! -f ${libdir}/libhdf5.so ]; then\n        ln -s ${libdir}/libhdf5.so.* ${libdir}/libhdf5.so\n    fi\n\n    if [ ! -f ${libdir}/libhdf5_hl.so ]; then\n        ln -s ${libdir}/libhdf5_hl.so.* ${libdir}/libhdf5_hl.so\n    fi\n\n   ./configure --prefix=$prefix --build=${MACHTYPE} --host=${target}  --disable-utilities --enable-shared --disable-static\n   make -j${nproc}\nfi\n\nmake install\nnc-config --all\n"""
+version = "v4.7.4"
+
+[[dependencies]]
+name = "HDF5_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Zlib_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "LibCURL_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnetcdf"]
+type = "lib"
+variable_name = "libnetcdf"
+
+[[sources]]
+hash = "170c9c9020f8909811b06e1034d5ea9288b3d5bd90793e3dd27490191faa7566"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/Unidata/netcdf-c/archive/v4.7.4.zip"

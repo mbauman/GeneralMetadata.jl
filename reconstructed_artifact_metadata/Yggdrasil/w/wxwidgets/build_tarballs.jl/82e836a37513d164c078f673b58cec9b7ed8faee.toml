@@ -1,0 +1,171 @@
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "wxWidgets"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11", "aarch64-apple-darwin"]
+script = """\ncd $WORKSPACE/srcdir/wxWidgets-*\n\nif [[ \"${target}\" == *-linux-musl* ]]; then\n\n    #derived from https://github.com/wxWidgets/wxWidgets/commit/f4eae4df2a256d0c1bab1657438c2de449cdcd67?branch=f4eae4df2a256d0c1bab1657438c2de449cdcd67&diff=split\n    #this was merged on master, so probably can get rid of next release\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/musl-add-locale-functions.patch\n    \n    #help find zlib for some reason\n    export CPPFLAGS=\"-I${includedir}\"\n\n    # Delete libexpat to prevent it from being picked up by mistake\n    rm /usr/lib/libexpat.so*\n\nelif [[ \"${target}\" == *-freebsd* ]]; then\n\n    #help find libpng for some reason\n    export CPPFLAGS=\"-I${includedir}\"\n\nelif [[ \"${target}\" == *-apple* ]]; then\n\n    #see https://trac.wxwidgets.org/ticket/19159 for issue tracker and https://github.com/wxWidgets/wxWidgets/pull/2354 for source of patch\n    #this has since been merged into master, unsure about future status?\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/apple-add-bridging-commit.patch\n    \n    #fix missing symbols error - Undefined symbols for architecture x86_64: \"___isPlatformVersionAtLeast\". I think something to do with cross-compiling and we don't have access to XCode libraries??\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/osx-disable-builtin-platform-check.patch\n\nfi\n\nCONFIGURE_FLAGS=(--prefix=${prefix}\n                --build=${MACHTYPE}\n                --host=${target}\n                --includedir=${includedir}\n                --libdir=${libdir}\n                --with-libiconv=ON\n                --with-libcurl=ON\n                --with-libpng=sys\n                --with-libjpeg=sys\n                --with-libtiff=sys\n                --with-zlib=sys\n                --with-expat=sys\n                --disable-tests\n                )\n\n#wxWidgets has a couple of variants available (see \"Supported Platforms\" section https://www.wxwidgets.org/about/). \n#On Unix platforms, we'll build the wxGTK variant, on MinGW platforms we'll build the wxMSW variant, and we'll build the OSX/OSCocoa variant on mac platforms.\n\nif [[ \"${target}\" == *-apple* ]]; then\n    CONFIGURE_FLAGS+=(--with-osx_cocoa)\n    CONFIGURE_FLAGS+=(--with-macosx-version-min=10.12)\nelif [[ \"${target}\" == *-mingw* ]]; then\n    CONFIGURE_FLAGS+=(--with-msw)\nelse\n    CONFIGURE_FLAGS+=(--with-gtk=3)\nfi\n\n./configure ${CONFIGURE_FLAGS[@]}\n\n# Override insane script which tries to code sign **all** libraries in\n# ${libdir}, seriously??\necho > change-install-names\n\nmake -j${nproc}\nmake install\n\ninstall_license docs/preamble.txt docs/licence.txt docs/licendoc.txt docs/gpl.txt docs/lgpl.txt docs/xserver.txt\n"""
+version = "v3.1.5"
+
+[[dependencies]]
+compat = ""
+name = "libpng_jll"
+type = "dependency"
+uuid = "b53b4c65-9356-5827-b1ea-8c7a1a84506f"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "JpegTurbo_jll"
+type = "dependency"
+uuid = "aacddb02-875f-59d6-b918-886e6ef4fbf8"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Libtiff_jll"
+type = "dependency"
+uuid = "89763e89-9b03-5906-acba-b20f662cd828"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LibCURL_jll"
+type = "dependency"
+uuid = "deac9b47-8bc7-5906-a0fe-35ac56dc84c0"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "GTK3_jll"
+type = "dependency"
+uuid = "77ec8976-b24b-556a-a1bf-49a033a670a6"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+type = "dependency"
+uuid = "83775a58-1f1d-513f-b197-d71354ab007a"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_xorgproto_jll"
+type = "builddependency"
+uuid = "c4d99508-4286-5418-9131-c86396af500b"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "2.2.10"
+name = "Expat_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["wxrc-3.1"]
+type = "exe"
+variable_name = "wxrc"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libwx_baseu-3.1", "wxbase315u_gcc_custom", "libwx_baseu-3.1-x86_64-apple-darwin14", "libwx_baseu-3.1-aarch64-apple-darwin20"]
+type = "lib"
+variable_name = "baseu"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libwx_baseu_net-3.1", "wxbase315u_net_gcc_custom", "libwx_baseu_net-3.1-x86_64-apple-darwin14", "libwx_baseu_net-3.1-aarch64-apple-darwin20"]
+type = "lib"
+variable_name = "baseu_net"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libwx_baseu_xml-3.1", "wxbase315u_xml_gcc_custom", "libwx_baseu_xml-3.1-x86_64-apple-darwin14", "libwx_baseu_xml-3.1-aarch64-apple-darwin20"]
+type = "lib"
+variable_name = "baseu_xml"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libwx_gtk3u_aui-3.1", "wxmsw315u_aui_gcc_custom", "libwx_osx_cocoau_aui-3.1-x86_64-apple-darwin14", "libwx_osx_cocoau_aui-3.1-aarch64-apple-darwin20"]
+type = "lib"
+variable_name = "aui"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libwx_gtk3u_core-3.1", "wxmsw315u_core_gcc_custom", "libwx_osx_cocoau_core-3.1-x86_64-apple-darwin14", "libwx_osx_cocoau_core-3.1-aarch64-apple-darwin20"]
+type = "lib"
+variable_name = "core"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libwx_gtk3u_html-3.1", "wxmsw315u_html_gcc_custom", "libwx_osx_cocoau_html-3.1-x86_64-apple-darwin14", "libwx_osx_cocoau_html-3.1-aarch64-apple-darwin20"]
+type = "lib"
+variable_name = "html"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libwx_gtk3u_propgrid-3.1", "wxmsw315u_propgrid_gcc_custom", "libwx_osx_cocoau_propgrid-3.1-x86_64-apple-darwin14", "libwx_osx_cocoau_propgrid-3.1-aarch64-apple-darwin20"]
+type = "lib"
+variable_name = "propgrid"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libwx_gtk3u_qa-3.1", "wxmsw315u_qa_gcc_custom", "libwx_osx_cocoau_qa-3.1-x86_64-apple-darwin14", "libwx_osx_cocoau_qa-3.1-aarch64-apple-darwin20"]
+type = "lib"
+variable_name = "qa"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libwx_gtk3u_ribbon-3.1", "wxmsw315u_ribbon_gcc_custom", "libwx_osx_cocoau_ribbon-3.1-x86_64-apple-darwin14", "libwx_osx_cocoau_ribbon-3.1-aarch64-apple-darwin20"]
+type = "lib"
+variable_name = "ribbon"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libwx_gtk3u_richtext-3.1", "wxmsw315u_richtext_gcc_custom", "libwx_osx_cocoau_richtext-3.1-x86_64-apple-darwin14", "libwx_osx_cocoau_richtext-3.1-aarch64-apple-darwin20"]
+type = "lib"
+variable_name = "richtext"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libwx_gtk3u_stc-3.1", "wxmsw315u_stc_gcc_custom", "libwx_osx_cocoau_stc-3.1-x86_64-apple-darwin14", "libwx_osx_cocoau_stc-3.1-aarch64-apple-darwin20"]
+type = "lib"
+variable_name = "stc"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libwx_gtk3u_xrc-3.1", "wxmsw315u_xrc_gcc_custom", "libwx_osx_cocoau_xrc-3.1-x86_64-apple-darwin14", "libwx_osx_cocoau_xrc-3.1-aarch64-apple-darwin20"]
+type = "lib"
+variable_name = "xrc"
+
+[[sources]]
+hash = "e8fd5f9fbff864562aa4d9c094f898c97f5e1274c90f25beb0bfd5cb61319dea"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/wxWidgets/wxWidgets/archive/refs/tags/v3.1.5.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

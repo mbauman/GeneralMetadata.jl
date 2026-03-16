@@ -9,42 +9,10 @@ registered = 2020-03-04T00:45:24.000Z
     [["16.2.0+2".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+2/p7zip.v16.2.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+2/p7zip.v16.2.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+2/p7zip.v16.2.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+2/p7zip.v16.2.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+2/p7zip.v16.2.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+2/p7zip.v16.2.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+2/p7zip.v16.2.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+2/p7zip.v16.2.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+2/p7zip.v16.2.0.x86_64-apple-darwin14.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+2/p7zip.v16.2.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+2/p7zip.v16.2.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+2/p7zip.v16.2.0.x86_64-unknown-freebsd11.1.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+2/p7zip.v16.2.0.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/0c1a6c722ba317557d2469558d366eb59174c190/P/p7zip/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/p/p7zip/build_tarballs.jl/0c1a6c722ba317557d2469558d366eb59174c190.toml"
     metadata_source = "retrospective (by timestamp)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.2.3"
-
-        ["16.2.0+2".artifact_metadata.metadata]
-        dependencies = []
-        lazy_artifacts = false
-        name = "p7zip"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd $WORKSPACE/srcdir/p7zip_*/\n\nif [[ ${target} == *mingw* ]]; then\n    # It's incredibly frustrating to build p7zip on mingw, so instead we just redistribute 7z\n    apk add p7zip\n\n    mkdir ${prefix}/bin\n    cd ${prefix}/bin\n    if [[ ${target} == i686* ]]; then\n        7z x -y ${WORKSPACE}/srcdir/7z1900.exe 7z.exe 7z.dll\n    else\n        7z x -y ${WORKSPACE}/srcdir/7z1900-x64.exe 7z.exe 7z.dll\n    fi\n    chmod +x 7z.exe 7z.dll\nelse\n    # Build requirements\n    apk add nasm yasm\n\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/12-CVE-2016-9296.patch\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/13-CVE-2017-17969.patch\n    atomic_patch -p4 ${WORKSPACE}/srcdir/patches/15-Enhanced-encryption-strength.patch\n\n    # Convert from target to makefile:\n    target_makefile()\n    {\n        case \"${target}\" in\n            x86_64-linux*)       echo makefile.linux_amd64_asm;;\n            i686-linux*)         echo makefile.linux_x86_asm_gcc_4.X;;\n            powerpc64le*linux*)  echo makefile.linux_cross_ppc64le;;\n            aarch64*linux*)      echo makefile.linux_cross_aarch64;;\n            arm-*linux*)         echo makefile.linux_cross_arm;;\n            x86_64-*freebsd*)    echo makefile.freebsd6+;;\n            x86_64-*darwin*)     echo makefile.macosx_llvm_64bits;;\n        esac\n    }\n    cp $(target_makefile) makefile.machine\n\n    # clang doesn't like this c++11 narrowing, so we disable the error\n    if [[ \"${target}\" == *darwin* ]] || [[ \"${target}\" == *freebsd* ]]; then\n        CXXFLAGS=\"${CXXFLAGS} -Wno-c++11-narrowing\"\n    fi\n\n    make -j${nproc} 7za CC=\"${CC} ${CFLAGS}\" CXX=\"${CXX} ${CXXFLAGS}\"\n    mkdir -p ${prefix}/bin\n    cp -a bin/7za ${prefix}/bin/7z\nfi\n"""
-        version = "v16.2.0"
-
-            [["16.2.0+2".artifact_metadata.metadata.products]]
-            binnames = ["7z"]
-            type = "exe"
-            variable_name = "p7zip"
-
-            [["16.2.0+2".artifact_metadata.metadata.sources]]
-            hash = "5eb20ac0e2944f6cb9c2d51dd6c4518941c185347d4089ea89087ffdd6e2341f"
-            type = "archive"
-            unpack_target = ""
-            url = "https://downloads.sourceforge.net/project/p7zip/p7zip/16.02/p7zip_16.02_src_all.tar.bz2"
-            [["16.2.0+2".artifact_metadata.metadata.sources]]
-            filename = "7z1900.exe"
-            hash = "759aa04d5b03ebeee13ba01df554e8c962ca339c74f56627c8bed6984bb7ef80"
-            type = "file"
-            url = "https://downloads.sourceforge.net/project/sevenzip/7-Zip/19.00/7z1900.exe"
-            [["16.2.0+2".artifact_metadata.metadata.sources]]
-            filename = "7z1900-x64.exe"
-            hash = "0f5d4dbbe5e55b7aa31b91e5925ed901fdf46a367491d81381846f05ad54c45e"
-            type = "file"
-            url = "https://downloads.sourceforge.net/project/sevenzip/7-Zip/19.00/7z1900-x64.exe"
-            [["16.2.0+2".artifact_metadata.metadata.sources]]
-            path = "./bundled"
-            target = ""
-            type = "directory"
 
 ["16.2.0+3"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+2/p7zip.v16.2.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+2/p7zip.v16.2.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+2/p7zip.v16.2.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+2/p7zip.v16.2.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+2/p7zip.v16.2.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+2/p7zip.v16.2.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+2/p7zip.v16.2.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+2/p7zip.v16.2.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+2/p7zip.v16.2.0.x86_64-apple-darwin14.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+2/p7zip.v16.2.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+2/p7zip.v16.2.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+2/p7zip.v16.2.0.x86_64-unknown-freebsd11.1.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+2/p7zip.v16.2.0.x86_64-w64-mingw32.tar.gz"]
@@ -53,42 +21,10 @@ registered = 2020-10-18T22:59:04.000Z
     [["16.2.0+3".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+2/p7zip.v16.2.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+2/p7zip.v16.2.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+2/p7zip.v16.2.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+2/p7zip.v16.2.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+2/p7zip.v16.2.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+2/p7zip.v16.2.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+2/p7zip.v16.2.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+2/p7zip.v16.2.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+2/p7zip.v16.2.0.x86_64-apple-darwin14.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+2/p7zip.v16.2.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+2/p7zip.v16.2.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+2/p7zip.v16.2.0.x86_64-unknown-freebsd11.1.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+2/p7zip.v16.2.0.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/0c1a6c722ba317557d2469558d366eb59174c190/P/p7zip/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/p/p7zip/build_tarballs.jl/0c1a6c722ba317557d2469558d366eb59174c190.toml"
     metadata_source = "retrospective (by timestamp)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.2.3"
-
-        ["16.2.0+3".artifact_metadata.metadata]
-        dependencies = []
-        lazy_artifacts = false
-        name = "p7zip"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd $WORKSPACE/srcdir/p7zip_*/\n\nif [[ ${target} == *mingw* ]]; then\n    # It's incredibly frustrating to build p7zip on mingw, so instead we just redistribute 7z\n    apk add p7zip\n\n    mkdir ${prefix}/bin\n    cd ${prefix}/bin\n    if [[ ${target} == i686* ]]; then\n        7z x -y ${WORKSPACE}/srcdir/7z1900.exe 7z.exe 7z.dll\n    else\n        7z x -y ${WORKSPACE}/srcdir/7z1900-x64.exe 7z.exe 7z.dll\n    fi\n    chmod +x 7z.exe 7z.dll\nelse\n    # Build requirements\n    apk add nasm yasm\n\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/12-CVE-2016-9296.patch\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/13-CVE-2017-17969.patch\n    atomic_patch -p4 ${WORKSPACE}/srcdir/patches/15-Enhanced-encryption-strength.patch\n\n    # Convert from target to makefile:\n    target_makefile()\n    {\n        case \"${target}\" in\n            x86_64-linux*)       echo makefile.linux_amd64_asm;;\n            i686-linux*)         echo makefile.linux_x86_asm_gcc_4.X;;\n            powerpc64le*linux*)  echo makefile.linux_cross_ppc64le;;\n            aarch64*linux*)      echo makefile.linux_cross_aarch64;;\n            arm-*linux*)         echo makefile.linux_cross_arm;;\n            x86_64-*freebsd*)    echo makefile.freebsd6+;;\n            x86_64-*darwin*)     echo makefile.macosx_llvm_64bits;;\n        esac\n    }\n    cp $(target_makefile) makefile.machine\n\n    # clang doesn't like this c++11 narrowing, so we disable the error\n    if [[ \"${target}\" == *darwin* ]] || [[ \"${target}\" == *freebsd* ]]; then\n        CXXFLAGS=\"${CXXFLAGS} -Wno-c++11-narrowing\"\n    fi\n\n    make -j${nproc} 7za CC=\"${CC} ${CFLAGS}\" CXX=\"${CXX} ${CXXFLAGS}\"\n    mkdir -p ${prefix}/bin\n    cp -a bin/7za ${prefix}/bin/7z\nfi\n"""
-        version = "v16.2.0"
-
-            [["16.2.0+3".artifact_metadata.metadata.products]]
-            binnames = ["7z"]
-            type = "exe"
-            variable_name = "p7zip"
-
-            [["16.2.0+3".artifact_metadata.metadata.sources]]
-            hash = "5eb20ac0e2944f6cb9c2d51dd6c4518941c185347d4089ea89087ffdd6e2341f"
-            type = "archive"
-            unpack_target = ""
-            url = "https://downloads.sourceforge.net/project/p7zip/p7zip/16.02/p7zip_16.02_src_all.tar.bz2"
-            [["16.2.0+3".artifact_metadata.metadata.sources]]
-            filename = "7z1900.exe"
-            hash = "759aa04d5b03ebeee13ba01df554e8c962ca339c74f56627c8bed6984bb7ef80"
-            type = "file"
-            url = "https://downloads.sourceforge.net/project/sevenzip/7-Zip/19.00/7z1900.exe"
-            [["16.2.0+3".artifact_metadata.metadata.sources]]
-            filename = "7z1900-x64.exe"
-            hash = "0f5d4dbbe5e55b7aa31b91e5925ed901fdf46a367491d81381846f05ad54c45e"
-            type = "file"
-            url = "https://downloads.sourceforge.net/project/sevenzip/7-Zip/19.00/7z1900-x64.exe"
-            [["16.2.0+3".artifact_metadata.metadata.sources]]
-            path = "./bundled"
-            target = ""
-            type = "directory"
 
 ["16.2.0+4"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+4/p7zip.v16.2.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+4/p7zip.v16.2.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+4/p7zip.v16.2.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+4/p7zip.v16.2.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+4/p7zip.v16.2.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+4/p7zip.v16.2.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+4/p7zip.v16.2.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+4/p7zip.v16.2.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+4/p7zip.v16.2.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+4/p7zip.v16.2.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+4/p7zip.v16.2.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+4/p7zip.v16.2.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+4/p7zip.v16.2.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+4/p7zip.v16.2.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+4/p7zip.v16.2.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+4/p7zip.v16.2.0.x86_64-w64-mingw32.tar.gz"]
@@ -98,45 +34,10 @@ yanked = 2020-10-22T21:23:56.000Z
     [["16.2.0+4".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+4/p7zip.v16.2.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+4/p7zip.v16.2.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+4/p7zip.v16.2.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+4/p7zip.v16.2.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+4/p7zip.v16.2.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+4/p7zip.v16.2.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+4/p7zip.v16.2.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+4/p7zip.v16.2.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+4/p7zip.v16.2.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+4/p7zip.v16.2.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+4/p7zip.v16.2.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+4/p7zip.v16.2.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+4/p7zip.v16.2.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+4/p7zip.v16.2.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+4/p7zip.v16.2.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.0+4/p7zip.v16.2.0.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/233eaa52bc8657021207ca1e51c93ece94388404/P/p7zip/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/p/p7zip/build_tarballs.jl/233eaa52bc8657021207ca1e51c93ece94388404.toml"
     metadata_source = "retrospective (by timestamp)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.3.0"
-
-        ["16.2.0+4".artifact_metadata.metadata]
-        dependencies = []
-        init_block = ""
-        julia_compat = "1.0"
-        lazy_artifacts = false
-        name = "p7zip"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "aarch64-apple-darwin", "armv6l-linux-gnueabihf", "armv6l-linux-musleabihf"]
-        script = """cd $WORKSPACE/srcdir/p7zip_*/\n\nif [[ ${target} == *mingw* ]]; then\n    # It's incredibly frustrating to build p7zip on mingw, so instead we just redistribute 7z\n    apk add p7zip\n\n    mkdir ${prefix}/bin\n    cd ${prefix}/bin\n    if [[ ${target} == i686* ]]; then\n        7z x -y ${WORKSPACE}/srcdir/7z1900.exe 7z.exe 7z.dll\n    else\n        7z x -y ${WORKSPACE}/srcdir/7z1900-x64.exe 7z.exe 7z.dll\n    fi\n    chmod +x 7z.exe 7z.dll\nelse\n    # Build requirements\n    apk add nasm yasm\n\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/12-CVE-2016-9296.patch\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/13-CVE-2017-17969.patch\n    atomic_patch -p4 ${WORKSPACE}/srcdir/patches/15-Enhanced-encryption-strength.patch\n\n    # Convert from target to makefile:\n    target_makefile()\n    {\n        case \"${target}\" in\n            x86_64-linux*)       echo makefile.linux_amd64_asm;;\n            i686-linux*)         echo makefile.linux_x86_asm_gcc_4.X;;\n            powerpc64le*linux*)  echo makefile.linux_cross_ppc64le;;\n            aarch64*linux*)      echo makefile.linux_cross_aarch64;;\n            arm-*linux*)         echo makefile.linux_cross_arm;;\n            x86_64-*freebsd*)    echo makefile.freebsd6+;;\n            x86_64-*darwin*)     echo makefile.macosx_llvm_64bits;;\n            aarch64-*darwin*)    echo makefile.macosx_llvm_64bits;;\n        esac\n    }\n    cp $(target_makefile) makefile.machine\n\n    # clang doesn't like this c++11 narrowing, so we disable the error\n    if [[ \"${target}\" == *darwin* ]] || [[ \"${target}\" == *freebsd* ]]; then\n        CXXFLAGS=\"${CXXFLAGS} -Wno-c++11-narrowing\"\n    fi\n\n    install_license DOC/License.txt\n\n    make -j${nproc} 7za CC=\"${CC} ${CFLAGS}\" CXX=\"${CXX} ${CXXFLAGS}\"\n    mkdir -p ${prefix}/bin\n    cp -a bin/7za ${prefix}/bin/7z\nfi\n"""
-        version = "v16.2.0"
-
-            [["16.2.0+4".artifact_metadata.metadata.products]]
-            binnames = ["7z"]
-            type = "exe"
-            variable_name = "p7zip"
-
-            [["16.2.0+4".artifact_metadata.metadata.sources]]
-            hash = "5eb20ac0e2944f6cb9c2d51dd6c4518941c185347d4089ea89087ffdd6e2341f"
-            type = "archive"
-            unpack_target = ""
-            url = "https://downloads.sourceforge.net/project/p7zip/p7zip/16.02/p7zip_16.02_src_all.tar.bz2"
-            [["16.2.0+4".artifact_metadata.metadata.sources]]
-            filename = "7z1900.exe"
-            hash = "759aa04d5b03ebeee13ba01df554e8c962ca339c74f56627c8bed6984bb7ef80"
-            type = "file"
-            url = "https://downloads.sourceforge.net/project/sevenzip/7-Zip/19.00/7z1900.exe"
-            [["16.2.0+4".artifact_metadata.metadata.sources]]
-            filename = "7z1900-x64.exe"
-            hash = "0f5d4dbbe5e55b7aa31b91e5925ed901fdf46a367491d81381846f05ad54c45e"
-            type = "file"
-            url = "https://downloads.sourceforge.net/project/sevenzip/7-Zip/19.00/7z1900-x64.exe"
-            [["16.2.0+4".artifact_metadata.metadata.sources]]
-            follow_symlinks = false
-            path = "./bundled"
-            target = ""
-            type = "directory"
 
 ["16.2.1+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+0/p7zip.v16.2.1.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+0/p7zip.v16.2.1.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+0/p7zip.v16.2.1.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+0/p7zip.v16.2.1.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+0/p7zip.v16.2.1.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+0/p7zip.v16.2.1.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+0/p7zip.v16.2.1.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+0/p7zip.v16.2.1.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+0/p7zip.v16.2.1.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+0/p7zip.v16.2.1.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+0/p7zip.v16.2.1.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+0/p7zip.v16.2.1.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+0/p7zip.v16.2.1.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+0/p7zip.v16.2.1.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+0/p7zip.v16.2.1.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+0/p7zip.v16.2.1.x86_64-w64-mingw32.tar.gz"]
@@ -145,45 +46,10 @@ registered = 2020-11-04T23:13:45.000Z
     [["16.2.1+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+0/p7zip.v16.2.1.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+0/p7zip.v16.2.1.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+0/p7zip.v16.2.1.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+0/p7zip.v16.2.1.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+0/p7zip.v16.2.1.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+0/p7zip.v16.2.1.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+0/p7zip.v16.2.1.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+0/p7zip.v16.2.1.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+0/p7zip.v16.2.1.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+0/p7zip.v16.2.1.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+0/p7zip.v16.2.1.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+0/p7zip.v16.2.1.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+0/p7zip.v16.2.1.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+0/p7zip.v16.2.1.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+0/p7zip.v16.2.1.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+0/p7zip.v16.2.1.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/f38aa08d46a9106ea64477ed51dddf02ce4b6e5d/P/p7zip/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/p/p7zip/build_tarballs.jl/f38aa08d46a9106ea64477ed51dddf02ce4b6e5d.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.3.0"
-
-        ["16.2.1+0".artifact_metadata.metadata]
-        dependencies = []
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "p7zip"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "aarch64-apple-darwin", "armv6l-linux-gnueabihf", "armv6l-linux-musleabihf"]
-        script = """cd $WORKSPACE/srcdir/p7zip_*/\n\nif [[ ${target} == *mingw* ]]; then\n    # It's incredibly frustrating to build p7zip on mingw, so instead we just redistribute 7z\n    apk add p7zip\n\n    mkdir ${prefix}/bin\n    cd ${prefix}/bin\n    if [[ ${target} == i686* ]]; then\n        7z x -y ${WORKSPACE}/srcdir/7z1900.exe 7z.exe 7z.dll\n    else\n        7z x -y ${WORKSPACE}/srcdir/7z1900-x64.exe 7z.exe 7z.dll\n    fi\n    chmod +x 7z.exe 7z.dll\nelse\n    # Build requirements\n    apk add nasm yasm\n\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/12-CVE-2016-9296.patch\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/13-CVE-2017-17969.patch\n    atomic_patch -p4 ${WORKSPACE}/srcdir/patches/15-Enhanced-encryption-strength.patch\n\n    # Convert from target to makefile:\n    target_makefile()\n    {\n        case \"${target}\" in\n            x86_64-linux*)       echo makefile.linux_amd64_asm;;\n            i686-linux*)         echo makefile.linux_x86_asm_gcc_4.X;;\n            powerpc64le*linux*)  echo makefile.linux_cross_ppc64le;;\n            aarch64*linux*)      echo makefile.linux_cross_aarch64;;\n            arm-*linux*)         echo makefile.linux_cross_arm;;\n            x86_64-*freebsd*)    echo makefile.freebsd6+;;\n            x86_64-*darwin*)     echo makefile.macosx_llvm_64bits;;\n            aarch64-*darwin*)    echo makefile.macosx_llvm_64bits;;\n        esac\n    }\n    cp $(target_makefile) makefile.machine\n\n    # clang doesn't like this c++11 narrowing, so we disable the error\n    if [[ \"${target}\" == *darwin* ]] || [[ \"${target}\" == *freebsd* ]]; then\n        CXXFLAGS=\"${CXXFLAGS} -Wno-c++11-narrowing\"\n    fi\n\n    install_license DOC/License.txt\n\n    make -j${nproc} 7za CC=\"${CC} ${CFLAGS}\" CXX=\"${CXX} ${CXXFLAGS}\"\n    mkdir -p ${prefix}/bin\n    cp -a bin/7za ${prefix}/bin/7z\nfi\n"""
-        version = "v16.2.1"
-
-            [["16.2.1+0".artifact_metadata.metadata.products]]
-            binnames = ["7z"]
-            type = "exe"
-            variable_name = "p7zip"
-
-            [["16.2.1+0".artifact_metadata.metadata.sources]]
-            hash = "5eb20ac0e2944f6cb9c2d51dd6c4518941c185347d4089ea89087ffdd6e2341f"
-            type = "archive"
-            unpack_target = ""
-            url = "https://downloads.sourceforge.net/project/p7zip/p7zip/16.02/p7zip_16.02_src_all.tar.bz2"
-            [["16.2.1+0".artifact_metadata.metadata.sources]]
-            filename = "7z1900.exe"
-            hash = "759aa04d5b03ebeee13ba01df554e8c962ca339c74f56627c8bed6984bb7ef80"
-            type = "file"
-            url = "https://downloads.sourceforge.net/project/sevenzip/7-Zip/19.00/7z1900.exe"
-            [["16.2.1+0".artifact_metadata.metadata.sources]]
-            filename = "7z1900-x64.exe"
-            hash = "0f5d4dbbe5e55b7aa31b91e5925ed901fdf46a367491d81381846f05ad54c45e"
-            type = "file"
-            url = "https://downloads.sourceforge.net/project/sevenzip/7-Zip/19.00/7z1900-x64.exe"
-            [["16.2.1+0".artifact_metadata.metadata.sources]]
-            follow_symlinks = false
-            path = "./bundled"
-            target = ""
-            type = "directory"
 
 ["16.2.1+1"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+1/p7zip.v16.2.1.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+1/p7zip.v16.2.1.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+1/p7zip.v16.2.1.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+1/p7zip.v16.2.1.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+1/p7zip.v16.2.1.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+1/p7zip.v16.2.1.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+1/p7zip.v16.2.1.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+1/p7zip.v16.2.1.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+1/p7zip.v16.2.1.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+1/p7zip.v16.2.1.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+1/p7zip.v16.2.1.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+1/p7zip.v16.2.1.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+1/p7zip.v16.2.1.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+1/p7zip.v16.2.1.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+1/p7zip.v16.2.1.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+1/p7zip.v16.2.1.x86_64-w64-mingw32.tar.gz"]
@@ -192,45 +58,10 @@ registered = 2021-02-28T23:41:55.000Z
     [["16.2.1+1".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+1/p7zip.v16.2.1.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+1/p7zip.v16.2.1.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+1/p7zip.v16.2.1.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+1/p7zip.v16.2.1.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+1/p7zip.v16.2.1.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+1/p7zip.v16.2.1.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+1/p7zip.v16.2.1.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+1/p7zip.v16.2.1.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+1/p7zip.v16.2.1.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+1/p7zip.v16.2.1.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+1/p7zip.v16.2.1.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+1/p7zip.v16.2.1.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+1/p7zip.v16.2.1.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+1/p7zip.v16.2.1.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+1/p7zip.v16.2.1.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+1/p7zip.v16.2.1.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/5578f14583aeb7db58a3027c2e1f6c8f2190c4a7/P/p7zip/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/p/p7zip/build_tarballs.jl/5578f14583aeb7db58a3027c2e1f6c8f2190c4a7.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.3.0"
-
-        ["16.2.1+1".artifact_metadata.metadata]
-        dependencies = []
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "p7zip"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "aarch64-apple-darwin", "armv6l-linux-gnueabihf", "armv6l-linux-musleabihf"]
-        script = """cd $WORKSPACE/srcdir/p7zip_*/\n\nif [[ ${target} == *mingw* ]]; then\n    # It's incredibly frustrating to build p7zip on mingw, so instead we just redistribute 7z\n    apk add p7zip\n\n    mkdir ${prefix}/bin\n    cd ${prefix}/bin\n    if [[ ${target} == i686* ]]; then\n        7z x -y ${WORKSPACE}/srcdir/7z1900.exe 7z.exe 7z.dll\n    else\n        7z x -y ${WORKSPACE}/srcdir/7z1900-x64.exe 7z.exe 7z.dll\n    fi\n    chmod +x 7z.exe 7z.dll\nelse\n    # Build requirements\n    apk add nasm yasm\n\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/12-CVE-2016-9296.patch\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/13-CVE-2017-17969.patch\n    atomic_patch -p4 ${WORKSPACE}/srcdir/patches/15-Enhanced-encryption-strength.patch\n\n    # Convert from target to makefile:\n    target_makefile()\n    {\n        case \"${target}\" in\n            x86_64-linux*)       echo makefile.linux_amd64_asm;;\n            i686-linux*)         echo makefile.linux_x86_asm_gcc_4.X;;\n            powerpc64le*linux*)  echo makefile.linux_cross_ppc64le;;\n            aarch64*linux*)      echo makefile.linux_cross_aarch64;;\n            arm-*linux*)         echo makefile.linux_cross_arm;;\n            x86_64-*freebsd*)    echo makefile.freebsd6+;;\n            x86_64-*darwin*)     echo makefile.macosx_llvm_64bits;;\n            aarch64-*darwin*)    echo makefile.macosx_llvm_64bits;;\n        esac\n    }\n    cp $(target_makefile) makefile.machine\n\n    # clang doesn't like this c++11 narrowing, so we disable the error\n    if [[ \"${target}\" == *darwin* ]] || [[ \"${target}\" == *freebsd* ]]; then\n        CXXFLAGS=\"${CXXFLAGS} -Wno-c++11-narrowing\"\n    fi\n\n    install_license DOC/License.txt\n\n    make -j${nproc} 7za CC=\"${CC} ${CFLAGS}\" CXX=\"${CXX} ${CXXFLAGS}\"\n    mkdir -p ${prefix}/bin\n    cp -a bin/7za ${prefix}/bin/7z\nfi\n"""
-        version = "v16.2.1"
-
-            [["16.2.1+1".artifact_metadata.metadata.products]]
-            binnames = ["7z"]
-            type = "exe"
-            variable_name = "p7zip"
-
-            [["16.2.1+1".artifact_metadata.metadata.sources]]
-            hash = "5eb20ac0e2944f6cb9c2d51dd6c4518941c185347d4089ea89087ffdd6e2341f"
-            type = "archive"
-            unpack_target = ""
-            url = "https://downloads.sourceforge.net/project/p7zip/p7zip/16.02/p7zip_16.02_src_all.tar.bz2"
-            [["16.2.1+1".artifact_metadata.metadata.sources]]
-            filename = "7z1900.exe"
-            hash = "759aa04d5b03ebeee13ba01df554e8c962ca339c74f56627c8bed6984bb7ef80"
-            type = "file"
-            url = "https://downloads.sourceforge.net/project/sevenzip/7-Zip/19.00/7z1900.exe"
-            [["16.2.1+1".artifact_metadata.metadata.sources]]
-            filename = "7z1900-x64.exe"
-            hash = "0f5d4dbbe5e55b7aa31b91e5925ed901fdf46a367491d81381846f05ad54c45e"
-            type = "file"
-            url = "https://downloads.sourceforge.net/project/sevenzip/7-Zip/19.00/7z1900-x64.exe"
-            [["16.2.1+1".artifact_metadata.metadata.sources]]
-            follow_symlinks = false
-            path = "./bundled"
-            target = ""
-            type = "directory"
 
 ["16.2.1+2"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+2/p7zip.v16.2.1.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+2/p7zip.v16.2.1.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+2/p7zip.v16.2.1.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+2/p7zip.v16.2.1.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+2/p7zip.v16.2.1.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+2/p7zip.v16.2.1.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+2/p7zip.v16.2.1.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+2/p7zip.v16.2.1.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+2/p7zip.v16.2.1.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+2/p7zip.v16.2.1.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+2/p7zip.v16.2.1.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+2/p7zip.v16.2.1.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+2/p7zip.v16.2.1.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+2/p7zip.v16.2.1.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+2/p7zip.v16.2.1.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+2/p7zip.v16.2.1.x86_64-w64-mingw32.tar.gz"]
@@ -239,45 +70,10 @@ registered = 2021-08-13T16:31:16.000Z
     [["16.2.1+2".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+2/p7zip.v16.2.1.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+2/p7zip.v16.2.1.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+2/p7zip.v16.2.1.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+2/p7zip.v16.2.1.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+2/p7zip.v16.2.1.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+2/p7zip.v16.2.1.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+2/p7zip.v16.2.1.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+2/p7zip.v16.2.1.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+2/p7zip.v16.2.1.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+2/p7zip.v16.2.1.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+2/p7zip.v16.2.1.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+2/p7zip.v16.2.1.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+2/p7zip.v16.2.1.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+2/p7zip.v16.2.1.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+2/p7zip.v16.2.1.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v16.2.1+2/p7zip.v16.2.1.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/163d506eaf7596304f152b4f47f3a627453ff048/P/p7zip/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/p/p7zip/build_tarballs.jl/163d506eaf7596304f152b4f47f3a627453ff048.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.4.1"
-
-        ["16.2.1+2".artifact_metadata.metadata]
-        dependencies = []
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "p7zip"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "aarch64-apple-darwin", "armv6l-linux-gnueabihf", "armv6l-linux-musleabihf"]
-        script = """cd $WORKSPACE/srcdir/p7zip_*/\n\nif [[ ${target} == *mingw* ]]; then\n    # It's incredibly frustrating to build p7zip on mingw, so instead we just redistribute 7z\n    apk add p7zip\n\n    mkdir ${prefix}/bin\n    cd ${prefix}/bin\n    if [[ ${target} == i686* ]]; then\n        7z x -y ${WORKSPACE}/srcdir/7z1900.exe 7z.exe 7z.dll\n    else\n        7z x -y ${WORKSPACE}/srcdir/7z1900-x64.exe 7z.exe 7z.dll\n    fi\n    chmod +x 7z.exe 7z.dll\nelse\n    # Build requirements\n    apk add nasm yasm\n\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/12-CVE-2016-9296.patch\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/13-CVE-2017-17969.patch\n    atomic_patch -p4 ${WORKSPACE}/srcdir/patches/15-Enhanced-encryption-strength.patch\n\n    # Convert from target to makefile\n    target_makefile()\n    {\n        case \"${target}\" in\n            x86_64-linux*)       echo makefile.linux_amd64_asm;;\n            i686-linux*)         echo makefile.linux_x86_asm_gcc_4.X;;\n            powerpc64le*linux*)  echo makefile.linux_cross_ppc64le;;\n            aarch64*linux*)      echo makefile.linux_cross_aarch64;;\n            arm-*linux*)         echo makefile.linux_cross_arm;;\n            x86_64-*freebsd*)    echo makefile.freebsd6+;;\n            x86_64-*darwin*)     echo makefile.macosx_llvm_64bits;;\n            aarch64-*darwin*)    echo makefile.macosx_llvm_64bits;;\n        esac\n    }\n    cp $(target_makefile) makefile.machine\n\n    # clang doesn't like this c++11 narrowing, so we disable the error\n    if [[ \"${target}\" == *darwin* ]] || [[ \"${target}\" == *freebsd* ]]; then\n        CXXFLAGS=\"${CXXFLAGS} -Wno-c++11-narrowing\"\n    fi\n\n    install_license DOC/License.txt\n\n    make -j${nproc} 7za CC=\"${CC} ${CFLAGS}\" CXX=\"${CXX} ${CXXFLAGS}\"\n    mkdir -p ${prefix}/bin\n    cp -a bin/7za ${prefix}/bin/7z\nfi\n"""
-        version = "v16.2.1"
-
-            [["16.2.1+2".artifact_metadata.metadata.products]]
-            binnames = ["7z"]
-            type = "exe"
-            variable_name = "p7zip"
-
-            [["16.2.1+2".artifact_metadata.metadata.sources]]
-            hash = "5eb20ac0e2944f6cb9c2d51dd6c4518941c185347d4089ea89087ffdd6e2341f"
-            type = "archive"
-            unpack_target = ""
-            url = "https://downloads.sourceforge.net/project/p7zip/p7zip/16.02/p7zip_16.02_src_all.tar.bz2"
-            [["16.2.1+2".artifact_metadata.metadata.sources]]
-            filename = "7z1900.exe"
-            hash = "759aa04d5b03ebeee13ba01df554e8c962ca339c74f56627c8bed6984bb7ef80"
-            type = "file"
-            url = "https://downloads.sourceforge.net/project/sevenzip/7-Zip/19.00/7z1900.exe"
-            [["16.2.1+2".artifact_metadata.metadata.sources]]
-            filename = "7z1900-x64.exe"
-            hash = "0f5d4dbbe5e55b7aa31b91e5925ed901fdf46a367491d81381846f05ad54c45e"
-            type = "file"
-            url = "https://downloads.sourceforge.net/project/sevenzip/7-Zip/19.00/7z1900-x64.exe"
-            [["16.2.1+2".artifact_metadata.metadata.sources]]
-            follow_symlinks = false
-            path = "./bundled"
-            target = ""
-            type = "directory"
 
 ["17.4.0+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+0/p7zip.v17.4.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+0/p7zip.v17.4.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+0/p7zip.v17.4.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+0/p7zip.v17.4.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+0/p7zip.v17.4.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+0/p7zip.v17.4.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+0/p7zip.v17.4.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+0/p7zip.v17.4.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+0/p7zip.v17.4.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+0/p7zip.v17.4.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+0/p7zip.v17.4.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+0/p7zip.v17.4.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+0/p7zip.v17.4.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+0/p7zip.v17.4.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+0/p7zip.v17.4.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+0/p7zip.v17.4.0.x86_64-w64-mingw32.tar.gz"]
@@ -286,41 +82,10 @@ registered = 2022-05-24T07:20:37.000Z
     [["17.4.0+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+0/p7zip.v17.4.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+0/p7zip.v17.4.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+0/p7zip.v17.4.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+0/p7zip.v17.4.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+0/p7zip.v17.4.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+0/p7zip.v17.4.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+0/p7zip.v17.4.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+0/p7zip.v17.4.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+0/p7zip.v17.4.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+0/p7zip.v17.4.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+0/p7zip.v17.4.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+0/p7zip.v17.4.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+0/p7zip.v17.4.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+0/p7zip.v17.4.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+0/p7zip.v17.4.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+0/p7zip.v17.4.0.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/f142fab6ea0196a322d9ee201bc4ac49488eb967/P/p7zip/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/p/p7zip/build_tarballs.jl/f142fab6ea0196a322d9ee201bc4ac49488eb967.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.5.3"
-
-        ["17.4.0+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        dependencies = []
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "p7zip"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd $WORKSPACE/srcdir/p7zip-*/\n\nif [[ ${target} == *mingw* ]]; then\n    # It's incredibly frustrating to build p7zip on mingw, so instead we just redistribute 7z\n    apk add p7zip\n\n    if [[ ${target} == i686* ]]; then\n        7z x -y ${WORKSPACE}/srcdir/7z2107.exe 7z.exe 7z.dll License.txt\n    else\n        7z x -y ${WORKSPACE}/srcdir/7z2107-x64.exe 7z.exe 7z.dll License.txt\n    fi\n\n    install_license License.txt\n\n    chmod +x 7z.exe 7z.dll\n    mkdir ${prefix}/bin\n    cp -a 7z.exe 7z.dll ${prefix}/bin\nelse\n    # Build requirements\n    apk add nasm yasm\n\n    # Convert from target to makefile\n    target_makefile()\n    {\n        case \"${target}\" in\n            x86_64-linux*)       echo makefile.linux_amd64_asm;;\n            i686-linux*)         echo makefile.linux_x86_asm_gcc_4.X;;\n            powerpc64le*linux*)  echo makefile.linux_cross_ppc64le;;\n            aarch64*linux*)      echo makefile.linux_cross_aarch64;;\n            arm-*linux*)         echo makefile.linux_cross_arm;;\n            x86_64-*freebsd*)    echo makefile.freebsd6+;;\n            x86_64-*darwin*)     echo makefile.macosx_llvm_64bits;;\n            aarch64-*darwin*)    echo makefile.macosx_llvm_64bits;;\n        esac\n    }\n    cp $(target_makefile) makefile.machine\n\n    # clang doesn't like this c++11 narrowing, so we disable the error\n    if [[ \"${target}\" == *darwin* ]] || [[ \"${target}\" == *freebsd* ]]; then\n        CXXFLAGS=\"${CXXFLAGS} -Wno-c++11-narrowing\"\n    fi\n\n    install_license DOC/License.txt\n\n    make -j${nproc} 7za CC=\"${CC} ${CFLAGS}\" CXX=\"${CXX} ${CXXFLAGS}\"\n    mkdir -p ${prefix}/bin\n    cp -a bin/7za ${prefix}/bin/7z\nfi\n"""
-        version = "v17.4.0"
-
-            [["17.4.0+0".artifact_metadata.metadata.products]]
-            binnames = ["7z"]
-            type = "exe"
-            variable_name = "p7zip"
-
-            [["17.4.0+0".artifact_metadata.metadata.sources]]
-            hash = "ea029a2e21d2d6ad0a156f6679bd66836204aa78148a4c5e498fe682e77127ef"
-            type = "archive"
-            unpack_target = ""
-            url = "https://github.com/jinfeihan57/p7zip/archive/refs/tags/v17.04.tar.gz"
-            [["17.4.0+0".artifact_metadata.metadata.sources]]
-            filename = "7z2107.exe"
-            hash = "71e94e6038f4d42ed8f0f38c0e6c3846f21d13527139efa9ef8b8f6312ab6c90"
-            type = "file"
-            url = "https://downloads.sourceforge.net/project/sevenzip/7-Zip/21.07/7z2107.exe"
-            [["17.4.0+0".artifact_metadata.metadata.sources]]
-            filename = "7z2107-x64.exe"
-            hash = "0b461f0a0eccfc4f39733a80d70fd1210fdd69f600fb6b657e03940a734e5fc1"
-            type = "file"
-            url = "https://downloads.sourceforge.net/project/sevenzip/7-Zip/21.07/7z2107-x64.exe"
 
 ["17.4.0+1"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+1/p7zip.v17.4.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+1/p7zip.v17.4.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+1/p7zip.v17.4.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+1/p7zip.v17.4.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+1/p7zip.v17.4.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+1/p7zip.v17.4.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+1/p7zip.v17.4.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+1/p7zip.v17.4.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+1/p7zip.v17.4.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+1/p7zip.v17.4.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+1/p7zip.v17.4.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+1/p7zip.v17.4.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+1/p7zip.v17.4.0.x86_64-linux-gnu-sanitize+memory.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+1/p7zip.v17.4.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+1/p7zip.v17.4.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+1/p7zip.v17.4.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+1/p7zip.v17.4.0.x86_64-w64-mingw32.tar.gz"]
@@ -329,49 +94,10 @@ registered = 2022-08-25T01:30:57.000Z
     [["17.4.0+1".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+1/p7zip.v17.4.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+1/p7zip.v17.4.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+1/p7zip.v17.4.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+1/p7zip.v17.4.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+1/p7zip.v17.4.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+1/p7zip.v17.4.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+1/p7zip.v17.4.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+1/p7zip.v17.4.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+1/p7zip.v17.4.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+1/p7zip.v17.4.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+1/p7zip.v17.4.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+1/p7zip.v17.4.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+1/p7zip.v17.4.0.x86_64-linux-gnu-sanitize+memory.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+1/p7zip.v17.4.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+1/p7zip.v17.4.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+1/p7zip.v17.4.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+1/p7zip.v17.4.0.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/cf0276912a6e7e3086d77232329f745f615f6279/P/p7zip/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/p/p7zip/build_tarballs.jl/cf0276912a6e7e3086d77232329f745f615f6279.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.5.5"
-
-        ["17.4.0+1".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "p7zip"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "x86_64-linux-gnu-sanitize+memory"]
-        script = """cd $WORKSPACE/srcdir/p7zip-*/\n\nif [[ ${bb_full_target} == *-sanitize+memory* ]]; then\n    # Install msan runtime (for clang)\n    cp -rL ${libdir}/linux/* /opt/x86_64-linux-musl/lib/clang/*/lib/linux/\nfi\n\nif [[ ${target} == *mingw* ]]; then\n    # It's incredibly frustrating to build p7zip on mingw, so instead we just redistribute 7z\n    apk add p7zip\n\n    if [[ ${target} == i686* ]]; then\n        7z x -y ${WORKSPACE}/srcdir/7z2107.exe 7z.exe 7z.dll License.txt\n    else\n        7z x -y ${WORKSPACE}/srcdir/7z2107-x64.exe 7z.exe 7z.dll License.txt\n    fi\n\n    install_license License.txt\n\n    chmod +x 7z.exe 7z.dll\n    mkdir ${prefix}/bin\n    cp -a 7z.exe 7z.dll ${prefix}/bin\nelse\n    # Build requirements\n    apk add nasm yasm\n\n    # Convert from target to makefile\n    target_makefile()\n    {\n        case \"${target}\" in\n            x86_64-linux*)       echo makefile.linux_amd64_asm;;\n            i686-linux*)         echo makefile.linux_x86_asm_gcc_4.X;;\n            powerpc64le*linux*)  echo makefile.linux_cross_ppc64le;;\n            aarch64*linux*)      echo makefile.linux_cross_aarch64;;\n            arm-*linux*)         echo makefile.linux_cross_arm;;\n            x86_64-*freebsd*)    echo makefile.freebsd6+;;\n            x86_64-*darwin*)     echo makefile.macosx_llvm_64bits;;\n            aarch64-*darwin*)    echo makefile.macosx_llvm_64bits;;\n        esac\n    }\n    cp $(target_makefile) makefile.machine\n\n    # clang doesn't like this c++11 narrowing, so we disable the error\n    if [[ \"${target}\" == *darwin* ]] || [[ \"${target}\" == *freebsd* ]]; then\n        CXXFLAGS=\"${CXXFLAGS} -Wno-c++11-narrowing\"\n    fi\n\n    install_license DOC/License.txt\n\n    make -j${nproc} 7za CC=\"${CC} ${CFLAGS}\" CXX=\"${CXX} ${CXXFLAGS}\"\n    mkdir -p ${prefix}/bin\n    cp -a bin/7za ${prefix}/bin/7z\nfi\n"""
-        version = "v17.4.0"
-
-            [["17.4.0+1".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVMCompilerRT_jll"
-            platforms = ["x86_64-linux-gnu-sanitize+memory"]
-            type = "builddependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["17.4.0+1".artifact_metadata.metadata.products]]
-            binnames = ["7z"]
-            type = "exe"
-            variable_name = "p7zip"
-
-            [["17.4.0+1".artifact_metadata.metadata.sources]]
-            hash = "ea029a2e21d2d6ad0a156f6679bd66836204aa78148a4c5e498fe682e77127ef"
-            type = "archive"
-            unpack_target = ""
-            url = "https://github.com/jinfeihan57/p7zip/archive/refs/tags/v17.04.tar.gz"
-            [["17.4.0+1".artifact_metadata.metadata.sources]]
-            filename = "7z2107.exe"
-            hash = "71e94e6038f4d42ed8f0f38c0e6c3846f21d13527139efa9ef8b8f6312ab6c90"
-            type = "file"
-            url = "https://downloads.sourceforge.net/project/sevenzip/7-Zip/21.07/7z2107.exe"
-            [["17.4.0+1".artifact_metadata.metadata.sources]]
-            filename = "7z2107-x64.exe"
-            hash = "0b461f0a0eccfc4f39733a80d70fd1210fdd69f600fb6b657e03940a734e5fc1"
-            type = "file"
-            url = "https://downloads.sourceforge.net/project/sevenzip/7-Zip/21.07/7z2107-x64.exe"
 
 ["17.4.0+2"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+2/p7zip.v17.4.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+2/p7zip.v17.4.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+2/p7zip.v17.4.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+2/p7zip.v17.4.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+2/p7zip.v17.4.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+2/p7zip.v17.4.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+2/p7zip.v17.4.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+2/p7zip.v17.4.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+2/p7zip.v17.4.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+2/p7zip.v17.4.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+2/p7zip.v17.4.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+2/p7zip.v17.4.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+2/p7zip.v17.4.0.x86_64-linux-gnu-sanitize+memory.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+2/p7zip.v17.4.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+2/p7zip.v17.4.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+2/p7zip.v17.4.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+2/p7zip.v17.4.0.x86_64-w64-mingw32.tar.gz"]
@@ -380,50 +106,10 @@ registered = 2023-07-29T06:49:10.000Z
     [["17.4.0+2".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+2/p7zip.v17.4.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+2/p7zip.v17.4.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+2/p7zip.v17.4.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+2/p7zip.v17.4.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+2/p7zip.v17.4.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+2/p7zip.v17.4.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+2/p7zip.v17.4.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+2/p7zip.v17.4.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+2/p7zip.v17.4.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+2/p7zip.v17.4.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+2/p7zip.v17.4.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+2/p7zip.v17.4.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+2/p7zip.v17.4.0.x86_64-linux-gnu-sanitize+memory.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+2/p7zip.v17.4.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+2/p7zip.v17.4.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+2/p7zip.v17.4.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.4.0+2/p7zip.v17.4.0.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/c5bc52df19b735c32af06528b1889f10c56a9835/P/p7zip/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/p/p7zip/build_tarballs.jl/c5bc52df19b735c32af06528b1889f10c56a9835.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.5.6"
-
-        ["17.4.0+2".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "p7zip"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "x86_64-linux-gnu-sanitize+memory"]
-        script = """cd $WORKSPACE/srcdir/p7zip*/\n\nif [[ ${bb_full_target} == *-sanitize+memory* ]]; then\n    # Install msan runtime (for clang)\n    cp -rL ${libdir}/linux/* /opt/x86_64-linux-musl/lib/clang/*/lib/linux/\nfi\n\nif [[ ${target} == *mingw* ]]; then\n    # It's incredibly frustrating to build p7zip on mingw, so instead we just redistribute 7z\n    apk add p7zip\n\n    if [[ ${target} == i686* ]]; then\n        7z x -y ${WORKSPACE}/srcdir/7z2107.exe 7z.exe 7z.dll License.txt\n    else\n        7z x -y ${WORKSPACE}/srcdir/7z2107-x64.exe 7z.exe 7z.dll License.txt\n    fi\n\n    install_license License.txt\n\n    chmod +x 7z.exe 7z.dll\n    mkdir ${prefix}/bin\n    cp -a 7z.exe 7z.dll ${prefix}/bin\nelse\n    # Build requirements\n    apk add nasm yasm\n\n    # Convert from target to makefile\n    target_makefile()\n    {\n        case \"${target}\" in\n            x86_64-linux*)       echo makefile.linux_amd64_asm;;\n            i686-linux*)         echo makefile.linux_x86_asm_gcc_4.X;;\n            powerpc64le*linux*)  echo makefile.linux_cross_ppc64le;;\n            aarch64*linux*)      echo makefile.linux_cross_aarch64;;\n            arm-*linux*)         echo makefile.linux_cross_arm;;\n            x86_64-*freebsd*)    echo makefile.freebsd6+;;\n            x86_64-*darwin*)     echo makefile.macosx_llvm_64bits;;\n            aarch64-*darwin*)    echo makefile.macosx_llvm_64bits;;\n        esac\n    }\n    cp $(target_makefile) makefile.machine\n\n    # clang doesn't like this c++11 narrowing, so we disable the error\n    if [[ \"${target}\" == *darwin* ]] || [[ \"${target}\" == *freebsd* ]]; then\n        CXXFLAGS=\"${CXXFLAGS} -Wno-c++11-narrowing\"\n    fi\n\n    install_license DOC/License.txt\n\n    make -j${nproc} 7za CC=\"${CC} ${CFLAGS}\" CXX=\"${CXX} ${CXXFLAGS}\"\n    mkdir -p ${prefix}/bin\n    cp -a bin/7za ${prefix}/bin/7z\nfi\n"""
-        version = "v17.4.0"
-
-            [["17.4.0+2".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVMCompilerRT_jll"
-            platforms = ["x86_64-linux-gnu-sanitize+memory"]
-            top_level = false
-            type = "builddependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["17.4.0+2".artifact_metadata.metadata.products]]
-            binnames = ["7z"]
-            type = "exe"
-            variable_name = "p7zip"
-
-            [["17.4.0+2".artifact_metadata.metadata.sources]]
-            hash = "0b5b1b1a866d0e41cb7945e60a32262874e724aa"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/p7zip-project/p7zip"
-            [["17.4.0+2".artifact_metadata.metadata.sources]]
-            filename = "7z2107.exe"
-            hash = "71e94e6038f4d42ed8f0f38c0e6c3846f21d13527139efa9ef8b8f6312ab6c90"
-            type = "file"
-            url = "https://downloads.sourceforge.net/project/sevenzip/7-Zip/21.07/7z2107.exe"
-            [["17.4.0+2".artifact_metadata.metadata.sources]]
-            filename = "7z2107-x64.exe"
-            hash = "0b461f0a0eccfc4f39733a80d70fd1210fdd69f600fb6b657e03940a734e5fc1"
-            type = "file"
-            url = "https://downloads.sourceforge.net/project/sevenzip/7-Zip/21.07/7z2107-x64.exe"
 
 ["17.5.0+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+0/p7zip.v17.5.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+0/p7zip.v17.5.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+0/p7zip.v17.5.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+0/p7zip.v17.5.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+0/p7zip.v17.5.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+0/p7zip.v17.5.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+0/p7zip.v17.5.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+0/p7zip.v17.5.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+0/p7zip.v17.5.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+0/p7zip.v17.5.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+0/p7zip.v17.5.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+0/p7zip.v17.5.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+0/p7zip.v17.5.0.x86_64-linux-gnu-sanitize+memory.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+0/p7zip.v17.5.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+0/p7zip.v17.5.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+0/p7zip.v17.5.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+0/p7zip.v17.5.0.x86_64-w64-mingw32.tar.gz"]
@@ -432,51 +118,10 @@ registered = 2024-03-26T02:30:26.000Z
     [["17.5.0+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+0/p7zip.v17.5.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+0/p7zip.v17.5.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+0/p7zip.v17.5.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+0/p7zip.v17.5.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+0/p7zip.v17.5.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+0/p7zip.v17.5.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+0/p7zip.v17.5.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+0/p7zip.v17.5.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+0/p7zip.v17.5.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+0/p7zip.v17.5.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+0/p7zip.v17.5.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+0/p7zip.v17.5.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+0/p7zip.v17.5.0.x86_64-linux-gnu-sanitize+memory.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+0/p7zip.v17.5.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+0/p7zip.v17.5.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+0/p7zip.v17.5.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+0/p7zip.v17.5.0.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/1dbf5eeb75651d36cd4a68b1e2de4b2d7accd5b7/P/p7zip/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/p/p7zip/build_tarballs.jl/1dbf5eeb75651d36cd4a68b1e2de4b2d7accd5b7.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.5.8"
-
-        ["17.5.0+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "p7zip"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "x86_64-linux-gnu-sanitize+memory"]
-        script = """cd $WORKSPACE/srcdir/p7zip*/\n\nif [[ ${bb_full_target} == *-sanitize+memory* ]]; then\n    # Install msan runtime (for clang)\n    cp -rL ${libdir}/linux/* /opt/x86_64-linux-musl/lib/clang/*/lib/linux/\nfi\n\nif [[ ${target} == *mingw* ]]; then\n    # It's incredibly frustrating to build p7zip on mingw, so instead we just redistribute 7z\n    apk add p7zip\n\n    if [[ ${target} == i686* ]]; then\n        7z x -y ${WORKSPACE}/srcdir/7z2301.exe 7z.exe 7z.dll License.txt\n    else\n        7z x -y ${WORKSPACE}/srcdir/7z2301-x64.exe 7z.exe 7z.dll License.txt\n    fi\n\n    install_license License.txt\n\n    chmod +x 7z.exe 7z.dll\n    mkdir ${prefix}/bin\n    cp -a 7z.exe 7z.dll ${prefix}/bin\nelse\n    # Build requirements\n    apk add nasm yasm\n\n    # Convert from target to makefile\n    target_makefile()\n    {\n        case \"${target}\" in\n            x86_64-linux*)       echo makefile.linux_amd64_asm;;\n            i686-linux*)         echo makefile.linux_x86_asm_gcc_4.X;;\n            powerpc64le*linux*)  echo makefile.linux_cross_ppc64le;;\n            aarch64*linux*)      echo makefile.linux_cross_aarch64;;\n            arm-*linux*)         echo makefile.linux_cross_arm;;\n            x86_64-*freebsd*)    echo makefile.freebsd6+;;\n            x86_64-*darwin*)     echo makefile.macosx_llvm_64bits;;\n            aarch64-*darwin*)    echo makefile.macosx_llvm_64bits;;\n        esac\n    }\n    cp $(target_makefile) makefile.machine\n\n    # clang doesn't like this c++11 narrowing, so we disable the error\n    if [[ \"${target}\" == *darwin* ]] || [[ \"${target}\" == *freebsd* ]]; then\n        CXXFLAGS=\"${CXXFLAGS} -Wno-c++11-narrowing\"\n    fi\n\n    install_license DOC/License.txt\n\n    make -j${nproc} 7za CC=\"${CC} ${CFLAGS}\" CXX=\"${CXX} ${CXXFLAGS}\"\n    mkdir -p ${prefix}/bin\n    cp -a bin/7za ${prefix}/bin/7z\nfi\n"""
-        version = "v17.5.0"
-
-            [["17.5.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVMCompilerRT_jll"
-            platforms = ["x86_64-linux-gnu-sanitize+memory"]
-            top_level = false
-            type = "builddependency"
-            uuid = "4e17d02c-6bf5-513e-be62-445f41c75a11"
-            version-major = 13
-            version-minor = 0
-            version-patch = 1
-
-            [["17.5.0+0".artifact_metadata.metadata.products]]
-            binnames = ["7z"]
-            type = "exe"
-            variable_name = "p7zip"
-
-            [["17.5.0+0".artifact_metadata.metadata.sources]]
-            hash = "a45b8830cafda25e76d7120b0462daa82c382a7a"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/p7zip-project/p7zip"
-            [["17.5.0+0".artifact_metadata.metadata.sources]]
-            filename = "7z2301.exe"
-            hash = "9b6682255bed2e415bfa2ef75e7e0888158d1aaf79370defaa2e2a5f2b003a59"
-            type = "file"
-            url = "https://downloads.sourceforge.net/project/sevenzip/7-Zip/23.01/7z2301.exe"
-            [["17.5.0+0".artifact_metadata.metadata.sources]]
-            filename = "7z2301-x64.exe"
-            hash = "26cb6e9f56333682122fafe79dbcdfd51e9f47cc7217dccd29ac6fc33b5598cd"
-            type = "file"
-            url = "https://downloads.sourceforge.net/project/sevenzip/7-Zip/23.01/7z2301-x64.exe"
 
 ["17.5.0+1"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+1/p7zip.v17.5.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+1/p7zip.v17.5.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+1/p7zip.v17.5.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+1/p7zip.v17.5.0.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+1/p7zip.v17.5.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+1/p7zip.v17.5.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+1/p7zip.v17.5.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+1/p7zip.v17.5.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+1/p7zip.v17.5.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+1/p7zip.v17.5.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+1/p7zip.v17.5.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+1/p7zip.v17.5.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+1/p7zip.v17.5.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+1/p7zip.v17.5.0.x86_64-linux-gnu-sanitize+memory.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+1/p7zip.v17.5.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+1/p7zip.v17.5.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+1/p7zip.v17.5.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+1/p7zip.v17.5.0.x86_64-w64-mingw32.tar.gz"]
@@ -485,51 +130,10 @@ registered = 2024-09-15T22:39:08.000Z
     [["17.5.0+1".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+1/p7zip.v17.5.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+1/p7zip.v17.5.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+1/p7zip.v17.5.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+1/p7zip.v17.5.0.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+1/p7zip.v17.5.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+1/p7zip.v17.5.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+1/p7zip.v17.5.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+1/p7zip.v17.5.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+1/p7zip.v17.5.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+1/p7zip.v17.5.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+1/p7zip.v17.5.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+1/p7zip.v17.5.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+1/p7zip.v17.5.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+1/p7zip.v17.5.0.x86_64-linux-gnu-sanitize+memory.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+1/p7zip.v17.5.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+1/p7zip.v17.5.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+1/p7zip.v17.5.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+1/p7zip.v17.5.0.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/2515f1fab1459fa34f2236a4604a87e33ea6b6bc/P/p7zip/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/p/p7zip/build_tarballs.jl/2515f1fab1459fa34f2236a4604a87e33ea6b6bc.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.6.0"
-
-        ["17.5.0+1".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "p7zip"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "x86_64-linux-gnu-sanitize+memory"]
-        script = """cd $WORKSPACE/srcdir/p7zip*/\n\nif [[ ${bb_full_target} == *-sanitize+memory* ]]; then\n    # Install msan runtime (for clang)\n    cp -rL ${libdir}/linux/* /opt/x86_64-linux-musl/lib/clang/*/lib/linux/\nfi\n\nif [[ ${target} == *mingw* ]]; then\n    # It's incredibly frustrating to build p7zip on mingw, so instead we just redistribute 7z\n    apk add p7zip\n\n    if [[ ${target} == i686* ]]; then\n        7z x -y ${WORKSPACE}/srcdir/7z2301.exe 7z.exe 7z.dll License.txt\n    else\n        7z x -y ${WORKSPACE}/srcdir/7z2301-x64.exe 7z.exe 7z.dll License.txt\n    fi\n\n    install_license License.txt\n\n    chmod +x 7z.exe 7z.dll\n    mkdir ${prefix}/bin\n    cp -a 7z.exe 7z.dll ${prefix}/bin\nelse\n    # Build requirements\n    apk add nasm yasm\n\n    # Convert from target to makefile\n    target_makefile()\n    {\n        case \"${target}\" in\n            x86_64-linux*)       echo makefile.linux_amd64_asm;;\n            i686-linux*)         echo makefile.linux_x86_asm_gcc_4.X;;\n            powerpc64le*linux*)  echo makefile.linux_cross_ppc64le;;\n            aarch64*linux*)      echo makefile.linux_cross_aarch64;;\n            arm-*linux*)         echo makefile.linux_cross_arm;;\n            x86_64-*freebsd*)    echo makefile.freebsd6+;;\n            aarch64-*freebsd*)   echo makefile.freebsd6+;;\n            x86_64-*darwin*)     echo makefile.macosx_llvm_64bits;;\n            aarch64-*darwin*)    echo makefile.macosx_llvm_64bits;;\n        esac\n    }\n    cp $(target_makefile) makefile.machine\n\n    # clang doesn't like this c++11 narrowing, so we disable the error\n    if [[ \"${target}\" == *darwin* ]] || [[ \"${target}\" == *freebsd* ]]; then\n        CXXFLAGS=\"${CXXFLAGS} -Wno-c++11-narrowing\"\n    fi\n\n    install_license DOC/License.txt\n\n    make -j${nproc} 7za CC=\"${CC} ${CFLAGS}\" CXX=\"${CXX} ${CXXFLAGS}\"\n    mkdir -p ${prefix}/bin\n    cp -a bin/7za ${prefix}/bin/7z\nfi\n"""
-        version = "v17.5.0"
-
-            [["17.5.0+1".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVMCompilerRT_jll"
-            platforms = ["x86_64-linux-gnu-sanitize+memory"]
-            top_level = false
-            type = "builddependency"
-            uuid = "4e17d02c-6bf5-513e-be62-445f41c75a11"
-            version-major = 13
-            version-minor = 0
-            version-patch = 1
-
-            [["17.5.0+1".artifact_metadata.metadata.products]]
-            binnames = ["7z"]
-            type = "exe"
-            variable_name = "p7zip"
-
-            [["17.5.0+1".artifact_metadata.metadata.sources]]
-            hash = "a45b8830cafda25e76d7120b0462daa82c382a7a"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/p7zip-project/p7zip"
-            [["17.5.0+1".artifact_metadata.metadata.sources]]
-            filename = "7z2301.exe"
-            hash = "9b6682255bed2e415bfa2ef75e7e0888158d1aaf79370defaa2e2a5f2b003a59"
-            type = "file"
-            url = "https://downloads.sourceforge.net/project/sevenzip/7-Zip/23.01/7z2301.exe"
-            [["17.5.0+1".artifact_metadata.metadata.sources]]
-            filename = "7z2301-x64.exe"
-            hash = "26cb6e9f56333682122fafe79dbcdfd51e9f47cc7217dccd29ac6fc33b5598cd"
-            type = "file"
-            url = "https://downloads.sourceforge.net/project/sevenzip/7-Zip/23.01/7z2301-x64.exe"
 
 ["17.5.0+2"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+2/p7zip.v17.5.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+2/p7zip.v17.5.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+2/p7zip.v17.5.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+2/p7zip.v17.5.0.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+2/p7zip.v17.5.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+2/p7zip.v17.5.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+2/p7zip.v17.5.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+2/p7zip.v17.5.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+2/p7zip.v17.5.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+2/p7zip.v17.5.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+2/p7zip.v17.5.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+2/p7zip.v17.5.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+2/p7zip.v17.5.0.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+2/p7zip.v17.5.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+2/p7zip.v17.5.0.x86_64-linux-gnu-sanitize+memory.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+2/p7zip.v17.5.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+2/p7zip.v17.5.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+2/p7zip.v17.5.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+2/p7zip.v17.5.0.x86_64-w64-mingw32.tar.gz"]
@@ -538,51 +142,10 @@ registered = 2024-12-24T17:08:03.000Z
     [["17.5.0+2".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+2/p7zip.v17.5.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+2/p7zip.v17.5.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+2/p7zip.v17.5.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+2/p7zip.v17.5.0.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+2/p7zip.v17.5.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+2/p7zip.v17.5.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+2/p7zip.v17.5.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+2/p7zip.v17.5.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+2/p7zip.v17.5.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+2/p7zip.v17.5.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+2/p7zip.v17.5.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+2/p7zip.v17.5.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+2/p7zip.v17.5.0.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+2/p7zip.v17.5.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+2/p7zip.v17.5.0.x86_64-linux-gnu-sanitize+memory.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+2/p7zip.v17.5.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+2/p7zip.v17.5.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+2/p7zip.v17.5.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.5.0+2/p7zip.v17.5.0.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/7db4b2c471757d15c560e651b92eb043a9fc6e9b/P/p7zip/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/p/p7zip/build_tarballs.jl/7db4b2c471757d15c560e651b92eb043a9fc6e9b.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.6.2"
-
-        ["17.5.0+2".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "p7zip"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "x86_64-linux-gnu-sanitize+memory"]
-        script = """cd $WORKSPACE/srcdir/p7zip*/\n\nif [[ ${bb_full_target} == *-sanitize+memory* ]]; then\n    # Install msan runtime (for clang)\n    cp -rL ${libdir}/linux/* /opt/x86_64-linux-musl/lib/clang/*/lib/linux/\nfi\n\nif [[ ${target} == *mingw* ]]; then\n    # It's incredibly frustrating to build p7zip on mingw, so instead we just redistribute 7z\n    apk add p7zip\n\n    if [[ ${target} == i686* ]]; then\n        7z x -y ${WORKSPACE}/srcdir/7z2301.exe 7z.exe 7z.dll License.txt\n    else\n        7z x -y ${WORKSPACE}/srcdir/7z2301-x64.exe 7z.exe 7z.dll License.txt\n    fi\n\n    install_license License.txt\n\n    chmod +x 7z.exe 7z.dll\n    mkdir ${prefix}/bin\n    cp -a 7z.exe 7z.dll ${prefix}/bin\nelse\n    # Build requirements\n    apk add nasm yasm\n\n    # Convert from target to makefile\n    target_makefile()\n    {\n        case \"${target}\" in\n            x86_64-linux*)       echo makefile.linux_amd64_asm;;\n            i686-linux*)         echo makefile.linux_x86_asm_gcc_4.X;;\n            powerpc64le*linux*)  echo makefile.linux_cross_ppc64le;;\n            aarch64*linux*)      echo makefile.linux_cross_aarch64;;\n            arm-*linux*)         echo makefile.linux_cross_arm;;\n            riscv64-linux*)      echo makefile.linux_any_cpu;;\n            x86_64-*freebsd*)    echo makefile.freebsd6+;;\n            aarch64-*freebsd*)   echo makefile.freebsd6+;;\n            x86_64-*darwin*)     echo makefile.macosx_llvm_64bits;;\n            aarch64-*darwin*)    echo makefile.macosx_llvm_64bits;;\n        esac\n    }\n    cp -v $(target_makefile) makefile.machine\n\n    # clang doesn't like this c++11 narrowing, so we disable the error\n    if [[ \"${target}\" == *darwin* ]] || [[ \"${target}\" == *freebsd* ]]; then\n        CXXFLAGS=\"${CXXFLAGS} -Wno-c++11-narrowing\"\n    fi\n\n    install_license DOC/License.txt\n\n    make -j${nproc} 7za CC=\"${CC} ${CFLAGS}\" CXX=\"${CXX} ${CXXFLAGS}\"\n    install -Dvm 755 bin/7za \"${bindir}/7z\"\nfi\n"""
-        version = "v17.5.0"
-
-            [["17.5.0+2".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVMCompilerRT_jll"
-            platforms = ["x86_64-linux-gnu-sanitize+memory"]
-            top_level = false
-            type = "builddependency"
-            uuid = "4e17d02c-6bf5-513e-be62-445f41c75a11"
-            version-major = 13
-            version-minor = 0
-            version-patch = 1
-
-            [["17.5.0+2".artifact_metadata.metadata.products]]
-            binnames = ["7z"]
-            type = "exe"
-            variable_name = "p7zip"
-
-            [["17.5.0+2".artifact_metadata.metadata.sources]]
-            hash = "a45b8830cafda25e76d7120b0462daa82c382a7a"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/p7zip-project/p7zip"
-            [["17.5.0+2".artifact_metadata.metadata.sources]]
-            filename = "7z2301.exe"
-            hash = "9b6682255bed2e415bfa2ef75e7e0888158d1aaf79370defaa2e2a5f2b003a59"
-            type = "file"
-            url = "https://downloads.sourceforge.net/project/sevenzip/7-Zip/23.01/7z2301.exe"
-            [["17.5.0+2".artifact_metadata.metadata.sources]]
-            filename = "7z2301-x64.exe"
-            hash = "26cb6e9f56333682122fafe79dbcdfd51e9f47cc7217dccd29ac6fc33b5598cd"
-            type = "file"
-            url = "https://downloads.sourceforge.net/project/sevenzip/7-Zip/23.01/7z2301-x64.exe"
 
 ["17.6.0+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.0+0/p7zip.v17.6.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.0+0/p7zip.v17.6.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.0+0/p7zip.v17.6.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.0+0/p7zip.v17.6.0.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.0+0/p7zip.v17.6.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.0+0/p7zip.v17.6.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.0+0/p7zip.v17.6.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.0+0/p7zip.v17.6.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.0+0/p7zip.v17.6.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.0+0/p7zip.v17.6.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.0+0/p7zip.v17.6.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.0+0/p7zip.v17.6.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.0+0/p7zip.v17.6.0.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.0+0/p7zip.v17.6.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.0+0/p7zip.v17.6.0.x86_64-linux-gnu-sanitize+memory.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.0+0/p7zip.v17.6.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.0+0/p7zip.v17.6.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.0+0/p7zip.v17.6.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.0+0/p7zip.v17.6.0.x86_64-w64-mingw32.tar.gz"]
@@ -591,51 +154,10 @@ registered = 2025-08-17T09:41:05.000Z
     [["17.6.0+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.0+0/p7zip.v17.6.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.0+0/p7zip.v17.6.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.0+0/p7zip.v17.6.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.0+0/p7zip.v17.6.0.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.0+0/p7zip.v17.6.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.0+0/p7zip.v17.6.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.0+0/p7zip.v17.6.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.0+0/p7zip.v17.6.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.0+0/p7zip.v17.6.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.0+0/p7zip.v17.6.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.0+0/p7zip.v17.6.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.0+0/p7zip.v17.6.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.0+0/p7zip.v17.6.0.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.0+0/p7zip.v17.6.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.0+0/p7zip.v17.6.0.x86_64-linux-gnu-sanitize+memory.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.0+0/p7zip.v17.6.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.0+0/p7zip.v17.6.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.0+0/p7zip.v17.6.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.0+0/p7zip.v17.6.0.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/788a0873af9730d5a55cd2cce0639ac9d0a6a9bc/P/p7zip/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/p/p7zip/build_tarballs.jl/788a0873af9730d5a55cd2cce0639ac9d0a6a9bc.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.6.5"
-
-        ["17.6.0+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "p7zip"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "x86_64-linux-gnu-sanitize+memory"]
-        script = """cd $WORKSPACE/srcdir/p7zip*/\n\nif [[ ${bb_full_target} == *-sanitize+memory* ]]; then\n    # Install msan runtime (for clang)\n    cp -rL ${libdir}/linux/* /opt/x86_64-linux-musl/lib/clang/*/lib/linux/\nfi\n\nif [[ ${target} == *mingw* ]]; then\n    # It's incredibly frustrating to build p7zip on mingw, so instead we just redistribute 7z\n    apk add p7zip\n\n    if [[ ${target} == i686* ]]; then\n        7z x -y ${WORKSPACE}/srcdir/7z2501.exe 7z.exe 7z.dll License.txt\n    else\n        7z x -y ${WORKSPACE}/srcdir/7z2501-x64.exe 7z.exe 7z.dll License.txt\n    fi\n\n    install_license License.txt\n\n    chmod +x 7z.exe 7z.dll\n    mkdir ${prefix}/bin\n    cp -a 7z.exe 7z.dll ${prefix}/bin\nelse\n    # Build requirements\n    apk add nasm yasm\n\n    # Convert from target to makefile\n    target_makefile()\n    {\n        case \"${target}\" in\n            x86_64-linux*)       echo makefile.linux_amd64_asm;;\n            i686-linux*)         echo makefile.linux_x86_asm_gcc_4.X;;\n            powerpc64le*linux*)  echo makefile.linux_cross_ppc64le;;\n            aarch64*linux*)      echo makefile.linux_cross_aarch64;;\n            arm-*linux*)         echo makefile.linux_cross_arm;;\n            riscv64-linux*)      echo makefile.linux_any_cpu;;\n            x86_64-*freebsd*)    echo makefile.freebsd6+;;\n            aarch64-*freebsd*)   echo makefile.freebsd6+;;\n            x86_64-*darwin*)     echo makefile.macosx_llvm_64bits;;\n            aarch64-*darwin*)    echo makefile.macosx_llvm_64bits;;\n        esac\n    }\n    cp -v $(target_makefile) makefile.machine\n\n    # clang doesn't like this c++11 narrowing, so we disable the error\n    if [[ \"${target}\" == *darwin* ]] || [[ \"${target}\" == *freebsd* ]]; then\n        CXXFLAGS=\"${CXXFLAGS} -Wno-c++11-narrowing\"\n    fi\n\n    install_license DOC/License.txt\n\n    make -j${nproc} 7za CC=\"${CC} ${CFLAGS}\" CXX=\"${CXX} ${CXXFLAGS}\"\n    install -Dvm 755 bin/7za \"${bindir}/7z\"\nfi\n"""
-        version = "v17.6.0"
-
-            [["17.6.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVMCompilerRT_jll"
-            platforms = ["x86_64-linux-gnu-sanitize+memory"]
-            top_level = false
-            type = "builddependency"
-            uuid = "4e17d02c-6bf5-513e-be62-445f41c75a11"
-            version-major = 13
-            version-minor = 0
-            version-patch = 1
-
-            [["17.6.0+0".artifact_metadata.metadata.products]]
-            binnames = ["7z"]
-            type = "exe"
-            variable_name = "p7zip"
-
-            [["17.6.0+0".artifact_metadata.metadata.sources]]
-            hash = "d9c3d157c62e842897d4447db717f813810e1423"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/p7zip-project/p7zip"
-            [["17.6.0+0".artifact_metadata.metadata.sources]]
-            filename = "7z2501.exe"
-            hash = "b96831eec5928384f0543d6b57c1f802952a0f2668e662882c0a785a2b52fb3b"
-            type = "file"
-            url = "https://downloads.sourceforge.net/project/sevenzip/7-Zip/25.01/7z2501.exe"
-            [["17.6.0+0".artifact_metadata.metadata.sources]]
-            filename = "7z2501-x64.exe"
-            hash = "78afa2a1c773caf3cf7edf62f857d2a8a5da55fb0fff5da416074c0d28b2b55f"
-            type = "file"
-            url = "https://downloads.sourceforge.net/project/sevenzip/7-Zip/25.01/7z2501-x64.exe"
 
 ["17.6.1+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.1+0/p7zip.v17.6.1.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.1+0/p7zip.v17.6.1.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.1+0/p7zip.v17.6.1.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.1+0/p7zip.v17.6.1.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.1+0/p7zip.v17.6.1.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.1+0/p7zip.v17.6.1.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.1+0/p7zip.v17.6.1.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.1+0/p7zip.v17.6.1.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.1+0/p7zip.v17.6.1.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.1+0/p7zip.v17.6.1.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.1+0/p7zip.v17.6.1.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.1+0/p7zip.v17.6.1.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.1+0/p7zip.v17.6.1.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.1+0/p7zip.v17.6.1.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.1+0/p7zip.v17.6.1.x86_64-linux-gnu-sanitize+memory.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.1+0/p7zip.v17.6.1.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.1+0/p7zip.v17.6.1.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.1+0/p7zip.v17.6.1.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.1+0/p7zip.v17.6.1.x86_64-w64-mingw32.tar.gz"]
@@ -644,56 +166,10 @@ registered = 2025-11-09T15:54:43.000Z
     [["17.6.1+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.1+0/p7zip.v17.6.1.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.1+0/p7zip.v17.6.1.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.1+0/p7zip.v17.6.1.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.1+0/p7zip.v17.6.1.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.1+0/p7zip.v17.6.1.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.1+0/p7zip.v17.6.1.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.1+0/p7zip.v17.6.1.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.1+0/p7zip.v17.6.1.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.1+0/p7zip.v17.6.1.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.1+0/p7zip.v17.6.1.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.1+0/p7zip.v17.6.1.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.1+0/p7zip.v17.6.1.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.1+0/p7zip.v17.6.1.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.1+0/p7zip.v17.6.1.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.1+0/p7zip.v17.6.1.x86_64-linux-gnu-sanitize+memory.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.1+0/p7zip.v17.6.1.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.1+0/p7zip.v17.6.1.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.1+0/p7zip.v17.6.1.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.6.1+0/p7zip.v17.6.1.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/5584498dda1baf7681ff5e590de7f50edef56eea/P/p7zip/p7zip@17.6/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/p/p7zip/p7zip@17.6/build_tarballs.jl/5584498dda1baf7681ff5e590de7f50edef56eea.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.6.5"
-
-        ["17.6.1+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "p7zip"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "x86_64-linux-gnu-sanitize+memory"]
-        script = """cd $WORKSPACE/srcdir/p7zip*/\n\n# Fix <https://github.com/p7zip-project/p7zip/issues/112> by reverting <https://github.com/p7zip-project/p7zip/pull/64>\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/zipitem.patch\n\nif [[ ${bb_full_target} == *-sanitize+memory* ]]; then\n    # Install msan runtime (for clang)\n    cp -rL ${libdir}/linux/* /opt/x86_64-linux-musl/lib/clang/*/lib/linux/\nfi\n\nif [[ ${target} == *mingw* ]]; then\n    # It's incredibly frustrating to build p7zip on mingw, so instead we just redistribute 7z\n    apk add p7zip\n\n    if [[ ${target} == i686* ]]; then\n        7z x -y ${WORKSPACE}/srcdir/7z2501.exe 7z.exe 7z.dll License.txt\n    else\n        7z x -y ${WORKSPACE}/srcdir/7z2501-x64.exe 7z.exe 7z.dll License.txt\n    fi\n\n    install_license License.txt\n\n    chmod +x 7z.exe 7z.dll\n    mkdir ${prefix}/bin\n    cp -a 7z.exe 7z.dll ${prefix}/bin\nelse\n    # Build requirements\n    apk add nasm yasm\n\n    # Convert from target to makefile\n    target_makefile()\n    {\n        case \"${target}\" in\n            x86_64-linux*)       echo makefile.linux_amd64_asm;;\n            i686-linux*)         echo makefile.linux_x86_asm_gcc_4.X;;\n            powerpc64le*linux*)  echo makefile.linux_cross_ppc64le;;\n            aarch64*linux*)      echo makefile.linux_cross_aarch64;;\n            arm-*linux*)         echo makefile.linux_cross_arm;;\n            riscv64-linux*)      echo makefile.linux_any_cpu;;\n            x86_64-*freebsd*)    echo makefile.freebsd6+;;\n            aarch64-*freebsd*)   echo makefile.freebsd6+;;\n            x86_64-*darwin*)     echo makefile.macosx_llvm_64bits;;\n            aarch64-*darwin*)    echo makefile.macosx_llvm_64bits;;\n        esac\n    }\n    cp -v $(target_makefile) makefile.machine\n\n    # clang doesn't like this c++11 narrowing, so we disable the error\n    if [[ \"${target}\" == *darwin* ]] || [[ \"${target}\" == *freebsd* ]]; then\n        CXXFLAGS=\"${CXXFLAGS} -Wno-c++11-narrowing\"\n    fi\n\n    install_license DOC/License.txt\n\n    make -j${nproc} 7za CC=\"${CC} ${CFLAGS}\" CXX=\"${CXX} ${CXXFLAGS}\"\n    install -Dvm 755 bin/7za \"${bindir}/7z\"\nfi\n"""
-        version = "v17.6.1"
-
-            [["17.6.1+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVMCompilerRT_jll"
-            platforms = ["x86_64-linux-gnu-sanitize+memory"]
-            top_level = false
-            type = "builddependency"
-            uuid = "4e17d02c-6bf5-513e-be62-445f41c75a11"
-            version-major = 13
-            version-minor = 0
-            version-patch = 1
-
-            [["17.6.1+0".artifact_metadata.metadata.products]]
-            binnames = ["7z"]
-            type = "exe"
-            variable_name = "p7zip"
-
-            [["17.6.1+0".artifact_metadata.metadata.sources]]
-            hash = "d9c3d157c62e842897d4447db717f813810e1423"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/p7zip-project/p7zip"
-            [["17.6.1+0".artifact_metadata.metadata.sources]]
-            filename = "7z2501.exe"
-            hash = "b96831eec5928384f0543d6b57c1f802952a0f2668e662882c0a785a2b52fb3b"
-            type = "file"
-            url = "https://downloads.sourceforge.net/project/sevenzip/7-Zip/25.01/7z2501.exe"
-            [["17.6.1+0".artifact_metadata.metadata.sources]]
-            filename = "7z2501-x64.exe"
-            hash = "78afa2a1c773caf3cf7edf62f857d2a8a5da55fb0fff5da416074c0d28b2b55f"
-            type = "file"
-            url = "https://downloads.sourceforge.net/project/sevenzip/7-Zip/25.01/7z2501-x64.exe"
-            [["17.6.1+0".artifact_metadata.metadata.sources]]
-            follow_symlinks = false
-            path = "./bundled"
-            target = ""
-            type = "directory"
 
 ["17.7.0+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.7.0+0/p7zip.v17.7.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.7.0+0/p7zip.v17.7.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.7.0+0/p7zip.v17.7.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.7.0+0/p7zip.v17.7.0.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.7.0+0/p7zip.v17.7.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.7.0+0/p7zip.v17.7.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.7.0+0/p7zip.v17.7.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.7.0+0/p7zip.v17.7.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.7.0+0/p7zip.v17.7.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.7.0+0/p7zip.v17.7.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.7.0+0/p7zip.v17.7.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.7.0+0/p7zip.v17.7.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.7.0+0/p7zip.v17.7.0.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.7.0+0/p7zip.v17.7.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.7.0+0/p7zip.v17.7.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.7.0+0/p7zip.v17.7.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.7.0+0/p7zip.v17.7.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.7.0+0/p7zip.v17.7.0.x86_64-w64-mingw32.tar.gz"]
@@ -702,56 +178,10 @@ registered = 2025-10-29T03:41:03.000Z
     [["17.7.0+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.7.0+0/p7zip.v17.7.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.7.0+0/p7zip.v17.7.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.7.0+0/p7zip.v17.7.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.7.0+0/p7zip.v17.7.0.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.7.0+0/p7zip.v17.7.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.7.0+0/p7zip.v17.7.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.7.0+0/p7zip.v17.7.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.7.0+0/p7zip.v17.7.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.7.0+0/p7zip.v17.7.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.7.0+0/p7zip.v17.7.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.7.0+0/p7zip.v17.7.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.7.0+0/p7zip.v17.7.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.7.0+0/p7zip.v17.7.0.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.7.0+0/p7zip.v17.7.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.7.0+0/p7zip.v17.7.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.7.0+0/p7zip.v17.7.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.7.0+0/p7zip.v17.7.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.7.0+0/p7zip.v17.7.0.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/3ba4e642b5f0777748fc162d731255b528e60183/P/p7zip/p7zip@17.7/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/p/p7zip/p7zip@17.7/build_tarballs.jl/3ba4e642b5f0777748fc162d731255b528e60183.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.6.5"
-
-        ["17.7.0+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "p7zip"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """# Require MacOS 10.13 or later to support utimensat\nif [[ \"${target}\" == x86_64-apple-darwin* ]]; then\n    # need to run with BINARYBUILDER_RUNNER=\"privileged\" for this rm to work\n    rm -rf /opt/${target}/${target}/sys-root/System\n    tar --extract --file=${WORKSPACE}/srcdir/MacOSX10.13.sdk.tar.xz --directory=\"/opt/${target}/${target}/sys-root/.\" --strip-components=1 MacOSX10.13.sdk/System MacOSX10.13.sdk/usr\n    export MACOSX_DEPLOYMENT_TARGET=10.13\nfi\n\ncd 7z/CPP/7zip/Bundles/Alone\n\n# Lowercase names for MinGW\nsed -i \"s/NTSecAPI.h/ntsecapi.h/\" ../../../Windows/SecurityUtils.h\nsed -i 's/-lUser32/-luser32/g' ../../7zip_gcc.mak\nsed -i 's/-lOle32/-lole32/g' ../../7zip_gcc.mak\nsed -i 's/-lGdi32/-lgdi32/g' ../../7zip_gcc.mak\nsed -i 's/-lComctl32/-lcomctl32/g' ../../7zip_gcc.mak\nsed -i 's/-lComdlg32/-lcomdlg32/g' ../../7zip_gcc.mak\nsed -i 's/-lShell32/-lshell32/g' ../../7zip_gcc.mak\n\n# RAR has a custom license\nexport DISABLE_RAR=1\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    export IS_MINGW=1\n    export RC=windres\nfi\n\nif [[ \"${target}\" == x86_64-apple-darwin* ]]; then\n    # For some reason USE_ASM doesn't work on this platform\n    make -j${nproc} -f makefile.gcc\nelse\n    if [[ \"${target}\" == x86_64-* ]]; then\n        make -j${nproc} -f makefile.gcc IS_X64=1 USE_ASM=1 MY_ASM=\"uasm\"\n    elif [[ \"${target}\" == aarch64-* ]]; then\n        make -j${nproc} -f makefile.gcc IS_ARM64=1 USE_ASM=1\n    else\n        make -j${nproc} -f makefile.gcc\n    fi\nfi\n\ninstall -Dvm 755 _o/7za${exeext} \"${bindir}/7z${exeext}\"\ninstall_license ../../../../DOC/copying.txt\ninstall_license ../../../../DOC/License.txt\n"""
-        version = "v17.7.0"
-
-            [["17.7.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "UASM_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "hostdependency"
-            uuid = "bbf38c07-751d-5a2b-a7fc-5c0acd9bd57e"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["17.7.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "CompilerSupportLibraries_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["17.7.0+0".artifact_metadata.metadata.products]]
-            binnames = ["7z"]
-            type = "exe"
-            variable_name = "p7zip"
-
-            [["17.7.0+0".artifact_metadata.metadata.sources]]
-            hash = "ed087f83ee789c1ea5f39c464c55a5c9d4008deb0efe900814f2df262b82c36e"
-            type = "archive"
-            unpack_target = "7z"
-            url = "https://downloads.sourceforge.net/project/sevenzip/7-Zip/25.01/7z2501-src.tar.xz"
-            [["17.7.0+0".artifact_metadata.metadata.sources]]
-            filename = "MacOSX10.13.sdk.tar.xz"
-            hash = "a3a077385205039a7c6f9e2c98ecdf2a720b2a819da715e03e0630c75782c1e4"
-            type = "file"
-            url = "https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.13.sdk.tar.xz"
 
 ["17.8.0+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.8.0+0/p7zip.v17.8.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.8.0+0/p7zip.v17.8.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.8.0+0/p7zip.v17.8.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.8.0+0/p7zip.v17.8.0.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.8.0+0/p7zip.v17.8.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.8.0+0/p7zip.v17.8.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.8.0+0/p7zip.v17.8.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.8.0+0/p7zip.v17.8.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.8.0+0/p7zip.v17.8.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.8.0+0/p7zip.v17.8.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.8.0+0/p7zip.v17.8.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.8.0+0/p7zip.v17.8.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.8.0+0/p7zip.v17.8.0.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.8.0+0/p7zip.v17.8.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.8.0+0/p7zip.v17.8.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.8.0+0/p7zip.v17.8.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.8.0+0/p7zip.v17.8.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.8.0+0/p7zip.v17.8.0.x86_64-w64-mingw32.tar.gz"]
@@ -760,53 +190,7 @@ registered = 2026-03-06T08:18:22.000Z
     [["17.8.0+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.8.0+0/p7zip.v17.8.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.8.0+0/p7zip.v17.8.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.8.0+0/p7zip.v17.8.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.8.0+0/p7zip.v17.8.0.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.8.0+0/p7zip.v17.8.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.8.0+0/p7zip.v17.8.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.8.0+0/p7zip.v17.8.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.8.0+0/p7zip.v17.8.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.8.0+0/p7zip.v17.8.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.8.0+0/p7zip.v17.8.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.8.0+0/p7zip.v17.8.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.8.0+0/p7zip.v17.8.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.8.0+0/p7zip.v17.8.0.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.8.0+0/p7zip.v17.8.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.8.0+0/p7zip.v17.8.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.8.0+0/p7zip.v17.8.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.8.0+0/p7zip.v17.8.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/p7zip_jll.jl/releases/download/p7zip-v17.8.0+0/p7zip.v17.8.0.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/8e9526dc19461664d15fafbb6dbfb86083c264da/P/p7zip/p7zip@17.8/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/p/p7zip/p7zip@17.8/build_tarballs.jl/8e9526dc19461664d15fafbb6dbfb86083c264da.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.6.6"
-
-        ["17.8.0+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "p7zip"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """macos_sdk_version=10.13\nmacosx_deployment_target=10.13\nif [[ \"${target}\" == x86_64-apple-darwin* ]]; then\n    echo \"Extracting MacOSX${macos_sdk_version}.sdk.tar.xz (this may take a while)\"\n    rm -rf /opt/${target}/${target}/sys-root/System\n    rm -rf /opt/${target}/${target}/sys-root/usr/include/libxml2/libxml\n    # extract the tarball into the sys-root so all compilers pick it up\n    # automatically, and use --warning=no-unknown-keyword to hide harmless\n    # warnings about unsupported pax header keywords like \"SCHILY.fflags\"\n    tar --extract \\\n        --file=${WORKSPACE}/srcdir/MacOSX${macos_sdk_version}.sdk.tar.xz \\\n        --directory=\"/opt/${target}/${target}/sys-root/.\" \\\n        --strip-components=1 \\\n        --warning=no-unknown-keyword \\\n        MacOSX${macos_sdk_version}.sdk/System \\\n        MacOSX${macos_sdk_version}.sdk/usr\n    export MACOSX_DEPLOYMENT_TARGET=${macosx_deployment_target}\nfi\ncd 7z/CPP/7zip/Bundles/Alone\n\n# RAR has a custom license\nexport DISABLE_RAR=1\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    export IS_MINGW=1\n    export RC=windres\nfi\n\nif [[ \"${target}\" == x86_64-apple-darwin* ]]; then\n    # For some reason USE_ASM doesn't work on this platform\n    make -j${nproc} -f makefile.gcc\nelse\n    if [[ \"${target}\" == x86_64-* ]]; then\n        make -j${nproc} -f makefile.gcc IS_X64=1 USE_ASM=1 MY_ASM=\"uasm\"\n    elif [[ \"${target}\" == aarch64-* ]]; then\n        make -j${nproc} -f makefile.gcc IS_ARM64=1 USE_ASM=1\n    else\n        make -j${nproc} -f makefile.gcc\n    fi\nfi\n\ninstall -Dvm 755 _o/7za${exeext} \"${bindir}/7z${exeext}\"\ninstall_license ../../../../DOC/copying.txt\ninstall_license ../../../../DOC/License.txt\n"""
-        version = "v17.8.0"
-
-            [["17.8.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "UASM_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "hostdependency"
-            uuid = "bbf38c07-751d-5a2b-a7fc-5c0acd9bd57e"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["17.8.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "CompilerSupportLibraries_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["17.8.0+0".artifact_metadata.metadata.products]]
-            binnames = ["7z"]
-            type = "exe"
-            variable_name = "p7zip"
-
-            [["17.8.0+0".artifact_metadata.metadata.sources]]
-            hash = "3e596155744af055a77fc433c703d54e3ea9212246287b5b1436a6beac060f16"
-            type = "archive"
-            unpack_target = "7z"
-            url = "https://downloads.sourceforge.net/project/sevenzip/7-Zip/26.00/7z2600-src.tar.xz"
-            [["17.8.0+0".artifact_metadata.metadata.sources]]
-            filename = "MacOSX10.13.sdk.tar.xz"
-            hash = "a3a077385205039a7c6f9e2c98ecdf2a720b2a819da715e03e0630c75782c1e4"
-            type = "file"
-            url = "https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.13.sdk.tar.xz"

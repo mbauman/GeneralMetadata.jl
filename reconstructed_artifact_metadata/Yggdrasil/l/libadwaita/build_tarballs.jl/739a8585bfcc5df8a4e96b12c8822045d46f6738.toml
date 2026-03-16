@@ -1,0 +1,41 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "libadwaita"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """\n# We need to run some commands with a native Glib\napk add glib-dev\n\n# Copied from GTK4 recipe\nln -sf /usr/bin/glib-compile-resources ${bindir}/glib-compile-resources\nln -sf /usr/bin/glib-compile-schemas ${bindir}/glib-compile-schemas\nln -sf /usr/bin/gdk-pixbuf-pixdata ${bindir}/gdk-pixbuf-pixdata\n# Remove gio-2.0 pkgconfig file so that it isn't picked up by post-install script.\nrm ${prefix}/lib/pkgconfig/gio-2.0.pc\n\n# oldest version that works, due to use of \"@available\" macro\nexport MACOSX_DEPLOYMENT_TARGET=10.14\n\ncd libadwaita*\n\nmkdir build-libadwaita && cd build-libadwaita\nmeson .. \\\n    --buildtype=plain \\\n    -Dintrospection=disabled \\\n    -Dvapi=false \\\n    -Dexamples=false \\\n    -Dtests=false \\\n    \"${FLAGS[@]}\" \\\n    --cross-file=\"${MESON_TARGET_TOOLCHAIN}\"\nninja -j${nproc}\nninja install\n\n# post-install script is disabled when cross-compiling\nglib-compile-schemas ${prefix}/share/glib-2.0/schemas\n"""
+version = "v1.2.0"
+
+[[dependencies]]
+compat = ""
+name = "Xorg_xorgproto_jll"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-unknown-freebsd"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "GTK4_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libadwaita-1"]
+type = "lib"
+variable_name = "libadwaita"
+
+[[sources]]
+hash = "322f3e1be39ba67981d9fe7228a85818eccaa2ed0aa42bcafe263af881c6460c"
+type = "archive"
+unpack_target = ""
+url = "https://download.gnome.org/sources/libadwaita/1.2/libadwaita-1.2.0.tar.xz"

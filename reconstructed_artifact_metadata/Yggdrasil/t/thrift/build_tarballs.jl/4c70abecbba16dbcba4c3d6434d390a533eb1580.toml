@@ -1,0 +1,41 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Thrift"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir/thrift\n\n# Needed as https://github.com/apache/thrift/pull/2518 isn't released yet\nfor f in ${WORKSPACE}/srcdir/patches/*.patch; do\n    atomic_patch -p1 ${f}\ndone\n\nmkdir build_dir && cd build_dir\n\nCMAKE_FLAGS=(-DCMAKE_INSTALL_PREFIX=$prefix\n-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN}\n-DCMAKE_BUILD_TYPE=Release\n-DBUILD_COMPILER=ON\n-DBUILD_CPP=ON\n-DBUILD_PYTHON=OFF\n-DBUILD_TESTING=OFF\n-DBUILD_JAVASCRIPT=OFF\n-DBUILD_NODEJS=OFF\n-DBUILD_SHARED_LIBS=ON\n-DBUILD_TUTORIALS=OFF\n-DTHRIFT_COMPILER_DELPHI=OFF)\n\ncmake .. \"${CMAKE_FLAGS[@]}\"\n\nmake -j${nproc}\nmake install\n"""
+version = "v0.19.0"
+
+[[dependencies]]
+compat = "=1.76.0"
+name = "boost_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["thrift"]
+type = "exe"
+variable_name = "thrift"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libthrift"]
+type = "lib"
+variable_name = "libthrift"
+
+[[sources]]
+hash = "5656208a202ca0be4d4dc44125b5ca0485f91bf0"
+type = "git"
+unpack_target = ""
+url = "https://github.com/apache/thrift.git"
+[[sources]]
+follow_symlinks = false
+path = "bundled"
+target = ""
+type = "directory"

@@ -1,0 +1,25 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "gawk"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd"]
+script = """cd $WORKSPACE/srcdir/gawk*/\n\n# Add missing #include for `_NSGetExecutablePath`\natomic_patch -p1 $WORKSPACE/srcdir/patches/gawk_nsgep.patch\n\napk add texinfo\n\nCONFIGURE_ARGS=()\nif [[ ${target} == aarch64-apple-darwin* ]]; then\n    # See https://git.savannah.gnu.org/cgit/gawk.git/tree/README_d/README.macosx?h=gawk-5.2.1#n1\n    CONFIGURE_ARGS+=( --disable-pma )\nfi\n\n./configure --prefix=${prefix} --host=${target} ${CONFIGURE_ARGS[@]}\nmake -j${nproc}\nmake install\ninstall_license COPYING\n"""
+version = "v5.4.0"
+
+[[products]]
+binnames = ["gawk"]
+type = "exe"
+variable_name = "gawk"
+
+[[sources]]
+hash = "c86b958ce5d651147d39eb147c439dae1dbfd949"
+type = "git"
+unpack_target = ""
+url = "https://git.savannah.gnu.org/git/gawk.git"
+[[sources]]
+follow_symlinks = false
+path = "bundled"
+target = ""
+type = "directory"

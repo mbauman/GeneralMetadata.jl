@@ -1,0 +1,54 @@
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "HYPRE"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "aarch64-apple-darwin", "armv6l-linux-gnueabihf", "armv6l-linux-musleabihf"]
+script = """cd $WORKSPACE/srcdir/hypre-*\ncd src/\n\nmkdir build\ncd build/\n\nCMAKE_FLAGS=()\n\n#help find mpi on mingw, subset of https://github.com/JuliaPackaging/Yggdrasil/blob/b4fdb545c3954cff218051d7520c7418991d3416/T/TauDEM/build_tarballs.jl#L28-L53\nif [[ \"$target\" == x86_64-w64-mingw32 ]]; then\n    CMAKE_FLAGS+=(\n        -DMPI_HOME=${prefix}\n        -DMPI_GUESS_LIBRARY_NAME=MSMPI\n    )\n    if [[ \"${target}\" == x86_64-* ]]; then\n        for lang in C CXX; do\n            CMAKE_FLAGS+=(-DMPI_${lang}_LIBRARIES=msmpi64)\n        done\n    fi\nfi\n\ncmake .. \\\n-DCMAKE_INSTALL_PREFIX=$prefix \\\n-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n-DCMAKE_BUILD_TYPE=Release \\\n-DHYPRE_ENABLE_SHARED=ON \\\n-DHYPRE_ENABLE_HYPRE_BLAS=ON \\\n-DHYPRE_ENABLE_HYPRE_LAPACK=ON \\\n-DHYPRE_ENABLE_CUDA_STREAMS=OFF \\\n-DHYPRE_ENABLE_CUSPARSE=OFF \\\n-DHYPRE_ENABLE_CURAND=OFF \\\n\"${CMAKE_FLAGS[@]}\"\n\nmake -j${nproc}\nmake install\n\n"""
+version = "v2.23.0"
+
+[[dependencies]]
+compat = ""
+name = "OpenBLAS_jll"
+type = "dependency"
+uuid = "4536629a-c528-5b80-bd46-f80d51c5b363"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LAPACK_jll"
+type = "dependency"
+uuid = "51474c39-65e3-53ba-86ba-03b1b862ec14"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MPICH_jll"
+type = "dependency"
+uuid = "7cb0a576-ebde-5e09-9194-50597f1243b4"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MicrosoftMPI_jll"
+type = "dependency"
+uuid = "9237b28f-5490-5468-be7b-bb81f5f5e6cf"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libHYPRE"]
+type = "lib"
+variable_name = "libHYPRE"
+
+[[sources]]
+hash = "8a9f9fb6f65531b77e4c319bf35bfc9d34bf529c36afe08837f56b635ac052e2"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/hypre-space/hypre/archive/refs/tags/v2.23.0.tar.gz"

@@ -1,0 +1,86 @@
+augment_platform_block = ""
+init_block = """\n    try\n        cglobal(:jl_reinit_foreign_type)\n    catch\n        # no jl_reinit_foreign_type -> fall back to old behavior\n        sym = dlsym(libgap_handle, :GAP_InitJuliaMemoryInterface)\n        ccall(sym, Nothing, (Any, Ptr{Nothing}), @__MODULE__, C_NULL)\n    end\n"""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "GAP"
+platforms = ["x86_64-linux-gnu-julia_version+1.6.3", "aarch64-linux-gnu-julia_version+1.6.3", "powerpc64le-linux-gnu-julia_version+1.6.3", "x86_64-linux-musl-julia_version+1.6.3", "aarch64-linux-musl-julia_version+1.6.3", "x86_64-apple-darwin-julia_version+1.6.3", "x86_64-unknown-freebsd-julia_version+1.6.3", "x86_64-linux-gnu-julia_version+1.7.0", "aarch64-linux-gnu-julia_version+1.7.0", "powerpc64le-linux-gnu-julia_version+1.7.0", "x86_64-linux-musl-julia_version+1.7.0", "aarch64-linux-musl-julia_version+1.7.0", "x86_64-apple-darwin-julia_version+1.7.0", "aarch64-apple-darwin-julia_version+1.7.0", "x86_64-unknown-freebsd-julia_version+1.7.0", "x86_64-linux-gnu-julia_version+1.8.0", "aarch64-linux-gnu-julia_version+1.8.0", "powerpc64le-linux-gnu-julia_version+1.8.0", "x86_64-linux-musl-julia_version+1.8.0", "aarch64-linux-musl-julia_version+1.8.0", "x86_64-apple-darwin-julia_version+1.8.0", "aarch64-apple-darwin-julia_version+1.8.0", "x86_64-unknown-freebsd-julia_version+1.8.0", "x86_64-linux-gnu-julia_version+1.9.0", "aarch64-linux-gnu-julia_version+1.9.0", "powerpc64le-linux-gnu-julia_version+1.9.0", "x86_64-linux-musl-julia_version+1.9.0", "aarch64-linux-musl-julia_version+1.9.0", "x86_64-apple-darwin-julia_version+1.9.0", "aarch64-apple-darwin-julia_version+1.9.0", "x86_64-unknown-freebsd-julia_version+1.9.0", "x86_64-linux-gnu-julia_version+1.10.0", "aarch64-linux-gnu-julia_version+1.10.0", "powerpc64le-linux-gnu-julia_version+1.10.0", "x86_64-linux-musl-julia_version+1.10.0", "aarch64-linux-musl-julia_version+1.10.0", "x86_64-apple-darwin-julia_version+1.10.0", "aarch64-apple-darwin-julia_version+1.10.0", "x86_64-unknown-freebsd-julia_version+1.10.0"]
+script = """cd ${WORKSPACE}/srcdir/gap*\n\nfor f in ${WORKSPACE}/srcdir/patches/*.patch; do\n    atomic_patch -p1 ${f}\ndone\n\n# HACK: determine Julia version\ncat > version.c <<EOF\n#include <stdio.h>\n#include \"julia/julia_version.h\"\nint main(int argc, char**argv)\n{\n    printf(\"%d.%d\", JULIA_VERSION_MAJOR, JULIA_VERSION_MINOR);\n    return 0;\n}\nEOF\n${CC_BUILD} -Wall version.c -o julia_version\njulia_version=$(./julia_version)\n\n# must run autogen.sh if compiling from git snapshot and/or if configure was patched;\n# it doesn't hurt otherwise, too, so just always do it\n./autogen.sh\n\n# configure GAP\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \\\n    JULIA_VERSION=\"$julia_version\" \\\n    --with-gmp=${prefix} \\\n    --with-readline=${prefix} \\\n    --with-zlib=${prefix} \\\n    --with-gc=julia \\\n    --with-julia\n\n# WORKAROUND: avoid error: /usr/local/include: No such file or directory\nexport CPPFLAGS=\"$CPPFLAGS -Wno-missing-include-dirs\"\n\n# When building a git snapshot, configure & compile a native version of GAP to\n# generate ffdata.{c,h}, c_oper1.c and c_type1.c -- in a GAP release tarball\n# this is not necessary.\nif [ ! -f src/c_oper1.c ] ; then\n    mkdir native-build\n    cd native-build\n    ../configure --build=${MACHTYPE} --host=${MACHTYPE} \\\n        --enable-Werror \\\n        --with-gmp=${host_prefix} \\\n        --without-readline \\\n        --with-zlib=${host_prefix} \\\n        CC=${CC_BUILD} CXX=${CXX_BUILD}\n    make -j${nproc}\n    cp build/c_*.c build/ffdata.* ../src/\n    cd ..\n\n    # remove the native build, it has done its job\n    rm -rf native-build\nfi\n\n# compile GAP\nmake -j${nproc}\n\n# install GAP binaries, headers, shared library, sysinfo\nmake install-bin install-headers install-libgap install-sysinfo\n\n# the license\ninstall_license LICENSE\n\n# We deliberately do NOT install the GAP library, documentation, etc. because\n# they are identical across all platforms; instead, we use another platform\n# independent artifact to ship them to the user.\n"""
+version = "v400.1200.200"
+
+[[dependencies]]
+compat = ""
+name = "GMP_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "GMP_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Readline_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "libjulia_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 1
+version-minor = 10
+version-patch = 2
+
+[[products]]
+binnames = ["gap"]
+type = "exe"
+variable_name = "gap"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgap"]
+type = "lib"
+variable_name = "libgap"
+
+[[sources]]
+hash = "5d73e77f0b2bbe8dd0233dfad48666aeb1fcbffd84c5dbb58c8ea2a8dd9687b5"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/gap-system/gap/releases/download/v4.12.2/gap-4.12.2-core.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

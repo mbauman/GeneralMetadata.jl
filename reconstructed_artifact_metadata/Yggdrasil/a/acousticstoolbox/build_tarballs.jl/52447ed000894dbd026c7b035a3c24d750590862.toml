@@ -1,0 +1,76 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "AcousticsToolbox"
+platforms = ["i686-linux-gnu-libgfortran3", "i686-linux-gnu-libgfortran4", "i686-linux-gnu-libgfortran5", "x86_64-linux-gnu-libgfortran3", "x86_64-linux-gnu-libgfortran4", "x86_64-linux-gnu-libgfortran5", "aarch64-linux-gnu-libgfortran3", "aarch64-linux-gnu-libgfortran4", "aarch64-linux-gnu-libgfortran5", "armv6l-linux-gnueabihf-libgfortran3", "armv6l-linux-gnueabihf-libgfortran4", "armv6l-linux-gnueabihf-libgfortran5", "armv7l-linux-gnueabihf-libgfortran3", "armv7l-linux-gnueabihf-libgfortran4", "armv7l-linux-gnueabihf-libgfortran5", "powerpc64le-linux-gnu-libgfortran3", "powerpc64le-linux-gnu-libgfortran4", "powerpc64le-linux-gnu-libgfortran5", "riscv64-linux-gnu-libgfortran5", "i686-linux-musl-libgfortran3", "i686-linux-musl-libgfortran4", "i686-linux-musl-libgfortran5", "x86_64-linux-musl-libgfortran3", "x86_64-linux-musl-libgfortran4", "x86_64-linux-musl-libgfortran5", "aarch64-linux-musl-libgfortran3", "aarch64-linux-musl-libgfortran4", "aarch64-linux-musl-libgfortran5", "armv6l-linux-musleabihf-libgfortran3", "armv6l-linux-musleabihf-libgfortran4", "armv6l-linux-musleabihf-libgfortran5", "armv7l-linux-musleabihf-libgfortran3", "armv7l-linux-musleabihf-libgfortran4", "armv7l-linux-musleabihf-libgfortran5", "x86_64-apple-darwin-libgfortran3", "x86_64-apple-darwin-libgfortran4", "x86_64-apple-darwin-libgfortran5", "aarch64-apple-darwin-libgfortran5", "x86_64-unknown-freebsd-libgfortran3", "x86_64-unknown-freebsd-libgfortran4", "x86_64-unknown-freebsd-libgfortran5", "aarch64-unknown-freebsd-libgfortran5", "i686-w64-mingw32-libgfortran3", "i686-w64-mingw32-libgfortran4", "i686-w64-mingw32-libgfortran5", "x86_64-w64-mingw32-libgfortran3", "x86_64-w64-mingw32-libgfortran4", "x86_64-w64-mingw32-libgfortran5"]
+script = """cd $WORKSPACE/srcdir/at\nrm -rf ../__MACOSX\nperl -p -i -e 's/^export FFLAGS=.*apple.*$/export FFLAGS= -Bstatic -Waliasing -Wampersand -Wintrinsics-std -Wno-tabs -Wintrinsic-shadow -Wline-truncation -std=gnu -O1 -funroll-all-loops -fomit-frame-pointer/;' Makefile\nmake clean\nmake\nmkdir -p $bindir\nfind . -name *.exe -exec cp {} $bindir \\;\ncd $WORKSPACE/srcdir/ORCA_Mode_modelling_gfortran/src\nperl -p -i -e 's/\\r\\n/\\n/g;' cw_modes.f\natomic_patch -p1 $WORKSPACE/srcdir/patches/cw_modes.patch\nrm -f *.o *.mod ../bin/*\n# don't add -j as it fails\nmake\n# install script fails on libfortran3 and libfortran4 on w64 where .exe is not added during compilation\n# install -Dvm 755 \"../bin/orca90${exeext}\" \"${bindir}/orca90.exe\"\ninstall -Dvm 755 ../bin/orca90* \"${bindir}/orca90.exe\"\ninstall_license $WORKSPACE/srcdir/at/LICENSE\ninstall_license $WORKSPACE/srcdir/licenses/LICENSE-orca.txt\n"""
+version = "v2025.9.6"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["field3d.exe"]
+type = "exe"
+variable_name = "field3d"
+[[products]]
+binnames = ["field.exe"]
+type = "exe"
+variable_name = "field"
+[[products]]
+binnames = ["kraken.exe"]
+type = "exe"
+variable_name = "kraken"
+[[products]]
+binnames = ["krakenc.exe"]
+type = "exe"
+variable_name = "krakenc"
+[[products]]
+binnames = ["bellhop3d.exe"]
+type = "exe"
+variable_name = "bellhop3d"
+[[products]]
+binnames = ["sparc.exe"]
+type = "exe"
+variable_name = "sparc"
+[[products]]
+binnames = ["scooter.exe"]
+type = "exe"
+variable_name = "scooter"
+[[products]]
+binnames = ["bounce.exe"]
+type = "exe"
+variable_name = "bounce"
+[[products]]
+binnames = ["bellhop.exe"]
+type = "exe"
+variable_name = "bellhop"
+[[products]]
+binnames = ["orca90.exe"]
+type = "exe"
+variable_name = "orca"
+
+[[sources]]
+hash = "7b57e80bded7f71ea9536e541029615f3f430e390651d697a2212569cbafd85c"
+type = "archive"
+unpack_target = ""
+url = "http://oalib.hlsresearch.com/AcousticsToolbox/at_2024_12_25.zip"
+[[sources]]
+hash = "4ac15c1374e08bedd0dd03fd5f79612a8f84899ebf529237e662d7efb1dfb10a"
+type = "archive"
+unpack_target = ""
+url = "https://oalib-acoustics.org/website_resources/Modes/orca/mac_linux/ORCA_Mode_modelling_gfortran.zip"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

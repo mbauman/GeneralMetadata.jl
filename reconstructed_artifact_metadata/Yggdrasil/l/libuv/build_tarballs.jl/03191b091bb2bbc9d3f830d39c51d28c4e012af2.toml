@@ -1,0 +1,31 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "LibUV"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "x86_64-linux-gnu-sanitize+memory"]
+script = """cd $WORKSPACE/srcdir/libuv/\n\n# Touch some files so that the build system doesn't attempt to re-run `autoconf`:\ntouch -c aclocal.m4\ntouch -c Makefile.in\ntouch -c configure\n\nif [[ ${bb_full_target} == *-sanitize+memory* ]]; then\n    # Install msan runtime (for clang)\n    cp -rL ${libdir}/linux/* /opt/x86_64-linux-musl/lib/clang/*/lib/linux/\nfi\n\n# `--with-pic` isn't enough; we really really need -fPIC and -DPIC everywhere...\n# everywhere, especially on FreeBSD. In the end, isn't FreeBSD all that matters?\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} --with-pic CFLAGS=\"${CFLAGS} -DPIC -fPIC\" CXXFLAGS=\"${CXXFLAGS} -DPIC -fPIC\"\nmake -j${nproc} V=1\nmake install\n"""
+version = "v2.0.1"
+
+[[dependencies]]
+compat = ""
+name = "LLVMCompilerRT_jll"
+platforms = ["x86_64-linux-gnu-sanitize+memory"]
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libuv"]
+type = "lib"
+variable_name = "libuv"
+
+[[sources]]
+hash = "e6f0e4900e195c8352f821abe2b3cffc3089547b"
+type = "git"
+unpack_target = ""
+url = "https://github.com/JuliaLang/libuv.git"

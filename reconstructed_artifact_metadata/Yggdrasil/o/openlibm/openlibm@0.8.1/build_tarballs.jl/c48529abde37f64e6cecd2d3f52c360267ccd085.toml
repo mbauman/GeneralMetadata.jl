@@ -1,0 +1,38 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "OpenLibm"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "x86_64-linux-gnu-sanitize+memory"]
+script = """# Enter the funzone\ncd ${WORKSPACE}/srcdir/openlibm*\n\natomic_patch -p1 ../patches/stack-markings.patch\n\n# Install into output\nflags=(\"prefix=${prefix}\")\n\n# Build ARCH from ${target}\nflags+=(\"ARCH=${target%-*-*}\")\n\n# OpenLibm build system doesn't recognize our windows cross compilers properly\nif [[ ${target} == *mingw* ]]; then\n    flags+=(\"OS=WINNT\")\nfi\n\nif [[ ${bb_full_target} == *-sanitize+memory* ]]; then\n    # Install msan runtime (for clang)\n    cp -rL ${libdir}/linux/* /opt/x86_64-linux-musl/lib/clang/*/lib/linux/\nfi\n\n# Add `CC` override, since OpenLibm seems to think it knows best:\nflags+=(\"CC=$CC\")\n\n# Build the library\nmake \"${flags[@]}\" -j${nproc}\n\n# Install the library\nmake \"${flags[@]}\" install\n\ninstall_license ./LICENSE.md\n"""
+version = "v0.8.1"
+
+[[dependencies]]
+compat = ""
+name = "LLVMCompilerRT_jll"
+platforms = ["x86_64-linux-gnu-sanitize+memory"]
+top_level = false
+type = "builddependency"
+uuid = "4e17d02c-6bf5-513e-be62-445f41c75a11"
+version-major = 13
+version-minor = 0
+version-patch = 1
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libopenlibm"]
+type = "lib"
+variable_name = "libopenlibm"
+
+[[sources]]
+hash = "ae2d91698508701c83cab83714d42a1146dccf85"
+type = "git"
+unpack_target = ""
+url = "https://github.com/JuliaMath/openlibm.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

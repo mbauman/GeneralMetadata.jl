@@ -1,0 +1,44 @@
+lazy_artifacts = false
+name = "libvorbis"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/libvorbis-*\n\n# Patch in explicit dependency on `stdint.h` to fix libogg\n# This will be fixed in a future libogg release:\n# https://github.com/xiph/ogg/commit/c8fca6b4a02d695b1ceea39b330d4406001c03ed\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/stdint.patch\"\n\n# Force `./configure` to repent from using `-ffast-math`\nsed -ie 's/-ffast-math//g' ./configure\n\n./configure --prefix=$prefix --host=$target --build=${MACHTYPE}\nmake -j${nproc}\nmake install\n"""
+version = "v1.3.6"
+
+[[dependencies]]
+name = "Ogg_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvorbis"]
+type = "lib"
+variable_name = "libvorbis"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvorbisenc"]
+type = "lib"
+variable_name = "libvorbisenc"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvorbisfile"]
+type = "lib"
+variable_name = "libvorbisfile"
+
+[[sources]]
+hash = "af00bb5a784e7c9e69f56823de4637c350643deedaf333d0fa86ecdba6fcb415"
+type = "archive"
+unpack_target = ""
+url = "https://downloads.xiph.org/releases/vorbis/libvorbis-1.3.6.tar.xz"
+[[sources]]
+path = "./bundled"
+target = ""
+type = "directory"

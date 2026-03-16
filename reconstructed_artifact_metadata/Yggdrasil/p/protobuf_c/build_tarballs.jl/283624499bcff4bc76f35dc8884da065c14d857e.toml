@@ -1,0 +1,46 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "protobuf_c"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir/protobuf-c*\n# Small hack for x86_64-linux-musl-cxx03: swear that we are cross-compiling, which in a\n# sense is true, since we can't run a C++ executable built for the target.  This avoids\n# errors like\n#     Error relocating ./protoc-c/protoc-gen-c: _ZN6google8protobuf8internal14ArenaStringPtr7MutableERKNS1_10LazyStringEPNS0_5ArenaE: symbol not found\nif [[ \"${bb_full_target}\" == x86_64-linux-musl-*cxx03* ]]; then\n    sed -i 's/cross_compiling=no/cross_compiling=yes/' configure\nfi\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} PROTOC=\"$(which protoc)\"\nmake -j${nproc}\nmake install\n"""
+version = "v1.4.1"
+
+[[dependencies]]
+compat = ""
+name = "protoc_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "c7845625-083e-5bbe-8504-b32d602b7110"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "protoc_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libprotobuf-c"]
+type = "lib"
+variable_name = "libprotobuf_c"
+[[products]]
+binnames = ["protoc-gen-c"]
+type = "exe"
+variable_name = "protoc_gen_c"
+
+[[sources]]
+hash = "4cc4facd508172f3e0a4d3a8736225d472418aee35b4ad053384b137b220339f"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/protobuf-c/protobuf-c/releases/download/v1.4.1/protobuf-c-1.4.1.tar.gz"

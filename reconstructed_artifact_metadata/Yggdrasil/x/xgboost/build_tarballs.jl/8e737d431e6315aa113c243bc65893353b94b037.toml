@@ -1,0 +1,38 @@
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "XGBoost"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11", "aarch64-apple-darwin", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11"]
+script = """cd ${WORKSPACE}/srcdir/xgboost\ngit submodule init\ngit submodule update\n\n# Patch dmlc-core to use case-sensitive windows.h includes\n(cd dmlc-core; atomic_patch -p1 \"${WORKSPACE}/srcdir/patches/dmlc_windows.patch\")\n\n# For Linux, build using CMake\nif [[ ${target} == *linux* ]] ||  [[ ${target} == *mingw* ]]; then\n    (mkdir build; cd build; cmake .. -DCMAKE_INSTALL_PREFIX=${prefix} -DCMAKE_TOOLCHAIN_FILE=\"${CMAKE_TARGET_TOOLCHAIN}\")\n    make -C build -j ${nproc}\n# For Mac and FreeBSD, build without openmp\nelif [[ ${target} == *darwin* ]] ||  [[ ${target} == *freebsd* ]]; then\n    (mkdir build; cd build; cmake .. -DUSE_OPENMP=OFF -DCMAKE_INSTALL_PREFIX=${prefix} -DCMAKE_TOOLCHAIN_FILE=\"${CMAKE_TARGET_TOOLCHAIN}\")\n    make -C build -j ${nproc}\nfi\n\n# Install\nmkdir -p ${prefix}/{bin,include,lib}\ncp -ra include/xgboost ${prefix}/include/\ncp -a xgboost${exeext} ${prefix}/bin/xgboost${exeext}\n\nif [[ ${target} == *mingw* ]]; then\n    cp -a lib/xgboost.dll ${prefix}/bin\nelse\n    cp -a lib/libxgboost.${dlext} ${prefix}/lib\nfi\n"""
+version = "v1.4.2"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libxgboost", "xgboost"]
+type = "lib"
+variable_name = "libxgboost"
+[[products]]
+binnames = ["xgboost"]
+type = "exe"
+variable_name = "xgboost"
+
+[[sources]]
+hash = "522b8977c27b422a4cdbe1ecc59a4d57a5df2c36"
+type = "git"
+unpack_target = ""
+url = "https://github.com/dmlc/xgboost.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

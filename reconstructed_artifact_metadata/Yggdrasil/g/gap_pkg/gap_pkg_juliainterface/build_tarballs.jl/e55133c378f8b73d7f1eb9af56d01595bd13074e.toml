@@ -1,0 +1,47 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "GAP_pkg_juliainterface"
+platforms = ["x86_64-linux-gnu-julia_version+1.6.0", "x86_64-linux-gnu-julia_version+1.7.0", "x86_64-linux-gnu-julia_version+1.8.0", "x86_64-linux-gnu-julia_version+1.9.0", "aarch64-linux-gnu-julia_version+1.6.0", "aarch64-linux-gnu-julia_version+1.7.0", "aarch64-linux-gnu-julia_version+1.8.0", "aarch64-linux-gnu-julia_version+1.9.0", "powerpc64le-linux-gnu-julia_version+1.6.0", "powerpc64le-linux-gnu-julia_version+1.7.0", "powerpc64le-linux-gnu-julia_version+1.8.0", "powerpc64le-linux-gnu-julia_version+1.9.0", "x86_64-linux-musl-julia_version+1.6.0", "x86_64-linux-musl-julia_version+1.7.0", "x86_64-linux-musl-julia_version+1.8.0", "x86_64-linux-musl-julia_version+1.9.0", "aarch64-linux-musl-julia_version+1.6.0", "aarch64-linux-musl-julia_version+1.7.0", "aarch64-linux-musl-julia_version+1.8.0", "aarch64-linux-musl-julia_version+1.9.0", "x86_64-apple-darwin-julia_version+1.6.0", "x86_64-apple-darwin-julia_version+1.7.0", "x86_64-apple-darwin-julia_version+1.8.0", "x86_64-apple-darwin-julia_version+1.9.0", "aarch64-apple-darwin-julia_version+1.7.0", "aarch64-apple-darwin-julia_version+1.8.0", "aarch64-apple-darwin-julia_version+1.9.0", "x86_64-unknown-freebsd-julia_version+1.6.0", "x86_64-unknown-freebsd-julia_version+1.7.0", "x86_64-unknown-freebsd-julia_version+1.8.0", "x86_64-unknown-freebsd-julia_version+1.9.0"]
+script = """# HACK WORKAROUND GAP_jll deficiencies\n# must add -lgap to the linker flags used by gac\nperl -pi -e 's/c_addlibs=\"\"/c_addlibs=\"-lgap\"/' ${prefix}/bin/gac\ncd GAP.jl/pkg/JuliaInterface\n./configure --with-gaproot=${prefix}/lib/gap\nmake -j${nproc} CFLAGS=\"-I${includedir} -I${includedir}/julia\" LDFLAGS=\"-ljulia\"\n\n# copy the loadable module\nmkdir -p ${prefix}/lib/gap\ncp bin/*/*.so ${prefix}/lib/gap/\n\n# copy the sources, too, so that we can later compare them\ncp -r src ${prefix}/\n\ninstall_license ../../LICENSE\n"""
+version = "v0.800.200"
+
+[[dependencies]]
+compat = "~400.1200.0"
+name = "GAP_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "~400.1200.0"
+name = "GAP_lib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "libjulia_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+paths = ["lib/gap/JuliaInterface.so"]
+type = "file"
+variable_name = "JuliaInterface"
+
+[[sources]]
+hash = "62c1e9aedc4408c8f57ea2a9df8ce980a9c41d31"
+type = "git"
+unpack_target = ""
+url = "https://github.com/oscar-system/GAP.jl"

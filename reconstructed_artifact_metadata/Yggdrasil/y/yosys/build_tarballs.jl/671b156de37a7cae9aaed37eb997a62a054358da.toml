@@ -1,0 +1,77 @@
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Yosys"
+platforms = ["i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin"]
+script = """cd yosys\nif [[ \"${target}\" == *-apple-* ]] || [[ \"${target}\" == *-freebsd* ]]; then\n    CONFIG=clang\n    OS=Darwin\nelif [[ \"${target}\" == *-x86_64-w64-mingw32* ]]; then\n    CONFIG=msys2-64\n    OS=Windows\nelif [[ \"${target}\" == *-i686-w64-mingw32* ]]; then\n    CONFIG=msys2-32\n    OS=Windows\nelse\n    CONFIG=gcc\n    OS=Linux\nfi\n# TODO: we need mingw-dlfcn wrappers for windows plugin support\n# TODO: ABC does not build on windows\nmake ENABLE_LIBYOSYS=1 OS=${OS} CONFIG=${CONFIG} PREFIX=${prefix} LIBDIR=${libdir} -j${nproc}\nmake install ENABLE_LIBYOSYS=1 OS=${OS} PREFIX=${prefix} LIBDIR=${libdir}\nif [[ \"${target}\" == *-apple-* ]]; then\n    mv ${prefix}/lib/libyosys.so  ${prefix}/lib/libyosys.dylib\nfi\n"""
+version = "v0.11.0"
+
+[[dependencies]]
+compat = "=1.76.0"
+name = "boost_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "8.1.1"
+name = "Readline_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "8.6.11"
+name = "Tcl_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.2.11"
+name = "Zlib_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "~3.2.2"
+name = "Libffi_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["yosys"]
+type = "exe"
+variable_name = "yosys"
+[[products]]
+binnames = ["yosys-config"]
+type = "exe"
+variable_name = "yosys_config"
+[[products]]
+binnames = ["yosys-filterlib"]
+type = "exe"
+variable_name = "yosys_filterlib"
+[[products]]
+binnames = ["yosys-smtbmc"]
+type = "exe"
+variable_name = "yosys_smtbmc"
+[[products]]
+binnames = ["yosys-abc"]
+type = "exe"
+variable_name = "yosys_abc"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libyosys"]
+type = "lib"
+variable_name = "libyosys"
+
+[[sources]]
+hash = "360fed8e4d611fa725a4526cf960383b8e6c6e64"
+type = "git"
+unpack_target = ""
+url = "https://github.com/YosysHQ/yosys.git"

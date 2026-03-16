@@ -1,0 +1,35 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Intel_XED"
+platforms = ["x86_64-linux-gnu", "x86_64-linux-musl", "x86_64-unknown-freebsd"]
+script = """cd ${WORKSPACE}/srcdir/xed\n\n# This file is binary (?), and Python tries to decode it as UTF-8 and fails, and aborts\n# This file exists when I build locally, but not when Yggdrasil builds.\nrm -f /usr/lib/python3.9/site-packages/._distutils-precedence.pth\n\npython3 mfile.py --clean\npython3 mfile.py -j${nproc} --cc=${CC} --opt=2 --shared --no-werror\n# We could also build the CLI.\n\nmkdir -p ${includedir}\nmkdir -p ${libdir}\ninstall -Dvm 755 obj/wkit/include/xed/*.h ${includedir}\ninstall -Dvm 755 obj/wkit/lib/*.so ${libdir}\ninstall_license LICENSE\n"""
+version = "v2023.8.21"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libxed"]
+type = "lib"
+variable_name = "libxed"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libxed-ild"]
+type = "lib"
+variable_name = "libxed_ild"
+
+[[sources]]
+hash = "01a6da8090af84cd52f6c1070377ae6e885b078f"
+type = "git"
+unpack_target = ""
+url = "https://github.com/intelxed/xed"
+[[sources]]
+hash = "75cb46e6536758f1a3cdb3d6bd83a4a9fd0338bb"
+type = "git"
+unpack_target = ""
+url = "https://github.com/intelxed/mbuild"

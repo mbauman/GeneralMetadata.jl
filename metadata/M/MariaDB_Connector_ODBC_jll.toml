@@ -5,77 +5,10 @@ registered = 2020-05-20T00:45:01.000Z
     [["3.1.7+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.7+0/MariaDB_Connector_ODBC.v3.1.7.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.7+0/MariaDB_Connector_ODBC.v3.1.7.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.7+0/MariaDB_Connector_ODBC.v3.1.7.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.7+0/MariaDB_Connector_ODBC.v3.1.7.x86_64-apple-darwin14.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.7+0/MariaDB_Connector_ODBC.v3.1.7.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.7+0/MariaDB_Connector_ODBC.v3.1.7.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.7+0/MariaDB_Connector_ODBC.v3.1.7.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/a832db2409d494cf958b023696afff4e29033dba/M/MariaDB_Connector_ODBC/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/m/mariadb_connector_odbc/build_tarballs.jl/a832db2409d494cf958b023696afff4e29033dba.toml"
     metadata_source = "retrospective (by timestamp)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.2.4"
-
-        ["3.1.7+0".artifact_metadata.metadata]
-        lazy_artifacts = false
-        name = "MariaDB_Connector_ODBC"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "x86_64-apple-darwin14", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """install_license $WORKSPACE/srcdir/mariadb-connector*/COPYING\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    # For Windows just use the prebuilt library\n    mkdir -p \"${libdir}\"\n    cd $WORKSPACE/srcdir\n    apk add p7zip\n    7z x \"${target}.msi\"\n    cp mariadb_odbc_dll \"${libdir}/mariadb_odbc.dll\"\n    exit\nfi\n\ncd $WORKSPACE/srcdir/mariadb-connector*/\n\n# Skip building of macOS package\nsed -i 's/ADD_SUBDIRECTORY(osxinstall)/# ADD_SUBDIRECTORY(osxinstall)/' CMakeLists.txt\n\n## Keep this for reference in case we decide to build for Windows from source\n# if [[ \"${target}\" == *-mingw* ]]; then\n#     # Disable dialog plugin\n#     sed -i 's/-DPLUGINS_LIB_DIR.*:dialog.*//' CMakeLists.txt\n#     atomic_patch -p1 \"${WORKSPACE}/srcdir/patches/0001-fix-case-headers-windows.patch\"\n#     # The following is not really a patch: Microsoft Visual C++ thinks that it's\n#     # a good idea to put some stray characters in the first bits of the file,\n#     # making it hard to digest for MinGW.  We can't diff the file as the\n#     # original one appears to be binary, because of the stray character.\n#     cp \"${WORKSPACE}/srcdir/patches/resource.h\" dsn/\n# fi\n\nmkdir build && cd build\n\nexport CFLAGS=\"-I${includedir}/mariadb\"\nexport LDFLAGS=\"-L${libdir}/mariadb\"\nif [[ \"${target}\" == *-apple-* ]]; then\n    # Link to the right OpenSSL and Zlib libraries\n    export LDFLAGS=\"${LDFLAGS} ${libdir}/libssl.${dlext} ${libdir}/libcrypto.${dlext} -lz\"\nfi\ncmake -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DWITH_OPENSSL=ON \\\n    -DWITH_SSL=OPENSSL \\\n    -DOPENSSL_FOUND=ON \\\n    -DOPENSSL_CRYPTO_LIBRARY=${libdir}/libcrypto.${dlext} \\\n    -DOPENSSL_SSL_LIBRARY=${libdir}/libssl.${dlext} \\\n    -DICONV_LIBRARIES=${libdir}/libiconv.${dlext} \\\n    -DICONV_INCLUDE_DIR=${includedir} \\\n    ..\nmake -j${nproc}\nmake install\n"""
-        version = "v3.1.7"
-
-            [["3.1.7+0".artifact_metadata.metadata.dependencies]]
-            name = "MariaDB_Connector_C_jll"
-            type = "builddependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["3.1.7+0".artifact_metadata.metadata.dependencies]]
-            name = "iODBC_jll"
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["3.1.7+0".artifact_metadata.metadata.dependencies]]
-            name = "Libiconv_jll"
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["3.1.7+0".artifact_metadata.metadata.dependencies]]
-            name = "unixODBC_jll"
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["3.1.7+0".artifact_metadata.metadata.dependencies]]
-            name = "OpenSSL_jll"
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["3.1.7+0".artifact_metadata.metadata.dependencies]]
-            name = "Zlib_jll"
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["3.1.7+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libmaodbc", "mariadb_odbc"]
-            type = "lib"
-            variable_name = "libmaodbc"
-
-            [["3.1.7+0".artifact_metadata.metadata.sources]]
-            hash = "699c575e169d770ccfae1c1e776aa7725d849046476bf6579d292c89e8c8593e"
-            type = "archive"
-            unpack_target = ""
-            url = "https://downloads.mariadb.com/Connectors/odbc/connector-odbc-3.1.7/mariadb-connector-odbc-3.1.7-ga-src.tar.gz"
-            [["3.1.7+0".artifact_metadata.metadata.sources]]
-            filename = "x86_64-w64-mingw32.msi"
-            hash = "ef1ad796cc4aba67aa6606b35239302c579b7894604239d1caaa1f2d10623bd2"
-            type = "file"
-            url = "https://downloads.mariadb.com/Connectors/odbc/connector-odbc-3.1.7/mariadb-connector-odbc-3.1.7-win64.msi"
-            [["3.1.7+0".artifact_metadata.metadata.sources]]
-            filename = "i686-w64-mingw32.msi"
-            hash = "a60b74dc3af0b450d892731c2973037beef6fc972e0813f3db9f28f083a63402"
-            type = "file"
-            url = "https://downloads.mariadb.com/Connectors/odbc/connector-odbc-3.1.7/mariadb-connector-odbc-3.1.7-win32.msi"
 
 ["3.1.7+1"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.7+1/MariaDB_Connector_ODBC.v3.1.7.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.7+1/MariaDB_Connector_ODBC.v3.1.7.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.7+1/MariaDB_Connector_ODBC.v3.1.7.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.7+1/MariaDB_Connector_ODBC.v3.1.7.x86_64-apple-darwin14.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.7+1/MariaDB_Connector_ODBC.v3.1.7.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.7+1/MariaDB_Connector_ODBC.v3.1.7.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.7+1/MariaDB_Connector_ODBC.v3.1.7.x86_64-w64-mingw32.tar.gz"]
@@ -84,77 +17,10 @@ registered = 2020-05-20T10:56:49.000Z
     [["3.1.7+1".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.7+1/MariaDB_Connector_ODBC.v3.1.7.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.7+1/MariaDB_Connector_ODBC.v3.1.7.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.7+1/MariaDB_Connector_ODBC.v3.1.7.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.7+1/MariaDB_Connector_ODBC.v3.1.7.x86_64-apple-darwin14.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.7+1/MariaDB_Connector_ODBC.v3.1.7.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.7+1/MariaDB_Connector_ODBC.v3.1.7.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.7+1/MariaDB_Connector_ODBC.v3.1.7.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/329375dc94c184c87d76e634a2c68c4039627b96/M/MariaDB_Connector_ODBC/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/m/mariadb_connector_odbc/build_tarballs.jl/329375dc94c184c87d76e634a2c68c4039627b96.toml"
     metadata_source = "retrospective (by timestamp)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.2.4"
-
-        ["3.1.7+1".artifact_metadata.metadata]
-        lazy_artifacts = false
-        name = "MariaDB_Connector_ODBC"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "x86_64-apple-darwin14", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """install_license $WORKSPACE/srcdir/mariadb-connector*/COPYING\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    # For Windows just use the prebuilt library\n    mkdir -p \"${libdir}\"\n    cd $WORKSPACE/srcdir\n    apk add p7zip\n    7z x \"${target}.msi\"\n    cp mariadb_odbc_dll \"${libdir}/mariadb_odbc.dll\"\n    exit\nfi\n\ncd $WORKSPACE/srcdir/mariadb-connector*/\n\n# Skip building of macOS package\nsed -i 's/ADD_SUBDIRECTORY(osxinstall)/# ADD_SUBDIRECTORY(osxinstall)/' CMakeLists.txt\n\n## Keep this for reference in case we decide to build for Windows from source\n# if [[ \"${target}\" == *-mingw* ]]; then\n#     # Disable dialog plugin\n#     sed -i 's/-DPLUGINS_LIB_DIR.*:dialog.*//' CMakeLists.txt\n#     atomic_patch -p1 \"${WORKSPACE}/srcdir/patches/0001-fix-case-headers-windows.patch\"\n#     # The following is not really a patch: Microsoft Visual C++ thinks that it's\n#     # a good idea to put some stray characters in the first bits of the file,\n#     # making it hard to digest for MinGW.  We can't diff the file as the\n#     # original one appears to be binary, because of the stray character.\n#     cp \"${WORKSPACE}/srcdir/patches/resource.h\" dsn/\n# fi\n\nmkdir build && cd build\n\nexport CFLAGS=\"-I${includedir}/mariadb\"\n# Find the MariaDB lib and link to the right OpenSSL and Zlib libraries\nexport LDFLAGS=\"-L${libdir}/mariadb ${libdir}/libssl.${dlext} ${libdir}/libcrypto.${dlext} -lz\"\ncmake -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DWITH_OPENSSL=ON \\\n    -DWITH_SSL=OPENSSL \\\n    -DOPENSSL_FOUND=ON \\\n    -DOPENSSL_CRYPTO_LIBRARY=${libdir}/libcrypto.${dlext} \\\n    -DOPENSSL_SSL_LIBRARY=${libdir}/libssl.${dlext} \\\n    -DICONV_LIBRARIES=${libdir}/libiconv.${dlext} \\\n    -DICONV_INCLUDE_DIR=${includedir} \\\n    ..\nmake -j${nproc}\nmake install\n"""
-        version = "v3.1.7"
-
-            [["3.1.7+1".artifact_metadata.metadata.dependencies]]
-            name = "MariaDB_Connector_C_jll"
-            type = "builddependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["3.1.7+1".artifact_metadata.metadata.dependencies]]
-            name = "iODBC_jll"
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["3.1.7+1".artifact_metadata.metadata.dependencies]]
-            name = "Libiconv_jll"
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["3.1.7+1".artifact_metadata.metadata.dependencies]]
-            name = "unixODBC_jll"
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["3.1.7+1".artifact_metadata.metadata.dependencies]]
-            name = "OpenSSL_jll"
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["3.1.7+1".artifact_metadata.metadata.dependencies]]
-            name = "Zlib_jll"
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["3.1.7+1".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libmaodbc", "mariadb_odbc"]
-            type = "lib"
-            variable_name = "libmaodbc"
-
-            [["3.1.7+1".artifact_metadata.metadata.sources]]
-            hash = "699c575e169d770ccfae1c1e776aa7725d849046476bf6579d292c89e8c8593e"
-            type = "archive"
-            unpack_target = ""
-            url = "https://downloads.mariadb.com/Connectors/odbc/connector-odbc-3.1.7/mariadb-connector-odbc-3.1.7-ga-src.tar.gz"
-            [["3.1.7+1".artifact_metadata.metadata.sources]]
-            filename = "x86_64-w64-mingw32.msi"
-            hash = "ef1ad796cc4aba67aa6606b35239302c579b7894604239d1caaa1f2d10623bd2"
-            type = "file"
-            url = "https://downloads.mariadb.com/Connectors/odbc/connector-odbc-3.1.7/mariadb-connector-odbc-3.1.7-win64.msi"
-            [["3.1.7+1".artifact_metadata.metadata.sources]]
-            filename = "i686-w64-mingw32.msi"
-            hash = "a60b74dc3af0b450d892731c2973037beef6fc972e0813f3db9f28f083a63402"
-            type = "file"
-            url = "https://downloads.mariadb.com/Connectors/odbc/connector-odbc-3.1.7/mariadb-connector-odbc-3.1.7-win32.msi"
 
 ["3.1.9+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.9+0/MariaDB_Connector_ODBC.v3.1.9.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.9+0/MariaDB_Connector_ODBC.v3.1.9.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.9+0/MariaDB_Connector_ODBC.v3.1.9.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.9+0/MariaDB_Connector_ODBC.v3.1.9.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.9+0/MariaDB_Connector_ODBC.v3.1.9.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.9+0/MariaDB_Connector_ODBC.v3.1.9.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.9+0/MariaDB_Connector_ODBC.v3.1.9.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.9+0/MariaDB_Connector_ODBC.v3.1.9.x86_64-w64-mingw32.tar.gz"]
@@ -163,97 +29,10 @@ registered = 2022-04-23T23:50:22.000Z
     [["3.1.9+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.9+0/MariaDB_Connector_ODBC.v3.1.9.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.9+0/MariaDB_Connector_ODBC.v3.1.9.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.9+0/MariaDB_Connector_ODBC.v3.1.9.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.9+0/MariaDB_Connector_ODBC.v3.1.9.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.9+0/MariaDB_Connector_ODBC.v3.1.9.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.9+0/MariaDB_Connector_ODBC.v3.1.9.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.9+0/MariaDB_Connector_ODBC.v3.1.9.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.9+0/MariaDB_Connector_ODBC.v3.1.9.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/0b50281dc8c5597bd4a973670cb23048ca66a519/M/MariaDB_Connector_ODBC/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/m/mariadb_connector_odbc/build_tarballs.jl/0b50281dc8c5597bd4a973670cb23048ca66a519.toml"
     metadata_source = "retrospective (by timestamp)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.5.3"
-
-        ["3.1.9+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "MariaDB_Connector_ODBC"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "x86_64-apple-darwin", "aarch64-apple-darwin", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """install_license $WORKSPACE/srcdir/mariadb-connector*/COPYING\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    # For Windows just use the prebuilt library\n    cd $WORKSPACE/srcdir\n    apk add p7zip\n    7z x \"${target}.msi\"\n    install -Dvm 755 mariadb_odbc_dll \"${libdir}/mariadb/mariadb_odbc.dll\"\n    exit\nfi\n\ncd $WORKSPACE/srcdir/mariadb-connector*/\n\n# Skip building of macOS package\nsed -i 's/ADD_SUBDIRECTORY(osxinstall)/# ADD_SUBDIRECTORY(osxinstall)/' CMakeLists.txt\n\n# They want to run a script which changes the name of the required library\n# `libiodbcinst` from `libiodbcinst.2.dylib` to `libiodbcinst.dylib` which has the only\n# effect of making `libmaodbc` not loadable, as `libiodbcinst` is dlopened as... guess\n# what... `libiodbcinst.2.dylib`.\natomic_patch -p1 ../patches/do-not-change-name-of-iodbcinst.patch\n\n## Keep this for reference in case we decide to build for Windows from source\n# if [[ \"${target}\" == *-mingw* ]]; then\n#     # Disable dialog plugin\n#     sed -i 's/-DPLUGINS_LIB_DIR.*:dialog.*//' CMakeLists.txt\n#     atomic_patch -p1 \"${WORKSPACE}/srcdir/patches/0001-fix-case-headers-windows.patch\"\n#     # The following is not really a patch: Microsoft Visual C++ thinks that it's\n#     # a good idea to put some stray characters in the first bits of the file,\n#     # making it hard to digest for MinGW.  We can't diff the file as the\n#     # original one appears to be binary, because of the stray character.\n#     cp \"${WORKSPACE}/srcdir/patches/resource.h\" dsn/\n# fi\n\nmkdir build && cd build\n\nexport CFLAGS=\"-I${includedir}/mariadb\"\n# Find the MariaDB lib and link to the right OpenSSL and Zlib libraries\nexport LDFLAGS=\"-L${libdir}/mariadb ${libdir}/libssl.${dlext} ${libdir}/libcrypto.${dlext} -lz\"\ncmake -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DWITH_OPENSSL=ON \\\n    -DWITH_SSL=OPENSSL \\\n    -DOPENSSL_FOUND=ON \\\n    -DOPENSSL_CRYPTO_LIBRARY=${libdir}/libcrypto.${dlext} \\\n    -DOPENSSL_SSL_LIBRARY=${libdir}/libssl.${dlext} \\\n    -DICONV_LIBRARIES=${libdir}/libiconv.${dlext} \\\n    -DICONV_INCLUDE_DIR=${includedir} \\\n    ..\nmake -j${nproc}\nmake install\n"""
-        version = "v3.1.9"
-
-            [["3.1.9+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "MariaDB_Connector_C_jll"
-            platforms = ["any"]
-            type = "builddependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["3.1.9+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "iODBC_jll"
-            platforms = ["any"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["3.1.9+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Libiconv_jll"
-            platforms = ["any"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["3.1.9+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "unixODBC_jll"
-            platforms = ["any"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["3.1.9+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "OpenSSL_jll"
-            platforms = ["any"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["3.1.9+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Zlib_jll"
-            platforms = ["any"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["3.1.9+0".artifact_metadata.metadata.products]]
-            dir_paths = ["${libdir}/mariadb"]
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libmaodbc", "mariadb_odbc"]
-            type = "lib"
-            variable_name = "libmaodbc"
-
-            [["3.1.9+0".artifact_metadata.metadata.sources]]
-            hash = "5ead3f69ccde539fd7e3de6f4b8f0e6f9f6c32b4b4f082adf0e2ff110971fe1e"
-            type = "archive"
-            unpack_target = ""
-            url = "https://downloads.mariadb.com/Connectors/odbc/connector-odbc-3.1.9/mariadb-connector-odbc-3.1.9-ga-src.tar.gz"
-            [["3.1.9+0".artifact_metadata.metadata.sources]]
-            follow_symlinks = false
-            path = "./bundled"
-            target = ""
-            type = "directory"
-            [["3.1.9+0".artifact_metadata.metadata.sources]]
-            filename = "x86_64-w64-mingw32.msi"
-            hash = "c526714f4a65d672b86bf9c24962d55bec70661b37863d891f007f680dae71f7"
-            type = "file"
-            url = "https://downloads.mariadb.com/Connectors/odbc/connector-odbc-3.1.9/mariadb-connector-odbc-3.1.9-win64.msi"
-            [["3.1.9+0".artifact_metadata.metadata.sources]]
-            filename = "i686-w64-mingw32.msi"
-            hash = "5ef098aefee1d30e6e349bf2363a601007e1376508e6b4a0e23e1eb3ed5a51e2"
-            type = "file"
-            url = "https://downloads.mariadb.com/Connectors/odbc/connector-odbc-3.1.9/mariadb-connector-odbc-3.1.9-win32.msi"
 
 ["3.1.16+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.16+0/MariaDB_Connector_ODBC.v3.1.16.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.16+0/MariaDB_Connector_ODBC.v3.1.16.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.16+0/MariaDB_Connector_ODBC.v3.1.16.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.16+0/MariaDB_Connector_ODBC.v3.1.16.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.16+0/MariaDB_Connector_ODBC.v3.1.16.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.16+0/MariaDB_Connector_ODBC.v3.1.16.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.16+0/MariaDB_Connector_ODBC.v3.1.16.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.16+0/MariaDB_Connector_ODBC.v3.1.16.x86_64-w64-mingw32.tar.gz"]
@@ -262,97 +41,10 @@ registered = 2022-08-30T19:56:04.000Z
     [["3.1.16+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.16+0/MariaDB_Connector_ODBC.v3.1.16.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.16+0/MariaDB_Connector_ODBC.v3.1.16.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.16+0/MariaDB_Connector_ODBC.v3.1.16.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.16+0/MariaDB_Connector_ODBC.v3.1.16.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.16+0/MariaDB_Connector_ODBC.v3.1.16.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.16+0/MariaDB_Connector_ODBC.v3.1.16.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.16+0/MariaDB_Connector_ODBC.v3.1.16.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.16+0/MariaDB_Connector_ODBC.v3.1.16.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/95769795d77a3eb3a402aabcf9803568e196acae/M/MariaDB_Connector_ODBC/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/m/mariadb_connector_odbc/build_tarballs.jl/95769795d77a3eb3a402aabcf9803568e196acae.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.5.5"
-
-        ["3.1.16+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "MariaDB_Connector_ODBC"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "x86_64-apple-darwin", "aarch64-apple-darwin", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """install_license $WORKSPACE/srcdir/mariadb-connector*/COPYING\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    # For Windows just use the prebuilt library\n    cd $WORKSPACE/srcdir\n    apk add p7zip\n    7z x \"${target}.msi\"\n    install -Dvm 755 mariadb_odbc_dll \"${libdir}/mariadb/mariadb_odbc.dll\"\n    exit\nfi\n\ncd $WORKSPACE/srcdir/mariadb-connector*/\n\n# Skip building of macOS package\nsed -i 's/ADD_SUBDIRECTORY(osxinstall)/# ADD_SUBDIRECTORY(osxinstall)/' CMakeLists.txt\n\n# They want to run a script which changes the name of the required library\n# `libiodbcinst` from `libiodbcinst.2.dylib` to `libiodbcinst.dylib` which has the only\n# effect of making `libmaodbc` not loadable, as `libiodbcinst` is dlopened as... guess\n# what... `libiodbcinst.2.dylib`.\natomic_patch -p1 ../patches/do-not-change-name-of-iodbcinst.patch\n\n## Keep this for reference in case we decide to build for Windows from source\n# if [[ \"${target}\" == *-mingw* ]]; then\n#     # Disable dialog plugin\n#     sed -i 's/-DPLUGINS_LIB_DIR.*:dialog.*//' CMakeLists.txt\n#     atomic_patch -p1 \"${WORKSPACE}/srcdir/patches/0001-fix-case-headers-windows.patch\"\n#     # The following is not really a patch: Microsoft Visual C++ thinks that it's\n#     # a good idea to put some stray characters in the first bits of the file,\n#     # making it hard to digest for MinGW.  We can't diff the file as the\n#     # original one appears to be binary, because of the stray character.\n#     cp \"${WORKSPACE}/srcdir/patches/resource.h\" dsn/\n# fi\n\nmkdir build && cd build\n\nexport CFLAGS=\"-I${includedir}/mariadb\"\n# Find the MariaDB lib and link to the right OpenSSL and Zlib libraries\nexport LDFLAGS=\"-L${libdir}/mariadb ${libdir}/libssl.${dlext} ${libdir}/libcrypto.${dlext} -lz\"\ncmake -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DWITH_OPENSSL=ON \\\n    -DWITH_SSL=OPENSSL \\\n    -DOPENSSL_FOUND=ON \\\n    -DOPENSSL_CRYPTO_LIBRARY=${libdir}/libcrypto.${dlext} \\\n    -DOPENSSL_SSL_LIBRARY=${libdir}/libssl.${dlext} \\\n    -DICONV_LIBRARIES=${libdir}/libiconv.${dlext} \\\n    -DICONV_INCLUDE_DIR=${includedir} \\\n    ..\nmake -j${nproc}\nmake install\n"""
-        version = "v3.1.16"
-
-            [["3.1.16+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "MariaDB_Connector_C_jll"
-            platforms = ["any"]
-            type = "builddependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["3.1.16+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "iODBC_jll"
-            platforms = ["any"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["3.1.16+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Libiconv_jll"
-            platforms = ["any"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["3.1.16+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "unixODBC_jll"
-            platforms = ["any"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["3.1.16+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "OpenSSL_jll"
-            platforms = ["any"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["3.1.16+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Zlib_jll"
-            platforms = ["any"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["3.1.16+0".artifact_metadata.metadata.products]]
-            dir_paths = ["${libdir}/mariadb"]
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libmaodbc", "mariadb_odbc"]
-            type = "lib"
-            variable_name = "libmaodbc"
-
-            [["3.1.16+0".artifact_metadata.metadata.sources]]
-            hash = "4fd0de9d0e9da883ac9801cbf97953be9cc9010830417c44e8b339deca48463d"
-            type = "archive"
-            unpack_target = ""
-            url = "https://downloads.mariadb.com/Connectors/odbc/connector-odbc-3.1.16/mariadb-connector-odbc-3.1.16-src.tar.gz"
-            [["3.1.16+0".artifact_metadata.metadata.sources]]
-            follow_symlinks = false
-            path = "./bundled"
-            target = ""
-            type = "directory"
-            [["3.1.16+0".artifact_metadata.metadata.sources]]
-            filename = "x86_64-w64-mingw32.msi"
-            hash = "9d027383b88b7f82203081402242828cf3b54cdd9d1ea7a60be145e9a3dd750e"
-            type = "file"
-            url = "https://downloads.mariadb.com/Connectors/odbc/connector-odbc-3.1.16/mariadb-connector-odbc-3.1.16-win64.msi"
-            [["3.1.16+0".artifact_metadata.metadata.sources]]
-            filename = "i686-w64-mingw32.msi"
-            hash = "341bb7126cc40314244dd62a5c77799d2f9429ac5142880320f3bbc3fd8dc4ee"
-            type = "file"
-            url = "https://downloads.mariadb.com/Connectors/odbc/connector-odbc-3.1.16/mariadb-connector-odbc-3.1.16-win32.msi"
 
 ["3.1.22+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.22+0/MariaDB_Connector_ODBC.v3.1.22.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.22+0/MariaDB_Connector_ODBC.v3.1.22.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.22+0/MariaDB_Connector_ODBC.v3.1.22.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.22+0/MariaDB_Connector_ODBC.v3.1.22.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.22+0/MariaDB_Connector_ODBC.v3.1.22.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.22+0/MariaDB_Connector_ODBC.v3.1.22.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.22+0/MariaDB_Connector_ODBC.v3.1.22.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.22+0/MariaDB_Connector_ODBC.v3.1.22.x86_64-w64-mingw32.tar.gz"]
@@ -361,100 +53,7 @@ registered = 2026-01-29T18:16:53.000Z
     [["3.1.22+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.22+0/MariaDB_Connector_ODBC.v3.1.22.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.22+0/MariaDB_Connector_ODBC.v3.1.22.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.22+0/MariaDB_Connector_ODBC.v3.1.22.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.22+0/MariaDB_Connector_ODBC.v3.1.22.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.22+0/MariaDB_Connector_ODBC.v3.1.22.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.22+0/MariaDB_Connector_ODBC.v3.1.22.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.22+0/MariaDB_Connector_ODBC.v3.1.22.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_ODBC_jll.jl/releases/download/MariaDB_Connector_ODBC-v3.1.22+0/MariaDB_Connector_ODBC.v3.1.22.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/902355dc7a1e51d253510b18fcd1b81bb2229d8a/M/MariaDB_Connector_ODBC/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/m/mariadb_connector_odbc/build_tarballs.jl/902355dc7a1e51d253510b18fcd1b81bb2229d8a.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.6.5"
-
-        ["3.1.22+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "MariaDB_Connector_ODBC"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "x86_64-apple-darwin", "aarch64-apple-darwin", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """install_license $WORKSPACE/srcdir/mariadb-connector*/COPYING\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    # For Windows just use the prebuilt library\n    cd $WORKSPACE/srcdir\n    apk add p7zip\n    7z x \"${target}.msi\"\n    install -Dvm 755 mariadb_odbc_dll \"${libdir}/mariadb/mariadb_odbc.dll\"\n    exit\nfi\n\ncd $WORKSPACE/srcdir/mariadb-connector*/\n\n# Skip building of macOS package (requires pkgbuild/productbuild which aren't available in cross-compilation)\n# In 3.1.x, the packaging is in packaging/macos subdirectory\nsed -i 's/ADD_SUBDIRECTORY(packaging\\/macos)/# ADD_SUBDIRECTORY(packaging\\/macos)/' CMakeLists.txt\n\n# They want to run a script which changes the name of the required library\n# `libiodbcinst` from `libiodbcinst.2.dylib` to `libiodbcinst.dylib` which has the only\n# effect of making `libmaodbc` not loadable, as `libiodbcinst` is dlopened as... guess\n# what... `libiodbcinst.2.dylib`.\natomic_patch -p1 ../patches/do-not-change-name-of-iodbcinst.patch\n\n## Keep this for reference in case we decide to build for Windows from source\n# if [[ \"${target}\" == *-mingw* ]]; then\n#     # Disable dialog plugin\n#     sed -i 's/-DPLUGINS_LIB_DIR.*:dialog.*//' CMakeLists.txt\n#     atomic_patch -p1 \"${WORKSPACE}/srcdir/patches/0001-fix-case-headers-windows.patch\"\n#     # The following is not really a patch: Microsoft Visual C++ thinks that it's\n#     # a good idea to put some stray characters in the first bits of the file,\n#     # making it hard to digest for MinGW.  We can't diff the file as the\n#     # original one appears to be binary, because of the stray character.\n#     cp \"${WORKSPACE}/srcdir/patches/resource.h\" dsn/\n# fi\n\nmkdir build && cd build\n\nexport CFLAGS=\"-I${includedir}/mariadb\"\n# Find the MariaDB lib and link to the right OpenSSL and Zlib libraries\nexport LDFLAGS=\"-L${libdir}/mariadb ${libdir}/libssl.${dlext} ${libdir}/libcrypto.${dlext} -lz\"\ncmake -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DWITH_OPENSSL=ON \\\n    -DWITH_SSL=OPENSSL \\\n    -DOPENSSL_FOUND=ON \\\n    -DOPENSSL_CRYPTO_LIBRARY=${libdir}/libcrypto.${dlext} \\\n    -DOPENSSL_SSL_LIBRARY=${libdir}/libssl.${dlext} \\\n    -DICONV_LIBRARIES=${libdir}/libiconv.${dlext} \\\n    -DICONV_INCLUDE_DIR=${includedir} \\\n    ..\nmake -j${nproc}\nmake install\n"""
-        version = "v3.1.22"
-
-            [["3.1.22+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "MariaDB_Connector_C_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["3.1.22+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "iODBC_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["3.1.22+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Libiconv_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["3.1.22+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "unixODBC_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["3.1.22+0".artifact_metadata.metadata.dependencies]]
-            compat = "3.0.16"
-            name = "OpenSSL_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["3.1.22+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Zlib_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["3.1.22+0".artifact_metadata.metadata.products]]
-            dir_paths = ["${libdir}/mariadb"]
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libmaodbc", "mariadb_odbc"]
-            type = "lib"
-            variable_name = "libmaodbc"
-
-            [["3.1.22+0".artifact_metadata.metadata.sources]]
-            hash = "250f23dc2cc47bd0e80b3eb8059819a06275d22950b22b7afca8b253c3cebcee"
-            type = "archive"
-            unpack_target = ""
-            url = "https://archive.mariadb.org/connector-odbc-3.1.22/mariadb-connector-odbc-3.1.22-src.tar.gz"
-            [["3.1.22+0".artifact_metadata.metadata.sources]]
-            follow_symlinks = false
-            path = "./bundled"
-            target = ""
-            type = "directory"
-            [["3.1.22+0".artifact_metadata.metadata.sources]]
-            filename = "x86_64-w64-mingw32.msi"
-            hash = "fb66392eea982cd77a3e191075d4fa15a10b5ac6ea854f7d1bd3ce5d178f7359"
-            type = "file"
-            url = "https://downloads.mariadb.com/Connectors/odbc/connector-odbc-3.1.22/mariadb-connector-odbc-3.1.22-win64.msi"
-            [["3.1.22+0".artifact_metadata.metadata.sources]]
-            filename = "i686-w64-mingw32.msi"
-            hash = "346fc34cfc517843516725cf581b6d16d824db39d2b01f8fcb1fbae24ebefb71"
-            type = "file"
-            url = "https://downloads.mariadb.com/Connectors/odbc/connector-odbc-3.1.22/mariadb-connector-odbc-3.1.22-win32.msi"

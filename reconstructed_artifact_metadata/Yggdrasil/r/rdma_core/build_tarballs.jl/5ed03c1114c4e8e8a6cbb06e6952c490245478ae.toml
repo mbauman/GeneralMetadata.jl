@@ -1,0 +1,45 @@
+augment_platform_block = ""
+init_block = """if !haskey(ENV, \"JULIA_IBV_CONFIG_DIR\")\n        ENV[\"JULIA_IBV_CONFIG_DIR\"] = joinpath(artifact_dir, \"etc\", \"libibverbs.d\")\n    end\n"""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "rdma_core"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl"]
+script = """cd $WORKSPACE/srcdir\ncd rdma-core-*\n# Apply patches\nfor f in ${WORKSPACE}/srcdir/patches/*.patch; do\n\tatomic_patch -p1 ${f}\ndone\ncmake -DCMAKE_INSTALL_PREFIX=$prefix -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} -DCMAKE_BUILD_TYPE=Release -DNO_MAN_PAGES=ON\nmake -j\nmake install\n"""
+version = "v58.0.0"
+
+[[dependencies]]
+compat = ""
+name = "libnl_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "7c700954-19d3-5208-81e2-8fa5fe7c0bd8"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libibverbs"]
+type = "lib"
+variable_name = "libibverbs"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["librdmacm"]
+type = "lib"
+variable_name = "lbrdmacm"
+
+[[sources]]
+hash = "88d67897b793f42d2004eec2629ab8464e425e058f22afabd29faac0a2f54ce4"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/linux-rdma/rdma-core/releases/download/v58.0/rdma-core-58.0.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

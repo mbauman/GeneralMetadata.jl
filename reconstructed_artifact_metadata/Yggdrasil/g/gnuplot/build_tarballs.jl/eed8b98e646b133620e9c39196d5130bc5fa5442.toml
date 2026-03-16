@@ -1,0 +1,138 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Gnuplot"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/gnuplot-*\n\nif [[ \"${target}\" == \"${MACHTYPE}\" ]]; then\n    # Delete system libexpat to avoid confusion\n    rm /usr/lib/libexpat.so*\nelif [[ \"${target}\" == *-mingw* ]]; then\n    # Apply patch from https://github.com/msys2/MINGW-packages/blob/5dcff9fd637714972b113c6d3fbf6db17e9b707a/mingw-w64-gnuplot/01-gnuplot.patch\n    atomic_patch -p1 ../patches/01-gnuplot.patch\n    autoreconf -fiv\nfi\n\nexport LIBS='-liconv -lffi'\nif [[ ${target} == aarch64-apple-* ]]; then  # FIXES the undefined symbol: __divdc3 error\n    export LDFLAGS=\"-L${libdir}/darwin -lclang_rt.osx\"\nfi\n\nunset args\nargs+=(--with-bitmap-terminals)\nargs+=(--disable-wxwidgets)\n\n# FIXME: no Qt Tools artifacts available for these platforms (missing either uic or lrelease)\ncase \"$target\" in\n    *-musl*|*-freebsd*|riscv64-linux-gnu*|aarch64-apple-darwin*|arm-linux-gnueabihf*)\n        args+=(--with-qt=no);;\nesac\n\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} ${args[@]}\n\nmake -C src -j${nproc}\nmake -C src install\n# add a fake `gnuplot_fake` executable, in order to determine `GNUPLOT_DRIVER_DIR` in `Gaston.jl`\ndn=\"$prefix/libexec/gnuplot/6.0\"\nmkdir -p $dn\ntouch $dn/gnuplot_fake$exeext\nchmod +x $dn/gnuplot_fake$exeext\n"""
+version = "v60.0.3003"
+
+[[dependencies]]
+compat = ""
+name = "LLVMCompilerRT_jll"
+platforms = ["aarch64-apple-darwin"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_xorgproto_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "libwebp_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Libcerf_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LibGD_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Cairo_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Pango_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Libffi_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Libiconv_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Readline_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Qt5Tools_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Qt5Svg_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["gnuplot"]
+type = "exe"
+variable_name = "gnuplot"
+[[products]]
+binnames = ["gnuplot_fake"]
+dir_path = "libexec/gnuplot/6.0"
+type = "exe"
+variable_name = "gnuplot_fake"
+
+[[sources]]
+hash = "ec52e3af8c4083d4538152b3f13db47f6d29929a3f6ecec5365c834e77f251ab"
+type = "archive"
+unpack_target = ""
+url = "https://downloads.sourceforge.net/project/gnuplot/gnuplot/6.0.3/gnuplot-6.0.3.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

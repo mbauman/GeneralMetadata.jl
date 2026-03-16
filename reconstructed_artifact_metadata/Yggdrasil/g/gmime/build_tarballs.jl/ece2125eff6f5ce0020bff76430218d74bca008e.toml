@@ -1,0 +1,43 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "gmime"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/gmime*\necho '#define ICONV_ISO_INT_FORMAT \"iso-%u-%u\"' > iconv-detect.h\necho '#define ICONV_ISO_STR_FORMAT \"iso-%u-%s\"' >> iconv-detect.h\necho '#define ICONV_SHIFT_JIS \"shift-jis\"' >> iconv-detect.h\necho '#define ICONV_10646 \"UCS-4BE\"' >> iconv-detect.h\n\nif [[ \"${target}\" == *-apple-* ]]; then\n   # Help the linker prefer our libiconv over system's libiconv.\n   export LDFLAGS=\"-L${libdir}\"\nfi\n\n./configure --prefix=${prefix} \\\n            --build=${MACHTYPE} \\\n            --host=${target} \\\n            --enable-static=no \\\n            --with-libiconv=gnu \\\n            ac_cv_have_iconv_detect_h=yes\nmake -j${nproc}\nmake install\n"""
+version = "v3.2.15"
+
+[[dependencies]]
+compat = "2.68.1"
+name = "Glib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "7746bdde-850d-59dc-9ae8-88ece973131d"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Libiconv_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "94ce4f54-9a6c-5748-9c1c-f9c7231a4531"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgmime-3", "libgmime-3.0"]
+type = "lib"
+variable_name = "libgmime"
+
+[[sources]]
+hash = "84cd2a481a27970ec39b5c95f72db026722904a2ccf3fdbd57b280cf2d02b5c4"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/jstedfast/gmime/releases/download/3.2.15/gmime-3.2.15.tar.xz"

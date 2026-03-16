@@ -1,0 +1,63 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Foldseek"
+platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin"]
+script = """cd $WORKSPACE/srcdir/foldseek*/\n\n# patch lib/mmseqs/CMakeLists.txt so it doesn't set -march unnecessarily on ARM\natomic_patch -p1 ../patches/mmseqs-arm-simd-march-cmakefile.patch\n\n# remove rustup check in corrosion's FindRust.cmake\natomic_patch -p1 ../patches/corrosion-remove-rustup-check.patch\n\nARCH_FLAGS=\nif [[ \"${target}\" == x86_64-* || \"${target}\" == i686-* ]]; then\n    ARCH_FLAGS=\"-DHAVE_SSE2=1 -DHAVE_SSE4_1=1 -DHAVE_AVX2=1\"\nelif [[ \"${target}\" == powerpc64le-* ]]; then\n    ARCH_FLAGS=\"-DHAVE_POWER8=1 -DHAVE_POWER9=1\"\nelif [[ \"${target}\" == aarch64-* ]]; then\n    ARCH_FLAGS=\"-DHAVE_ARM8=1\"\nfi\n\n# avoid 'cannot create cdylib' error on musl targets\n# see https://github.com/rust-lang/cargo/issues/8607\n#     https://github.com/rust-lang/rust/issues/59302\nif [[ \"${target}\" == *-musl* ]]; then\n    export RUSTFLAGS=\"-C target-feature=-crt-static\"\nfi\n\nmkdir build && cd build\ncmake .. \\\n    -DCMAKE_INSTALL_PREFIX=$prefix -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} -DCMAKE_BUILD_TYPE=RELEASE \\\n    -DNATIVE_ARCH=0 ${ARCH_FLAGS} \\\n    -DRust_COMPILER=$(which ${RUSTC}) -DRust_CARGO_TARGET=${CARGO_BUILD_TARGET}\nmake -j${nproc}\nmake install\n\ninstall_license ../LICENSE.md\n"""
+version = "v8.0.0"
+
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Bzip2_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LLVMOpenMP_jll"
+platforms = ["x86_64-apple-darwin", "aarch64-apple-darwin"]
+top_level = false
+type = "dependency"
+uuid = "1d63c593-3942-5779-bab2-d838dc0a180e"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["foldseek"]
+type = "exe"
+variable_name = "foldseek"
+
+[[sources]]
+hash = "946841ff3b15531349a9883358b3a3052b368da9"
+type = "git"
+unpack_target = ""
+url = "https://github.com/steineggerlab/foldseek"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

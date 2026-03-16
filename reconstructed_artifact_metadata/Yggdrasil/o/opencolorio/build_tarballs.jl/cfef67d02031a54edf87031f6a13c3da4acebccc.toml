@@ -1,0 +1,122 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "OpenColorIO"
+platforms = ["i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx11", "riscv64-linux-gnu-cxx11", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx11"]
+script = """macos_sdk_version=11.0\nmacosx_deployment_target=11.0\nif [[ \"${target}\" == x86_64-apple-darwin* ]]; then\n    echo \"Extracting MacOSX${macos_sdk_version}.sdk.tar.xz (this may take a while)\"\n    rm -rf /opt/${target}/${target}/sys-root/System\n    rm -rf /opt/${target}/${target}/sys-root/usr/include/libxml2/libxml\n    # extract the tarball into the sys-root so all compilers pick it up\n    # automatically, and use --warning=no-unknown-keyword to hide harmless\n    # warnings about unsupported pax header keywords like \"SCHILY.fflags\"\n    tar --extract \\\n        --file=${WORKSPACE}/srcdir/MacOSX${macos_sdk_version}.sdk.tar.xz \\\n        --directory=\"/opt/${target}/${target}/sys-root/.\" \\\n        --strip-components=1 \\\n        --warning=no-unknown-keyword \\\n        MacOSX${macos_sdk_version}.sdk/System \\\n        MacOSX${macos_sdk_version}.sdk/usr\n    export MACOSX_DEPLOYMENT_TARGET=${macosx_deployment_target}\nfi\ncd ${WORKSPACE}/srcdir/OpenColorIO*\n\nif [[ ${target} == *mingw* ]]; then\n   # Our mingw is too old and doesn't know how to create an `ifstream` from a `wstring`\n   atomic_patch -p1 ${WORKSPACE}/srcdir/patches/mingw.patch\nfi\n\nargs=(\n    -DCMAKE_BUILD_TYPE=Release\n    -DCMAKE_INSTALL_PREFIX=${prefix}\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN}\n    -DOCIO_BUILD_GPU_TESTS=OFF\n    -DOCIO_BUILD_PYTHON=OFF\n    -DOCIO_BUILD_TESTS=OFF\n    -DOCIO_USE_HEADLESS=ON\n)\nif [[ ${target} == *darwin* ]]; then\n   # On Darwin, cmake picks `llvm-strip` which doesn't understand the Mach-O format.\n   args+=(-DCMAKE_STRIP=${target}-strip)\nfi\ncmake -B build -G Ninja \"${args[@]}\"\ncmake --build build --parallel ${nproc}\ncmake --install build\ninstall_license LICENSE\n"""
+version = "v2.5.0"
+
+[[dependencies]]
+compat = "2.7.3"
+name = "Expat_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "3.2.2"
+name = "Imath_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "3.4.4"
+name = "OpenEXR_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "0.8.1"
+name = "yaml_cpp_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["ocioarchive"]
+type = "exe"
+variable_name = "ocioarchive"
+[[products]]
+binnames = ["ociobakelut"]
+type = "exe"
+variable_name = "ociobakelut"
+[[products]]
+binnames = ["ociocheck"]
+type = "exe"
+variable_name = "ociocheck"
+[[products]]
+binnames = ["ociochecklut"]
+type = "exe"
+variable_name = "ociochecklut"
+[[products]]
+binnames = ["ociocpuinfo"]
+type = "exe"
+variable_name = "ociocpuinfo"
+[[products]]
+binnames = ["ociomakeclf"]
+type = "exe"
+variable_name = "ociomakeclf"
+[[products]]
+binnames = ["ocioperf"]
+type = "exe"
+variable_name = "ocioperf"
+[[products]]
+binnames = ["ociomergeconfigs"]
+type = "exe"
+variable_name = "ociomergeconfigs"
+[[products]]
+binnames = ["ociowrite"]
+type = "exe"
+variable_name = "ociowrite"
+[[products]]
+binnames = ["ociolutimage"]
+type = "exe"
+variable_name = "ociolutimage"
+[[products]]
+binnames = ["ocioconvert"]
+type = "exe"
+variable_name = "ocioconvert"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libOpenColorIO", "libOpenColorIO_2_5"]
+type = "lib"
+variable_name = "libOpenColorIO"
+
+[[sources]]
+hash = "592a122b37467c3376f2387fbbdbe7b571fad39f"
+type = "git"
+unpack_target = ""
+url = "https://github.com/AcademySoftwareFoundation/OpenColorIO"
+[[sources]]
+follow_symlinks = false
+path = "bundled"
+target = ""
+type = "directory"
+[[sources]]
+filename = "MacOSX11.0.sdk.tar.xz"
+hash = "c8a9ff16196be43c35b699dd293f0c0563f1239c99caa6b3d53882e556a209bd"
+type = "file"
+url = "https://github.com/phracker/MacOSX-SDKs/releases/download/11.0-11.1/MacOSX11.0.sdk.tar.xz"

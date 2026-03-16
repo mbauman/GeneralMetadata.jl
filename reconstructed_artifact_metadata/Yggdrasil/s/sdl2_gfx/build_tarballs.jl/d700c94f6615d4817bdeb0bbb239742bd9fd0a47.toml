@@ -1,0 +1,13 @@
+dependencies = ["SDL2_jll"]
+name = "SDL2_gfx"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "arm-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "arm-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/SDL2_gfx-*\n\nFLAGS=()\nif [[ \"${target}\" != *86* ]]; then\n    FLAGS+=(--enable-mmx=no)\nfi\nif [[ \"${target}\" == powerpc64le-* ]] || [[ \"${target}\" == *-freebsd* ]]; then\n    atomic_patch -p1 ../patches/configure_in_add_macro_dir.patch\n    autoreconf -vi\n    ./autogen.sh\nfi\n\nupdate_configure_scripts\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \"${FLAGS[@]}\"\nmake -j${nproc}\nmake install\nif [[ \"${target}\" == *-mingw* ]]; then\n    # The shared library is not built for Windows, let's do it ourselves\n    cd \"${prefix}/lib\"\n    ar x libSDL2_gfx.a\n    cc -shared -o \"${libdir}/SDL2_gfx.${dlext}\" *.o -lSDL2\n    rm *.o\nfi\n"""
+sources = [{"http://www.ferzkopp.net/Software/SDL2_gfx/SDL2_gfx-1.0.3.tar.gz" = "a4066bd467c96469935a4b1fe472893393e7d74e45f95d59f69726784befd8f8"}, "./bundled"]
+version = "v1.0.3"
+
+[[products]]
+dir_paths = []
+dont_dlopen = false
+libnames = ["libSDL2_gfx", "SDL2_gfx"]
+type = "lib"
+variable_name = "libsdl2_gfx"

@@ -1,0 +1,72 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "USalign"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir\ncd USalign/\n# Remove the -ffast-math flag from the suggested g++ command as required by BinaryBuilder.\nsed -i 's/-ffast-math//g' Makefile\n# The following sed statements are needed to support Linux powerpc64le {libc=glibc}.\nif [[ \"${target}\" == powerpc64le* ]]; then\n    sed -i 's/\\bA0\\b/A0_var/g' TMalign.h;\n    sed -i 's/\\bB0\\b/B0_var/g' TMalign.h;\n    sed -i 's/\\bC0\\b/C0_var/g' TMalign.h;\n    sed -i 's/\\bD0\\b/D0_var/g' TMalign.h;\nfi\n# Remove the -static flag to support macOS aarch64 and x86_64.\nif [[ \"${target}\" == *-apple-darwin* ]]; then\n    sed -i 's/-static//g' Makefile;\nfi\n\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    # Fix the EXIT_SUCCESS not declared error\n    sed -i '1i#include <cstdlib>' pdbAtomName.cpp\n\n    # Add a dummy pstream.h to allow compilation on Windows:\n\ncat << 'CONTENT' > pstream.h\n#ifndef PSTREAM_H\n#define PSTREAM_H\n#include <iostream>\nnamespace redi {\n    class ipstream {\n    public:\n        ipstream() {\n            std::cout << \"POSIX is not supported on Linux, so this program cannot deal with gzipped files on this platform.\\n\";\n        }\n        void open(const std::string&) {\n            std::cout << \"ipstream::open is not supported on this platform.\\n\";\n        }\n        bool good() const { return false; }\n        void close() {}\n        friend ipstream& getline(ipstream& is, std::string& str) { return is; }\n    };\n}\n#endif // PSTREAM_H\nCONTENT\n\nfi\n\nmake\nPROGRAM=$(grep \"PROGRAM=\" Makefile | cut -d '=' -f2)\nfor prog in $PROGRAM; do\n    install -Dvm 755 \"${prog}\" \"${bindir}/${prog}${exeext}\"\ndone\n"""
+version = "v2022.9.24"
+
+[[products]]
+binnames = ["TMscore"]
+type = "exe"
+variable_name = "TMscore"
+[[products]]
+binnames = ["cif2pdb"]
+type = "exe"
+variable_name = "cif2pdb"
+[[products]]
+binnames = ["qTMclust"]
+type = "exe"
+variable_name = "qTMclust"
+[[products]]
+binnames = ["pdb2fasta"]
+type = "exe"
+variable_name = "pdb2fasta"
+[[products]]
+binnames = ["HwRMSD"]
+type = "exe"
+variable_name = "HwRMSD"
+[[products]]
+binnames = ["TMalign"]
+type = "exe"
+variable_name = "TMalign"
+[[products]]
+binnames = ["USalign"]
+type = "exe"
+variable_name = "USalign"
+[[products]]
+binnames = ["se"]
+type = "exe"
+variable_name = "se"
+[[products]]
+binnames = ["MMalign"]
+type = "exe"
+variable_name = "MMalign"
+[[products]]
+binnames = ["pdb2xyz"]
+type = "exe"
+variable_name = "pdb2xyz"
+[[products]]
+binnames = ["pdbAtomName"]
+type = "exe"
+variable_name = "pdbAtomName"
+[[products]]
+binnames = ["pdb2ss"]
+type = "exe"
+variable_name = "pdb2ss"
+[[products]]
+binnames = ["xyz_sfetch"]
+type = "exe"
+variable_name = "xyz_sfetch"
+[[products]]
+binnames = ["NWalign"]
+type = "exe"
+variable_name = "NWalign"
+
+[[sources]]
+hash = "944c6a81c453b43d173d8f18ff3197d59650c2cc"
+type = "git"
+unpack_target = ""
+url = "https://github.com/pylelab/USalign.git"

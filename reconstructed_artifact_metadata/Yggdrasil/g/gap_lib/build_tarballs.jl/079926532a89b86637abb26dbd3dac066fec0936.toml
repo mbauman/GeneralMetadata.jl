@@ -1,0 +1,36 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "GAP_lib"
+products = []
+script = """cd ${WORKSPACE}/srcdir/gap*\n\nmv ../pkg .\nfind pkg -name '._*' -exec rm \\{\\} \\; # unwanted files\n\n# run autogen.sh if compiling from it source and/or if configure was patched\n./autogen.sh\n\n# compile a native version of GAP so we can use it to generate the manual\n# (the manual is only in FULL gap release tarballs, not in the -core tarball\n# nor in git snapshots), and also so that we can invoke the\n# `install-gaproot` target (which is arch independent, so no need to use a\n# GAP built for the host arch.)\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${MACHTYPE} \\\n    --with-gmp=${prefix} \\\n    --without-readline \\\n    --with-zlib=${prefix} \\\n    CC=${CC_BUILD} CXX=${CXX_BUILD}\nmake -j${nproc}\n\n# build the manual (only HTML and txt; for PDF we'd need LaTeX)\nmake html\n\n# the license\ninstall_license LICENSE\n\n# install documentation and library files\nmake install-doc install-gaproot\n"""
+version = "v400.1200.0"
+
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "GMP_jll"
+platforms = ["any"]
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[sources]]
+hash = "7ba252e2bc68ceccb5d267118d47fa5ca20bc513"
+type = "git"
+unpack_target = ""
+url = "https://github.com/gap-system/gap.git"
+[[sources]]
+hash = "2f2b19406d5926ccdd0957da52ca36824fcd8252193a5a5d2677463516ec8cf1"
+type = "archive"
+unpack_target = "pkg"
+url = "https://github.com/gap-system/gap/releases/download/v4.12.0/packages-required-v4.12.0.tar.gz"

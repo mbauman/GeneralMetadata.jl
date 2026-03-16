@@ -1,0 +1,52 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "NetCDFF"
+platforms = ["i686-linux-gnu-libgfortran3", "i686-linux-gnu-libgfortran4", "i686-linux-gnu-libgfortran5", "x86_64-linux-gnu-libgfortran3", "x86_64-linux-gnu-libgfortran4", "x86_64-linux-gnu-libgfortran5", "aarch64-linux-gnu-libgfortran3", "aarch64-linux-gnu-libgfortran4", "aarch64-linux-gnu-libgfortran5", "armv6l-linux-gnueabihf-libgfortran3", "armv6l-linux-gnueabihf-libgfortran4", "armv6l-linux-gnueabihf-libgfortran5", "armv7l-linux-gnueabihf-libgfortran3", "armv7l-linux-gnueabihf-libgfortran4", "armv7l-linux-gnueabihf-libgfortran5", "powerpc64le-linux-gnu-libgfortran3", "powerpc64le-linux-gnu-libgfortran4", "powerpc64le-linux-gnu-libgfortran5", "riscv64-linux-gnu-libgfortran5", "i686-linux-musl-libgfortran3", "i686-linux-musl-libgfortran4", "i686-linux-musl-libgfortran5", "x86_64-linux-musl-libgfortran3", "x86_64-linux-musl-libgfortran4", "x86_64-linux-musl-libgfortran5", "aarch64-linux-musl-libgfortran3", "aarch64-linux-musl-libgfortran4", "aarch64-linux-musl-libgfortran5", "armv6l-linux-musleabihf-libgfortran3", "armv6l-linux-musleabihf-libgfortran4", "armv6l-linux-musleabihf-libgfortran5", "armv7l-linux-musleabihf-libgfortran3", "armv7l-linux-musleabihf-libgfortran4", "armv7l-linux-musleabihf-libgfortran5", "x86_64-apple-darwin-libgfortran3", "x86_64-apple-darwin-libgfortran4", "x86_64-apple-darwin-libgfortran5", "aarch64-apple-darwin-libgfortran5", "x86_64-unknown-freebsd-libgfortran3", "x86_64-unknown-freebsd-libgfortran4", "x86_64-unknown-freebsd-libgfortran5", "aarch64-unknown-freebsd-libgfortran5", "i686-w64-mingw32-libgfortran3", "i686-w64-mingw32-libgfortran4", "i686-w64-mingw32-libgfortran5", "x86_64-w64-mingw32-libgfortran3", "x86_64-w64-mingw32-libgfortran4", "x86_64-w64-mingw32-libgfortran5"]
+script = """cd $WORKSPACE/srcdir/netcdf-fortran*\n\nif [[ ${target} == x86_64-linux-musl ]]; then\n    # see\n    # https://github.com/JuliaPackaging/Yggdrasil/blob/48af117395188f48d361a46ea929ee7563d9c2e4/A/ADIOS2/build_tarballs.jl\n\n    # HDF5 needs libcurl, and it needs to be the BinaryBuilder libcurl, not the system libcurl.\n    # MPI needs libevent, and it needs to be the BinaryBuilder libevent, not the system libevent.\n    rm /usr/lib/libcurl.*\n    rm /usr/lib/libevent*\n    rm /usr/lib/libnghttp2.*\nfi\n\nexport CPPFLAGS=\"-I${includedir}\"\nexport LDFLAGS=\"-L${libdir} -lnetcdf\"\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target}\nmake -j${nproc}\nmake install\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    # Manually build shared library for Windows\n    ${FC} -shared -fPIC -o ${libdir}/libnetcdff.${dlext} -Wl,$(flagon --whole-archive) ${prefix}/lib/libnetcdff.a -Wl,$(flagon --no-whole-archive) -lnetcdf\nfi\n\n# Remove static libraries\nrm ${prefix}/lib/*.a\n"""
+version = "v4.6.2"
+
+[[dependencies]]
+compat = ""
+name = "OpenMPI_jll"
+platforms = ["i686-linux-gnu-libgfortran3", "i686-linux-gnu-libgfortran4", "i686-linux-gnu-libgfortran5", "armv6l-linux-gnueabihf-libgfortran3", "armv6l-linux-gnueabihf-libgfortran4", "armv6l-linux-gnueabihf-libgfortran5", "armv7l-linux-gnueabihf-libgfortran3", "armv7l-linux-gnueabihf-libgfortran4", "armv7l-linux-gnueabihf-libgfortran5", "i686-linux-musl-libgfortran3", "i686-linux-musl-libgfortran4", "i686-linux-musl-libgfortran5", "armv6l-linux-musleabihf-libgfortran3", "armv6l-linux-musleabihf-libgfortran4", "armv6l-linux-musleabihf-libgfortran5", "armv7l-linux-musleabihf-libgfortran3", "armv7l-linux-musleabihf-libgfortran4", "armv7l-linux-musleabihf-libgfortran5", "x86_64-unknown-freebsd-libgfortran3", "x86_64-unknown-freebsd-libgfortran4", "x86_64-unknown-freebsd-libgfortran5", "aarch64-unknown-freebsd-libgfortran5", "i686-w64-mingw32-libgfortran3", "i686-w64-mingw32-libgfortran4", "i686-w64-mingw32-libgfortran5"]
+top_level = false
+type = "builddependency"
+version-major = 4
+version-minor = 1
+version-patch = 8
+[[dependencies]]
+compat = "401.900.300"
+name = "NetCDF_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "7243133f-43d8-5620-bbf4-c2c921802cf3"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnetcdff"]
+type = "lib"
+variable_name = "libnetcdff"
+
+[[sources]]
+hash = "df26b99d9003c93a8bc287b58172bf1c279676f8c10d6dd0daf8bc7204877096"
+type = "archive"
+unpack_target = ""
+url = "https://downloads.unidata.ucar.edu/netcdf-fortran/4.6.2/netcdf-fortran-4.6.2.tar.gz"

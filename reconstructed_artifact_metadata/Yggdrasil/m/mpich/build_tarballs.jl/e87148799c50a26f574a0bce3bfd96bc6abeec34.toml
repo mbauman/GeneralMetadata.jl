@@ -1,0 +1,75 @@
+augment_platform_block = """    using Base.BinaryPlatforms\n    # Can't use Preferences since we might be running this very early with a non-existing Manifest\nMPIPreferences_UUID = Base.UUID(\"3da0fdf6-3ccc-4f1b-acd9-58baa6c99267\")\nconst preferences = Base.get_preferences(MPIPreferences_UUID)\n\n# Keep logic in sync with MPIPreferences.jl\nfunction augment_mpi!(platform)\n    # Doesn't need to be `const` since we depend on MPIPreferences so we\n    # invalidate the cache when it changes.\n    # Note: MPIPreferences uses `Sys.iswindows()` without the `platform` argument.\n    binary = get(preferences, \"binary\", Sys.iswindows(platform) ? \"MicrosoftMPI_jll\" : \"MPICH_jll\")\n\n    abi = if binary == \"system\"\n        let abi = get(preferences, \"abi\", nothing)\n            if abi === nothing\n                error(\"MPIPreferences: Inconsistent state detected, binary set to system, but no ABI set.\")\n            else\n                abi\n            end\n        end\n    elseif binary == \"MicrosoftMPI_jll\"\n        \"MicrosoftMPI\"\n    elseif binary == \"MPICH_jll\"\n        \"MPICH\"\n    elseif binary == \"OpenMPI_jll\"\n        \"OpenMPI\"\n    elseif binary == \"MPItrampoline_jll\"\n        \"MPItrampoline\"\n    else\n        error(\"Unknown binary: $binary\")\n    end\n\n    if !haskey(platform, \"mpi\")\n        platform[\"mpi\"] = abi\n    end\n    return platform\nend\n\n    augment_platform!(platform::Platform) = augment_mpi!(platform)\n"""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = true
+name = "MPICH"
+platforms = ["i686-linux-gnu-libgfortran3-mpi+mpich", "i686-linux-gnu-libgfortran4-mpi+mpich", "i686-linux-gnu-libgfortran5-mpi+mpich", "x86_64-linux-gnu-libgfortran3-mpi+mpich", "x86_64-linux-gnu-libgfortran4-mpi+mpich", "x86_64-linux-gnu-libgfortran5-mpi+mpich", "aarch64-linux-gnu-libgfortran3-mpi+mpich", "aarch64-linux-gnu-libgfortran4-mpi+mpich", "aarch64-linux-gnu-libgfortran5-mpi+mpich", "armv6l-linux-gnueabihf-libgfortran3-mpi+mpich", "armv6l-linux-gnueabihf-libgfortran4-mpi+mpich", "armv6l-linux-gnueabihf-libgfortran5-mpi+mpich", "armv7l-linux-gnueabihf-libgfortran3-mpi+mpich", "armv7l-linux-gnueabihf-libgfortran4-mpi+mpich", "armv7l-linux-gnueabihf-libgfortran5-mpi+mpich", "powerpc64le-linux-gnu-libgfortran3-mpi+mpich", "powerpc64le-linux-gnu-libgfortran4-mpi+mpich", "powerpc64le-linux-gnu-libgfortran5-mpi+mpich", "i686-linux-musl-libgfortran3-mpi+mpich", "i686-linux-musl-libgfortran4-mpi+mpich", "i686-linux-musl-libgfortran5-mpi+mpich", "x86_64-linux-musl-libgfortran3-mpi+mpich", "x86_64-linux-musl-libgfortran4-mpi+mpich", "x86_64-linux-musl-libgfortran5-mpi+mpich", "aarch64-linux-musl-libgfortran3-mpi+mpich", "aarch64-linux-musl-libgfortran4-mpi+mpich", "aarch64-linux-musl-libgfortran5-mpi+mpich", "armv6l-linux-musleabihf-libgfortran3-mpi+mpich", "armv6l-linux-musleabihf-libgfortran4-mpi+mpich", "armv6l-linux-musleabihf-libgfortran5-mpi+mpich", "armv7l-linux-musleabihf-libgfortran3-mpi+mpich", "armv7l-linux-musleabihf-libgfortran4-mpi+mpich", "armv7l-linux-musleabihf-libgfortran5-mpi+mpich", "x86_64-apple-darwin-libgfortran3-mpi+mpich", "x86_64-apple-darwin-libgfortran4-mpi+mpich", "x86_64-apple-darwin-libgfortran5-mpi+mpich", "aarch64-apple-darwin-libgfortran5-mpi+mpich", "x86_64-unknown-freebsd-libgfortran3-mpi+mpich", "x86_64-unknown-freebsd-libgfortran4-mpi+mpich", "x86_64-unknown-freebsd-libgfortran5-mpi+mpich", "aarch64-unknown-freebsd-libgfortran4-mpi+mpich", "aarch64-unknown-freebsd-libgfortran5-mpi+mpich"]
+script = """################################################################################\n# Install MPICH\n################################################################################\n\n# Enter the funzone\ncd ${WORKSPACE}/srcdir/mpich*\n\n# MPICH does not include `<pthread_np.h>` on FreeBSD: <https://github.com/pmodels/mpich/issues/6821>.\n# (The MPICH developers say that this is a bug in MPICH and that\n# `<pthread_np.h>` should not actually be used on FreeBSD.)\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/pthread_np.patch\n\nEXTRA_FLAGS=()\n# Define some obscure undocumented variables needed for cross compilation of\n# the Fortran bindings.  See for example\n# * https://stackoverflow.com/q/56759636/2442087\n# * https://github.com/pmodels/mpich/blob/d10400d7a8238dc3c8464184238202ecacfb53c7/doc/installguide/cfile\nexport CROSS_F77_SIZEOF_INTEGER=4\nexport CROSS_F77_SIZEOF_REAL=4\nexport CROSS_F77_SIZEOF_DOUBLE_PRECISION=8\nexport CROSS_F77_SIZEOF_LOGICAL=4\nexport CROSS_F77_TRUE_VALUE=1\nexport CROSS_F77_FALSE_VALUE=0\n\nif [[ ${nbits} == 32 ]]; then\n    export CROSS_F90_ADDRESS_KIND=4\nelse\n    export CROSS_F90_ADDRESS_KIND=8\nfi\nexport CROSS_F90_OFFSET_KIND=8\nexport CROSS_F90_INTEGER_KIND=4\nexport CROSS_F90_INTEGER_MODEL=9\nexport CROSS_F90_REAL_MODEL=6,37\nexport CROSS_F90_DOUBLE_MODEL=15,307\nexport CROSS_F90_ALL_INTEGER_MODELS=2,1,4,2,9,4,18,8,\nexport CROSS_F90_INTEGER_MODEL_MAP={2,1,1},{4,2,2},{9,4,4},{18,8,8},\n\nif [[ \"${target}\" == i686-linux-musl ]]; then\n    # Our `i686-linux-musl` platform is a bit rotten: it can run C programs,\n    # but not C++ or Fortran.  `configure` runs a C program to determine\n    # whether it's cross-compiling or not, but when it comes to running\n    # Fortran programs, it fails.  In addition, `configure` ignores the\n    # above exported variables if it believes it's doing a native build.\n    # Small hack: edit `configure` script to force `cross_compiling` to be\n    # always \"yes\".\n    sed -i 's/cross_compiling=no/cross_compiling=yes/g' configure\n    EXTRA_FLAGS+=(ac_cv_sizeof_bool=\"1\")\nfi\n\nif [[ \"${target}\" == aarch64-apple-* ]]; then\n    EXTRA_FLAGS+=(\n        FFLAGS=-fallow-argument-mismatch\n        FCFLAGS=-fallow-argument-mismatch\n    )\nfi\n\n# Do not install doc and man files which contain files which clashing names on\n# case-insensitive file systems:\n# * https://github.com/JuliaPackaging/Yggdrasil/pull/315\n# * https://github.com/JuliaPackaging/Yggdrasil/issues/6344\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \\\n    --disable-dependency-tracking \\\n    --disable-doc \\\n    --enable-fast=all,O3 \\\n    --enable-static=no \\\n    --with-device=ch3 \\\n    --with-hwloc=${prefix} \\\n    \"${EXTRA_FLAGS[@]}\"\n\n# Remove empty `-l` flags from libtool\n# (Why are they there? They should not be.)\n# Run the command several times to handle multiple (overlapping) occurrences.\nsed -i 's/\"-l /\"/g;s/ -l / /g;s/-l\"/\"/g' libtool\nsed -i 's/\"-l /\"/g;s/ -l / /g;s/-l\"/\"/g' libtool\nsed -i 's/\"-l /\"/g;s/ -l / /g;s/-l\"/\"/g' libtool\n\n# Build the library\nmake -j${nproc}\n\n# Install the library\nmake install\n\n################################################################################\n# Install licenses\n################################################################################\n\ninstall_license $WORKSPACE/srcdir/mpich*/COPYRIGHT\n"""
+version = "v4.2.3"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "2.11.1"
+name = "Hwloc_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "0.1"
+name = "MPIPreferences"
+platforms = ["any"]
+top_level = true
+type = "dependency"
+uuid = "3da0fdf6-3ccc-4f1b-acd9-58baa6c99267"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmpicxx"]
+type = "lib"
+variable_name = "libmpicxx"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmpifort"]
+type = "lib"
+variable_name = "libmpifort"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmpi"]
+type = "lib"
+variable_name = "libmpi"
+[[products]]
+binnames = ["mpiexec"]
+type = "exe"
+variable_name = "mpiexec"
+
+[[sources]]
+hash = "7a019180c51d1738ad9c5d8d452314de65e828ee240bcb2d1f80de9a65be88a8"
+type = "archive"
+unpack_target = ""
+url = "https://www.mpich.org/static/downloads/4.2.3/mpich-4.2.3.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "bundled"
+target = ""
+type = "directory"

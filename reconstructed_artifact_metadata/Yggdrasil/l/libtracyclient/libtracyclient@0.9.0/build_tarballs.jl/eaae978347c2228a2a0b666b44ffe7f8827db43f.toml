@@ -1,0 +1,32 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "LibTracyClient"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/tracy*/\nif [[ \"${target}\" != *-mingw* ]]; then\n    echo \"target_compile_definitions(TracyClient PUBLIC __STDC_FORMAT_MACROS)\" >> CMakeLists.txt\nelse\n    echo \"target_compile_definitions(TracyClient PUBLIC WINVER=0x0602 _WIN32_WINNT=0x0602)\" >> CMakeLists.txt\nfi\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/libTracyClient-freebsd-elfw.patch\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/libTracyClient-no-crash-handler.patch\ncmake -B static -DCMAKE_INSTALL_PREFIX=$prefix -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DTRACY_FIBERS=ON -DTRACY_NO_BROADCAST=ON -DTRACY_ONLY_LOCALHOST=ON -DTRACY_NO_CODE_TRANSFER=ON -DTRACY_NO_FRAME_IMAGE=ON -DTRACY_NO_CRASH_HANDLER=ON -DTRACY_ON_DEMAND=ON .\ncd static\nmake -j${nproc}\nmake install\ncd ..\ncmake -B shared -DCMAKE_INSTALL_PREFIX=$prefix -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DTRACY_FIBERS=ON -DTRACY_NO_BROADCAST=ON -DTRACY_ONLY_LOCALHOST=ON -DTRACY_NO_CODE_TRANSFER=ON -DTRACY_NO_FRAME_IMAGE=ON -DTRACY_NO_CRASH_HANDLER=ON -DTRACY_ON_DEMAND=ON .\ncd shared\nmake -j${nproc}\nmake install\n"""
+version = "v0.9.0"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libTracyClient"]
+type = "lib"
+variable_name = "libTracyClient"
+[[products]]
+paths = ["lib/libTracyClient.a", "lib/libTracyClient.lib"]
+type = "file"
+variable_name = "libTracyClient_static"
+
+[[sources]]
+hash = "5a1f5371b792c12aea324213e1dc738b2923ae21"
+type = "git"
+unpack_target = ""
+url = "https://github.com/wolfpld/tracy.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

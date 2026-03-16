@@ -1,0 +1,17 @@
+dependencies = []
+name = "MPICH"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "arm-linux-gnueabihf", "powerpc64le-linux-gnu", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1"]
+script = """# Enter the funzone\ncd ${WORKSPACE}/srcdir/mpich-*\n\natomic_patch -p1 ../patches/0001-romio-Use-tr-for-replacing-to-space-in-list-of-file-.patch\npushd src/mpi/romio\nautoreconf -vi\npopd\n./configure --prefix=$prefix --host=$target --enable-shared=yes --enable-static=no --disable-dependency-tracking --disable-fortran --docdir=/tmp\n\n# Build the library\nmake \"${flags[@]}\" -j${nproc}\n\n# Install the library\nmake \"${flags[@]}\" install\n"""
+sources = [{"https://www.mpich.org/static/downloads/3.3.2/mpich-3.3.2.tar.gz" = "4bfaf8837a54771d3e4922c84071ef80ffebddbb6971a006038d91ee7ef959b9"}, "./bundled"]
+version = "v3.3.2"
+
+[[products]]
+dir_paths = []
+dont_dlopen = false
+libnames = ["libmpi"]
+type = "lib"
+variable_name = "libmpi"
+[[products]]
+binnames = ["mpiexec"]
+type = "exe"
+variable_name = "mpiexec"

@@ -1,0 +1,90 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.9"
+lazy_artifacts = false
+name = "Uno"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir/Uno\nmkdir -p build\ncd build\n\nif [[ \"${target}\" == *mingw* ]]; then\n    LBT=blastrampoline-5\nelse\n    LBT=blastrampoline\nfi\n\nif [[ \"${target}\" == *apple* ]] || [[ \"${target}\" == *freebsd* ]]; then\n    OMP=omp\nelse\n    OMP=gomp\nfi\n\n# FortranCInterface_VERIFY fails on macOS, but it's not actually needed for the current build\nsed -i 's/FortranCInterface_VERIFY(CXX)/# FortranCInterface_VERIFY(CXX)/g' ../CMakeLists.txt\n\ncmake \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_PREFIX_PATH=${libdir} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -Damplsolver=${libdir}/libasl.${dlext} \\\n    -DBLA_VENDOR=\"libblastrampoline\" \\\n    -DMUMPS_INCLUDE_DIR=${includedir} \\\n    -DMETIS_INCLUDE_DIR=${includedir} \\\n    -DMUMPS_LIBRARY=\"${libdir}/libdmumps.${dlext}\" \\\n    -DMUMPS_COMMON_LIBRARY=\"${libdir}/libmumps_common.${dlext}\" \\\n    -DMUMPS_PORD_LIBRARY=\"${libdir}/libpord.${dlext}\" \\\n    -DMUMPS_MPISEQ_LIBRARY=\"${libdir}/libmpiseq.${dlext}\" \\\n    -DBLAS_LIBRARIES=\"${libdir}/lib${LBT}.${dlext}\" \\\n    -DLAPACK_LIBRARIES=\"${libdir}/lib${LBT}.${dlext}\" \\\n    ..\n\nmake -j${nproc}\n\n# Uno does not support `make install`. Manually copy for now.\ninstall -v -m 755 \"uno_ampl${exeext}\" -t \"${bindir}\"\n\n# Currently, Uno does not provide a shared library. THis may bbe useful in future once it has a C API.\n# ${CXX} -shared $(flagon -Wl,--whole-archive) libuno.a $(flagon -Wl,--no-whole-archive) -o \"${libdir}/libuno.${dlext}\" -L${libdir} -l${OMP} -l${LBT} -ldmumps -lmetis\n"""
+version = "v1.1.0"
+
+[[dependencies]]
+compat = ""
+name = "METIS_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "d00139f3-1899-568f-a2f0-47f597d42d70"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "0.1.3"
+name = "ASL_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "ae81ac8f-d209-56e5-92de-9978fef736f9"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MUMPS_seq_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "d7ed1dd3-d0ae-5e8e-bfb4-87a502085b8d"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "5.4.0"
+name = "libblastrampoline_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "8e850b90-86db-534c-a0d3-1478176c7d93"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LLVMOpenMP_jll"
+platforms = ["x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd"]
+top_level = false
+type = "dependency"
+uuid = "1d63c593-3942-5779-bab2-d838dc0a180e"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CMake_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+uuid = "3f4e10e2-61f2-5801-8945-23b9d642d0e6"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["uno_ampl"]
+type = "exe"
+variable_name = "amplexe"
+
+[[sources]]
+hash = "0ccd578d7c0b3ee9e3efd7c04aa1918e49867f77"
+type = "git"
+unpack_target = ""
+url = "https://github.com/cvanaret/Uno.git"

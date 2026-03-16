@@ -1,0 +1,39 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Doxygen"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir/doxygen*\n\n# Avoid error\n# ld64.lld: error: undefined symbol: typeinfo for std::bad_variant_access\n# >>> referenced by ../lib/libdoxymain.a(doxygen.cpp.o):(symbol std::__1::__throw_bad_variant_access()+0x1f)\n# ld64.lld: error: undefined symbol: vtable for std::bad_variant_access\n# >>> referenced by ../lib/libdoxymain.a(doxygen.cpp.o):(symbol std::__1::__throw_bad_variant_access()+0x11)\n# clang-16: error: linker command failed with exit code 1 (use -v to see invocation)\nif [[ \"${target}\" == x86_64-apple-darwin* ]]; then\n    pushd ${WORKSPACE}/srcdir/MacOSX10.*.sdk\n    rm -rf /opt/${target}/${target}/sys-root/System\n    cp -ra usr/* \"/opt/${target}/${target}/sys-root/usr/.\"\n    cp -ra System \"/opt/${target}/${target}/sys-root/.\"\n    export MACOSX_DEPLOYMENT_TARGET=10.14\n    popd\nfi\n\nif [[ \"${target}\" == *-linux-* ]] || [[ \"${target}\" == *-freebsd* ]]; then\n    atomic_patch -p1 ../patches/skip-iconv-in-glibc-test.patch\nfi\n\n# Avoid error\n# /workspace/srcdir/doxygen-1.10.0/deps/filesystem/filesystem.hpp:4681:11: error: no member named 'utimensat' in the global namespace\n# See <https://github.com/doxygen/doxygen/issues/10055>.\natomic_patch -p1 ../patches/utimensat.patch\n\nmkdir build\ncd build\ncmake -DCMAKE_INSTALL_PREFIX=$prefix -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} -DCMAKE_BUILD_TYPE=Release ..\nmake -j${nproc}\nmake install\n\ninstall_license ../LICENSE\n"""
+version = "v1.10.0"
+
+[[dependencies]]
+compat = ""
+name = "Libiconv_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["doxygen"]
+type = "exe"
+variable_name = "doxygen"
+
+[[sources]]
+hash = "dd7c556b4d96ca5e682534bc1f1a78a5cfabce0c425b14c1b8549802686a4442"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/doxygen/doxygen/releases/download/Release_1_10_0/doxygen-1.10.0.src.tar.gz"
+[[sources]]
+hash = "0f03869f72df8705b832910517b47dd5b79eb4e160512602f593ed243b28715f"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.14.sdk.tar.xz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

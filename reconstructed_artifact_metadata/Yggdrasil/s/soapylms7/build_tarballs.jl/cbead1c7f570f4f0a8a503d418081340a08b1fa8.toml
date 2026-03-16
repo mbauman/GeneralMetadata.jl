@@ -1,0 +1,40 @@
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "SoapyLMS7"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-apple-darwin", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11"]
+script = """cd ${WORKSPACE}/srcdir/LimeSuite\nmkdir _build\ncd _build\n\nCMAKE_OPTIONS=(\n    # Disable a bunch of things we don't care about\n    -DENABLE_QUICKTEST=OFF\n    -DENABLE_OCTAVE=OFF\n    -DDOWNLOAD_IMAGES=FALSE\n    -DENABLE_GUI=OFF\n    -DENABLE_NOVENARF7=OFF\n\n    # Disable SIMD for now; enable later if we need it\n    # by expanding our microarchitectures\n    -DDEFAULT_SIMD_FLAGS=cross\n\n    # Enable the one thing we do care about\n    -DENABLE_SOAPY_LMS7=ON\n)\n\ncmake -DCMAKE_INSTALL_PREFIX=${prefix} \\\n      -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n      -DCMAKE_BUILD_TYPE=Release \\\n      \"${CMAKE_OPTIONS[@]}\" \\\n      ..\nmake -j${nproc}\nmake install\nif [[ \"${target}\" == *-apple-* ]]; then\n    mv ${libdir}/SoapySDR/modules0.8/libLMS7Support.so  ${libdir}/SoapySDR/modules0.8/libLMS7Support.dylib\nfi\n"""
+version = "v20.10.0"
+
+[[dependencies]]
+compat = "0.8.0"
+name = "soapysdr_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["LimeUtil"]
+type = "exe"
+variable_name = "LimeUtil"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libLimeSuite"]
+type = "lib"
+variable_name = "libLimeSuite"
+[[products]]
+dir_paths = ["lib/SoapySDR/modules0.8/"]
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libLMS7Support"]
+type = "lib"
+variable_name = "libLMS7Support"
+
+[[sources]]
+hash = "1480bfeaf4de211c40813fc5ca161b1b644778ec"
+type = "git"
+unpack_target = ""
+url = "https://github.com/myriadrf/LimeSuite.git"

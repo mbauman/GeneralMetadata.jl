@@ -1,0 +1,32 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "libpng"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/libpng-*\nFLAGS=()\nif [[ \"${target}\" == aarch64-apple-darwin* ]]; then\n    # Let CMake know this platform supports NEON extension\n    FLAGS+=(-DPNG_ARM_NEON=on)\nfi\nif [[ \"${target}\" == *-darwin* ]]; then\n    # The framework is somehow confusing the linker\n    # e.g. in GR (<https://github.com/JuliaPackaging/Yggdrasil/pull/8259>):\n    #    error: cannot open /workspace/destdir/lib/png.framework: Is a directory\n    #    error: linker command failed with exit code 1 (use -v to see invocation)\n    FLAGS+=(-DPNG_FRAMEWORK=OFF)\nfi\nif [[ \"${target}\" == riscv64* ]]; then\n    # Need to explicitly add `-lm`\n    FLAGS+=(\n        -DCMAKE_EXE_LINKER_FLAGS=-lm\n        -DCMAKE_SHARED_LINKER_FLAGS=-lm\n    )\nfi\ncmake -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=\"${CMAKE_TARGET_TOOLCHAIN}\" \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DPNG_STATIC=OFF \\\n    \"${FLAGS[@]}\" \\\n    -B build\ncmake --build build --parallel ${nproc}\ncmake --install build\n"""
+version = "v1.6.55"
+
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libpng16"]
+type = "lib"
+variable_name = "libpng"
+
+[[sources]]
+hash = "4b0abab6d219e95690ebe4db7fc9aa95f4006c83baaa022373c0c8442271283d"
+type = "archive"
+unpack_target = ""
+url = "https://sourceforge.net/projects/libpng/files/libpng16/1.6.55/libpng-1.6.55.tar.gz"

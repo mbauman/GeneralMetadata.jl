@@ -1,0 +1,68 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "OpenSSH"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir\n\ninstall_license openssh-*/LICENCE\nPRODUCTS=(ssh${exeext} ssh-add${exeext} ssh-keygen${exeext} ssh-keyscan${exeext} ssh-agent${exeext} scp${exeext})\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    cd \"${target}/OpenSSH-Win${nbits}\"\nelse\n    cd openssh-*\n\n    # Remove OpenSSL from the sysroot to avoid confusion\n    rm -f /opt/${target}/${target}/sys-root/usr/lib/libcrypto.*\n    rm -f /opt/${target}/${target}/sys-root/usr/lib/libssl.*\n    rm -f /lib/libcrypto.so*\n    rm -f /usr/lib/libcrypto.so*\n\n    conf_args=()\n    if [[ \"${target}\" == *-linux-gnu* ]]; then\n        # We use very old versions of glibc which used to have `libcrypt.so.1`, but modern\n        # glibcs have `libcrypt.so.2`, so if we link to `libcrypt.so.1` most users would\n        # have troubles running the programs at runtime.\n        conf_args+=(ac_cv_lib_crypt_crypt=no)\n    fi\n\n    export CPPFLAGS=\"-I${includedir}\"\n    autoreconf -vi\n    ./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \"${conf_args[@]}\"\n    make -j${nproc} \"${PRODUCTS[@]}\"\nfi\n\nfor binary in \"${PRODUCTS[@]}\"; do\n    install -Dvm 0755 $binary ${bindir}/$binary\ndone\n"""
+version = "v9.3.2"
+
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "3.0.8"
+name = "OpenSSL_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["ssh"]
+type = "exe"
+variable_name = "ssh"
+[[products]]
+binnames = ["scp"]
+type = "exe"
+variable_name = "scp"
+[[products]]
+binnames = ["ssh-agent"]
+type = "exe"
+variable_name = "ssh_agent"
+[[products]]
+binnames = ["ssh-add"]
+type = "exe"
+variable_name = "ssh_add"
+[[products]]
+binnames = ["ssh-keygen"]
+type = "exe"
+variable_name = "ssh_keygen"
+[[products]]
+binnames = ["ssh-keyscan"]
+type = "exe"
+variable_name = "ssh_keyscan"
+
+[[sources]]
+hash = "200ebe147f6cb3f101fd0cdf9e02442af7ddca298dffd9f456878e7ccac676e8"
+type = "archive"
+unpack_target = ""
+url = "https://cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-9.3p2.tar.gz"
+[[sources]]
+hash = "7b132aad088eae3ac67d85751e88d884e80631607cab9b1da52c838655bb5ae6"
+type = "archive"
+unpack_target = "i686-w64-mingw32"
+url = "https://github.com/PowerShell/Win32-OpenSSH/releases/download/v9.2.2.0p1-Beta/OpenSSH-Win32.zip"
+[[sources]]
+hash = "ec8144a107014740ec3ce16ec51710398fc390fca5344931c1506e7cc2e181f3"
+type = "archive"
+unpack_target = "x86_64-w64-mingw32"
+url = "https://github.com/PowerShell/Win32-OpenSSH/releases/download/v9.2.2.0p1-Beta/OpenSSH-Win64.zip"

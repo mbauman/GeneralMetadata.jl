@@ -1,0 +1,104 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.9"
+lazy_artifacts = false
+name = "rocBLAS"
+platforms = ["x86_64-linux-gnu-cxx11"]
+script = """cd ${WORKSPACE}/srcdir/rocBLAS*/\n\nmkdir build\n\nexport ROCM_PATH=${prefix}\nexport HIP_PATH=${prefix}/hip\n\nexport HIP_PLATFORM=amd\nexport HIP_RUNTIME=rocclr\nexport HIP_COMPILER=clang\nexport HSA_PATH=${prefix}\nexport HIP_CLANG_PATH=${prefix}/llvm/bin\n\n# Other HIPCC env variables.\nexport HIPCC_VERBOSE=1\nexport HIP_LIB_PATH=${prefix}/hip/lib\nexport DEVICE_LIB_PATH=${prefix}/amdgcn/bitcode\nexport HIP_CLANG_HCC_COMPAT_MODE=1\n\n# BB compile HIPCC flags:\nBB_COMPILE_BASE_DIR=/opt/${target}/${target}\nBB_COMPILE_CPP_DIR=${BB_COMPILE_BASE_DIR}/include/c++/*\nOMP_DIR=/opt/${target}/lib/gcc/${target}/*/include\nBB_COMPILE_FLAGS=\" -isystem ${OMP_DIR} -isystem ${BB_COMPILE_CPP_DIR} -isystem ${BB_COMPILE_CPP_DIR}/${target} --sysroot=${BB_COMPILE_BASE_DIR}/sys-root\"\n\n# BB link HIPCC flags:\nBB_LINK_GCC_DIR=/opt/${target}/lib/gcc/${target}/*\nBB_LINK_FLAGS=\" --sysroot=${BB_COMPILE_BASE_DIR}/sys-root -B ${BB_LINK_GCC_DIR} -L ${BB_LINK_GCC_DIR}  -L ${BB_COMPILE_BASE_DIR}/lib64 -L ${prefix}/lib\"\n\n# Set compile & link flags for hipcc.\nexport HIPCC_COMPILE_FLAGS_APPEND=$BB_COMPILE_FLAGS\nexport HIPCC_LINK_FLAGS_APPEND=$BB_LINK_FLAGS\n\nexport PATH=\"${prefix}/hip/bin:${prefix}/llvm/bin:${PATH}\"\nexport LD_LIBRARY_PATH=\"${prefix}/lib:$prefix/hip/lib:${prefix}/llvm/lib:${LD_LIBRARY_PATH}\"\n\n# NOTE\n# Looking at hcc-cmd, it is clear that it is omitting 'hip/include' directory.\n# Therefore we symlink to other directory that it looks at.\nmkdir ${prefix}/lib/include\nln -s ${prefix}/hip/include/* ${prefix}/lib/include\n\n export AMDGPU_TARGETS=\"gfx900;gfx906:xnack-;gfx908:xnack-;gfx90a:xnack+;gfx90a:xnack-;gfx1010;gfx1012;gfx1030\" \nCXX=${prefix}/hip/bin/hipcc \\\ncmake -S . -B build \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_PREFIX_PATH=${prefix} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DCMAKE_CXX_COMPILER=${prefix}/hip/bin/hipcc \\\n    -DCMAKE_CXX_FLAGS=\"-fuse-ld=lld\" \\\n    -DROCM_PATH=${prefix} \\\n    -DBUILD_VERBOSE=ON \\\n    -DBUILD_WITH_TENSILE=ON \\\n    -DBUILD_WITH_TENSILE_HOST=ON \\\n    -DTensile_LIBRARY_FORMAT=msgpack \\\n    -DTensile_COMPILER=hipcc \\\n    -DTensile_LOGIC=asm_full \\\n    -DTensile_CODE_OBJECT_VERSION=V3 \\\n    -DTensile_ARCHITECTURE=${AMDGPU_TARGETS} \\\n    -DAMDGPU_TARGETS=${AMDGPU_TARGETS} \\\n    -DBUILD_CLIENTS_TESTS=OFF \\\n    -DBUILD_CLIENTS_BENCHMARKS=OFF \\\n    -DBUILD_CLIENTS_SAMPLES=OFF \\\n    -DBUILD_TESTING=OFF \\\n    -DBUILD_FILE_REORG_BACKWARD_COMPATIBILITY=OFF \\\n    -Dpython=python\n\nmake -j${nproc} -C build install\n\ninstall_license ${WORKSPACE}/srcdir/rocBLAS*/LICENSE.md\n"""
+version = "v5.2.3"
+
+[[dependencies]]
+compat = ""
+name = "ROCmLLVM_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 5
+version-minor = 2
+version-patch = 3
+[[dependencies]]
+compat = ""
+name = "rocm_cmake_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 5
+version-minor = 2
+version-patch = 3
+[[dependencies]]
+compat = "5.2.3"
+name = "ROCmCompilerSupport_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "5.2.3"
+name = "ROCmOpenCLRuntime_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "5.2.3"
+name = "ROCmDeviceLibs_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "5.2.3"
+name = "rocminfo_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "5.2.3"
+name = "hsa_rocr_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "5.2.3"
+name = "HIP_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "msgpack_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = ["lib"]
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["librocblas"]
+type = "lib"
+variable_name = "librocblas"
+
+[[sources]]
+hash = "36f74ce53b82331a756c42f95f3138498d6f4a66f2fd370cff9ab18281bb12d5"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/ROCmSoftwarePlatform/rocBLAS/archive/rocm-5.2.3.tar.gz"

@@ -1,0 +1,67 @@
+augment_platform_block = """using Base.BinaryPlatforms: arch, arch_march_isa_mapping, CPUID, HostPlatform, Platform\n\nfunction augment_microarchitecture!(platform::Platform)\n    haskey(platform, \"march\") && return platform\n\n    host_arch = arch(HostPlatform())\n    host_isas = arch_march_isa_mapping[host_arch]\n    idx = findlast(((name, isa),) -> isa <= CPUID.cpu_isa(), host_isas)\n    platform[\"march\"] = first(host_isas[idx])\n    return platform\nend\n\n\nfunction augment_platform!(platform::Platform)\n    # We augment only x86_64\n    @static if Sys.ARCH === :x86_64\n        augment_microarchitecture!(platform)\n    else\n        platform\n    end\nend\n"""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = true
+name = "finufft"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu-march+x86_64", "x86_64-linux-gnu-march+avx", "x86_64-linux-gnu-march+avx2", "x86_64-linux-gnu-march+avx512", "aarch64-linux-gnu", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl-march+x86_64", "x86_64-linux-musl-march+avx", "x86_64-linux-musl-march+avx2", "x86_64-linux-musl-march+avx512", "aarch64-linux-musl", "x86_64-apple-darwin-march+x86_64", "x86_64-apple-darwin-march+avx", "x86_64-apple-darwin-march+avx2", "x86_64-apple-darwin-march+avx512", "aarch64-apple-darwin", "x86_64-unknown-freebsd-march+x86_64", "x86_64-unknown-freebsd-march+avx", "x86_64-unknown-freebsd-march+avx2", "x86_64-unknown-freebsd-march+avx512", "aarch64-unknown-freebsd", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx11-march+x86_64", "x86_64-w64-mingw32-cxx11-march+avx", "x86_64-w64-mingw32-cxx11-march+avx2", "x86_64-w64-mingw32-cxx11-march+avx512"]
+script = """macos_sdk_version=10.14\nmacosx_deployment_target=10.14\nif [[ \"${target}\" == x86_64-apple-darwin* ]]; then\n    echo \"Extracting MacOSX${macos_sdk_version}.sdk.tar.xz (this may take a while)\"\n    rm -rf /opt/${target}/${target}/sys-root/System\n    rm -rf /opt/${target}/${target}/sys-root/usr/include/libxml2/libxml\n    # extract the tarball into the sys-root so all compilers pick it up\n    # automatically, and use --warning=no-unknown-keyword to hide harmless\n    # warnings about unsupported pax header keywords like \"SCHILY.fflags\"\n    tar --extract \\\n        --file=${WORKSPACE}/srcdir/MacOSX${macos_sdk_version}.sdk.tar.xz \\\n        --directory=\"/opt/${target}/${target}/sys-root/.\" \\\n        --strip-components=1 \\\n        --warning=no-unknown-keyword \\\n        MacOSX${macos_sdk_version}.sdk/System \\\n        MacOSX${macos_sdk_version}.sdk/usr\n    export MACOSX_DEPLOYMENT_TARGET=${macosx_deployment_target}\nfi\ncd $WORKSPACE/srcdir/finufft*/\napk del cmake\n\ntoolchain=\"${CMAKE_TARGET_TOOLCHAIN}\"\nif [[ \"${target}\" == *-apple-* ]]; then\n    toolchain=\"${CMAKE_TARGET_TOOLCHAIN%.*}_gcc.cmake\"\n    \n    # Apparently, we also need to remove the -ld_classic link option\n    sed -i '/add_link_options(\"-ld_classic\")/d' src/CMakeLists.txt\nfi\n\ncmake -B build \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DCMAKE_PREFIX_PATH=\"${prefix}\" \\\n    -DCMAKE_INSTALL_PREFIX=\"${prefix}\" \\\n    -DCMAKE_TOOLCHAIN_FILE=\"${toolchain}\" \\\n    -DFINUFFT_FFTW_SUFFIX=\"\" \\\n    -DFINUFFT_ARCH_FLAGS=\"\" \\\n    -DFINUFFT_STATIC_LINKING=\"OFF\"\ncmake --build build --parallel $nproc\ncmake --install build\n"""
+version = "v2.5.0"
+
+[[dependencies]]
+compat = ""
+name = "FFTW_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "f5851436-0d7a-5f13-b9de-f02708fd171a"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu-march+x86_64", "x86_64-linux-gnu-march+avx", "x86_64-linux-gnu-march+avx2", "x86_64-linux-gnu-march+avx512", "aarch64-linux-gnu", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl-march+x86_64", "x86_64-linux-musl-march+avx", "x86_64-linux-musl-march+avx2", "x86_64-linux-musl-march+avx512", "aarch64-linux-musl", "x86_64-apple-darwin-march+x86_64", "x86_64-apple-darwin-march+avx", "x86_64-apple-darwin-march+avx2", "x86_64-apple-darwin-march+avx512", "aarch64-apple-darwin", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx11-march+x86_64", "x86_64-w64-mingw32-cxx11-march+avx", "x86_64-w64-mingw32-cxx11-march+avx2", "x86_64-w64-mingw32-cxx11-march+avx512"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LLVMOpenMP_jll"
+platforms = ["x86_64-unknown-freebsd-march+x86_64", "x86_64-unknown-freebsd-march+avx", "x86_64-unknown-freebsd-march+avx2", "x86_64-unknown-freebsd-march+avx512", "aarch64-unknown-freebsd"]
+top_level = false
+type = "dependency"
+uuid = "1d63c593-3942-5779-bab2-d838dc0a180e"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CMake_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 3
+version-minor = 24
+version-patch = 3
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libfinufft"]
+type = "lib"
+variable_name = "libfinufft"
+
+[[sources]]
+hash = "8b7ac66e617ea317cd42366ac27c536793131696"
+type = "git"
+unpack_target = ""
+url = "https://github.com/flatironinstitute/finufft.git"
+[[sources]]
+filename = "MacOSX10.14.sdk.tar.xz"
+hash = "0f03869f72df8705b832910517b47dd5b79eb4e160512602f593ed243b28715f"
+type = "file"
+url = "https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.14.sdk.tar.xz"

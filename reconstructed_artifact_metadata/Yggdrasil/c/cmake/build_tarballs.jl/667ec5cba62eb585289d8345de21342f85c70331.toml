@@ -1,0 +1,34 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "CMake"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd ${WORKSPACE}/srcdir/CMake\n\n# Add support for libblastrampoline to the FindBLAS/FindLAPACK modules\n# Upstream PR https://gitlab.kitware.com/cmake/cmake/-/merge_requests/9557\n# It will be included in 3.30\natomic_patch -p1 $WORKSPACE/srcdir/patches/01_libblastrampoline.patch\n\nmkdir build\ncd build/\n\ncmake -B . -S .. \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_BUILD_TYPE:STRING=Release \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DBUILD_TESTING:BOOL=OFF \\\n    -GNinja\n\nninja\nninja -j${nproc}\nninja install\n"""
+version = "v3.29.3"
+
+[[dependencies]]
+compat = "3.0.12"
+name = "OpenSSL_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["cmake"]
+type = "exe"
+variable_name = "cmake"
+
+[[sources]]
+hash = "b39fb31bf411c3925bd937f8cffbc471c2588c34"
+type = "git"
+unpack_target = ""
+url = "https://github.com/Kitware/CMake"
+[[sources]]
+follow_symlinks = false
+path = "bundled/"
+target = ""
+type = "directory"

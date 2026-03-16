@@ -1,0 +1,84 @@
+lazy_artifacts = false
+name = "Glib"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/glib-*/\n\n# Get a local gettext for msgfmt cross-building\napk add gettext\n\n# Provide answers to a few configure questions automatically\ncat > glib.cache <<END\nglib_cv_stack_grows=no\nglib_cv_uscore=no\nEND\n\nexport NOCONFIGURE=true\nexport LDFLAGS=\"${LDFLAGS} -L${libdir}\"\nexport CPPFLAGS=\"-I${prefix}/include\"\n\n./autogen.sh\n\nif [[ \"${target}\" == i686-linux-musl ]]; then\n    # Small hack: swear that we're cross-compiling.  Our `i686-linux-musl` is\n    # bugged and it can run only a few programs, with the result that the\n    # configure test to check whether we're cross-compiling returns that we're\n    # doing a native build, but then it fails to run a bunch of programs during\n    # other tests.\n    sed -i 's/cross_compiling=no/cross_compiling=yes/' configure\nfi\n\n./configure --cache-file=glib.cache --with-libiconv=gnu --prefix=${prefix} --host=${target}\nfind -name Makefile -exec sed -i 's?/workspace/destdir/bin/msgfmt?/usr/bin/msgfmt?g' '{}' \\;\n\nmake -j${nproc}\nmake install\n"""
+version = "v2.59.0"
+
+[[dependencies]]
+name = "Libiconv_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Libffi_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Gettext_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "PCRE_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Zlib_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Libmount_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgio-2", "libgio-2.0"]
+type = "lib"
+variable_name = "libgio"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libglib-2", "libglib-2.0"]
+type = "lib"
+variable_name = "libglib"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgmodule-2", "libgmodule-2.0"]
+type = "lib"
+variable_name = "libgmodule"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgobject-2", "libgobject-2.0"]
+type = "lib"
+variable_name = "libgobject"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgthread-2", "libgthread-2.0"]
+type = "lib"
+variable_name = "libgthread"
+
+[[sources]]
+hash = "664a5dee7307384bb074955f8e5891c7cecece349bbcc8a8311890dc185b428e"
+type = "archive"
+unpack_target = ""
+url = "https://ftp.gnome.org/pub/gnome/sources/glib/2.59/glib-2.59.0.tar.xz"

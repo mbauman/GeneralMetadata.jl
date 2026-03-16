@@ -1,0 +1,84 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "MGARD"
+platforms = ["i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx11", "riscv64-linux-gnu-cxx11", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd"]
+script = """if [[ \"${target}\" == x86_64-apple-darwin* ]]; then\nmacos_sdk=10.13\n    echo \"Extracting MacOSX${macos_sdk}.sdk.tar.xz (this may take a while)\"\n    rm -rf /opt/${target}/${target}/sys-root/System\n    rm -rf /opt/${target}/${target}/sys-root/usr/include/libxml2/libxml\n    tar --extract \\\n        --file=${WORKSPACE}/srcdir/MacOSX${macos_sdk}.sdk.tar.xz \\\n        --directory=\"/opt/${target}/${target}/sys-root/.\" \\\n        --strip-components=1 \\\n        MacOSX${macos_sdk}.sdk/System \\\n        MacOSX${macos_sdk}.sdk/usr\n    export MACOSX_DEPLOYMENT_TARGET=${macos_sdk}\nfi\ncd MGARD\n\n# We installed a `protoc` executable both as a build- and a host-build-dependency.\n# Delete the non-host-build `protoc` executable so that cmake won't try to run it.\nrm ${bindir}/protoc${exeext}\nls -l ${host_bindir}/protoc\n\n# pkg-config is very slow because `abseil_cpp` installed about 200 `*.pc` files.\n# Pretend that `protobuf` does not require `abseil_cpp`.\nmv /workspace/destdir/lib/pkgconfig/protobuf.pc /workspace/destdir/lib/pkgconfig/protobuf.pc.orig\nsed -e 's/Requires/# Requires/' /workspace/destdir/lib/pkgconfig/protobuf.pc.orig >/workspace/destdir/lib/pkgconfig/protobuf.pc\n\ncmake -B build \\\n    -DBUILD_TESTING=OFF \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_PREFIX_PATH=${prefix} \\\n    -DCMAKE_PROGRAM_PATH=${host_bindir} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DMGARD_ENABLE_OPENMP=ON \\\n    -DMGARD_ENABLE_SERIAL=ON\ncmake --build build --parallel ${nproc}\ncmake --install build\n\n# Restore files\nmv /workspace/destdir/lib/pkgconfig/protobuf.pc.orig /workspace/destdir/lib/pkgconfig/protobuf.pc\n"""
+version = "v1.6.0"
+
+[[dependencies]]
+compat = ""
+name = "protoc_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx11", "riscv64-linux-gnu-cxx11", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx11"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LLVMOpenMP_jll"
+platforms = ["x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd"]
+top_level = false
+type = "dependency"
+uuid = "1d63c593-3942-5779-bab2-d838dc0a180e"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zstd_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "protoc_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmgard"]
+type = "lib"
+variable_name = "libmgard"
+
+[[sources]]
+hash = "024ccc2b8ca4a787cfc6f227a6d14e7fd9cb76cb"
+type = "git"
+unpack_target = ""
+url = "https://github.com/CODARcode/MGARD"
+[[sources]]
+filename = "MacOSX10.13.sdk.tar.xz"
+hash = "a3a077385205039a7c6f9e2c98ecdf2a720b2a819da715e03e0630c75782c1e4"
+type = "file"
+url = "https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.13.sdk.tar.xz"

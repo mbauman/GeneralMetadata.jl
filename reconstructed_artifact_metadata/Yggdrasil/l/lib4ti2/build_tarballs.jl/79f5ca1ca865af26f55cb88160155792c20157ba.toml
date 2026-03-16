@@ -1,0 +1,136 @@
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "lib4ti2"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd ${WORKSPACE}/srcdir/4ti2-*\n\n# Remove misleading libtool files \nrm -f ${prefix}/lib/*.la\nrm -f /opt/${target}/${target}/lib*/*.la\nrm -f /opt/${MACHTYPE}/${MACHTYPE}/lib*/*.la\n\n# Patch #1 for fixing cross-compilation: The correctness of the patch\n# relies on us using clang or GCC (in a new enough version) as compiler;\n# otherwise we ought to turn off ftrapv support to be on the safe side.\natomic_patch -p1 ../patches/ftrapv.patch\n\n# Patch #2 for fixing cross-compilation: The code detecting presence and\n# usability of GMP is broken for cross compilation; fix that\natomic_patch -p1 ../patches/gmp.patch\n\n# Patch to fix compilation on mingw32: add missing #include <time.h>\natomic_patch -p1 ../patches/time.patch\n\n./configure \\\n    --prefix=$prefix \\\n    --build=${MACHTYPE} \\\n    --host=$target \\\n    --with-gcc-arch=pentium4 \\\n    --with-gmp=${prefix} \\\n    --with-glpk=${prefix} \\\n    --enable-shared \\\n    --disable-static\nmake -j${nproc}\nmake install\n\nrm -rf ${WORKSPACE}/destdir/${target}\n\n# On Windows, make sure non-versioned filename exists...\nif [[ ${target} == *mingw* ]]; then\n    cp -v ${prefix}/bin/lib4ti2common-*.dll ${prefix}/bin/lib4ti2common.dll\n    cp -v ${prefix}/bin/lib4ti2gmp-*.dll ${prefix}/bin/lib4ti2gmp.dll\n    cp -v ${prefix}/bin/lib4ti2int32-*.dll ${prefix}/bin/lib4ti2int32.dll\n    cp -v ${prefix}/bin/lib4ti2int64-*.dll ${prefix}/bin/lib4ti2int64.dll\n    cp -v ${prefix}/bin/lib4ti2util-*.dll ${prefix}/bin/lib4ti2util.dll\n    cp -v ${prefix}/bin/libzsolve-*.dll ${prefix}/bin/libzsolve.dll\nfi\n"""
+version = "v1.6.9"
+
+[[dependencies]]
+name = "GMP_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "GLPK_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["lib4ti2gmp"]
+type = "lib"
+variable_name = "lib4ti2"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["lib4ti2int32"]
+type = "lib"
+variable_name = "lib4ti2int32"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["lib4ti2int64"]
+type = "lib"
+variable_name = "lib4ti2int64"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libzsolve"]
+type = "lib"
+variable_name = "libzsolve"
+[[products]]
+binnames = ["4ti2gmp"]
+type = "exe"
+variable_name = "exe4ti2gmp"
+[[products]]
+binnames = ["4ti2int32"]
+type = "exe"
+variable_name = "exe4ti2int32"
+[[products]]
+binnames = ["4ti2int64"]
+type = "exe"
+variable_name = "exe4ti2int64"
+[[products]]
+binnames = ["genmodel"]
+type = "exe"
+variable_name = "genmodel"
+[[products]]
+binnames = ["gensymm"]
+type = "exe"
+variable_name = "gensymm"
+[[products]]
+binnames = ["output"]
+type = "exe"
+variable_name = "output"
+[[products]]
+binnames = ["ppi"]
+type = "exe"
+variable_name = "ppi"
+[[products]]
+binnames = ["zsolve"]
+type = "exe"
+variable_name = "zsolve"
+[[products]]
+paths = ["bin/circuits"]
+type = "file"
+variable_name = "circuits"
+[[products]]
+paths = ["bin/graver"]
+type = "file"
+variable_name = "graver"
+[[products]]
+paths = ["bin/groebner"]
+type = "file"
+variable_name = "groebner"
+[[products]]
+paths = ["bin/hilbert"]
+type = "file"
+variable_name = "hilbert"
+[[products]]
+paths = ["bin/markov"]
+type = "file"
+variable_name = "markov"
+[[products]]
+paths = ["bin/minimize"]
+type = "file"
+variable_name = "minimize"
+[[products]]
+paths = ["bin/normalform"]
+type = "file"
+variable_name = "normalform"
+[[products]]
+paths = ["bin/qsolve"]
+type = "file"
+variable_name = "qsolve"
+[[products]]
+paths = ["bin/rays"]
+type = "file"
+variable_name = "rays"
+[[products]]
+paths = ["bin/walk"]
+type = "file"
+variable_name = "walk"
+[[products]]
+paths = ["bin/zbasis"]
+type = "file"
+variable_name = "zbasis"
+
+[[sources]]
+hash = "3053e7467b5585ad852f6a56e78e28352653943e7249ad5e5174d4744d174966"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/4ti2/4ti2/releases/download/Release_1_6_9/4ti2-1.6.9.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

@@ -1,0 +1,34 @@
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "ZeroMQ"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11", "aarch64-apple-darwin", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11"]
+script = """cd $WORKSPACE/srcdir/libzmq\natomic_patch -p1 ../patches/tests-missing-headers.patch\nif [[ \"${target}\" == *-mingw* ]]; then\n    # Apply patch from\n    # https://github.com/msys2/MINGW-packages/blob/66c0195ad84836161c48797241a1c7611ac4a435/mingw-w64-zeromq/001-testutil_different_signedness-fix.patch\n    atomic_patch -p1 ../patches/001-testutil_different_signedness-fix.patch\nelif [[ \"${target}\" == *86*-linux-musl* ]]; then\n    # Fix bug in Musl C library, see\n    # https://github.com/JuliaPackaging/BinaryBuilder.jl/issues/387\n    atomic_patch -d /opt/${target}/lib/gcc/${target}/*/include -p0 $WORKSPACE/srcdir/patches/mm_malloc.patch\nfi\nsh autogen.sh\n./configure --prefix=$prefix \\\n    --build=${MACHTYPE} \\\n    --host=${target} \\\n    --without-docs \\\n    --enable-drafts \\\n    --with-libsodium \\\n    --disable-libunwind \\\n    --disable-perf \\\n    --disable-Werror \\\n    --disable-eventfd \\\n    --without-gcov \\\n    --disable-static \\\n    CXXFLAGS=\"-O2 -fms-extensions\"\nmake -j${nproc}\nmake install\n"""
+version = "v4.3.4"
+
+[[dependencies]]
+compat = ""
+name = "libsodium_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libzmq"]
+type = "lib"
+variable_name = "libzmq"
+
+[[sources]]
+hash = "4097855ddaaa65ed7b5e8cb86d143842a594eebd"
+type = "git"
+unpack_target = ""
+url = "https://github.com/zeromq/libzmq.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

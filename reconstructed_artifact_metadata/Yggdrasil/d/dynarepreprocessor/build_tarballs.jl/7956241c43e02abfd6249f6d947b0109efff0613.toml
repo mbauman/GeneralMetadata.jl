@@ -1,0 +1,53 @@
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "DynarePreprocessor"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11", "aarch64-apple-darwin", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11"]
+script = """cd ${WORKSPACE}/srcdir/preprocessor\n\n# remove -lstdc++fs in Makefile.am\nsed s/-lstdc++fs// -i src/Makefile.am\n\n# Remove flex from RootFS to let use our flex from `flex_jll`\nrm -f /usr/bin/flex\n\n# Help FreeBSD find header files.  See\n# https://github.com/JuliaPackaging/Yggdrasil/issues/3949\nif [[ \"${target}\" == *-freebsd* ]]; then\n    export CPPFLAGS=\"-I${includedir}\"\nelif [[ \"${target}\" == x86_64-apple-darwin* ]]; then\n    # Install a newer SDK which supports `std::filesystem` to work around the issue\n    #     Undefined symbols for architecture x86_64:\n    #       \"__ZNKSt3__14__fs10filesystem4path10__filenameEv\", referenced from:\n    #           __ZNSt3__14__fs10filesystem4pathdVERKS2_ in dynare_preprocessor-ModelTree.o\n    #           __ZNK11StaticModel15writeStaticFileERKNSt3__112basic_stringIcNS0_11char_traitsIcEENS0_9allocatorIcEEEEbbbS8_RKNS0_4__fs10filesystem4pathESD_b in dynare_preprocessor-StaticModel.o\n    #           __ZNSt3__14__fs10filesystem4pathdVERKS2_ in dynare_preprocessor-StaticModel.o\n    #           __ZNK12DynamicModel16writeDynamicFileERKNSt3__112basic_stringIcNS0_11char_traitsIcEENS0_9allocatorIcEEEEbbbS8_RKNS0_4__fs10filesystem4pathESD_b in dynare_preprocessor-DynamicModel.o\n    #           __ZNSt3__14__fs10filesystem4pathdVERKS2_ in dynare_preprocessor-DynamicModel.o\n    #           __ZNSt3__14__fs10filesystem4pathdVERKS2_ in dynare_preprocessor-ModFile.o\n    #           _main in dynare_preprocessor-DynareMain.o\n    pushd $WORKSPACE/srcdir/MacOSX10.*.sdk\n    rm -rf /opt/${target}/${target}/sys-root/System\n    cp -ra usr/* \"/opt/${target}/${target}/sys-root/usr/.\"\n    cp -ra System \"/opt/${target}/${target}/sys-root/.\"\n    popd\nfi\n\natomic_patch -p1 \"../patches/patches.patch\"\n\nautoreconf -si\n\nupdate_configure_scripts\n./configure --prefix=$prefix  --build=${MACHTYPE} --host=${target} --disable-doc\nmake -j${nproc}\nmake install\nmkdir -p \"${bindir}\"\nstrip \"src/dynare-preprocessor${exeext}\"\ncp \"src/dynare-preprocessor${exeext}\" \"${bindir}\"\ninstall_license COPYING\n"""
+version = "v4.8.0"
+
+[[dependencies]]
+compat = ""
+name = "boost_jll"
+platforms = ["any"]
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Bison_jll"
+platforms = ["any"]
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "flex_jll"
+platforms = ["any"]
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["dynare-preprocessor"]
+type = "exe"
+variable_name = "dynare_preprocessor"
+
+[[sources]]
+hash = "a8fce06dc46ca09329e6899e1fde47f2cd81809b"
+type = "git"
+unpack_target = ""
+url = "https://git.dynare.org/Dynare/preprocessor.git"
+[[sources]]
+hash = "2408d07df7f324d3beea818585a6d990ba99587c218a3969f924dfcc4de93b62"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.15.sdk.tar.xz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

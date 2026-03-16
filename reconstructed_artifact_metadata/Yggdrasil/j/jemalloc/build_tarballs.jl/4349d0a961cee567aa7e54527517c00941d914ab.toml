@@ -1,0 +1,22 @@
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "jemalloc"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/jemalloc/\nautoconf\n\nFLAGS=(--disable-initial-exec-tls)\nif [[ \"${target}\" == *-freebsd* ]]; then\n     FLAGS+=(--with-jemalloc-prefix)\nelif [[ \"${target}\" == aarch64-apple-darwin* ]]; then\n     # Use correct 'system page size' per https://uwekorn.com/2021/01/11/apache-arrow-on-the-apple-m1.html\n     FLAGS+=(--with-lg-page=14)\nfi\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \"${FLAGS[@]}\"\n\nmake -j${nproc}\nmake install\n\n"""
+version = "v5.2.1"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libjemalloc", "jemalloc"]
+type = "lib"
+variable_name = "libjemalloc"
+
+[[sources]]
+hash = "886e40bb339ec1358a5ff2a52fdb782ca66461cb"
+type = "git"
+unpack_target = ""
+url = "https://github.com/jemalloc/jemalloc.git"

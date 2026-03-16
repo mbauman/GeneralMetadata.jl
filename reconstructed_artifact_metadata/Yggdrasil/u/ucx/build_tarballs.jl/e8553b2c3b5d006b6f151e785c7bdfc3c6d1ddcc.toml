@@ -1,0 +1,98 @@
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "UCX"
+platforms = ["x86_64-linux-gnu", "aarch64-linux-gnu", "powerpc64le-linux-gnu"]
+script = """cd $WORKSPACE/srcdir/ucx-*\n\n# Apply all our patches\nif [ -d $WORKSPACE/srcdir/patches ]; then\nfor f in $WORKSPACE/srcdir/patches/*.patch; do\n    echo \"Applying patch ${f}\"\n    atomic_patch -p1 ${f}\ndone\nfi\n\nupdate_configure_scripts --reconf\n\nFLAGS=()\nFLAGS+=(--prefix=${prefix})\nFLAGS+=(--build=${MACHTYPE})\nFLAGS+=(--host=${target})\nFLAGS+=(--disable-debug)\nFLAGS+=(--disable-assertions)\nFLAGS+=(--disable-params-check)\nFLAGS+=(--disable-static)\nFLAGS+=(--disable-profiling)\nFLAGS+=(--enable-shared)\nFLAGS+=(--enable-mt)\nFLAGS+=(--enable-frame-pointer)\nFLAGS+=(--enable-cma)\nFLAGS+=(--with-rdmacm=${prefix})\n\nif [[ \"${target}\" != *aarch64* ]]; then\n    FLAGS+=(--with-cuda=${prefix}/cuda)\nfi\n\nif [[ \"${target}\" == *x86_64* ]]; then\n    FLAGS+=(--with-rocm=${prefix})\nfi\n\n./configure ${FLAGS[@]}\n\n# For a bug in `src/uct/sm/cma/Makefile` that I did't have the time to look\n# into, we have to build with `V=1`\nmake -j${nproc} V=1\nmake install\n\ninstall_license LICENSE\n"""
+version = "v1.11.2"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "NUMA_jll"
+type = "dependency"
+uuid = "7f51dc2b-bb24-59f8-b771-bb1490e4195d"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "rdma_core_jll"
+type = "dependency"
+uuid = "69dc3629-5c98-505f-8bcd-225213cebe70"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CUDA_full_jll"
+type = "builddependency"
+version-major = 11
+version-minor = 2
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "hsa_rocr_jll"
+type = "builddependency"
+version-major = 4
+version-minor = 2
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libuct"]
+type = "lib"
+variable_name = "libuct"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libucm"]
+type = "lib"
+variable_name = "libucm"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libucp"]
+type = "lib"
+variable_name = "libucp"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libucs"]
+type = "lib"
+variable_name = "libucs"
+[[products]]
+binnames = ["ucx_info"]
+type = "exe"
+variable_name = "ucx_info"
+[[products]]
+binnames = ["ucx_perftest"]
+type = "exe"
+variable_name = "ucx_perftest"
+[[products]]
+binnames = ["ucx_read_profile"]
+type = "exe"
+variable_name = "ucx_read_profile"
+
+[[sources]]
+hash = "deebf86a5344fc2bd9e55449f88c650c4514928592807c9bc6fe4190e516c6df"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/openucx/ucx/releases/download/v1.11.2/ucx-1.11.2.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

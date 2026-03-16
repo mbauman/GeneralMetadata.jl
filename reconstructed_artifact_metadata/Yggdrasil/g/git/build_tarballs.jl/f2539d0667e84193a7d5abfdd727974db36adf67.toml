@@ -1,0 +1,69 @@
+lazy_artifacts = false
+name = "Git"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """install_license ${WORKSPACE}/srcdir/git-*/COPYING\n\nif [[ \"${target}\" == *-ming* ]]; then\n    # Fast path for Windows: just copy the content of the tarball to the prefix\n    cp -r ${WORKSPACE}/srcdir/${target}/mingw${nbits}/* ${prefix}\n    exit\nfi\n\ncd $WORKSPACE/srcdir/git-*/\n\n# We need a native \"msgfmt\" to cross-compile\napk add tcl gettext\n\n# Git doesn't want to be cross-compiled, but we swear that we're not going to\n# cross-compile\nsed -i 's/cross_compiling=yes/cross_compiling=no/' configure\n\nif [[ \"${target}\" == *-apple-* ]]; then\n    LDFLAGS=\"-lgettextlib\"\nelif [[ ${target} == *-freebsd* ]]; then\n    LDFLAGS=\"-L${prefix}/lib -lcharset\"\nfi\n\n./configure --prefix=$prefix --host=$target \\\n    --with-curl \\\n    --with-expat \\\n    --with-openssl \\\n    --with-iconv=${prefix} \\\n    --with-libpcre2 \\\n    --with-zlib=${prefix} \\\n    CPPFLAGS=\"-I${prefix}/include\" \\\n    LDFLAGS=\"${LDFLAGS}\"\nmake -j${nproc}\nmake install INSTALL_SYMLINKS=\"yes, please\"\n"""
+version = "v2.26.1"
+
+[[dependencies]]
+name = "LibCURL_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Expat_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "OpenSSL_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Gettext_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Libiconv_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "PCRE2_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Zlib_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["git"]
+type = "exe"
+variable_name = "git"
+
+[[sources]]
+hash = "888228408f254634330234df3cece734d190ef6381063821f31ec020538f0368"
+type = "archive"
+unpack_target = ""
+url = "https://mirrors.edge.kernel.org/pub/software/scm/git/git-2.26.1.tar.xz"
+[[sources]]
+hash = "7c9bf2b200d1f65ae0d038c6801efa410760da880eb1f5e683ea8e1efd288c38"
+type = "archive"
+unpack_target = "i686-w64-mingw32"
+url = "https://github.com/git-for-windows/git/releases/download/v2.26.1.windows.1/Git-2.26.1-32-bit.tar.bz2"
+[[sources]]
+hash = "066c2e88c32d942e32d78aa888559b76ec1785e642b498c6710900026dc05310"
+type = "archive"
+unpack_target = "x86_64-w64-mingw32"
+url = "https://github.com/git-for-windows/git/releases/download/v2.26.1.windows.1/Git-2.26.1-64-bit.tar.bz2"

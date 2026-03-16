@@ -1,0 +1,165 @@
+augment_platform_block = """using Base.BinaryPlatforms\n\ntry\n    using CUDA_Runtime_jll\ncatch\n    # during initial package installation, CUDA_Runtime_jll may not be available.\n    # in that case, we just won't select an artifact.\nend\n\nfunction cuda_comparison_strategy(a::String, b::String, a_requested::Bool, b_requested::Bool)\n    if a == \"none\" || b == \"none\"\n        return false\n    end\n    if a == \"local\" || b == \"local\"\n        return a == b\n    end\n    a = VersionNumber(a)\n    b = VersionNumber(b)\n\n    # If both b and a requested, then we fall back to equality:\n    if a_requested && b_requested\n        return Base.thisminor(a) == Base.thisminor(b)\n    end\n\n    # Otherwise, do the comparison between the the single version cap and the single version:\n    function is_compatible(artifact::VersionNumber, host::VersionNumber)\n        if host >= v\"11.0\"\n            # enhanced compatibility, semver-style\n            artifact.major == host.major &&\n            Base.thisminor(artifact) <= Base.thisminor(host)\n        else\n            Base.thisminor(artifact) == Base.thisminor(host)\n        end\n    end\n    if a_requested\n        is_compatible(b, a)\n    else\n        is_compatible(a, b)\n    end\nend\n\nfunction augment_platform!(platform::Platform)\n    if !@isdefined(CUDA_Runtime_jll)\n        # don't set to nothing or Pkg will download any artifact\n        platform[\"cuda\"] = \"none\"\n    end\n\n    if !haskey(platform, \"cuda\")\n        CUDA_Runtime_jll.augment_platform!(platform)\n    end\n    BinaryPlatforms.set_compare_strategy!(platform, \"cuda\", cuda_comparison_strategy)\n    return platform\nend"""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = true
+name = "Torch"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-linux-gnu-cxx03-cuda+10.2", "x86_64-linux-gnu-cxx11-cuda+10.2", "x86_64-linux-gnu-cxx03-cuda+11.3", "x86_64-linux-gnu-cxx11-cuda+11.3"]
+script = """cd $WORKSPACE/srcdir\n\nmkdir micromamba\ncd micromamba\ntar xfj ../micromamba.tar.bz2\nexport PATH=$PATH:$WORKSPACE/srcdir/micromamba/bin\n./bin/micromamba shell init -s bash -p ~/micromamba\nsource ~/.bashrc\nmicromamba activate\nmicromamba install -y python=3.9 pyyaml typing_extensions -c conda-forge\n\ncd $WORKSPACE/srcdir/pytorch\n\natomic_patch -p1 ../patches/pytorch-aten-qnnpack-cmake-windows.patch\n\ncmake_extra_args=\"\"\ninclude_paths=\"\"\n\nif [[ $bb_full_target == *cxx11* ]]; then\n    cmake_extra_args+=\"-DGLIBCXX_USE_CXX11_ABI=1 \"\nfi\n\n# MKL is avoided for all platforms are excluded due to https://github.com/JuliaRegistries/General/pull/68946#issuecomment-1257308450\nif [[ 0 -eq 1\n    # || $target == i686-linux-gnu*\n    # || $target == x86_64-linux-gnu*\n    # || $target == x86_64-apple-darwin*\n]]; then\n    cmake_extra_args+=\"-DBLAS=MKL \"\nelif [[ $target == x86_64-apple-darwin*\n    || $target == aarch64-apple-darwin*\n]]; then\n    cmake_extra_args+=\"-DBLAS=vecLib \"\nelse\n    cmake_extra_args+=\"-DBLAS=OpenBLAS \"\nfi\n\nif [[ $target == x86_64* ]]; then # Restricting PYTORCH_QNNPACK to x86_64: Adapted from https://salsa.debian.org/deeplearning-team/pytorch/-/blob/master/debian/rules\n    cmake_extra_args+=\"-DUSE_PYTORCH_QNNPACK=ON \"\nelse\n    cmake_extra_args+=\"-DUSE_PYTORCH_QNNPACK=OFF \"\nfi\n\nif [[ $target == aarch64-linux-gnu* # Disabled use of breakpad on aarch64-linux-gnu: Fails to build embedded breakpad library.\n    || $target == *-w64-mingw32* # Disabling breakpad enables configure on Windows - in combination with pytorch-aten-qnnpack-cmake-windows.patch\n    || $target == *-freebsd*\n]]; then\n    cmake_extra_args+=\"-DUSE_BREAKPAD=OFF \"\nelse\n    cmake_extra_args+=\"-DUSE_BREAKPAD=ON \"\nfi\n\nif [[ $target == *-linux-musl* # Disabled use of TensorPipe on linux-musl: Fails to build embedded TensorPipe library.\n    || $target == *-w64-mingw32* # TensorPipe cannot be used on Windows\n]]; then\n    cmake_extra_args+=\"-DUSE_TENSORPIPE=OFF \"\nelse\n    cmake_extra_args+=\"-DUSE_TENSORPIPE=ON \"\nfi\n\nif [[ $target == *-w64-* || $target == *-freebsd* ]]; then\n    cmake_extra_args+=\"-DUSE_KINETO=OFF \"\nfi\n\n# Gloo is only available for 64-bit x86_64 or aarch64 - and cmake currently cannot find Gloo on *-linux-gnu\nif [[ $target != arm-* && $target == *-linux-musl* ]]; then\n    cmake_extra_args+=\"-DUSE_SYSTEM_GLOO=ON \"\nfi\n\nif [[ $target == aarch64-* # A compiler with AVX512 support is required for FBGEM\n    || $target == arm-* # A compiler with AVX512 support is required for FBGEM\n    || $target == i686-* # x64 operating system is required for FBGEMM\n    || $target == x86_64-w64-mingw32*\n]]; then\n    cmake_extra_args+=\"-DUSE_FBGEMM=OFF -DUSE_FAKELOWP=OFF \"\nfi\n\nif [[ $target == x86_64-apple-darwin* # Fails to compile: /workspace/srcdir/pytorch/third_party/ideep/mkl-dnn/src/cpu/x64/jit_avx512_core_amx_conv_kernel.cpp:483:43: error: use of undeclared identifier 'noU';\n    || $target == *-w64-mingw32*\n    || $target == *-linux-musl* ]]; then\n    cmake_extra_args+=\"-DUSE_MKLDNN=OFF \"\nfi\n\nif [[ $bb_full_target == *cuda* ]]; then\n    cuda_version=`echo $bb_full_target | sed -E -e 's/.*cuda\\+([0-9]+\\.[0-9]+).*/\\1/'`\n    cuda_version_major=`echo $cuda_version | cut -d . -f 1`\n    cuda_version_minor=`echo $cuda_version | cut -d . -f 2`\n    cuda_full_path=\"$WORKSPACE/srcdir/CUDA_full.v$cuda_version/cuda\"\n    export PATH=$PATH:$cuda_full_path/bin\n    export CUDACXX=$cuda_full_path/bin/nvcc\n    export CUDAHOSTCXX=$CXX\n    mkdir $WORKSPACE/tmpdir\n    export TMPDIR=$WORKSPACE/tmpdir\n    cmake_extra_args+=\"\\\n        -DUSE_CUDA=ON \\\n        -DUSE_CUDNN=ON \\\n        -DUSE_MAGMA=ON \\\n        -DCUDA_TOOLKIT_ROOT_DIR=$cuda_full_path \\\n        -DCUDA_CUDART_LIBRARY=$cuda_full_path/lib64/libcudart.$dlext \\\n        -DCMAKE_CUDA_FLAGS='-cudart shared' \\\n        -DCUDA_cublas_LIBRARY=$cuda_full_path/lib64/libcublas.$dlext \\\n        -DCUDA_cufft_LIBRARY=$cuda_full_path/lib64/libcufft.$dlext \\\n        -DCUDA_curand_LIBRARY=$cuda_full_path/lib64/libcurand.$dlext \\\n        -DCUDA_cusolver_LIBRARY=$cuda_full_path/lib64/libcusolver.$dlext \\\n        -DCUDA_cusparse_LIBRARY=$cuda_full_path/lib64/libcusparse.$dlext \\\n        -DCUDA_TOOLKIT_INCLUDE=$includedir;$cuda_full_path/include \\\n        -DCUB_INCLUDE_DIR=$WORKSPACE/srcdir/pytorch/third_party/cub \"\n    include_paths+=\":$cuda_full_path/include\"\n    micromamba install -y magma-cuda${cuda_version_major}${cuda_version_minor} -c pytorch\n    git submodule update --init \\\n        third_party/cub \\\n        third_party/cudnn_frontend\nelse\n    cmake_extra_args+=\"-DUSE_CUDA=OFF -DUSE_MAGMA=OFF \"\nfi\n\ngit submodule update --init \\\n    third_party/FP16 \\\n    third_party/FXdiv \\\n    third_party/eigen \\\n    third_party/fbgemm \\\n    third_party/fmt \\\n    third_party/foxi \\\n    third_party/gloo \\\n    third_party/kineto \\\n    third_party/onnx \\\n    third_party/psimd \\\n    third_party/tensorpipe\ngit submodule update --init --recursive \\\n    third_party/breakpad \\\n    third_party/ideep\ncd third_party/fbgemm && git submodule update --init third_party/asmjit && cd ../..\ncd third_party/tensorpipe && git submodule update --init third_party/libnop third_party/libuv && cd ../..\nmkdir build\ncd build\nconfigure() {\n    cmake \\\n        -DCMAKE_BUILD_TYPE=Release \\\n        -DCMAKE_INSTALL_PREFIX=$prefix \\\n        -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n        -DCMAKE_INCLUDE_PATH=$include_paths \\\n        -DBUILD_CUSTOM_PROTOBUF=OFF \\\n        -DBUILD_PYTHON=OFF \\\n        -DPYTHON_EXECUTABLE=`which python3` \\\n        -DBUILD_SHARED_LIBS=ON \\\n        -DHAVE_SOVERSION=ON \\\n        -DUSE_METAL=OFF \\\n        -DUSE_MPI=OFF \\\n        -DUSE_NCCL=OFF \\\n        -DUSE_NNPACK=OFF \\\n        -DUSE_NUMA=OFF \\\n        -DUSE_NUMPY=OFF \\\n        -DUSE_QNNPACK=OFF \\\n        -DUSE_SYSTEM_CPUINFO=ON \\\n        -DUSE_SYSTEM_PTHREADPOOL=ON \\\n        -DUSE_SYSTEM_SLEEF=ON \\\n        -DUSE_SYSTEM_XNNPACK=ON \\\n        -DPROTOBUF_PROTOC_EXECUTABLE=$host_bindir/protoc \\\n        -DCAFFE2_CUSTOM_PROTOC_EXECUTABLE=$host_bindir/protoc \\\n        -Wno-dev \\\n        $cmake_extra_args \\\n        ..\n}\nif [[ $bb_full_target != *cuda* ]]; then\n    configure\nelse\n    configure\n    configure || configure\nfi\ncmake --build . -- -j $nproc\nmake install\ninstall_license ../LICENSE\n"""
+version = "v1.10.2"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "0.0.20201217"
+name = "CPUInfo_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "8"
+name = "CUDNN_jll"
+platforms = ["x86_64-linux-gnu-cxx03-cuda+10.2", "x86_64-linux-gnu-cxx11-cuda+10.2", "x86_64-linux-gnu-cxx03-cuda+11.3", "x86_64-linux-gnu-cxx11-cuda+11.3"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "0.0.20210521"
+name = "Gloo_jll"
+platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-linux-gnu-cxx03-cuda+10.2", "x86_64-linux-gnu-cxx11-cuda+10.2", "x86_64-linux-gnu-cxx03-cuda+11.3", "x86_64-linux-gnu-cxx11-cuda+11.3"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LAPACK_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenBLAS32_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "0.0.20210414"
+name = "PThreadPool_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "3"
+name = "SLEEF_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "0.0.20210622"
+name = "XNNPACK_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "~3.13.0"
+name = "protoc_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "c7845625-083e-5bbe-8504-b32d602b7110"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "protoc_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+uuid = "c7845625-083e-5bbe-8504-b32d602b7110"
+version-major = 3
+version-minor = 13
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CUDA_Runtime_jll"
+platforms = ["any"]
+top_level = false
+type = "runtimedependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+paths = ["share/ATen/Declarations.yaml"]
+type = "file"
+variable_name = "declarations_yaml"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libtorch", "torch"]
+type = "lib"
+variable_name = "libtorch"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libtorch_cpu", "torch_cpu"]
+type = "lib"
+variable_name = "libtorch_cpu"
+
+[[sources]]
+hash = "71f889c7d265b9636b93ede9d651c0a9c4bee191"
+type = "git"
+unpack_target = ""
+url = "https://github.com/pytorch/pytorch.git"
+[[sources]]
+filename = "micromamba.tar.bz2"
+hash = "c907423887b43bec4e8b24f17471262c8087b7095683f41dcef4a4e24e9a3bbd"
+type = "file"
+url = "https://micromamba.snakepit.net/api/micromamba/linux-64/0.21.1"
+[[sources]]
+hash = "60e6f614db3b66d955b7e6aa02406765e874ff475c69e2b4a04eb95ba65e4f3b"
+type = "archive"
+unpack_target = "CUDA_full.v10.2"
+url = "https://github.com/JuliaBinaryWrappers/CUDA_full_jll.jl/releases/download/CUDA_full-v10.2.89%2B5/CUDA_full.v10.2.89.x86_64-linux-gnu.tar.gz"
+[[sources]]
+hash = "9ae00d36d39b04e8e99ace63641254c93a931dcf4ac24c8eddcdfd4625ab57d6"
+type = "archive"
+unpack_target = "CUDA_full.v11.3"
+url = "https://github.com/JuliaBinaryWrappers/CUDA_full_jll.jl/releases/download/CUDA_full-v11.3.1%2B1/CUDA_full.v11.3.1.x86_64-linux-gnu.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

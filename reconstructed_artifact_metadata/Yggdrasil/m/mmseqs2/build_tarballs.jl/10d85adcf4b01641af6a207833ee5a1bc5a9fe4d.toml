@@ -1,0 +1,63 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "MMseqs2"
+platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd"]
+script = """cd $WORKSPACE/srcdir/MMseqs2*/\n\n# patch CMakeLists.txt so it doesn't set -march unnecessarily on ARM\natomic_patch -p1 ../patches/arm-simd-march-cmakefile.patch\n\n# architecture extensions\nARCH_FLAGS=\nif [[ \"${target}\" == x86_64-* || \"${target}\" == i686-* ]]; then\n    ARCH_FLAGS=\"-DHAVE_SSE2=1 -DHAVE_SSE4_1=1 -DHAVE_AVX2=1\"\nelif [[ \"${target}\" == powerpc64le-* ]]; then\n    ARCH_FLAGS=\"-DHAVE_POWER8=1 -DHAVE_POWER9=1\"\nelif [[ \"${target}\" == aarch64-* ]]; then\n    ARCH_FLAGS=\"-DHAVE_ARM8=1\"\nfi\n\nmkdir build\ncd build\ncmake .. \\\n    -DCMAKE_INSTALL_PREFIX=$prefix -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} -DCMAKE_BUILD_TYPE=RELEASE \\\n    -DNATIVE_ARCH=0 ${ARCH_FLAGS}\nmake -j${nproc}\nmake install\n\ninstall_license ../LICENSE.md\n"""
+version = "v14.0.0"
+
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Bzip2_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LLVMOpenMP_jll"
+platforms = ["x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd"]
+top_level = false
+type = "dependency"
+uuid = "1d63c593-3942-5779-bab2-d838dc0a180e"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["mmseqs"]
+type = "exe"
+variable_name = "mmseqs"
+
+[[sources]]
+hash = "7e2840992948ee89dcc336522dc98a74fe0adf00"
+type = "git"
+unpack_target = ""
+url = "https://github.com/soedinglab/MMseqs2"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

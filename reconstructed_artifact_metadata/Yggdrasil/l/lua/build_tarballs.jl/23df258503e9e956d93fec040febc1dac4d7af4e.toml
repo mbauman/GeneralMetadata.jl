@@ -1,0 +1,45 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Lua"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd ${WORKSPACE}/srcdir/lua-*\n\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/src_Makefile.patch\"\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/src_lauxlib.c.patch\"\n\nif [[ ${target} == *-apple-* ]]; then\n    MAKE_TARGET=macosx\nelif [[ ${target} == *-freebsd* ]]; then\n    # NOTE: The FreeBSD ports build also uses the bsd instead of the freebsd target,\n    # since it hard-codes fewer things, apparently\n    MAKE_TARGET=bsd\nelif [[ ${target} == *-mingw* ]]; then\n    MAKE_TARGET=mingw\nelse\n    MAKE_TARGET=linux\n    export CPPFLAGS=\"-I${prefix}/include\"\nfi\n\n# XXX: Work around Lua apparently not understanding its own Windows setup\nif [[ ${target} == *-mingw* ]]; then\n    TO_BIN=\"lua.exe luac.exe\"\n    TO_LIB=\"lua54.dll\"\nelse\n    TO_BIN=\"lua luac\"\n    TO_LIB=\"liblua.${dlext}\"\nfi\n\nmake -j${nproc} ${MAKE_TARGET} DLEXT=\"${dlext}\"\nmake install INSTALL_TOP=\"${prefix}\" INSTALL_LIB=\"${libdir}\" TO_BIN=\"${TO_BIN}\" TO_LIB=\"${TO_LIB}\"\n\ninstall_license \"${WORKSPACE}/srcdir/LICENSE\"\n"""
+version = "v5.4.6"
+
+[[dependencies]]
+compat = ""
+name = "Readline_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["lua"]
+type = "exe"
+variable_name = "lua"
+[[products]]
+binnames = ["luac"]
+type = "exe"
+variable_name = "luac"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["liblua", "lua54"]
+type = "lib"
+variable_name = "liblua"
+
+[[sources]]
+hash = "7d5ea1b9cb6aa0b59ca3dde1c6adcb57ef83a1ba8e5432c0ecd06bf439b3ad88"
+type = "archive"
+unpack_target = ""
+url = "https://www.lua.org/ftp/lua-5.4.6.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

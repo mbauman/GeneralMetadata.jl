@@ -1,0 +1,74 @@
+augment_platform_block = ""
+init_block = """    # Register this driver with OpenCL_jll\n    if OpenCL_jll.is_available()\n        push!(OpenCL_jll.drivers, libRusticlOpenCL)\n    end\n"""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Rusticl"
+platforms = ["aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-apple-darwin"]
+script = """apk add py3-mako py3-yaml\n\n# build bindgen. this is tricky for multiple reasons:\n# - it needs to be built for the host platform\n# - the host uses musl, which only has a functional dlopen in its dynamic libary\n# - convincing cargo to link dynamically against the C runtime results in\n#   rust picking up the much older libc that's shipped as part of the gcc shard\n## replace the sysroot libc with the one from the rootfs\n# XXX: bump the baseline instead\nmv /opt/x86_64-linux-musl/x86_64-linux-musl/sys-root/usr/lib/libc.so /opt/x86_64-linux-musl/x86_64-linux-musl/sys-root/usr/lib/libc.so.old\nln -s /lib/libc.musl-x86_64.so.1 /opt/x86_64-linux-musl/x86_64-linux-musl/sys-root/usr/lib/libc.so\n## install bindgen\nRUSTFLAGS=\"-C target-feature=-crt-static\" \\\ncargo install bindgen-cli --target $rust_host\n\ncd $WORKSPACE/srcdir/mesa\n\ninstall_license licenses/MIT\n\nfor patch in $WORKSPACE/srcdir/patches/*.patch; do\n    atomic_patch -p1 $patch\ndone\n\nmkdir build && cd build\n\nMESON_FLAGS=()\n# Install things into $prefix\nMESON_FLAGS+=(-Dprefix=${prefix})\n# Explicitly use our Meson toolchain file\nMESON_FLAGS+=(--cross-file=\"${MESON_TARGET_TOOLCHAIN}\")\nMESON_FLAGS+=(--native-file=\"${MESON_HOST_TOOLCHAIN}\")\n# Release build for best performance\nMESON_FLAGS+=(--buildtype=release)\n# Disable things we don't need\nMESON_FLAGS+=(-Dplatforms=)\nMESON_FLAGS+=(-Dglx=disabled)\nMESON_FLAGS+=(-Dgles1=disabled)\nMESON_FLAGS+=(-Dvideo-codecs=)\nMESON_FLAGS+=(-Dgallium-va=disabled)\nMESON_FLAGS+=(-Dgallium-vdpau=disabled)\nMESON_FLAGS+=(-Dvulkan-drivers=)\n# Enable Rusticl\nMESON_FLAGS+=(-Dgallium-rusticl=true)\nMESON_FLAGS+=(-Drust_std=2021)\nMESON_FLAGS+=(-Dllvm=disabled)\n# TODO: support LLVM\nMESON_FLAGS+=(-Drusticl-enable-opencl-c=false)\n# Enable Gallium drivers\nMESON_FLAGS+=(-Dgallium-drivers=zink)\n# Embed libclc\nMESON_FLAGS+=(-Dstatic-libclc=all)\n\n# MoltenVK for macOS\nif [[ $target == *-apple-* ]]; then\n    MESON_FLAGS+=(-Dmoltenvk-dir=$WORKSPACE/srcdir/MoltenVK)\n    MESON_FLAGS+=(-Dplatforms=macos)\nfi\n\n# point Meson to the right `rustc` binaries\n# XXX: fix this upstream (JuliaPackaging/Yggdrasil#11679)\nhost=$MACHTYPE\nhost_rustc=$(echo /opt/bin/${host}*/rustc)\ntarget_rustc=$(echo /opt/bin/${target}*/rustc)\nsed -i \"/^\\[binaries\\]/a rust = '$host_rustc'\" \"${MESON_HOST_TOOLCHAIN}\"\nsed -i \"/^\\[binaries\\]/a rust = '$target_rustc'\" \"${MESON_TARGET_TOOLCHAIN}\"\n\n# meson doesn't forward the target environment to bindgen\nexport BINDGEN_EXTRA_CLANG_ARGS=\"--sysroot=/opt/$target/$target/sys-root\"\nif [[ $target == *-apple-* ]]; then\n    # For macOS, we need to point to the correct sysroot and include paths\n    clang_version=$(ls /opt/x86_64-linux-musl/lib/clang/ | head -n1)\n    export BINDGEN_EXTRA_CLANG_ARGS=\"$BINDGEN_EXTRA_CLANG_ARGS -I/opt/x86_64-linux-musl/lib/clang/$clang_version/include\"\n    # Add target-specific defines for macOS\n    export BINDGEN_EXTRA_CLANG_ARGS=\"$BINDGEN_EXTRA_CLANG_ARGS -DUTIL_ARCH_LITTLE_ENDIAN=1 -DUTIL_ARCH_BIG_ENDIAN=0\"\nfi\n\n# we need meson 1.7+, so use the sources directly\n../../meson/meson.py .. \"${MESON_FLAGS[@]}\"\n\nLIBCLANG_PATH=/opt/x86_64-linux-musl/lib/libclang.so \\\nninja -j${nproc}\nninja install\n"""
+version = "v25.2.0"
+
+[[dependencies]]
+compat = ""
+name = "libclc_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "SPIRV_Tools_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "libdrm_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenCL_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libRusticlOpenCL"]
+type = "lib"
+variable_name = "libRusticlOpenCL"
+
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"
+[[sources]]
+hash = "bac51d2931199a1e9048c7acdae155865732ad01"
+type = "git"
+unpack_target = ""
+url = "https://gitlab.freedesktop.org/mesa/mesa"
+[[sources]]
+hash = "082917b40c8416bde925c64d22a2e60b2c059120"
+type = "git"
+unpack_target = ""
+url = "https://github.com/mesonbuild/meson"
+[[sources]]
+hash = "458870543b9bcf6b0edd6f90aaa776707b310d96"
+type = "git"
+unpack_target = ""
+url = "https://github.com/KhronosGroup/MoltenVK"

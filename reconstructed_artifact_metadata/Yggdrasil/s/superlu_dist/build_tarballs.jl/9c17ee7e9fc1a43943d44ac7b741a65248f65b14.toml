@@ -1,0 +1,90 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "SuperLU_DIST"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/superlu_dist*\n# allow us to set the name of the shared lib.\nsed -i -e 's!OUTPUT_NAME superlu_dist!OUTPUT_NAME \"${SUPERLU_OUTPUT_NAME}\"!g' SRC/CMakeLists.txt\n\nmkdir build && cd build\nif [[ \"${target}\" == *-mingw* ]]; then\n    # This is required to ensure that MSMPI can be found by cmake\n    export LDFLAGS=\"-L${libdir} -lmsmpi\"\n    PLATFLAGS=\"-DTPL_ENABLE_PARMETISLIB:BOOL=FALSE -DMPI_C_ADDITIONAL_INCLUDE_DIRS=${includedir}\"\nelse\n    PLATFLAGS=\"-DTPL_PARMETIS_INCLUDE_DIRS=${includedir} -DTPL_PARMETIS_LIBRARIES=${libdir}/libparmetis.${dlext};${libdir}/libmetis.${dlext}\"\nfi\n\nmkdir ${libdir}/superlu_dist\n\nbuild_superlu_dist()\n{\n    if [[ \"${1}\" == \"Int64\" ]]; then\n        INT=64\n    else\n        INT=32\n    fi\n    SUPERLU_PREFIX=${libdir}/superlu_dist/Int${INT}\n    mkdir ${SUPERLU_PREFIX}\n    cmake -DCMAKE_INSTALL_PREFIX=${SUPERLU_PREFIX} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DBUILD_SHARED_LIBS=ON \\\n    -DBUILD_STATIC_LIBS=OFF \\\n    -DTPL_ENABLE_INTERNAL_BLASLIB=OFF \\\n    -Denable_tests=OFF \\\n    -Denable_doc=OFF \\\n    -Denable_single=ON \\\n    -Denable_double=ON \\\n    -Denable_complex16=ON \\\n    -DTPL_BLAS_LIBRARIES=\"${libdir}/libopenblas.${dlext}\" \\\n    ${PLATFLAGS} \\\n    -DCMAKE_C_FLAGS=\"-std=c99\" \\\n    -DXSDK_INDEX_SIZE=${INT} \\\n    -DXSDK_ENABLE_Fortran=OFF \\\n    -DSUPERLU_OUTPUT_NAME=\"superlu_dist_Int${INT}\" \\\n    -Denable_examples=OFF \\\n    ..\n    make -j${nproc}\n    make install\n}\nbuild_superlu_dist Int32\nbuild_superlu_dist Int64\n\n\n"""
+version = "v8.0.0"
+
+[[dependencies]]
+compat = ""
+name = "OpenBLAS32_jll"
+platforms = ["any"]
+type = "dependency"
+uuid = "656ef2d0-ae68-5445-9ca0-591084a874a2"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "PARMETIS_jll"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd"]
+type = "dependency"
+uuid = "b247a4be-ddc1-5759-8008-7e02fe3dbdaa"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MPICH_jll"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MicrosoftMPI_jll"
+platforms = ["i686-w64-mingw32", "x86_64-w64-mingw32"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "METIS_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LLVMOpenMP_jll"
+platforms = ["x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd"]
+type = "dependency"
+uuid = "1d63c593-3942-5779-bab2-d838dc0a180e"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = ["$libdir/superlu_dist/Int32/lib", "$libdir/superlu_dist/Int32/bin"]
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsuperlu_dist_Int32"]
+type = "lib"
+variable_name = "libsuperlu_dist_Int32"
+[[products]]
+dir_paths = ["$libdir/superlu_dist/Int64/lib", "$libdir/superlu_dist/Int64/bin"]
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsuperlu_dist_Int64"]
+type = "lib"
+variable_name = "libsuperlu_dist_Int64"
+
+[[sources]]
+hash = "4459a89719b982dd47af5bb2494a011bb267195f"
+type = "git"
+unpack_target = ""
+url = "https://github.com/xiaoyeli/superlu_dist.git"

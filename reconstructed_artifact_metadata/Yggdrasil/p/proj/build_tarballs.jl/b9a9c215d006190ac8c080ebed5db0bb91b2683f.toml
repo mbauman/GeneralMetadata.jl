@@ -1,0 +1,135 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "PROJ"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir/proj-*\n\nEXE_SQLITE3=${host_bindir}/sqlite3\n\nif [[ ${target} == *mingw* ]]; then\n    SQLite3_LIBRARY=${libdir}/libsqlite3-0.dll\n    CURL_LIBRARY=${libdir}/libcurl-4.dll\n    TIFF_LIBRARY_RELEASE=${libdir}/libtiff-6.dll\nelse\n    SQLite3_LIBRARY=${libdir}/libsqlite3.${dlext}\n    CURL_LIBRARY=${libdir}/libcurl.${dlext}\n    TIFF_LIBRARY_RELEASE=${libdir}/libtiff.${dlext}\nfi\n\nif [[ ${target} == x86_64-linux-musl ]]; then\n    # ${libdir}/libcurl.so needs a libnghttp, and it prefers to load /usr/lib/libnghttp2.so for this.\n    # Unfortunately, that library is missing a symbol. Setting LD_LIBRARY_PATH is not enough to avoid this.\n    rm /usr/lib/libcurl.*\n    rm /usr/lib/libnghttp2.*\nfi\n\nmkdir build\ncd build\ncmake -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DBUILD_SHARED_LIBS=ON \\\n    -DBUILD_TESTING=OFF \\\n    -DEXE_SQLITE3=${EXE_SQLITE3} \\\n    -DSQLite3_INCLUDE_DIR=${includedir} \\\n    -DSQLite3_LIBRARY=${SQLite3_LIBRARY} \\\n    -DCURL_INCLUDE_DIR=${includedir} \\\n    -DCURL_LIBRARY=${CURL_LIBRARY} \\\n    -DTIFF_INCLUDE_DIR=${includedir} \\\n    -DTIFF_LIBRARY_RELEASE=$TIFF_LIBRARY_RELEASE \\\n    ..\n\nmake -j${nproc}\nmake install\n"""
+version = "v901.400.0"
+
+[[dependencies]]
+compat = ""
+name = "SQLite_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "SQLite_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "4.5.1"
+name = "Libtiff_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "7.73,8"
+name = "LibCURL_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libproj", "libproj_9_4"]
+type = "lib"
+variable_name = "libproj"
+[[products]]
+binnames = ["proj"]
+type = "exe"
+variable_name = "proj"
+[[products]]
+binnames = ["gie"]
+type = "exe"
+variable_name = "gie"
+[[products]]
+binnames = ["projinfo"]
+type = "exe"
+variable_name = "projinfo"
+[[products]]
+binnames = ["projsync"]
+type = "exe"
+variable_name = "projsync"
+[[products]]
+binnames = ["cs2cs"]
+type = "exe"
+variable_name = "cs2cs"
+[[products]]
+binnames = ["geod"]
+type = "exe"
+variable_name = "geod"
+[[products]]
+binnames = ["cct"]
+type = "exe"
+variable_name = "cct"
+[[products]]
+paths = ["share/proj/CH"]
+type = "file"
+variable_name = "ch"
+[[products]]
+paths = ["share/proj/GL27"]
+type = "file"
+variable_name = "gl27"
+[[products]]
+paths = ["share/proj/ITRF2000"]
+type = "file"
+variable_name = "itrf2000"
+[[products]]
+paths = ["share/proj/ITRF2008"]
+type = "file"
+variable_name = "itrf2008"
+[[products]]
+paths = ["share/proj/ITRF2014"]
+type = "file"
+variable_name = "itrf2014"
+[[products]]
+paths = ["share/proj/nad.lst"]
+type = "file"
+variable_name = "nad_lst"
+[[products]]
+paths = ["share/proj/nad27"]
+type = "file"
+variable_name = "nad27"
+[[products]]
+paths = ["share/proj/nad83"]
+type = "file"
+variable_name = "nad83"
+[[products]]
+paths = ["share/proj/other.extra"]
+type = "file"
+variable_name = "other_extra"
+[[products]]
+paths = ["share/proj/proj.db"]
+type = "file"
+variable_name = "proj_db"
+[[products]]
+paths = ["share/proj/proj.ini"]
+type = "file"
+variable_name = "proj_ini"
+[[products]]
+paths = ["share/proj/world"]
+type = "file"
+variable_name = "world"
+
+[[sources]]
+hash = "3643b19b1622fe6b2e3113bdb623969f5117984b39f173b4e3fb19a8833bd216"
+type = "archive"
+unpack_target = ""
+url = "https://download.osgeo.org/proj/proj-9.4.0.tar.gz"

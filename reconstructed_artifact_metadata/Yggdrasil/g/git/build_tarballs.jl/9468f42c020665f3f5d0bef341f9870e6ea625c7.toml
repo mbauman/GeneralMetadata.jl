@@ -1,0 +1,93 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Git"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """install_license ${WORKSPACE}/srcdir/git-*/COPYING\n\nif [[ \"${target}\" == *-ming* ]]; then\n    # Fast path for Windows: just copy the content of the tarball to the prefix\n    cp -r ${WORKSPACE}/srcdir/${target}/mingw${nbits}/* ${prefix}\n    exit\nfi\n\ncd $WORKSPACE/srcdir/git-*/\n\n# We need a native \"tclsh\" to cross-compile\napk update\napk add tcl\n\nCACHE_VALUES=()\nif [[ \"${target}\" != *86*-linux-* ]]; then\n    # Cache values of some tests, let's hope to have got them right\n    CACHE_VALUES+=(\n        ac_cv_iconv_omits_bom=no\n        ac_cv_fread_reads_directories=yes\n        ac_cv_snprintf_returns_bogus=no\n    )\nelse\n    # Explain Git that we aren't cross-compiling on these platforms\n    sed -i 's/cross_compiling=yes/cross_compiling=no/' configure\nfi\n\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \\\n    --with-curl \\\n    --with-expat \\\n    --with-openssl \\\n    --with-iconv=${prefix} \\\n    --with-libpcre2 \\\n    --with-zlib=${prefix} \\\n    \"${CACHE_VALUES[@]}\"\nmake -j${nproc}\nmake install INSTALL_SYMLINKS=\"yes, please\"\n\n# Because of the System Integrity Protection (SIP), when running shell or Perl scripts, the\n# environment variable `DYLD_FALLBACK_LIBRARY_PATH` is reset.  We work around this\n# limitation by re-exporting `DYLD_FALLBACK_LIBRARY_PATH` through another environment\n# variable called `JLL_DYLD_FALLBACK_LIBRARY_PATH` which won't be reset by SIP.\n# Read more about the issue and the hacks we apply here at\n# <https://github.com/JuliaVersionControl/Git.jl/issues/40>.\nif [[ \"${target}\" == *-apple-* ]]; then\n    # Rename the `git` binary executable\n    mv \"${bindir}/git\" \"${bindir}/_git\"\n\n    # Create a shell driver called `git` which re-exports `DYLD_FALLBACK_LIBRARY_PATH` for us\n    cat > \"${bindir}/git\" << 'EOF'\n#!/bin/bash\n\n# We need to canonicalize symlinks, but older versions of `readlink` on macOS don't have the\n# `-f` option, so we need to cook up our own.  Adapted from\n# <https://stackoverflow.com/a/1116890/2442087>.\nreadlink_f() {\n    TARGET_FILE=\"${1}\"\n\n    cd \"$(dirname \"${TARGET_FILE}\")\"\n    TARGET_FILE=\"$(basename ${TARGET_FILE})\"\n\n    # Iterate down a (possible) chain of symlinks\n    while [ -L \"${TARGET_FILE}\" ]; do\n        TARGET_FILE=\"$(readlink \"${TARGET_FILE}\")\"\n        cd \"$(dirname \"${TARGET_FILE}\")\"\n        TARGET_FILE=\"$(basename \"${TARGET_FILE}\")\"\n    done\n\n    # Compute the canonicalized name by finding the physical path \n    # for the directory we're in and appending the target file.\n    PHYS_DIR=\"$(pwd -P)\"\n    echo \"${PHYS_DIR}/${TARGET_FILE}\"\n}\n\nSCRIPT_DIR=$( cd -- \"$( dirname -- $(readlink_f \"${BASH_SOURCE[0]}\") )\" &> /dev/null && pwd )\nexport DYLD_FALLBACK_LIBRARY_PATH=\"${JLL_DYLD_FALLBACK_LIBRARY_PATH}\"\nexec -a \"${BASH_SOURCE[0]}\" \"${SCRIPT_DIR}/_git\" \"$@\"\nEOF\n\n    # Make the script executable\n    chmod +x \"${bindir}/git\"\nfi\n"""
+version = "v2.36.1"
+
+[[dependencies]]
+compat = ""
+name = "Gettext_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "7.73.0"
+name = "LibCURL_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "2.2.10"
+name = "Expat_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.1.10"
+name = "OpenSSL_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Libiconv_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "10.35.0"
+name = "PCRE2_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["git"]
+type = "exe"
+variable_name = "git"
+
+[[sources]]
+hash = "405d4a0ff6e818d1f12b3e92e1ac060f612adcb454f6299f70583058cb508370"
+type = "archive"
+unpack_target = ""
+url = "https://mirrors.edge.kernel.org/pub/software/scm/git/git-2.36.1.tar.xz"
+[[sources]]
+hash = "7b7cce2d1a29bb18b661720c692b39a27b406cd4916d75cc62d5fe1bfd9a57ea"
+type = "archive"
+unpack_target = "i686-w64-mingw32"
+url = "https://github.com/git-for-windows/git/releases/download/v2.36.1.windows.1/Git-2.36.1-32-bit.tar.bz2"
+[[sources]]
+hash = "38f4888db497ebe11f67c42a88ac1708fb5c68d53a398b4030b51a6116cce0e5"
+type = "archive"
+unpack_target = "x86_64-w64-mingw32"
+url = "https://github.com/git-for-windows/git/releases/download/v2.36.1.windows.1/Git-2.36.1-64-bit.tar.bz2"

@@ -1,0 +1,33 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "OCaml"
+platforms = ["x86_64-linux-gnu", "x86_64-linux-musl"]
+script = """cd $WORKSPACE/srcdir\ncd ocaml\nfor f in ${WORKSPACE}/srcdir/patches/*.patch; do\n    atomic_patch -p1 ${f}\ndone\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target}\nmake -j${nproc}\nmake install\nfor bin in $(file ${bindir}/* | grep \"a ${bindir}/ocamlrun script\" | cut -d: -f1); do\n    # Fix shebang of ocamlrun scripts to not hardcode\n    # a path of the build environment\n    sed -i \"s?${bindir}/ocamlrun?/usr/bin/env ocamlrun?\" \"${bin}\"\ndone\n"""
+version = "v5.3.0"
+
+[[products]]
+binnames = ["ocamlopt.opt"]
+type = "exe"
+variable_name = "ocamlopt"
+[[products]]
+binnames = ["ocamlc.opt"]
+type = "exe"
+variable_name = "ocamlc"
+[[products]]
+binnames = ["ocamlrun"]
+type = "exe"
+variable_name = "ocamlrun"
+
+[[sources]]
+hash = "1ccb919e35f8378834060c503ae953897fe0fb7f"
+type = "git"
+unpack_target = ""
+url = "https://github.com/ocaml/ocaml.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

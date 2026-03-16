@@ -1,0 +1,65 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "difmap"
+platforms = ["x86_64-linux-musl-libgfortran3", "x86_64-linux-musl-libgfortran4", "x86_64-linux-musl-libgfortran5", "x86_64-linux-gnu-libgfortran3", "x86_64-linux-gnu-libgfortran4", "x86_64-linux-gnu-libgfortran5", "i686-linux-gnu-libgfortran3", "i686-linux-gnu-libgfortran4", "i686-linux-gnu-libgfortran5", "aarch64-apple-darwin-libgfortran5"]
+script = """cd $WORKSPACE/srcdir/uvf_difmap*\n\nfor f in ../patch*; do\n    atomic_patch -p0 \"${f}\"\ndone\n\nif [[ ${target} == *apple* ]]; then\n    # disable GUI support: X11 jlls not available for this platform\n    sed -i 's|^PGPLOT_LIB=\"-lpgplot -lX11\"$|PGPLOT_LIB=\"-lpgplot\"|' configure\n    CC=gcc CXX=g++ CCOMPL=gcc ./configure arm-osx-gcc\nelse\n    ./configure linux-i486-gcc\nfi\n./makeall\ninstall difmap \"${bindir}/difmap\"\ninstall_license ./README\n"""
+version = "v2.5.17"
+
+[[dependencies]]
+compat = ""
+name = "PGPLOT_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "b11e30b1-63be-5002-9df0-88ee0fe906ff"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_libX11_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "4f6342f7-b3d2-589e-9d20-edeb45f2b2bc"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Ncurses_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "68e3532b-a499-55ff-9963-d1c0c0748b3a"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["difmap"]
+type = "exe"
+variable_name = "difmap"
+
+[[sources]]
+hash = "18f61641a56d41624e603bf64794c9f1b072eea320a0c1e0a22ac0ca4d3cef95"
+type = "archive"
+unpack_target = ""
+url = "ftp://ftp.astro.caltech.edu/pub/difmap/difmap2.5q.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

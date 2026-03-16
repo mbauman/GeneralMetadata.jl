@@ -1,0 +1,33 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.10"
+lazy_artifacts = false
+name = "GAP_lib"
+products = []
+script = """cd ${WORKSPACE}/srcdir/gap*\n\n#for f in ${WORKSPACE}/srcdir/patches/*.patch; do\n#    atomic_patch -p1 ${f}\n#done\n\n# compress group database\ngzip -n grp/*.grp\n\n# compile a native version of GAP so we can invoke the `install-gaproot` target\n# (which is arch independent, so no need to use a GAP built for the host arch.)\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${MACHTYPE} \\\n    --with-gmp=${prefix} \\\n    --without-readline \\\n    --with-zlib=${prefix} \\\n    CC=${CC_BUILD} CXX=${CXX_BUILD}\nmake -j${nproc}\n\n# the license\ninstall_license LICENSE\n\n# install documentation and library files\nmake install-doc install-gaproot\n\n# delete the PDF manuals (they take up a lot of space and few people use them,\n# and those can use the online versions)\nrm ${prefix}/share/gap/doc/*/*.pdf\n"""
+version = "v400.1500.0"
+
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "GMP_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[sources]]
+hash = "93c7df97df1265c0f9ea6a9b5578b12289d5ab3aed2936cfd592710cfa73609e"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/gap-system/gap/releases/download/v4.15.0/gap-4.15.0.tar.gz"

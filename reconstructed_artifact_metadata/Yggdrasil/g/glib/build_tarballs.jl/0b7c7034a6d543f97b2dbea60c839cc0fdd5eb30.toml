@@ -1,0 +1,124 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Glib"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """if [[ \"${target}\" == *-mingw* ]]; then\n    cd $WORKSPACE/srcdir/mingw*/mingw-w64-headers\n    ./configure --prefix=/opt/$target/$target/sys-root --enable-sdk=all --host=$target\n    make install\n\n    cd ../mingw-w64-crt/\n    if [ ${target} == \"i686-w64-mingw32\" ]; then\n        _crt_configure_args=\"--disable-lib64 --enable-lib32\"\n    elif [ ${target} == \"x86_64-w64-mingw32\" ]; then\n        _crt_configure_args=\"--disable-lib32 --enable-lib64\"\n    fi\n    ./configure --prefix=/opt/$target/$target/sys-root --enable-sdk=all --host=$target --enable-wildcard ${_crt_configure_args}\n    make -j${nproc}\n    make install\nfi\n\ncd $WORKSPACE/srcdir/glib-*/\ninstall_license COPYING\n\n# meson shouldn't be so opinionated (mesonbuild/meson#4542 is incomplete)\nsed -i '/Werror=unused-command-line-argument/d' /usr/lib/python3.9/site-packages/mesonbuild/compilers/mixins/clang.py\n\nif [[ \"${target}\" == *-freebsd* ]]; then\n    # Adapt patch relative to `xattr` from\n    # http://cvsweb.netbsd.org/bsdweb.cgi/pkgsrc/devel/glib2/patches/patch-meson.build?rev=1.2&content-type=text/x-cvsweb-markup.\n    # Quoting the comment:\n    #     Don't fail if getxattr is not available. The code is already ready\n    #     for this case with some small configure changes.\n    atomic_patch -p1 ../patches/freebsd-have_xattr.patch\nfi\n\nmkdir build_glib && cd build_glib\n\nMESON_FLAGS=(--cross-file=\"${MESON_TARGET_TOOLCHAIN}\")\nMESON_FLAGS+=(--buildtype=release)\nMESON_FLAGS+=(-Dman=false)\nMESON_FLAGS+=(-Dtests=false)\n\nif [[ \"${target}\" == *-freebsd* ]]; then\n    # Our FreeBSD libc has `environ` as undefined symbol, so the linker will\n    # complain if this symbol is used in the built library, even if this won't\n    # be a problem at runtim.  This flag allows having undefined symbols.\n    MESON_FLAGS+=(-Db_lundef=false)\nfi\n\nif [[ \"${target}\" != *-mingw* ]]; then\n    # on Windows, we can't build both static and shared libraries at the same time,\n    # so stick to the shared one until we have a need for a static build\n    MESON_FLAGS+=(--default-library both)\nfi\n\nmeson \"${MESON_FLAGS[@]}\" ..\n\n# Meson beautifully forces thin archives, without checking whether the dynamic linker\n# actually supports them: <https://github.com/mesonbuild/meson/issues/10823>.  Let's remove\n# the (deprecated...) `T` option to `ar`\nsed -i.bak 's/csrDT/csrD/' build.ninja\n\nninja -j${nproc} --verbose\nninja install\n"""
+version = "v2.78.3"
+
+[[dependencies]]
+compat = ""
+name = "Gettext_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Libiconv_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "~3.2.2"
+name = "Libffi_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "=0.21.0"
+name = "Gettext_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "10.35"
+name = "PCRE2_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Libmount_jll"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgio-2", "libgio-2.0"]
+type = "lib"
+variable_name = "libgio"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libglib-2", "libglib-2.0"]
+type = "lib"
+variable_name = "libglib"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgmodule-2", "libgmodule-2.0"]
+type = "lib"
+variable_name = "libgmodule"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgobject-2", "libgobject-2.0"]
+type = "lib"
+variable_name = "libgobject"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgthread-2", "libgthread-2.0"]
+type = "lib"
+variable_name = "libgthread"
+
+[[sources]]
+hash = "609801dd373796e515972bf95fc0b2daa44545481ee2f465c4f204d224b2bc21"
+type = "archive"
+unpack_target = ""
+url = "https://ftp.gnome.org/pub/gnome/sources/glib/2.78/glib-2.78.3.tar.xz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"
+[[sources]]
+hash = "ba6b430aed72c63a3768531f6a3ffc2b0fde2c57a3b251450dcf489a894f0894"
+type = "archive"
+unpack_target = ""
+url = "https://sourceforge.net/projects/mingw-w64/files/mingw-w64/mingw-w64-release/mingw-w64-v10.0.0.tar.bz2"

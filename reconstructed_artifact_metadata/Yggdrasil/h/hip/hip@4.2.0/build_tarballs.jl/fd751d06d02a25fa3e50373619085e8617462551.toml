@@ -1,0 +1,102 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.7"
+lazy_artifacts = false
+name = "HIP"
+platforms = ["x86_64-linux-gnu-cxx11", "x86_64-linux-musl-cxx11"]
+script = """cd ${WORKSPACE}/srcdir/HIP*/\n\n# Disable tests.\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/disable-tests.patch\"\natomic_patch -p1 --binary \"${WORKSPACE}/srcdir/patches/no-init-abort.patch\"\nmkdir build && cd build\n\nCC=${WORKSPACE}/srcdir/rocm-clang CXX=${WORKSPACE}/srcdir/rocm-clang++ \\\nCXXFLAGS=\"-isystem ${prefix}/rocclr/include/elf -isystem ${prefix}/include/elfutils -isystem ${prefix}/rocclr/include/compiler/lib/include $CXXFLAGS \" \\\ncmake \\\n    -DCMAKE_INSTALL_PREFIX=${prefix}/hip \\\n    -DCMAKE_PREFIX_PATH=${prefix} \\\n    -DROCM_PATH=${prefix} \\\n    -DHSA_PATH=${prefix}/hsa \\\n    -DHIP_PLATFORM=amd \\\n    -DHIP_RUNTIME=rocclr \\\n    -DHIP_COMPILER=clang \\\n    -D__HIP_ENABLE_PCH=OFF \\\n    -DLLVM_DIR=\"${prefix}/llvm/lib/cmake/llvm\" \\\n    -DClang_DIR=\"${prefix}/llvm/lib/cmake/clang\" \\\n    ..\nmake -j${nproc}\nmake install\n"""
+version = "v4.2.0"
+
+[[dependencies]]
+compat = ""
+name = "ROCmLLVM_jll"
+platforms = ["any"]
+type = "builddependency"
+version-major = 4
+version-minor = 2
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "rocm_cmake_jll"
+platforms = ["any"]
+type = "builddependency"
+version-major = 4
+version-minor = 2
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "hsakmt_roct_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "hsa_rocr_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "rocminfo_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "ROCmDeviceLibs_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "ROCmCompilerSupport_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "ROCmOpenCLRuntime_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = ["hip/lib"]
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libamdhip64"]
+type = "lib"
+variable_name = "libamdhip64"
+[[products]]
+binnames = ["hipcc"]
+dir_path = "hip/bin"
+type = "exe"
+variable_name = "hipcc"
+
+[[sources]]
+hash = "ecb929e0fc2eaaf7bbd16a1446a876a15baf72419c723734f456ee62e70b4c24"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/ROCm-Developer-Tools/HIP/archive/rocm-4.2.0.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"
+[[sources]]
+follow_symlinks = false
+path = "../scripts"
+target = ""
+type = "directory"

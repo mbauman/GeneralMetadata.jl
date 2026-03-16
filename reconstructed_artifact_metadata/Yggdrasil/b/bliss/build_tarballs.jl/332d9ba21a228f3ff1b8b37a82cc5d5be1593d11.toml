@@ -1,0 +1,39 @@
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "bliss"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/bliss-*\n\natomic_patch -p1 ../patches/gmp_def.patch\natomic_patch -p1 ../patches/cmake_gmp.patch\n\ncd build\n\ncmake -DCMAKE_INSTALL_PREFIX=$prefix\\\n  -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN}\\\n  -DCMAKE_BUILD_TYPE=Release \\\n  -DUSE_GMP=ON ..\nmake -j${nproc}\ninstall -Dm 755 \"bliss${exeext}\" \"${bindir}/bliss${exeext}\"\ninstall -Dm 755 \"libbliss.${dlext}\" \"$libdir/libbliss.${dlext}\"\n\nmkdir -p $prefix/include/bliss\ninstall -p -m 0644 -t \"${includedir}/bliss\" ../src/*.hh\n\ninstall_license ../COPYING.LESSER\n"""
+version = "v0.77.0"
+
+[[dependencies]]
+compat = ""
+name = "GMP_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libbliss"]
+type = "lib"
+variable_name = "libbliss"
+[[products]]
+binnames = ["bliss"]
+type = "exe"
+variable_name = "bliss"
+
+[[sources]]
+hash = "acc8b98034f30fad24c897f365abd866c13d9f1bb207e398d0caf136875972a4"
+type = "archive"
+unpack_target = ""
+url = "https://users.aalto.fi/~tjunttil/bliss/downloads/bliss-0.77.zip"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

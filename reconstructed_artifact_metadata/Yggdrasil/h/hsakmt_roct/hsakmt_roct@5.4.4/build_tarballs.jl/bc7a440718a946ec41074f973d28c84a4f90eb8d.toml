@@ -1,0 +1,46 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.9"
+lazy_artifacts = false
+name = "hsakmt_roct"
+platforms = ["x86_64-linux-gnu-cxx11", "x86_64-linux-musl-cxx11"]
+script = """cd ${WORKSPACE}/srcdir/ROCT-Thunk-Interface*/\n\n# fix for musl (but works on glibc too)\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/0001-Build-correctly-on-musl.patch\"\n\nmkdir build && cd build\ncmake \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_C_FLAGS=\"-Dstatic_assert=_Static_assert\" \\\n    -DBUILD_SHARED_LIBS=ON \\\n    ..\n\nmake -j${nproc}\nmake install\n\ninstall_license ${WORKSPACE}/srcdir/ROCT-Thunk-Interface*/LICENSE.md\n"""
+version = "v5.4.4"
+
+[[dependencies]]
+compat = ""
+name = "NUMA_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "libdrm_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libhsakmt"]
+type = "lib"
+variable_name = "libhsakmt"
+
+[[sources]]
+hash = "2d55276bfa186a47611cdd2fc20879dacb506a9a"
+type = "git"
+unpack_target = ""
+url = "https://github.com/RadeonOpenCompute/ROCT-Thunk-Interface.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

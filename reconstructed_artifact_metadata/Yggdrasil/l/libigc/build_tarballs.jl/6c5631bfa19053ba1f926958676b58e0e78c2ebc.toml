@@ -1,0 +1,73 @@
+dependencies = []
+lazy_artifacts = false
+name = "libigc"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11"]
+script = """# the build system uses git\nexport HOME=$(pwd)\ngit config --global user.name \"Binary Builder\"\ngit config --global user.email \"your@email.com\"\n\n# apply opencl-clang's patches ourself, which is more robust than letting the build system do it\nif [[ -d opencl-clang/patches/clang ]]; then\n    pushd llvm-project\n    for patch in ${WORKSPACE}/srcdir/opencl-clang/patches/clang/*.patch; do\n        atomic_patch -p1 $patch\n        rm $patch\n    done\n    popd\nfi\nif [[ -d opencl-clang/patches/spirv ]]; then\n    pushd SPIRV-LLVM-Translator\n    for patch in ${WORKSPACE}/srcdir/opencl-clang/patches/spirv/*.patch; do\n        atomic_patch -p1 $patch\n        rm $patch\n    done\n    popd\nfi\n\n# move everything in places where it will get detected by the IGC build system\nmv llvm-project/clang llvm-project/llvm/tools/\nmv opencl-clang llvm-project/llvm/projects/opencl-clang\nmv SPIRV-LLVM-Translator llvm-project/llvm/projects/llvm-spirv\nmv llvm-patches llvm_patches\n\ncd intel-graphics-compiler\ninstall_license LICENSE.md\n\n# Work around compilation failures\natomic_patch -p1 ../patches/format_macros.patch\n# https://gcc.gnu.org/bugzilla/show_bug.cgi?id=86678\natomic_patch -p1 ../patches/gcc-constexpr_assert_bug.patch\nif [[ \"${target}\" == *86*-linux-musl* ]]; then\n    atomic_patch -p1 ../patches/musl-concat.patch\n    atomic_patch -p1 ../patches/musl-inttypes.patch\n    # https://github.com/JuliaPackaging/Yggdrasil/issues/739\n    sed -i '/-fstack-protector/d' IGC/CMakeLists.txt\n    # https://github.com/JuliaPackaging/BinaryBuilder.jl/issues/387\n    pushd /opt/${target}/lib/gcc/${target}/*/include\n    atomic_patch -p0 $WORKSPACE/srcdir/patches/musl-malloc.patch\n    popd\nfi\n\nCMAKE_FLAGS=()\n\n# Release build for best performance\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\n\n# Install things into $prefix\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix})\n\n# NOTE: igc currently can't cross compile due to a variety of issues:\n# - https://github.com/intel/intel-graphics-compiler/issues/131\n# - https://github.com/intel/opencl-clang/issues/91\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING:BOOL=OFF)\n\n# Explicitly use our cmake toolchain file\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\n\n# Silence developer warnings\nCMAKE_FLAGS+=(-Wno-dev)\n\ncmake -B build -S . -GNinja ${CMAKE_FLAGS[@]}\nninja -C build -j ${nproc} install\n"""
+version = "v1.0.3977"
+
+[[products]]
+binnames = ["GenX_IR"]
+type = "exe"
+variable_name = "GenX_IR"
+[[products]]
+binnames = ["iga32", "iga64"]
+type = "exe"
+variable_name = "iga"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libiga32", "libiga64"]
+type = "lib"
+variable_name = "libiga"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libigc"]
+type = "lib"
+variable_name = "libigc"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libigdfcl"]
+type = "lib"
+variable_name = "libigdfcl"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libopencl-clang"]
+type = "lib"
+variable_name = "libopencl_clang"
+
+[[sources]]
+hash = "ee02884c6a2fc3eca62651a53e8dad65608fc352"
+type = "git"
+unpack_target = ""
+url = "https://github.com/intel/intel-graphics-compiler.git"
+[[sources]]
+hash = "d32170dbd5b0d54436537b6b75beaf44324e0c28"
+type = "git"
+unpack_target = ""
+url = "https://github.com/llvm/llvm-project.git"
+[[sources]]
+hash = "9f0c2c0f5ddea1accc921aed4c94bc52c1b85637"
+type = "git"
+unpack_target = ""
+url = "https://github.com/intel/opencl-clang.git"
+[[sources]]
+hash = "7743482f2053582be990e93ca46d15239c509c9d"
+type = "git"
+unpack_target = ""
+url = "https://github.com/KhronosGroup/SPIRV-LLVM-Translator.git"
+[[sources]]
+hash = "4023a728d4c113c08fd881c182b43ef871151c4f"
+type = "git"
+unpack_target = ""
+url = "https://github.com/intel/llvm-patches.git"
+[[sources]]
+path = "./bundled"
+target = ""
+type = "directory"

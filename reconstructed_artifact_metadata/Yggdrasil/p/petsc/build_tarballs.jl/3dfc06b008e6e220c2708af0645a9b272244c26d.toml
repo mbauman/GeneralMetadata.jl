@@ -1,0 +1,116 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "PETSc"
+platforms = ["i686-linux-gnu-libgfortran3", "i686-linux-gnu-libgfortran4", "i686-linux-gnu-libgfortran5", "x86_64-linux-gnu-libgfortran3", "x86_64-linux-gnu-libgfortran4", "x86_64-linux-gnu-libgfortran5", "aarch64-linux-gnu-libgfortran3", "aarch64-linux-gnu-libgfortran4", "aarch64-linux-gnu-libgfortran5", "armv6l-linux-gnueabihf-libgfortran3", "armv6l-linux-gnueabihf-libgfortran4", "armv6l-linux-gnueabihf-libgfortran5", "armv7l-linux-gnueabihf-libgfortran3", "armv7l-linux-gnueabihf-libgfortran4", "armv7l-linux-gnueabihf-libgfortran5", "powerpc64le-linux-gnu-libgfortran3", "powerpc64le-linux-gnu-libgfortran4", "powerpc64le-linux-gnu-libgfortran5", "i686-linux-musl-libgfortran3", "i686-linux-musl-libgfortran4", "i686-linux-musl-libgfortran5", "x86_64-linux-musl-libgfortran3", "x86_64-linux-musl-libgfortran4", "x86_64-linux-musl-libgfortran5", "aarch64-linux-musl-libgfortran3", "aarch64-linux-musl-libgfortran4", "aarch64-linux-musl-libgfortran5", "armv6l-linux-musleabihf-libgfortran3", "armv6l-linux-musleabihf-libgfortran4", "armv6l-linux-musleabihf-libgfortran5", "armv7l-linux-musleabihf-libgfortran3", "armv7l-linux-musleabihf-libgfortran4", "armv7l-linux-musleabihf-libgfortran5", "x86_64-apple-darwin-libgfortran3", "x86_64-apple-darwin-libgfortran4", "x86_64-apple-darwin-libgfortran5", "aarch64-apple-darwin-libgfortran5", "x86_64-unknown-freebsd-libgfortran3", "x86_64-unknown-freebsd-libgfortran4", "x86_64-unknown-freebsd-libgfortran5", "x86_64-w64-mingw32-libgfortran3", "x86_64-w64-mingw32-libgfortran4", "x86_64-w64-mingw32-libgfortran5"]
+script = """cd $WORKSPACE/srcdir/petsc*\natomic_patch -p1 $WORKSPACE/srcdir/patches/petsc_name_mangle.patch\n\nBLAS_LAPACK_LIB=\"${libdir}/libopenblas.${dlext}\"\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    #atomic_patch -p1 $WORKSPACE/srcdir/patches/fix-header-cases.patch\n    MPI_LIBS=\"${libdir}/msmpi.${dlext}\"\nelse\n    MPI_LIBS=\"[${libdir}/libmpifort.${dlext},${libdir}/libmpi.${dlext}]\"\nfi\nmkdir $libdir/petsc\nbuild_petsc()\n{\n\n    if [[ \"${3}\" == \"Int64\" ]]; then\n        USE_INT64=1\n    else\n        USE_INT64=0\n    fi\n    mkdir $libdir/petsc/${1}_${2}_${3}\n    ./configure --prefix=${libdir}/petsc/${1}_${2}_${3} \\\n        CC=${CC} \\\n        FC=${FC} \\\n        CXX=${CXX} \\\n        COPTFLAGS='-O3' \\\n        CXXOPTFLAGS='-O3' \\\n        CFLAGS='-fno-stack-protector' \\\n        LDFLAGS=\"-L${libdir}\" \\\n        FOPTFLAGS='-O3' \\\n        --with-64-bit-indices=${USE_INT64} \\\n        --with-debugging=0 \\\n        --with-batch \\\n        --with-blaslapack-lib=$BLAS_LAPACK_LIB \\\n        --with-blaslapack-suffix=\"\" \\\n        --known-64-bit-blas-indices=0 \\\n        --with-mpi-lib=\"${MPI_LIBS}\" \\\n        --known-mpi-int64_t=0 \\\n        --with-mpi-include=\"${includedir}\" \\\n        --with-sowing=0 \\\n        --with-precision=${1} \\\n        --with-scalar-type=${2} \\\n        --PETSC_ARCH=${target}_${1}_${2}_${3}\n\n    if [[ \"${target}\" == *-mingw* ]]; then\n        export CPPFLAGS=\"-Dpetsc_EXPORTS\"\n    elif [[ \"${target}\" == powerpc64le-* ]]; then\n        export CFLAGS=\"-fPIC\"\n        export FFLAGS=\"-fPIC\"\n    fi\n\n    make -j${nproc} \\\n        CPPFLAGS=\"${CPPFLAGS}\" \\\n        CFLAGS=\"${CFLAGS}\" \\\n        FFLAGS=\"${FFLAGS}\"\n    make install\n\n    if [[ \"${target}\" == *-apple* ]]; then\n        mv ${libdir}/petsc/${1}_${2}_${3}/lib/libpetsc.*.*.*.${dlext} \"${libdir}/petsc/${1}_${2}_${3}/lib/libpetsc_${1}_${2}_${3}.${dlext}\"\n        install_name_tool -id libpetsc_${1}_${2}_${3}.${dlext} ${libdir}/petsc/${1}_${2}_${3}/lib/libpetsc_${1}_${2}_${3}.${dlext}\n    else # windows and linux:\n        mv ${libdir}/petsc/${1}_${2}_${3}/lib/libpetsc.${dlext}.*.*.* \"${libdir}/petsc/${1}_${2}_${3}/lib/libpetsc_${1}_${2}_${3}.${dlext}\"\n    fi\n    if [[ \"${target}\" == *-linux* ]]; then\n        patchelf --set-soname \"libpetsc_${1}_${2}_${3}.${dlext}\" ${libdir}/petsc/${1}_${2}_${3}/lib/libpetsc_${1}_${2}_${3}.${dlext}\n    fi\n    # Remove now broken links\n    \n    rm ${libdir}/petsc/${1}_${2}_${3}/lib/libpetsc.*\n    # Remove PETSc.pc because petsc.pc also exists, causing conflicts on case insensitive file-systems.\n    rm ${libdir}/petsc/${1}_${2}_${3}/lib/pkgconfig/PETSc.pc\n    sed -i -e \"s/-lpetsc/-lpetsc_${1}_${2}_${3}/g\" \"$libdir/petsc/${1}_${2}_${3}/lib/pkgconfig/petsc.pc\"\n    mv $libdir/petsc/${1}_${2}_${3}/lib/pkgconfig/petsc.pc ${prefix}/lib/pkgconfig/petsc_${1}_${2}_${3}.pc\n\n    # we don't particularly care about the examples\n    rm -r ${libdir}/petsc/${1}_${2}_${3}/share/petsc/examples\n}\n\nbuild_petsc double real Int32\nbuild_petsc single real Int32\nbuild_petsc double complex Int32\nbuild_petsc single complex Int32\nbuild_petsc double real Int64\nbuild_petsc single real Int64\nbuild_petsc double complex Int64\nbuild_petsc single complex Int64\n"""
+version = "v3.16.5"
+
+[[dependencies]]
+compat = ""
+name = "OpenBLAS32_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MPICH_jll"
+platforms = ["i686-linux-gnu-libgfortran3", "i686-linux-gnu-libgfortran4", "i686-linux-gnu-libgfortran5", "x86_64-linux-gnu-libgfortran3", "x86_64-linux-gnu-libgfortran4", "x86_64-linux-gnu-libgfortran5", "aarch64-linux-gnu-libgfortran3", "aarch64-linux-gnu-libgfortran4", "aarch64-linux-gnu-libgfortran5", "armv6l-linux-gnueabihf-libgfortran3", "armv6l-linux-gnueabihf-libgfortran4", "armv6l-linux-gnueabihf-libgfortran5", "armv7l-linux-gnueabihf-libgfortran3", "armv7l-linux-gnueabihf-libgfortran4", "armv7l-linux-gnueabihf-libgfortran5", "powerpc64le-linux-gnu-libgfortran3", "powerpc64le-linux-gnu-libgfortran4", "powerpc64le-linux-gnu-libgfortran5", "i686-linux-musl-libgfortran3", "i686-linux-musl-libgfortran4", "i686-linux-musl-libgfortran5", "x86_64-linux-musl-libgfortran3", "x86_64-linux-musl-libgfortran4", "x86_64-linux-musl-libgfortran5", "aarch64-linux-musl-libgfortran3", "aarch64-linux-musl-libgfortran4", "aarch64-linux-musl-libgfortran5", "armv6l-linux-musleabihf-libgfortran3", "armv6l-linux-musleabihf-libgfortran4", "armv6l-linux-musleabihf-libgfortran5", "armv7l-linux-musleabihf-libgfortran3", "armv7l-linux-musleabihf-libgfortran4", "armv7l-linux-musleabihf-libgfortran5", "x86_64-apple-darwin-libgfortran3", "x86_64-apple-darwin-libgfortran4", "x86_64-apple-darwin-libgfortran5", "aarch64-apple-darwin-libgfortran5", "x86_64-unknown-freebsd-libgfortran3", "x86_64-unknown-freebsd-libgfortran4", "x86_64-unknown-freebsd-libgfortran5"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MicrosoftMPI_jll"
+platforms = ["x86_64-w64-mingw32-libgfortran3", "x86_64-w64-mingw32-libgfortran4", "x86_64-w64-mingw32-libgfortran5"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = ["$libdir/petsc/double_real_Int32/lib"]
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libpetsc_double_real_Int32"]
+type = "lib"
+variable_name = "libpetsc"
+[[products]]
+dir_paths = ["$libdir/petsc/double_real_Int32/lib"]
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libpetsc_double_real_Int32"]
+type = "lib"
+variable_name = "libpetsc_Float64_Real_Int32"
+[[products]]
+dir_paths = ["$libdir/petsc/double_real_Int64/lib"]
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libpetsc_double_real_Int64"]
+type = "lib"
+variable_name = "libpetsc_Float64_Real_Int64"
+[[products]]
+dir_paths = ["$libdir/petsc/single_real_Int64/lib"]
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libpetsc_single_real_Int64"]
+type = "lib"
+variable_name = "libpetsc_Float32_Real_Int64"
+[[products]]
+dir_paths = ["$libdir/petsc/double_complex_Int64/lib"]
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libpetsc_double_complex_Int64"]
+type = "lib"
+variable_name = "libpetsc_Float64_Complex_Int64"
+[[products]]
+dir_paths = ["$libdir/petsc/single_complex_Int64/lib"]
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libpetsc_single_complex_Int64"]
+type = "lib"
+variable_name = "libpetsc_Float32_Complex_Int64"
+[[products]]
+dir_paths = ["$libdir/petsc/single_real_Int32/lib"]
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libpetsc_single_real_Int32"]
+type = "lib"
+variable_name = "libpetsc_Float32_Real_Int32"
+[[products]]
+dir_paths = ["$libdir/petsc/double_complex_Int32/lib"]
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libpetsc_double_complex_Int32"]
+type = "lib"
+variable_name = "libpetsc_Float64_Complex_Int32"
+[[products]]
+dir_paths = ["$libdir/petsc/single_complex_Int32/lib"]
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libpetsc_single_complex_Int32"]
+type = "lib"
+variable_name = "libpetsc_Float32_Complex_Int32"
+
+[[sources]]
+hash = "7de8570eeb94062752d82a83208fc2bafc77b3f515023a4c14d8ff9440e66cac"
+type = "archive"
+unpack_target = ""
+url = "https://www.mcs.anl.gov/petsc/mirror/release-snapshots/petsc-3.16.5.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

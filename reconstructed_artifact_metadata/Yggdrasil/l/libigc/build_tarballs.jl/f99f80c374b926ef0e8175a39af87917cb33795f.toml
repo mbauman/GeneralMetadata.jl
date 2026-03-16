@@ -1,0 +1,76 @@
+dependencies = []
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "libigc"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11"]
+script = """# the build system uses git\nexport HOME=$(pwd)\ngit config --global user.name \"Binary Builder\"\ngit config --global user.email \"your@email.com\"\n\n# move everything in places where it will get detected by the IGC build system\nmv opencl-clang llvm-project/llvm/projects/opencl-clang\nmv SPIRV-LLVM-Translator llvm-project/llvm/projects/llvm-spirv\n\n# Work around compilation failures\n# https://gcc.gnu.org/bugzilla/show_bug.cgi?id=86678\natomic_patch -p0 patches/gcc-constexpr_assert_bug.patch\n\ncd intel-graphics-compiler\ninstall_license LICENSE.md\n\nCMAKE_FLAGS=()\n\n# Release build for best performance\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\n\n# Install things into $prefix\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix})\n\n# NOTE: igc currently can't cross compile due to a variety of issues:\n# - https://github.com/intel/intel-graphics-compiler/issues/131\n# - https://github.com/intel/opencl-clang/issues/91\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING:BOOL=OFF)\n\n# Explicitly use our cmake toolchain file\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\n\n# Silence developer warnings\nCMAKE_FLAGS+=(-Wno-dev)\n\ncmake -B build -S . -GNinja ${CMAKE_FLAGS[@]}\nninja -C build -j ${nproc} install\n"""
+version = "v1.0.6712"
+
+[[products]]
+binnames = ["GenX_IR"]
+type = "exe"
+variable_name = "GenX_IR"
+[[products]]
+binnames = ["iga32", "iga64"]
+type = "exe"
+variable_name = "iga"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libiga32", "libiga64"]
+type = "lib"
+variable_name = "libiga"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libigc"]
+type = "lib"
+variable_name = "libigc"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libigdfcl"]
+type = "lib"
+variable_name = "libigdfcl"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libopencl-clang"]
+type = "lib"
+variable_name = "libopencl_clang"
+
+[[sources]]
+hash = "a1a451f633b0c8ba403e57ffb4ef2a5d898c0951"
+type = "git"
+unpack_target = ""
+url = "https://github.com/intel/intel-graphics-compiler.git"
+[[sources]]
+hash = "c8cd72e32b6abc18ce6da71c357ea45ba78b52f0"
+type = "git"
+unpack_target = ""
+url = "https://github.com/intel/opencl-clang.git"
+[[sources]]
+hash = "9d8d0329fe41d7fd1b859d1988b8c89d7cce0a7e"
+type = "git"
+unpack_target = ""
+url = "https://github.com/KhronosGroup/SPIRV-LLVM-Translator.git"
+[[sources]]
+hash = "7ee152a0024b22d757fe2d7c7e2c869d23ef7825"
+type = "git"
+unpack_target = ""
+url = "https://github.com/intel/vc-intrinsics.git"
+[[sources]]
+hash = "d32170dbd5b0d54436537b6b75beaf44324e0c28"
+type = "git"
+unpack_target = ""
+url = "https://github.com/llvm/llvm-project.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

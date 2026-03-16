@@ -13,44 +13,10 @@ registered = 2019-11-26T18:34:32.000Z
     [["6.1.0+2".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+2/Ncurses.v6.1.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+2/Ncurses.v6.1.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+2/Ncurses.v6.1.0.arm-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+2/Ncurses.v6.1.0.arm-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+2/Ncurses.v6.1.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+2/Ncurses.v6.1.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+2/Ncurses.v6.1.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+2/Ncurses.v6.1.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+2/Ncurses.v6.1.0.x86_64-apple-darwin14.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+2/Ncurses.v6.1.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+2/Ncurses.v6.1.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+2/Ncurses.v6.1.0.x86_64-unknown-freebsd11.1.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+2/Ncurses.v6.1.0.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/fbfa36074997fb33f0ae5cd20271997b0cba8b63/N/Ncurses/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/n/ncurses/build_tarballs.jl/fbfa36074997fb33f0ae5cd20271997b0cba8b63.toml"
     metadata_source = "retrospective (by timestamp)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.2.2"
-
-        ["6.1.0+2".artifact_metadata.metadata]
-        dependencies = ["Gettext_jll"]
-        name = "Ncurses"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "arm-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "arm-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd $WORKSPACE/srcdir/ncurses-*/\n\n# We need to run the native \"tic\" program\napk add ncurses\n\nCONFIG_FLAGS=\"\"\nif [[ ${target} == x86_64-apple-darwin14 ]]; then\n    CONFIG_FLAGS=\"${CONFIG_FLAGS} --disable-stripping\"\nelif [[ \"${target}\" == *-mingw* ]]; then\n    CONFIG_FLAGS=\"--enable-sp-funcs --enable-term-driver\"\n    export CFLAGS=\"-lintl -liconv\"\nfi\n\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \\\n    --with-shared \\\n    --with-normal \\\n    --without-debug \\\n    --without-ada \\\n    --without-cxx-binding \\\n    --enable-widec \\\n    --enable-pc-files \\\n    --disable-rpath \\\n    --enable-colorfgbg \\\n    --enable-ext-colors \\\n    --enable-ext-mouse \\\n    --enable-warnings \\\n    --enable-assertions \\\n    --enable-database \\\n    ${CONFIG_FLAGS}\nmake -j${nproc}\nmake install\n\n# Remove duplicates that don't work on case-insensitive filesystems\nrm -f  ${prefix}/share/terminfo/2/2621a\nrm -rf ${prefix}/share/terminfo/a\nrm -rf ${prefix}/share/terminfo/e\nrm -f  ${prefix}/share/terminfo/h/hp2621a\nrm -f  ${prefix}/share/terminfo/h/hp70092a\nrm -rf ${prefix}/share/terminfo/l\nrm -rf ${prefix}/share/terminfo/m\nrm -rf ${prefix}/share/terminfo/n\nrm -rf ${prefix}/share/terminfo/p\nrm -rf ${prefix}/share/terminfo/q\nrm -rf ${prefix}/share/terminfo/x\n\n# Install pc files and fool packages looking for non-wide-character ncurses\nfor lib in ncurses form panel menu; do\n    if [[ \"${target}\" == *-mingw* ]]; then\n        # O Windows, Windows, wherefore art thou Windows?\n        abiver=6\n    fi\n    install -Dm644 \"misc/${lib}w.pc\" \"${prefix}/lib/pkgconfig/${lib}w.pc\"\n    ln -s \"${lib}w.pc\" \"${prefix}/lib/pkgconfig/${lib}.pc\"\n    ln -s \"lib${lib}w${abiver}.${dlext}\" \"${libdir}/lib${lib}${abiver}.${dlext}\"\ndone\nln -s ncursesw ${prefix}/include/ncurses\n"""
-        version = "v6.1.0"
-
-            [["6.1.0+2".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dont_dlopen = false
-            libnames = ["libform", "libform6"]
-            type = "lib"
-            variable_name = "libform"
-            [["6.1.0+2".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dont_dlopen = false
-            libnames = ["libmenu", "libmenu6"]
-            type = "lib"
-            variable_name = "libmenu"
-            [["6.1.0+2".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dont_dlopen = false
-            libnames = ["libncurses", "libncurses6"]
-            type = "lib"
-            variable_name = "libncurses"
-            [["6.1.0+2".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dont_dlopen = false
-            libnames = ["libpanel", "libpanel6"]
-            type = "lib"
-            variable_name = "libpanel"
-
-            [["6.1.0+2".artifact_metadata.metadata.sources]]
-            "https://ftp.gnu.org/pub/gnu/ncurses/ncurses-6.1.tar.gz" = "aa057eeeb4a14d470101eff4597d5833dcef5965331be3528c08d99cebaa0d17"
 
 ["6.1.0+3"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+3/Ncurses.v6.1.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+3/Ncurses.v6.1.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+3/Ncurses.v6.1.0.arm-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+3/Ncurses.v6.1.0.arm-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+3/Ncurses.v6.1.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+3/Ncurses.v6.1.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+3/Ncurses.v6.1.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+3/Ncurses.v6.1.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+3/Ncurses.v6.1.0.x86_64-apple-darwin14.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+3/Ncurses.v6.1.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+3/Ncurses.v6.1.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+3/Ncurses.v6.1.0.x86_64-unknown-freebsd11.1.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+3/Ncurses.v6.1.0.x86_64-w64-mingw32.tar.gz"]
@@ -59,44 +25,10 @@ registered = 2019-12-19T20:44:11.000Z
     [["6.1.0+3".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+3/Ncurses.v6.1.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+3/Ncurses.v6.1.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+3/Ncurses.v6.1.0.arm-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+3/Ncurses.v6.1.0.arm-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+3/Ncurses.v6.1.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+3/Ncurses.v6.1.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+3/Ncurses.v6.1.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+3/Ncurses.v6.1.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+3/Ncurses.v6.1.0.x86_64-apple-darwin14.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+3/Ncurses.v6.1.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+3/Ncurses.v6.1.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+3/Ncurses.v6.1.0.x86_64-unknown-freebsd11.1.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+3/Ncurses.v6.1.0.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/83c59f57f9b80a1d1f5555ab0507de91ea7a028e/N/Ncurses/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/n/ncurses/build_tarballs.jl/83c59f57f9b80a1d1f5555ab0507de91ea7a028e.toml"
     metadata_source = "retrospective (by timestamp)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.2.2"
-
-        ["6.1.0+3".artifact_metadata.metadata]
-        dependencies = ["Gettext_jll"]
-        name = "Ncurses"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "arm-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "arm-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd $WORKSPACE/srcdir/ncurses-*/\n\n# We need to run the native \"tic\" program\napk add ncurses\n\nCONFIG_FLAGS=\"\"\nif [[ ${target} == x86_64-apple-darwin14 ]]; then\n    CONFIG_FLAGS=\"${CONFIG_FLAGS} --disable-stripping\"\nelif [[ \"${target}\" == *-mingw* ]]; then\n    CONFIG_FLAGS=\"--enable-sp-funcs --enable-term-driver\"\n    export CFLAGS=\"-lintl -liconv\"\nfi\n\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \\\n    --with-shared \\\n    --with-normal \\\n    --without-debug \\\n    --without-ada \\\n    --without-cxx-binding \\\n    --enable-widec \\\n    --enable-pc-files \\\n    --disable-rpath \\\n    --enable-colorfgbg \\\n    --enable-ext-colors \\\n    --enable-ext-mouse \\\n    --enable-warnings \\\n    --enable-assertions \\\n    --enable-database \\\n    ${CONFIG_FLAGS}\nmake -j${nproc}\nmake install\n\n# Remove duplicates that don't work on case-insensitive filesystems\nrm -f  ${prefix}/share/terminfo/2/2621a\nrm -rf ${prefix}/share/terminfo/a\nrm -rf ${prefix}/share/terminfo/e\nrm -f  ${prefix}/share/terminfo/h/hp2621a\nrm -f  ${prefix}/share/terminfo/h/hp70092a\nrm -rf ${prefix}/share/terminfo/l\nrm -rf ${prefix}/share/terminfo/m\nrm -rf ${prefix}/share/terminfo/n\nrm -rf ${prefix}/share/terminfo/p\nrm -rf ${prefix}/share/terminfo/q\nrm -rf ${prefix}/share/terminfo/X\n\n# Install pc files and fool packages looking for non-wide-character ncurses\nfor lib in ncurses form panel menu; do\n    if [[ \"${target}\" == *-mingw* ]]; then\n        # O Windows, Windows, wherefore art thou Windows?\n        abiver=6\n    fi\n    install -Dm644 \"misc/${lib}w.pc\" \"${prefix}/lib/pkgconfig/${lib}w.pc\"\n    ln -s \"${lib}w.pc\" \"${prefix}/lib/pkgconfig/${lib}.pc\"\n    ln -s \"lib${lib}w${abiver}.${dlext}\" \"${libdir}/lib${lib}${abiver}.${dlext}\"\ndone\nln -s ncursesw ${prefix}/include/ncurses\n"""
-        version = "v6.1.0"
-
-            [["6.1.0+3".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dont_dlopen = false
-            libnames = ["libform", "libform6"]
-            type = "lib"
-            variable_name = "libform"
-            [["6.1.0+3".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dont_dlopen = false
-            libnames = ["libmenu", "libmenu6"]
-            type = "lib"
-            variable_name = "libmenu"
-            [["6.1.0+3".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dont_dlopen = false
-            libnames = ["libncurses", "libncurses6"]
-            type = "lib"
-            variable_name = "libncurses"
-            [["6.1.0+3".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dont_dlopen = false
-            libnames = ["libpanel", "libpanel6"]
-            type = "lib"
-            variable_name = "libpanel"
-
-            [["6.1.0+3".artifact_metadata.metadata.sources]]
-            "https://ftp.gnu.org/pub/gnu/ncurses/ncurses-6.1.tar.gz" = "aa057eeeb4a14d470101eff4597d5833dcef5965331be3528c08d99cebaa0d17"
 
 ["6.1.0+4"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+4/Ncurses.v6.1.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+4/Ncurses.v6.1.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+4/Ncurses.v6.1.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+4/Ncurses.v6.1.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+4/Ncurses.v6.1.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+4/Ncurses.v6.1.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+4/Ncurses.v6.1.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+4/Ncurses.v6.1.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+4/Ncurses.v6.1.0.x86_64-apple-darwin14.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+4/Ncurses.v6.1.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+4/Ncurses.v6.1.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+4/Ncurses.v6.1.0.x86_64-unknown-freebsd11.1.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+4/Ncurses.v6.1.0.x86_64-w64-mingw32.tar.gz"]
@@ -105,58 +37,10 @@ registered = 2020-06-08T19:11:23.000Z
     [["6.1.0+4".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+4/Ncurses.v6.1.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+4/Ncurses.v6.1.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+4/Ncurses.v6.1.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+4/Ncurses.v6.1.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+4/Ncurses.v6.1.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+4/Ncurses.v6.1.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+4/Ncurses.v6.1.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+4/Ncurses.v6.1.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+4/Ncurses.v6.1.0.x86_64-apple-darwin14.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+4/Ncurses.v6.1.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+4/Ncurses.v6.1.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+4/Ncurses.v6.1.0.x86_64-unknown-freebsd11.1.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+4/Ncurses.v6.1.0.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/c2400b359e6b53995e2e641723bcee435d92a539/N/Ncurses/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/n/ncurses/build_tarballs.jl/c2400b359e6b53995e2e641723bcee435d92a539.toml"
     metadata_source = "retrospective (by timestamp)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.2.4"
-
-        ["6.1.0+4".artifact_metadata.metadata]
-        lazy_artifacts = false
-        name = "Ncurses"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd $WORKSPACE/srcdir/ncurses-*/\n\n# We need to run the native \"tic\" program\napk add ncurses\n\nCONFIG_FLAGS=\"\"\nif [[ ${target} == x86_64-apple-darwin14 ]]; then\n    CONFIG_FLAGS=\"${CONFIG_FLAGS} --disable-stripping\"\nelif [[ \"${target}\" == *-mingw* ]]; then\n    CONFIG_FLAGS=\"--enable-sp-funcs --enable-term-driver\"\n    export CFLAGS=\"-lintl -liconv\"\nfi\n\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \\\n    --with-shared \\\n    --disable-static \\\n    --without-manpages \\\n    --with-normal \\\n    --without-debug \\\n    --without-ada \\\n    --without-cxx-binding \\\n    --enable-widec \\\n    --enable-pc-files \\\n    --disable-rpath \\\n    --enable-colorfgbg \\\n    --enable-ext-colors \\\n    --enable-ext-mouse \\\n    --enable-warnings \\\n    --enable-assertions \\\n    --enable-database \\\n    ${CONFIG_FLAGS}\nmake -j${nproc}\nmake install\n\n# Remove duplicates that don't work on case-insensitive filesystems\nrm -f  ${prefix}/share/terminfo/2/2621a\nrm -rf ${prefix}/share/terminfo/a\nrm -rf ${prefix}/share/terminfo/e\nrm -f  ${prefix}/share/terminfo/h/hp2621a\nrm -f  ${prefix}/share/terminfo/h/hp70092a\nrm -rf ${prefix}/share/terminfo/l\nrm -rf ${prefix}/share/terminfo/m\nrm -rf ${prefix}/share/terminfo/n\nrm -rf ${prefix}/share/terminfo/p\nrm -rf ${prefix}/share/terminfo/q\nrm -rf ${prefix}/share/terminfo/X\n\n# Install pc files and fool packages looking for non-wide-character ncurses\nfor lib in ncurses form panel menu; do\n    if [[ \"${target}\" == *-mingw* ]]; then\n        # O Windows, Windows, wherefore art thou Windows?\n        abiver=6\n    fi\n    install -Dm644 \"misc/${lib}w.pc\" \"${prefix}/lib/pkgconfig/${lib}w.pc\"\n    ln -s \"${lib}w.pc\" \"${prefix}/lib/pkgconfig/${lib}.pc\"\n    ln -s \"lib${lib}w${abiver}.${dlext}\" \"${libdir}/lib${lib}${abiver}.${dlext}\"\ndone\nln -s ncursesw ${prefix}/include/ncurses\n"""
-        version = "v6.1.0"
-
-            [["6.1.0+4".artifact_metadata.metadata.dependencies]]
-            name = "Gettext_jll"
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["6.1.0+4".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libform", "libform6"]
-            type = "lib"
-            variable_name = "libform"
-            [["6.1.0+4".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libmenu", "libmenu6"]
-            type = "lib"
-            variable_name = "libmenu"
-            [["6.1.0+4".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libncurses", "libncurses6"]
-            type = "lib"
-            variable_name = "libncurses"
-            [["6.1.0+4".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libpanel", "libpanel6"]
-            type = "lib"
-            variable_name = "libpanel"
-
-            [["6.1.0+4".artifact_metadata.metadata.sources]]
-            hash = "aa057eeeb4a14d470101eff4597d5833dcef5965331be3528c08d99cebaa0d17"
-            type = "archive"
-            unpack_target = ""
-            url = "https://ftp.gnu.org/pub/gnu/ncurses/ncurses-6.1.tar.gz"
 
 ["6.1.0+5"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+4/Ncurses.v6.1.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+4/Ncurses.v6.1.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+4/Ncurses.v6.1.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+4/Ncurses.v6.1.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+4/Ncurses.v6.1.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+4/Ncurses.v6.1.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+4/Ncurses.v6.1.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+4/Ncurses.v6.1.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+4/Ncurses.v6.1.0.x86_64-apple-darwin14.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+4/Ncurses.v6.1.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+4/Ncurses.v6.1.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+4/Ncurses.v6.1.0.x86_64-unknown-freebsd11.1.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+4/Ncurses.v6.1.0.x86_64-w64-mingw32.tar.gz"]
@@ -165,58 +49,10 @@ registered = 2020-10-19T12:53:40.000Z
     [["6.1.0+5".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+4/Ncurses.v6.1.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+4/Ncurses.v6.1.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+4/Ncurses.v6.1.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+4/Ncurses.v6.1.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+4/Ncurses.v6.1.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+4/Ncurses.v6.1.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+4/Ncurses.v6.1.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+4/Ncurses.v6.1.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+4/Ncurses.v6.1.0.x86_64-apple-darwin14.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+4/Ncurses.v6.1.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+4/Ncurses.v6.1.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+4/Ncurses.v6.1.0.x86_64-unknown-freebsd11.1.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.1.0+4/Ncurses.v6.1.0.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/c2400b359e6b53995e2e641723bcee435d92a539/N/Ncurses/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/n/ncurses/build_tarballs.jl/c2400b359e6b53995e2e641723bcee435d92a539.toml"
     metadata_source = "retrospective (by timestamp)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.2.4"
-
-        ["6.1.0+5".artifact_metadata.metadata]
-        lazy_artifacts = false
-        name = "Ncurses"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd $WORKSPACE/srcdir/ncurses-*/\n\n# We need to run the native \"tic\" program\napk add ncurses\n\nCONFIG_FLAGS=\"\"\nif [[ ${target} == x86_64-apple-darwin14 ]]; then\n    CONFIG_FLAGS=\"${CONFIG_FLAGS} --disable-stripping\"\nelif [[ \"${target}\" == *-mingw* ]]; then\n    CONFIG_FLAGS=\"--enable-sp-funcs --enable-term-driver\"\n    export CFLAGS=\"-lintl -liconv\"\nfi\n\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \\\n    --with-shared \\\n    --disable-static \\\n    --without-manpages \\\n    --with-normal \\\n    --without-debug \\\n    --without-ada \\\n    --without-cxx-binding \\\n    --enable-widec \\\n    --enable-pc-files \\\n    --disable-rpath \\\n    --enable-colorfgbg \\\n    --enable-ext-colors \\\n    --enable-ext-mouse \\\n    --enable-warnings \\\n    --enable-assertions \\\n    --enable-database \\\n    ${CONFIG_FLAGS}\nmake -j${nproc}\nmake install\n\n# Remove duplicates that don't work on case-insensitive filesystems\nrm -f  ${prefix}/share/terminfo/2/2621a\nrm -rf ${prefix}/share/terminfo/a\nrm -rf ${prefix}/share/terminfo/e\nrm -f  ${prefix}/share/terminfo/h/hp2621a\nrm -f  ${prefix}/share/terminfo/h/hp70092a\nrm -rf ${prefix}/share/terminfo/l\nrm -rf ${prefix}/share/terminfo/m\nrm -rf ${prefix}/share/terminfo/n\nrm -rf ${prefix}/share/terminfo/p\nrm -rf ${prefix}/share/terminfo/q\nrm -rf ${prefix}/share/terminfo/X\n\n# Install pc files and fool packages looking for non-wide-character ncurses\nfor lib in ncurses form panel menu; do\n    if [[ \"${target}\" == *-mingw* ]]; then\n        # O Windows, Windows, wherefore art thou Windows?\n        abiver=6\n    fi\n    install -Dm644 \"misc/${lib}w.pc\" \"${prefix}/lib/pkgconfig/${lib}w.pc\"\n    ln -s \"${lib}w.pc\" \"${prefix}/lib/pkgconfig/${lib}.pc\"\n    ln -s \"lib${lib}w${abiver}.${dlext}\" \"${libdir}/lib${lib}${abiver}.${dlext}\"\ndone\nln -s ncursesw ${prefix}/include/ncurses\n"""
-        version = "v6.1.0"
-
-            [["6.1.0+5".artifact_metadata.metadata.dependencies]]
-            name = "Gettext_jll"
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["6.1.0+5".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libform", "libform6"]
-            type = "lib"
-            variable_name = "libform"
-            [["6.1.0+5".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libmenu", "libmenu6"]
-            type = "lib"
-            variable_name = "libmenu"
-            [["6.1.0+5".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libncurses", "libncurses6"]
-            type = "lib"
-            variable_name = "libncurses"
-            [["6.1.0+5".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libpanel", "libpanel6"]
-            type = "lib"
-            variable_name = "libpanel"
-
-            [["6.1.0+5".artifact_metadata.metadata.sources]]
-            hash = "aa057eeeb4a14d470101eff4597d5833dcef5965331be3528c08d99cebaa0d17"
-            type = "archive"
-            unpack_target = ""
-            url = "https://ftp.gnu.org/pub/gnu/ncurses/ncurses-6.1.tar.gz"
 
 ["6.2.0+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.2.0+0/Ncurses.v6.2.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.2.0+0/Ncurses.v6.2.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.2.0+0/Ncurses.v6.2.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.2.0+0/Ncurses.v6.2.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.2.0+0/Ncurses.v6.2.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.2.0+0/Ncurses.v6.2.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.2.0+0/Ncurses.v6.2.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.2.0+0/Ncurses.v6.2.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.2.0+0/Ncurses.v6.2.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.2.0+0/Ncurses.v6.2.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.2.0+0/Ncurses.v6.2.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.2.0+0/Ncurses.v6.2.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.2.0+0/Ncurses.v6.2.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.2.0+0/Ncurses.v6.2.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.2.0+0/Ncurses.v6.2.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.2.0+0/Ncurses.v6.2.0.x86_64-w64-mingw32.tar.gz"]
@@ -225,61 +61,10 @@ registered = 2021-05-26T17:41:17.000Z
     [["6.2.0+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.2.0+0/Ncurses.v6.2.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.2.0+0/Ncurses.v6.2.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.2.0+0/Ncurses.v6.2.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.2.0+0/Ncurses.v6.2.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.2.0+0/Ncurses.v6.2.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.2.0+0/Ncurses.v6.2.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.2.0+0/Ncurses.v6.2.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.2.0+0/Ncurses.v6.2.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.2.0+0/Ncurses.v6.2.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.2.0+0/Ncurses.v6.2.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.2.0+0/Ncurses.v6.2.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.2.0+0/Ncurses.v6.2.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.2.0+0/Ncurses.v6.2.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.2.0+0/Ncurses.v6.2.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.2.0+0/Ncurses.v6.2.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.2.0+0/Ncurses.v6.2.0.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/5a733cbbf2988945c723f5856172b893cc03a0ef/N/Ncurses/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/n/ncurses/build_tarballs.jl/5a733cbbf2988945c723f5856172b893cc03a0ef.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.3.5"
-
-        ["6.2.0+0".artifact_metadata.metadata]
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "Ncurses"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "aarch64-apple-darwin", "armv6l-linux-gnueabihf", "armv6l-linux-musleabihf"]
-        script = """cd $WORKSPACE/srcdir/ncurses-*/\n\nCONFIG_FLAGS=\"\"\nif [[ ${target} == *-darwin* ]]; then\n    CONFIG_FLAGS=\"${CONFIG_FLAGS} --disable-stripping\"\nelif [[ \"${target}\" == *-mingw* ]]; then\n    CONFIG_FLAGS=\"--enable-sp-funcs --enable-term-driver\"\nfi\n\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \\\n    --with-shared \\\n    --disable-static \\\n    --without-manpages \\\n    --with-normal \\\n    --without-debug \\\n    --without-ada \\\n    --without-cxx-binding \\\n    --enable-widec \\\n    --enable-pc-files \\\n    --disable-rpath \\\n    --enable-colorfgbg \\\n    --enable-ext-colors \\\n    --enable-ext-mouse \\\n    --enable-warnings \\\n    --enable-assertions \\\n    --enable-database \\\n    --without-tests \\\n    ${CONFIG_FLAGS}\nmake -j${nproc}\nmake install\n\n# Remove duplicates that don't work on case-insensitive filesystems\nrm -f  ${prefix}/share/terminfo/2/2621a\nrm -rf ${prefix}/share/terminfo/a\nrm -rf ${prefix}/share/terminfo/e\nrm -f  ${prefix}/share/terminfo/h/hp2621a\nrm -f  ${prefix}/share/terminfo/h/hp70092a\nrm -rf ${prefix}/share/terminfo/l\nrm -rf ${prefix}/share/terminfo/m\nrm -rf ${prefix}/share/terminfo/n\nrm -rf ${prefix}/share/terminfo/p\nrm -rf ${prefix}/share/terminfo/q\nrm -rf ${prefix}/share/terminfo/X\n\n# Install pc files and fool packages looking for non-wide-character ncurses\nfor lib in ncurses form panel menu; do\n    if [[ \"${target}\" == *-mingw* ]]; then\n        # O Windows, Windows, wherefore art thou Windows?\n        abiver=6\n    fi\n    install -Dm644 \"misc/${lib}w.pc\" \"${prefix}/lib/pkgconfig/${lib}w.pc\"\n    ln -s \"${lib}w.pc\" \"${prefix}/lib/pkgconfig/${lib}.pc\"\n    ln -s \"lib${lib}w${abiver}.${dlext}\" \"${libdir}/lib${lib}${abiver}.${dlext}\"\ndone\nln -s ncursesw ${includedir}/ncurses\n"""
-        version = "v6.2.0"
-
-            [["6.2.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Ncurses_jll"
-            type = "hostdependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["6.2.0+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libform", "libform6"]
-            type = "lib"
-            variable_name = "libform"
-            [["6.2.0+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libmenu", "libmenu6"]
-            type = "lib"
-            variable_name = "libmenu"
-            [["6.2.0+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libncurses", "libncurses6"]
-            type = "lib"
-            variable_name = "libncurses"
-            [["6.2.0+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libpanel", "libpanel6"]
-            type = "lib"
-            variable_name = "libpanel"
-
-            [["6.2.0+0".artifact_metadata.metadata.sources]]
-            hash = "30306e0c76e0f9f1f0de987cf1c82a5c21e1ce6568b9227f7da5b71cbea86c9d"
-            type = "archive"
-            unpack_target = ""
-            url = "https://ftp.gnu.org/pub/gnu/ncurses/ncurses-6.2.tar.gz"
 
 ["6.4.0+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.0+0/Ncurses.v6.4.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.0+0/Ncurses.v6.4.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.0+0/Ncurses.v6.4.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.0+0/Ncurses.v6.4.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.0+0/Ncurses.v6.4.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.0+0/Ncurses.v6.4.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.0+0/Ncurses.v6.4.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.0+0/Ncurses.v6.4.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.0+0/Ncurses.v6.4.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.0+0/Ncurses.v6.4.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.0+0/Ncurses.v6.4.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.0+0/Ncurses.v6.4.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.0+0/Ncurses.v6.4.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.0+0/Ncurses.v6.4.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.0+0/Ncurses.v6.4.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.0+0/Ncurses.v6.4.0.x86_64-w64-mingw32.tar.gz"]
@@ -288,64 +73,10 @@ registered = 2023-07-01T19:23:13.000Z
     [["6.4.0+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.0+0/Ncurses.v6.4.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.0+0/Ncurses.v6.4.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.0+0/Ncurses.v6.4.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.0+0/Ncurses.v6.4.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.0+0/Ncurses.v6.4.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.0+0/Ncurses.v6.4.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.0+0/Ncurses.v6.4.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.0+0/Ncurses.v6.4.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.0+0/Ncurses.v6.4.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.0+0/Ncurses.v6.4.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.0+0/Ncurses.v6.4.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.0+0/Ncurses.v6.4.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.0+0/Ncurses.v6.4.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.0+0/Ncurses.v6.4.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.0+0/Ncurses.v6.4.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.0+0/Ncurses.v6.4.0.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/b958cb7ecf695d9f02cee11539ff0575d9fa72cb/N/Ncurses/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/n/ncurses/build_tarballs.jl/b958cb7ecf695d9f02cee11539ff0575d9fa72cb.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.5.6"
-
-        ["6.4.0+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "Ncurses"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd $WORKSPACE/srcdir/ncurses-*/\n\nCONFIG_FLAGS=\"\"\nif [[ ${target} == *-darwin* ]]; then\n    CONFIG_FLAGS=\"${CONFIG_FLAGS} --disable-stripping\"\nelif [[ \"${target}\" == *-mingw* ]]; then\n    CONFIG_FLAGS=\"--enable-sp-funcs --enable-term-driver\"\nfi\n\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \\\n    --with-shared \\\n    --disable-static \\\n    --without-manpages \\\n    --with-normal \\\n    --without-debug \\\n    --without-ada \\\n    --without-cxx-binding \\\n    --enable-widec \\\n    --enable-pc-files \\\n    --disable-rpath \\\n    --enable-colorfgbg \\\n    --enable-ext-colors \\\n    --enable-ext-mouse \\\n    --enable-warnings \\\n    --enable-assertions \\\n    --enable-database \\\n    --without-tests \\\n    ${CONFIG_FLAGS}\nmake -j${nproc}\nmake install\n\n# Remove duplicates that don't work on case-insensitive filesystems\nrm -f  ${prefix}/share/terminfo/2/2621a\nrm -rf ${prefix}/share/terminfo/a\nrm -rf ${prefix}/share/terminfo/e\nrm -f  ${prefix}/share/terminfo/h/hp2621a\nrm -f  ${prefix}/share/terminfo/h/hp70092a\nrm -rf ${prefix}/share/terminfo/l\nrm -rf ${prefix}/share/terminfo/m\nrm -rf ${prefix}/share/terminfo/n\nrm -rf ${prefix}/share/terminfo/p\nrm -rf ${prefix}/share/terminfo/q\nrm -rf ${prefix}/share/terminfo/X\n\n# Install pc files and fool packages looking for non-wide-character ncurses\nfor lib in ncurses form panel menu; do\n    if [[ \"${target}\" == *-mingw* ]]; then\n        # O Windows, Windows, wherefore art thou Windows?\n        abiver=6\n    fi\n    install -Dm644 \"misc/${lib}w.pc\" \"${prefix}/lib/pkgconfig/${lib}w.pc\"\n    ln -s \"${lib}w.pc\" \"${prefix}/lib/pkgconfig/${lib}.pc\"\n    ln -s \"lib${lib}w${abiver}.${dlext}\" \"${libdir}/lib${lib}${abiver}.${dlext}\"\ndone\nln -s ncursesw ${includedir}/ncurses\n"""
-        version = "v6.4.0"
-
-            [["6.4.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Ncurses_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "hostdependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["6.4.0+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libform", "libform6"]
-            type = "lib"
-            variable_name = "libform"
-            [["6.4.0+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libmenu", "libmenu6"]
-            type = "lib"
-            variable_name = "libmenu"
-            [["6.4.0+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libncurses", "libncurses6"]
-            type = "lib"
-            variable_name = "libncurses"
-            [["6.4.0+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libpanel", "libpanel6"]
-            type = "lib"
-            variable_name = "libpanel"
-
-            [["6.4.0+0".artifact_metadata.metadata.sources]]
-            hash = "6931283d9ac87c5073f30b6290c4c75f21632bb4fc3603ac8100812bed248159"
-            type = "archive"
-            unpack_target = ""
-            url = "https://ftp.gnu.org/pub/gnu/ncurses/ncurses-6.4.tar.gz"
 
 ["6.4.1+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.1+0/Ncurses.v6.4.1.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.1+0/Ncurses.v6.4.1.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.1+0/Ncurses.v6.4.1.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.1+0/Ncurses.v6.4.1.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.1+0/Ncurses.v6.4.1.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.1+0/Ncurses.v6.4.1.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.1+0/Ncurses.v6.4.1.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.1+0/Ncurses.v6.4.1.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.1+0/Ncurses.v6.4.1.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.1+0/Ncurses.v6.4.1.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.1+0/Ncurses.v6.4.1.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.1+0/Ncurses.v6.4.1.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.1+0/Ncurses.v6.4.1.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.1+0/Ncurses.v6.4.1.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.1+0/Ncurses.v6.4.1.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.1+0/Ncurses.v6.4.1.x86_64-w64-mingw32.tar.gz"]
@@ -354,64 +85,10 @@ registered = 2023-07-04T07:35:31.000Z
     [["6.4.1+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.1+0/Ncurses.v6.4.1.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.1+0/Ncurses.v6.4.1.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.1+0/Ncurses.v6.4.1.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.1+0/Ncurses.v6.4.1.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.1+0/Ncurses.v6.4.1.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.1+0/Ncurses.v6.4.1.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.1+0/Ncurses.v6.4.1.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.1+0/Ncurses.v6.4.1.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.1+0/Ncurses.v6.4.1.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.1+0/Ncurses.v6.4.1.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.1+0/Ncurses.v6.4.1.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.1+0/Ncurses.v6.4.1.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.1+0/Ncurses.v6.4.1.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.1+0/Ncurses.v6.4.1.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.1+0/Ncurses.v6.4.1.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.4.1+0/Ncurses.v6.4.1.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/133c8cca2c39f9efaf88c4a16781203b4c039234/N/Ncurses/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/n/ncurses/build_tarballs.jl/133c8cca2c39f9efaf88c4a16781203b4c039234.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.5.6"
-
-        ["6.4.1+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = """if Sys.isunix()\n    path = joinpath(artifact_dir, \"share\", \"terminfo\")\n    old = get(ENV, \"TERMINFO_DIRS\", nothing)\n    if old === nothing\n        ENV[\"TERMINFO_DIRS\"] = path\n    else\n        ENV[\"TERMINFO_DIRS\"] = old * \":\" * path\n    end\nend\n"""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "Ncurses"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd $WORKSPACE/srcdir/ncurses-*/\n\nCONFIG_FLAGS=\"\"\nif [[ ${target} == *-darwin* ]]; then\n    CONFIG_FLAGS=\"${CONFIG_FLAGS} --disable-stripping\"\nelif [[ \"${target}\" == *-mingw* ]]; then\n    CONFIG_FLAGS=\"--enable-sp-funcs --enable-term-driver\"\nfi\n\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \\\n    --with-shared \\\n    --disable-static \\\n    --without-manpages \\\n    --with-normal \\\n    --without-debug \\\n    --without-ada \\\n    --without-cxx-binding \\\n    --enable-widec \\\n    --enable-pc-files \\\n    --disable-rpath \\\n    --enable-colorfgbg \\\n    --enable-ext-colors \\\n    --enable-ext-mouse \\\n    --enable-warnings \\\n    --enable-assertions \\\n    --enable-database \\\n    --without-tests \\\n    ${CONFIG_FLAGS}\nmake -j${nproc}\nmake install\n\n# Remove duplicates that don't work on case-insensitive filesystems\nrm -f  ${prefix}/share/terminfo/2/2621a\nrm -rf ${prefix}/share/terminfo/a\nrm -rf ${prefix}/share/terminfo/e\nrm -f  ${prefix}/share/terminfo/h/hp2621a\nrm -f  ${prefix}/share/terminfo/h/hp70092a\nrm -rf ${prefix}/share/terminfo/l\nrm -rf ${prefix}/share/terminfo/m\nrm -rf ${prefix}/share/terminfo/n\nrm -rf ${prefix}/share/terminfo/p\nrm -rf ${prefix}/share/terminfo/q\nrm -rf ${prefix}/share/terminfo/X\n\n# Install pc files and fool packages looking for non-wide-character ncurses\nfor lib in ncurses form panel menu; do\n    if [[ \"${target}\" == *-mingw* ]]; then\n        # O Windows, Windows, wherefore art thou Windows?\n        abiver=6\n    fi\n    install -Dm644 \"misc/${lib}w.pc\" \"${prefix}/lib/pkgconfig/${lib}w.pc\"\n    ln -s \"${lib}w.pc\" \"${prefix}/lib/pkgconfig/${lib}.pc\"\n    ln -s \"lib${lib}w${abiver}.${dlext}\" \"${libdir}/lib${lib}${abiver}.${dlext}\"\ndone\nln -s ncursesw ${includedir}/ncurses\n"""
-        version = "v6.4.1"
-
-            [["6.4.1+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Ncurses_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "hostdependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["6.4.1+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libform", "libform6"]
-            type = "lib"
-            variable_name = "libform"
-            [["6.4.1+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libmenu", "libmenu6"]
-            type = "lib"
-            variable_name = "libmenu"
-            [["6.4.1+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libncurses", "libncurses6"]
-            type = "lib"
-            variable_name = "libncurses"
-            [["6.4.1+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libpanel", "libpanel6"]
-            type = "lib"
-            variable_name = "libpanel"
-
-            [["6.4.1+0".artifact_metadata.metadata.sources]]
-            hash = "6931283d9ac87c5073f30b6290c4c75f21632bb4fc3603ac8100812bed248159"
-            type = "archive"
-            unpack_target = ""
-            url = "https://ftp.gnu.org/pub/gnu/ncurses/ncurses-6.4.tar.gz"
 
 ["6.5.0+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+0/Ncurses.v6.5.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+0/Ncurses.v6.5.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+0/Ncurses.v6.5.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+0/Ncurses.v6.5.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+0/Ncurses.v6.5.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+0/Ncurses.v6.5.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+0/Ncurses.v6.5.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+0/Ncurses.v6.5.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+0/Ncurses.v6.5.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+0/Ncurses.v6.5.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+0/Ncurses.v6.5.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+0/Ncurses.v6.5.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+0/Ncurses.v6.5.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+0/Ncurses.v6.5.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+0/Ncurses.v6.5.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+0/Ncurses.v6.5.0.x86_64-w64-mingw32.tar.gz"]
@@ -420,64 +97,10 @@ registered = 2024-04-29T09:47:12.000Z
     [["6.5.0+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+0/Ncurses.v6.5.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+0/Ncurses.v6.5.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+0/Ncurses.v6.5.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+0/Ncurses.v6.5.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+0/Ncurses.v6.5.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+0/Ncurses.v6.5.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+0/Ncurses.v6.5.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+0/Ncurses.v6.5.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+0/Ncurses.v6.5.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+0/Ncurses.v6.5.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+0/Ncurses.v6.5.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+0/Ncurses.v6.5.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+0/Ncurses.v6.5.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+0/Ncurses.v6.5.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+0/Ncurses.v6.5.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+0/Ncurses.v6.5.0.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/8995b50e21c1046abcefd84b330cd7c8227c2c9d/N/Ncurses/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/n/ncurses/build_tarballs.jl/8995b50e21c1046abcefd84b330cd7c8227c2c9d.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.5.8"
-
-        ["6.5.0+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = """if Sys.isunix()\n    path = joinpath(artifact_dir, \"share\", \"terminfo\")\n    old = get(ENV, \"TERMINFO_DIRS\", nothing)\n    if old === nothing\n        ENV[\"TERMINFO_DIRS\"] = path\n    else\n        ENV[\"TERMINFO_DIRS\"] = old * \":\" * path\n    end\nend\n"""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "Ncurses"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd $WORKSPACE/srcdir/ncurses-*\n\nCONFIG_FLAGS=\"\"\nif [[ ${target} == *-darwin* ]]; then\n    CONFIG_FLAGS=\"${CONFIG_FLAGS} --disable-stripping\"\nelif [[ \"${target}\" == *-mingw* ]]; then\n    CONFIG_FLAGS=\"--enable-sp-funcs --enable-term-driver\"\nfi\n\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \\\n    --with-shared \\\n    --disable-static \\\n    --without-manpages \\\n    --with-normal \\\n    --without-debug \\\n    --without-ada \\\n    --without-cxx-binding \\\n    --enable-widec \\\n    --enable-pc-files \\\n    --disable-rpath \\\n    --enable-colorfgbg \\\n    --enable-ext-colors \\\n    --enable-ext-mouse \\\n    --enable-warnings \\\n    --enable-assertions \\\n    --enable-database \\\n    --without-tests \\\n    ${CONFIG_FLAGS}\nmake -j${nproc}\nmake install\n\n# Remove duplicates that don't work on case-insensitive filesystems\nrm -f  ${prefix}/share/terminfo/2/2621a\nrm -rf ${prefix}/share/terminfo/a\nrm -rf ${prefix}/share/terminfo/e\nrm -f  ${prefix}/share/terminfo/h/hp2621a\nrm -f  ${prefix}/share/terminfo/h/hp70092a\nrm -rf ${prefix}/share/terminfo/l\nrm -rf ${prefix}/share/terminfo/m\nrm -rf ${prefix}/share/terminfo/n\nrm -rf ${prefix}/share/terminfo/p\nrm -rf ${prefix}/share/terminfo/q\nrm -rf ${prefix}/share/terminfo/X\n\n# Install pc files and fool packages looking for non-wide-character ncurses\nfor lib in ncurses form panel menu; do\n    if [[ \"${target}\" == *-mingw* ]]; then\n        # O Windows, Windows, wherefore art thou Windows?\n        abiver=6\n    fi\n    install -Dm644 \"misc/${lib}w.pc\" \"${prefix}/lib/pkgconfig/${lib}w.pc\"\n    ln -s \"${lib}w.pc\" \"${prefix}/lib/pkgconfig/${lib}.pc\"\n    ln -s \"lib${lib}w${abiver}.${dlext}\" \"${libdir}/lib${lib}${abiver}.${dlext}\"\ndone\nln -s ncursesw ${includedir}/ncurses\n"""
-        version = "v6.5.0"
-
-            [["6.5.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Ncurses_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "hostdependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["6.5.0+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libform", "libform6"]
-            type = "lib"
-            variable_name = "libform"
-            [["6.5.0+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libmenu", "libmenu6"]
-            type = "lib"
-            variable_name = "libmenu"
-            [["6.5.0+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libncurses", "libncurses6"]
-            type = "lib"
-            variable_name = "libncurses"
-            [["6.5.0+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libpanel", "libpanel6"]
-            type = "lib"
-            variable_name = "libpanel"
-
-            [["6.5.0+0".artifact_metadata.metadata.sources]]
-            hash = "136d91bc269a9a5785e5f9e980bc76ab57428f604ce3e5a5a90cebc767971cc6"
-            type = "archive"
-            unpack_target = ""
-            url = "https://ftp.gnu.org/pub/gnu/ncurses/ncurses-6.5.tar.gz"
 
 ["6.5.0+1"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+1/Ncurses.v6.5.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+1/Ncurses.v6.5.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+1/Ncurses.v6.5.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+1/Ncurses.v6.5.0.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+1/Ncurses.v6.5.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+1/Ncurses.v6.5.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+1/Ncurses.v6.5.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+1/Ncurses.v6.5.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+1/Ncurses.v6.5.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+1/Ncurses.v6.5.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+1/Ncurses.v6.5.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+1/Ncurses.v6.5.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+1/Ncurses.v6.5.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+1/Ncurses.v6.5.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+1/Ncurses.v6.5.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+1/Ncurses.v6.5.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+1/Ncurses.v6.5.0.x86_64-w64-mingw32.tar.gz"]
@@ -486,64 +109,10 @@ registered = 2024-09-24T19:47:49.000Z
     [["6.5.0+1".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+1/Ncurses.v6.5.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+1/Ncurses.v6.5.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+1/Ncurses.v6.5.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+1/Ncurses.v6.5.0.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+1/Ncurses.v6.5.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+1/Ncurses.v6.5.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+1/Ncurses.v6.5.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+1/Ncurses.v6.5.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+1/Ncurses.v6.5.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+1/Ncurses.v6.5.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+1/Ncurses.v6.5.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+1/Ncurses.v6.5.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+1/Ncurses.v6.5.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+1/Ncurses.v6.5.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+1/Ncurses.v6.5.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+1/Ncurses.v6.5.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.0+1/Ncurses.v6.5.0.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/027b64edd8a5c612b3699b9649a22081b0f8894c/N/Ncurses/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/n/ncurses/build_tarballs.jl/027b64edd8a5c612b3699b9649a22081b0f8894c.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.6.0"
-
-        ["6.5.0+1".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = """if Sys.isunix()\n    path = joinpath(artifact_dir, \"share\", \"terminfo\")\n    old = get(ENV, \"TERMINFO_DIRS\", nothing)\n    if old === nothing\n        ENV[\"TERMINFO_DIRS\"] = path\n    else\n        ENV[\"TERMINFO_DIRS\"] = old * \":\" * path\n    end\nend\n"""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "Ncurses"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd $WORKSPACE/srcdir/ncurses-*\n\nCONFIG_FLAGS=\"\"\nif [[ ${target} == *-darwin* ]]; then\n    CONFIG_FLAGS=\"${CONFIG_FLAGS} --disable-stripping\"\nelif [[ \"${target}\" == *-mingw* ]]; then\n    CONFIG_FLAGS=\"--enable-sp-funcs --enable-term-driver\"\nfi\n\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \\\n    --with-shared \\\n    --disable-static \\\n    --without-manpages \\\n    --with-normal \\\n    --without-debug \\\n    --without-ada \\\n    --without-cxx-binding \\\n    --enable-widec \\\n    --enable-pc-files \\\n    --disable-rpath \\\n    --enable-colorfgbg \\\n    --enable-ext-colors \\\n    --enable-ext-mouse \\\n    --enable-warnings \\\n    --enable-assertions \\\n    --enable-database \\\n    --without-tests \\\n    ${CONFIG_FLAGS}\nmake -j${nproc}\nmake install\n\n# Remove duplicates that don't work on case-insensitive filesystems\nrm -f  ${prefix}/share/terminfo/2/2621a\nrm -rf ${prefix}/share/terminfo/a\nrm -rf ${prefix}/share/terminfo/e\nrm -f  ${prefix}/share/terminfo/h/hp2621a\nrm -f  ${prefix}/share/terminfo/h/hp70092a\nrm -rf ${prefix}/share/terminfo/l\nrm -rf ${prefix}/share/terminfo/m\nrm -rf ${prefix}/share/terminfo/n\nrm -rf ${prefix}/share/terminfo/p\nrm -rf ${prefix}/share/terminfo/q\nrm -rf ${prefix}/share/terminfo/X\n\n# Install pc files and fool packages looking for non-wide-character ncurses\nfor lib in ncurses form panel menu; do\n    if [[ \"${target}\" == *-mingw* ]]; then\n        # O Windows, Windows, wherefore art thou Windows?\n        abiver=6\n    fi\n    install -Dm644 \"misc/${lib}w.pc\" \"${prefix}/lib/pkgconfig/${lib}w.pc\"\n    ln -s \"${lib}w.pc\" \"${prefix}/lib/pkgconfig/${lib}.pc\"\n    ln -s \"lib${lib}w${abiver}.${dlext}\" \"${libdir}/lib${lib}${abiver}.${dlext}\"\ndone\nln -s ncursesw ${includedir}/ncurses\n"""
-        version = "v6.5.0"
-
-            [["6.5.0+1".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Ncurses_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "hostdependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["6.5.0+1".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libform", "libform6"]
-            type = "lib"
-            variable_name = "libform"
-            [["6.5.0+1".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libmenu", "libmenu6"]
-            type = "lib"
-            variable_name = "libmenu"
-            [["6.5.0+1".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libncurses", "libncurses6"]
-            type = "lib"
-            variable_name = "libncurses"
-            [["6.5.0+1".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libpanel", "libpanel6"]
-            type = "lib"
-            variable_name = "libpanel"
-
-            [["6.5.0+1".artifact_metadata.metadata.sources]]
-            hash = "136d91bc269a9a5785e5f9e980bc76ab57428f604ce3e5a5a90cebc767971cc6"
-            type = "archive"
-            unpack_target = ""
-            url = "https://ftp.gnu.org/pub/gnu/ncurses/ncurses-6.5.tar.gz"
 
 ["6.5.1+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.1+0/Ncurses.v6.5.1.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.1+0/Ncurses.v6.5.1.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.1+0/Ncurses.v6.5.1.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.1+0/Ncurses.v6.5.1.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.1+0/Ncurses.v6.5.1.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.1+0/Ncurses.v6.5.1.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.1+0/Ncurses.v6.5.1.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.1+0/Ncurses.v6.5.1.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.1+0/Ncurses.v6.5.1.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.1+0/Ncurses.v6.5.1.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.1+0/Ncurses.v6.5.1.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.1+0/Ncurses.v6.5.1.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.1+0/Ncurses.v6.5.1.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.1+0/Ncurses.v6.5.1.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.1+0/Ncurses.v6.5.1.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.1+0/Ncurses.v6.5.1.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.1+0/Ncurses.v6.5.1.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.1+0/Ncurses.v6.5.1.x86_64-w64-mingw32.tar.gz"]
@@ -552,64 +121,10 @@ registered = 2025-02-10T12:40:55.000Z
     [["6.5.1+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.1+0/Ncurses.v6.5.1.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.1+0/Ncurses.v6.5.1.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.1+0/Ncurses.v6.5.1.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.1+0/Ncurses.v6.5.1.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.1+0/Ncurses.v6.5.1.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.1+0/Ncurses.v6.5.1.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.1+0/Ncurses.v6.5.1.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.1+0/Ncurses.v6.5.1.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.1+0/Ncurses.v6.5.1.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.1+0/Ncurses.v6.5.1.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.1+0/Ncurses.v6.5.1.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.1+0/Ncurses.v6.5.1.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.1+0/Ncurses.v6.5.1.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.1+0/Ncurses.v6.5.1.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.1+0/Ncurses.v6.5.1.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.1+0/Ncurses.v6.5.1.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.1+0/Ncurses.v6.5.1.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.5.1+0/Ncurses.v6.5.1.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/ee686760607dd9d45ba076a79445fd149308a9cc/N/Ncurses/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/n/ncurses/build_tarballs.jl/ee686760607dd9d45ba076a79445fd149308a9cc.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.6.4"
-
-        ["6.5.1+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = """if Sys.isunix()\n    path = joinpath(artifact_dir, \"share\", \"terminfo\")\n    old = get(ENV, \"TERMINFO_DIRS\", nothing)\n    if old === nothing\n        ENV[\"TERMINFO_DIRS\"] = path\n    else\n        ENV[\"TERMINFO_DIRS\"] = old * \":\" * path\n    end\nend\n"""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "Ncurses"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd $WORKSPACE/srcdir/ncurses-*\n\nCONFIG_FLAGS=\"\"\nif [[ ${target} == *-darwin* ]]; then\n    CONFIG_FLAGS=\"${CONFIG_FLAGS} --disable-stripping\"\nelif [[ \"${target}\" == *-mingw* ]]; then\n    CONFIG_FLAGS=\"--enable-sp-funcs --enable-term-driver\"\nfi\n\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \\\n    --with-shared \\\n    --disable-static \\\n    --without-manpages \\\n    --with-normal \\\n    --without-debug \\\n    --without-ada \\\n    --without-cxx-binding \\\n    --enable-widec \\\n    --enable-pc-files \\\n    --disable-rpath \\\n    --enable-colorfgbg \\\n    --enable-ext-colors \\\n    --enable-ext-mouse \\\n    --enable-warnings \\\n    --enable-assertions \\\n    --enable-database \\\n    --without-tests \\\n    ${CONFIG_FLAGS}\nmake -j${nproc}\nmake install\n\n# Remove duplicates that don't work on case-insensitive filesystems\nrm -f  ${prefix}/share/terminfo/2/2621a\nrm -rf ${prefix}/share/terminfo/a\nrm -rf ${prefix}/share/terminfo/e\nrm -f  ${prefix}/share/terminfo/h/hp2621a\nrm -f  ${prefix}/share/terminfo/h/hp70092a\nrm -rf ${prefix}/share/terminfo/l\nrm -rf ${prefix}/share/terminfo/m\nrm -rf ${prefix}/share/terminfo/n\nrm -rf ${prefix}/share/terminfo/p\nrm -rf ${prefix}/share/terminfo/q\nrm -rf ${prefix}/share/terminfo/X\n\n# Install pc files and fool packages looking for non-wide-character ncurses\nfor lib in ncurses form panel menu; do\n    if [[ \"${target}\" == *-mingw* ]]; then\n        # O Windows, Windows, wherefore art thou Windows?\n        abiver=6\n    fi\n    install -Dm644 \"misc/${lib}w.pc\" \"${prefix}/lib/pkgconfig/${lib}w.pc\"\n    ln -s \"${lib}w.pc\" \"${prefix}/lib/pkgconfig/${lib}.pc\"\n    ln -s \"lib${lib}w${abiver}.${dlext}\" \"${libdir}/lib${lib}${abiver}.${dlext}\"\ndone\nln -s ncursesw ${includedir}/ncurses\n"""
-        version = "v6.5.1"
-
-            [["6.5.1+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Ncurses_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "hostdependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["6.5.1+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libform", "libform6"]
-            type = "lib"
-            variable_name = "libform"
-            [["6.5.1+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libmenu", "libmenu6"]
-            type = "lib"
-            variable_name = "libmenu"
-            [["6.5.1+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libncurses", "libncurses6"]
-            type = "lib"
-            variable_name = "libncurses"
-            [["6.5.1+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libpanel", "libpanel6"]
-            type = "lib"
-            variable_name = "libpanel"
-
-            [["6.5.1+0".artifact_metadata.metadata.sources]]
-            hash = "136d91bc269a9a5785e5f9e980bc76ab57428f604ce3e5a5a90cebc767971cc6"
-            type = "archive"
-            unpack_target = ""
-            url = "https://ftp.gnu.org/pub/gnu/ncurses/ncurses-6.5.tar.gz"
 
 ["6.6.0+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+0/Ncurses.v6.6.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+0/Ncurses.v6.6.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+0/Ncurses.v6.6.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+0/Ncurses.v6.6.0.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+0/Ncurses.v6.6.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+0/Ncurses.v6.6.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+0/Ncurses.v6.6.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+0/Ncurses.v6.6.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+0/Ncurses.v6.6.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+0/Ncurses.v6.6.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+0/Ncurses.v6.6.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+0/Ncurses.v6.6.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+0/Ncurses.v6.6.0.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+0/Ncurses.v6.6.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+0/Ncurses.v6.6.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+0/Ncurses.v6.6.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+0/Ncurses.v6.6.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+0/Ncurses.v6.6.0.x86_64-w64-mingw32.tar.gz"]
@@ -618,64 +133,10 @@ registered = 2026-01-03T17:35:37.000Z
     [["6.6.0+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+0/Ncurses.v6.6.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+0/Ncurses.v6.6.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+0/Ncurses.v6.6.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+0/Ncurses.v6.6.0.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+0/Ncurses.v6.6.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+0/Ncurses.v6.6.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+0/Ncurses.v6.6.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+0/Ncurses.v6.6.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+0/Ncurses.v6.6.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+0/Ncurses.v6.6.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+0/Ncurses.v6.6.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+0/Ncurses.v6.6.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+0/Ncurses.v6.6.0.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+0/Ncurses.v6.6.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+0/Ncurses.v6.6.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+0/Ncurses.v6.6.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+0/Ncurses.v6.6.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+0/Ncurses.v6.6.0.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/538a924d299f6fa22b06d770c583c04d748717f9/N/Ncurses/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/n/ncurses/build_tarballs.jl/538a924d299f6fa22b06d770c583c04d748717f9.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.6.5"
-
-        ["6.6.0+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = """if Sys.isunix()\n    path = joinpath(artifact_dir, \"share\", \"terminfo\")\n    old = get(ENV, \"TERMINFO_DIRS\", nothing)\n    if old === nothing\n        ENV[\"TERMINFO_DIRS\"] = path\n    else\n        ENV[\"TERMINFO_DIRS\"] = old * \":\" * path\n    end\nend\n"""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "Ncurses"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd $WORKSPACE/srcdir/ncurses-*\n\nCONFIG_FLAGS=\"\"\nif [[ ${target} == *-darwin* ]]; then\n    CONFIG_FLAGS=\"${CONFIG_FLAGS} --disable-stripping\"\nelif [[ \"${target}\" == *-mingw* ]]; then\n    CONFIG_FLAGS=\"--enable-sp-funcs --enable-term-driver\"\nfi\n\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \\\n    --with-shared \\\n    --disable-static \\\n    --without-manpages \\\n    --with-normal \\\n    --without-debug \\\n    --without-ada \\\n    --without-cxx-binding \\\n    --enable-widec \\\n    --enable-pc-files \\\n    --disable-rpath \\\n    --enable-colorfgbg \\\n    --enable-ext-colors \\\n    --enable-ext-mouse \\\n    --enable-warnings \\\n    --enable-assertions \\\n    --enable-database \\\n    --without-tests \\\n    ${CONFIG_FLAGS}\nmake -j${nproc}\nmake install\n\n# Remove duplicates that don't work on case-insensitive filesystems\nrm -f  ${prefix}/share/terminfo/2/2621a\nrm -rf ${prefix}/share/terminfo/a\nrm -rf ${prefix}/share/terminfo/e\nrm -f  ${prefix}/share/terminfo/h/hp2621a\nrm -f  ${prefix}/share/terminfo/h/hp70092a\nrm -rf ${prefix}/share/terminfo/l\nrm -rf ${prefix}/share/terminfo/m\nrm -rf ${prefix}/share/terminfo/n\nrm -rf ${prefix}/share/terminfo/p\nrm -rf ${prefix}/share/terminfo/q\nrm -rf ${prefix}/share/terminfo/X\n\n# Install pc files and fool packages looking for non-wide-character ncurses\nfor lib in ncurses form panel menu; do\n    if [[ \"${target}\" == *-mingw* ]]; then\n        # O Windows, Windows, wherefore art thou Windows?\n        abiver=6\n    fi\n    install -Dm644 \"misc/${lib}w.pc\" \"${prefix}/lib/pkgconfig/${lib}w.pc\"\n    ln -s \"${lib}w.pc\" \"${prefix}/lib/pkgconfig/${lib}.pc\"\n    ln -s \"lib${lib}w${abiver}.${dlext}\" \"${libdir}/lib${lib}${abiver}.${dlext}\"\ndone\nln -s ncursesw ${includedir}/ncurses\n"""
-        version = "v6.6.0"
-
-            [["6.6.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Ncurses_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "hostdependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["6.6.0+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libform", "libform6"]
-            type = "lib"
-            variable_name = "libform"
-            [["6.6.0+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libmenu", "libmenu6"]
-            type = "lib"
-            variable_name = "libmenu"
-            [["6.6.0+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libncurses", "libncurses6"]
-            type = "lib"
-            variable_name = "libncurses"
-            [["6.6.0+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libpanel", "libpanel6"]
-            type = "lib"
-            variable_name = "libpanel"
-
-            [["6.6.0+0".artifact_metadata.metadata.sources]]
-            hash = "355b4cbbed880b0381a04c46617b7656e362585d52e9cf84a67e2009b749ff11"
-            type = "archive"
-            unpack_target = ""
-            url = "https://mirror.csclub.uwaterloo.ca/gnu/ncurses/ncurses-6.6.tar.gz"
 
 ["6.6.0+1"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+1/Ncurses.v6.6.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+1/Ncurses.v6.6.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+1/Ncurses.v6.6.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+1/Ncurses.v6.6.0.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+1/Ncurses.v6.6.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+1/Ncurses.v6.6.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+1/Ncurses.v6.6.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+1/Ncurses.v6.6.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+1/Ncurses.v6.6.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+1/Ncurses.v6.6.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+1/Ncurses.v6.6.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+1/Ncurses.v6.6.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+1/Ncurses.v6.6.0.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+1/Ncurses.v6.6.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+1/Ncurses.v6.6.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+1/Ncurses.v6.6.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+1/Ncurses.v6.6.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+1/Ncurses.v6.6.0.x86_64-w64-mingw32.tar.gz"]
@@ -684,64 +145,10 @@ registered = 2026-01-04T22:35:34.000Z
     [["6.6.0+1".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+1/Ncurses.v6.6.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+1/Ncurses.v6.6.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+1/Ncurses.v6.6.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+1/Ncurses.v6.6.0.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+1/Ncurses.v6.6.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+1/Ncurses.v6.6.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+1/Ncurses.v6.6.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+1/Ncurses.v6.6.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+1/Ncurses.v6.6.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+1/Ncurses.v6.6.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+1/Ncurses.v6.6.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+1/Ncurses.v6.6.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+1/Ncurses.v6.6.0.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+1/Ncurses.v6.6.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+1/Ncurses.v6.6.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+1/Ncurses.v6.6.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+1/Ncurses.v6.6.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+1/Ncurses.v6.6.0.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/d46ed4f10a4aafad962f89fb1baa98f50b3348e6/N/Ncurses/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/n/ncurses/build_tarballs.jl/d46ed4f10a4aafad962f89fb1baa98f50b3348e6.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.6.5"
-
-        ["6.6.0+1".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = """if Sys.isunix()\n    path = joinpath(artifact_dir, \"share\", \"terminfo\")\n    old = get(ENV, \"TERMINFO_DIRS\", nothing)\n    if old === nothing\n        ENV[\"TERMINFO_DIRS\"] = path\n    else\n        ENV[\"TERMINFO_DIRS\"] = old * \":\" * path\n    end\nend\n"""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "Ncurses"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd $WORKSPACE/srcdir/ncurses-*\n\nargs=(\n    --disable-rpath\n    --disable-static\n    --enable-assertions\n    --enable-colorfgbg\n    --enable-database\n    --enable-ext-colors\n    --enable-ext-mouse\n    --enable-pc-files\n    --enable-warnings\n    --enable-widec\n    --with-normal\n    --with-shared\n    --without-ada\n    --without-cxx-binding\n    --without-debug\n    --without-manpages\n    --without-tests\n)\n\nif [[ ${target} == *-darwin* ]]; then\n    args+=(\n        --disable-stripping\n    )\nelif [[ \"${target}\" == *-mingw* ]]; then\n    args+=(\n        --enable-sp-funcs\n        --enable-term-driver\n    )\nfi\n\n# Ncurses check whether we're building on a \"multi-user system\". (We're\n# not, since we're building in a container.) If not, it disables access\n# to environment variables when running as root (i.e. usually when\n# running in a container). This breaks our `TERMINFO_DIRS` mechanism\n# below.\nexport cf_cv_multiuser=yes\n\n./configure --build=${MACHTYPE} --host=${target} --prefix=${prefix} \"${args[@]}\"\nmake -j${nproc}\nmake install\n\n# Remove duplicates that don't work on case-insensitive filesystems\nrm -f  ${prefix}/share/terminfo/2/2621a\nrm -rf ${prefix}/share/terminfo/a\nrm -rf ${prefix}/share/terminfo/e\nrm -f  ${prefix}/share/terminfo/h/hp2621a\nrm -f  ${prefix}/share/terminfo/h/hp70092a\nrm -rf ${prefix}/share/terminfo/l\nrm -rf ${prefix}/share/terminfo/m\nrm -rf ${prefix}/share/terminfo/n\nrm -rf ${prefix}/share/terminfo/p\nrm -rf ${prefix}/share/terminfo/q\nrm -rf ${prefix}/share/terminfo/X\n\n# Install pc files and fool packages looking for non-wide-character ncurses\nfor lib in ncurses form panel menu; do\n    if [[ \"${target}\" == *-mingw* ]]; then\n        # O Windows, Windows, wherefore art thou Windows?\n        abiver=6\n    fi\n    install -Dm644 \"misc/${lib}w.pc\" \"${prefix}/lib/pkgconfig/${lib}w.pc\"\n    ln -s \"${lib}w.pc\" \"${prefix}/lib/pkgconfig/${lib}.pc\"\n    ln -s \"lib${lib}w${abiver}.${dlext}\" \"${libdir}/lib${lib}${abiver}.${dlext}\"\ndone\nln -s ncursesw ${includedir}/ncurses\n"""
-        version = "v6.6.0"
-
-            [["6.6.0+1".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Ncurses_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "hostdependency"
-            version-major = 6
-            version-minor = 5
-            version-patch = 1
-
-            [["6.6.0+1".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libform", "libform6"]
-            type = "lib"
-            variable_name = "libform"
-            [["6.6.0+1".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libmenu", "libmenu6"]
-            type = "lib"
-            variable_name = "libmenu"
-            [["6.6.0+1".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libncurses", "libncurses6"]
-            type = "lib"
-            variable_name = "libncurses"
-            [["6.6.0+1".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libpanel", "libpanel6"]
-            type = "lib"
-            variable_name = "libpanel"
-
-            [["6.6.0+1".artifact_metadata.metadata.sources]]
-            hash = "355b4cbbed880b0381a04c46617b7656e362585d52e9cf84a67e2009b749ff11"
-            type = "archive"
-            unpack_target = ""
-            url = "https://ftpmirror.gnu.org/pub/gnu/ncurses/ncurses-6.6.tar.gz"
 
 ["6.6.0+2"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+2/Ncurses.v6.6.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+2/Ncurses.v6.6.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+2/Ncurses.v6.6.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+2/Ncurses.v6.6.0.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+2/Ncurses.v6.6.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+2/Ncurses.v6.6.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+2/Ncurses.v6.6.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+2/Ncurses.v6.6.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+2/Ncurses.v6.6.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+2/Ncurses.v6.6.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+2/Ncurses.v6.6.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+2/Ncurses.v6.6.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+2/Ncurses.v6.6.0.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+2/Ncurses.v6.6.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+2/Ncurses.v6.6.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+2/Ncurses.v6.6.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+2/Ncurses.v6.6.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+2/Ncurses.v6.6.0.x86_64-w64-mingw32.tar.gz"]
@@ -750,68 +157,7 @@ registered = 2026-01-07T16:48:36.000Z
     [["6.6.0+2".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+2/Ncurses.v6.6.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+2/Ncurses.v6.6.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+2/Ncurses.v6.6.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+2/Ncurses.v6.6.0.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+2/Ncurses.v6.6.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+2/Ncurses.v6.6.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+2/Ncurses.v6.6.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+2/Ncurses.v6.6.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+2/Ncurses.v6.6.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+2/Ncurses.v6.6.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+2/Ncurses.v6.6.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+2/Ncurses.v6.6.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+2/Ncurses.v6.6.0.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+2/Ncurses.v6.6.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+2/Ncurses.v6.6.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+2/Ncurses.v6.6.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+2/Ncurses.v6.6.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/Ncurses_jll.jl/releases/download/Ncurses-v6.6.0+2/Ncurses.v6.6.0.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/54e1810506f6431d55bcc5309aab7d52390893d8/N/Ncurses/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/n/ncurses/build_tarballs.jl/54e1810506f6431d55bcc5309aab7d52390893d8.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.6.5"
-
-        ["6.6.0+2".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = """if Sys.isunix()\n    path = joinpath(artifact_dir, \"share\", \"terminfo\")\n    old = get(ENV, \"TERMINFO_DIRS\", nothing)\n    if old === nothing\n        ENV[\"TERMINFO_DIRS\"] = path\n    else\n        ENV[\"TERMINFO_DIRS\"] = old * \":\" * path\n    end\nend\n"""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "Ncurses"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd $WORKSPACE/srcdir/ncurses-*\n\nargs=(\n    --disable-rpath\n    --disable-static\n    --enable-assertions\n    --enable-colorfgbg\n    --enable-database\n    --enable-ext-colors\n    --enable-ext-mouse\n    --enable-pc-files\n    --enable-warnings\n    --enable-widec\n    --with-normal\n    --with-shared\n    --without-ada\n    --without-cxx-binding\n    --without-debug\n    --without-manpages\n    --without-tests\n)\n\nif [[ ${target} == *-darwin* ]]; then\n    args+=(\n        --disable-stripping\n    )\nelif [[ \"${target}\" == *-mingw* ]]; then\n    args+=(\n        --enable-sp-funcs\n        --enable-term-driver\n    )\n    # Do not export multi-byte string functions.\n    # These functions are defined in a system library, and if we not re-export them,\n    # there would be duplicate definitions.\n    export LDFLAGS=\"-Wl,--exclude-symbols,mbrtowc:mbrlen:mbsrtowcs:wcsrtombs:mbtowc:wctomb\"\nfi\n\n# Ncurses check whether we're building on a \"multi-user system\". (We're\n# not, since we're building in a container.) If not, it disables access\n# to environment variables when running as root (i.e. usually when\n# running in a container). This breaks our `TERMINFO_DIRS` mechanism\n# below.\nexport cf_cv_multiuser=yes\n\n./configure --build=${MACHTYPE} --host=${target} --prefix=${prefix} \"${args[@]}\"\nmake -j${nproc}\nmake install\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    # Ensure we didn't put a copy of `mbrtowc` into our `libncursesw` library\n    ${target}-nm -A /workspace/destdir/lib/libncursesw.dll.a | grep -w 'mbrtowc$' && false\nfi\n\n# Remove duplicates that don't work on case-insensitive filesystems\nrm -f  ${prefix}/share/terminfo/2/2621a\nrm -rf ${prefix}/share/terminfo/a\nrm -rf ${prefix}/share/terminfo/e\nrm -f  ${prefix}/share/terminfo/h/hp2621a\nrm -f  ${prefix}/share/terminfo/h/hp70092a\nrm -rf ${prefix}/share/terminfo/l\nrm -rf ${prefix}/share/terminfo/m\nrm -rf ${prefix}/share/terminfo/n\nrm -rf ${prefix}/share/terminfo/p\nrm -rf ${prefix}/share/terminfo/q\nrm -rf ${prefix}/share/terminfo/X\n\n# Install pc files and fool packages looking for non-wide-character ncurses\nfor lib in ncurses form panel menu; do\n    if [[ \"${target}\" == *-mingw* ]]; then\n        # O Windows, Windows, wherefore art thou Windows?\n        abiver=6\n    fi\n    install -Dm644 \"misc/${lib}w.pc\" \"${prefix}/lib/pkgconfig/${lib}w.pc\"\n    ln -s \"${lib}w.pc\" \"${prefix}/lib/pkgconfig/${lib}.pc\"\n    ln -s \"lib${lib}w${abiver}.${dlext}\" \"${libdir}/lib${lib}${abiver}.${dlext}\"\ndone\nln -s ncursesw ${includedir}/ncurses\n"""
-        version = "v6.6.0"
-
-            [["6.6.0+2".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Ncurses_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "hostdependency"
-            version-major = 6
-            version-minor = 5
-            version-patch = 1
-
-            [["6.6.0+2".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libform", "libform6"]
-            type = "lib"
-            variable_name = "libform"
-            [["6.6.0+2".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libmenu", "libmenu6"]
-            type = "lib"
-            variable_name = "libmenu"
-            [["6.6.0+2".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libncurses", "libncurses6"]
-            type = "lib"
-            variable_name = "libncurses"
-            [["6.6.0+2".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libncursesw", "libncursesw6"]
-            type = "lib"
-            variable_name = "libncursesw"
-            [["6.6.0+2".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libpanel", "libpanel6"]
-            type = "lib"
-            variable_name = "libpanel"
-
-            [["6.6.0+2".artifact_metadata.metadata.sources]]
-            hash = "355b4cbbed880b0381a04c46617b7656e362585d52e9cf84a67e2009b749ff11"
-            type = "archive"
-            unpack_target = ""
-            url = "https://ftpmirror.gnu.org/pub/gnu/ncurses/ncurses-6.6.tar.gz"

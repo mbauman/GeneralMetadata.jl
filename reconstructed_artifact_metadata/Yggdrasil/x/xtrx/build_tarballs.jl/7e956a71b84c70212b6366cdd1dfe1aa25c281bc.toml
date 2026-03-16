@@ -1,0 +1,89 @@
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "xtrx"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11"]
+script = """\n# Apply our patches\ncd ${WORKSPACE}/srcdir\nfor f in ${WORKSPACE}/srcdir/patches/*.patch; do\n    atomic_patch -p1 ${f}\ndone\n\n# liblms7002m requires python3 and cheetah to perform build-time templating\napk add python3 py3-cheetah\n\nif [[ ${bb_target} == x86_64-* ]] || [[ ${bb_target} == i686-* ]]; then\n    XTRX_ARCH=x86\nelif [[ ${bb_target} == aarch64-* ]] || [[ ${bb_target} == arm* ]]; then\n    XTRX_ARCH=arm\nfi\n\nCMAKE_ARGS=(\n    \"-DCMAKE_INSTALL_PREFIX=${prefix}\"\n    \"-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN}\"\n    \"-DCMAKE_BUILD_TYPE=Release\"\n\n    # CC_ARCH isn't set properly; just override\n    \"-DFORCE_ARCH=${XTRX_ARCH}\"\n\n    # Install utilities to `bin`\n    \"-DXTRXDSP_UTILS_DIR=${bindir}\"\n    \"-DXTRXLL_UTILS_DIR=${bindir}\"\n)\n\nmkdir ${WORKSPACE}/srcdir/liblms7002m_build\ncd ${WORKSPACE}/srcdir/liblms7002m_build\ncmake ${CMAKE_ARGS[@]} ${WORKSPACE}/srcdir/liblms7002m\nmake -j${nproc}\nmake install\n\nmkdir ${WORKSPACE}/srcdir/libxtrxdsp_build\ncd ${WORKSPACE}/srcdir/libxtrxdsp_build\ncmake ${CMAKE_ARGS[@]} ${WORKSPACE}/srcdir/libxtrxdsp\nmake -j${nproc}\nmake install\n\nmkdir ${WORKSPACE}/srcdir/libxtrxll_build\ncd ${WORKSPACE}/srcdir/libxtrxll_build\ncmake ${CMAKE_ARGS[@]} -DENABLE_PCIE=ON ${WORKSPACE}/srcdir/libxtrxll\nmake -j${nproc}\nmake install\n\nmkdir ${WORKSPACE}/srcdir/libxtrx_build\ncd ${WORKSPACE}/srcdir/libxtrx_build\ncmake ${CMAKE_ARGS[@]} ${WORKSPACE}/srcdir/libxtrx\nmake -j${nproc}\nmake install\ninstall_license ${WORKSPACE}/srcdir/libxtrx/LICENSE\n"""
+version = "v0.1.2"
+
+[[dependencies]]
+compat = ""
+name = "soapysdr_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["test_xtrxll"]
+type = "exe"
+variable_name = "test_xtrxll"
+[[products]]
+binnames = ["test_xtrxflash"]
+type = "exe"
+variable_name = "test_xtrxflash"
+[[products]]
+binnames = ["test_xtrx"]
+type = "exe"
+variable_name = "test_xtrxflash"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libxtrx"]
+type = "lib"
+variable_name = "libxtrx"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libxtrxll"]
+type = "lib"
+variable_name = "libxtrxll"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libxtrxdsp"]
+type = "lib"
+variable_name = "libxtrxdsp"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["liblms7compact"]
+type = "lib"
+variable_name = "liblms7compact"
+[[products]]
+dir_paths = ["lib/SoapySDR/modules0.8"]
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libXTRXSupport"]
+type = "lib"
+variable_name = "libXTRXSupport"
+
+[[sources]]
+hash = "eec28640c0ebd5639b642f07b310a0a0d02d9834"
+type = "git"
+unpack_target = ""
+url = "https://github.com/xtrx-sdr/libxtrxdsp"
+[[sources]]
+hash = "1b6eddfbedc700efb6f7e3c3594e43ac6ff29ea4"
+type = "git"
+unpack_target = ""
+url = "https://github.com/xtrx-sdr/libxtrxll"
+[[sources]]
+hash = "acb0b1cf7ab92744034767a04c1d4b4c281b840f"
+type = "git"
+unpack_target = ""
+url = "https://github.com/xtrx-sdr/libxtrx"
+[[sources]]
+hash = "b07761b7386181f0e6a35158456b75bce14f2aca"
+type = "git"
+unpack_target = ""
+url = "https://github.com/xtrx-sdr/liblms7002m"
+[[sources]]
+follow_symlinks = false
+path = "bundled"
+target = ""
+type = "directory"

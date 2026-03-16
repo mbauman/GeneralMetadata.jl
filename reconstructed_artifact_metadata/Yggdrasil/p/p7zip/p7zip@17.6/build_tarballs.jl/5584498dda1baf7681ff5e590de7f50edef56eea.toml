@@ -1,0 +1,45 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "p7zip"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "x86_64-linux-gnu-sanitize+memory"]
+script = """cd $WORKSPACE/srcdir/p7zip*/\n\n# Fix <https://github.com/p7zip-project/p7zip/issues/112> by reverting <https://github.com/p7zip-project/p7zip/pull/64>\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/zipitem.patch\n\nif [[ ${bb_full_target} == *-sanitize+memory* ]]; then\n    # Install msan runtime (for clang)\n    cp -rL ${libdir}/linux/* /opt/x86_64-linux-musl/lib/clang/*/lib/linux/\nfi\n\nif [[ ${target} == *mingw* ]]; then\n    # It's incredibly frustrating to build p7zip on mingw, so instead we just redistribute 7z\n    apk add p7zip\n\n    if [[ ${target} == i686* ]]; then\n        7z x -y ${WORKSPACE}/srcdir/7z2501.exe 7z.exe 7z.dll License.txt\n    else\n        7z x -y ${WORKSPACE}/srcdir/7z2501-x64.exe 7z.exe 7z.dll License.txt\n    fi\n\n    install_license License.txt\n\n    chmod +x 7z.exe 7z.dll\n    mkdir ${prefix}/bin\n    cp -a 7z.exe 7z.dll ${prefix}/bin\nelse\n    # Build requirements\n    apk add nasm yasm\n\n    # Convert from target to makefile\n    target_makefile()\n    {\n        case \"${target}\" in\n            x86_64-linux*)       echo makefile.linux_amd64_asm;;\n            i686-linux*)         echo makefile.linux_x86_asm_gcc_4.X;;\n            powerpc64le*linux*)  echo makefile.linux_cross_ppc64le;;\n            aarch64*linux*)      echo makefile.linux_cross_aarch64;;\n            arm-*linux*)         echo makefile.linux_cross_arm;;\n            riscv64-linux*)      echo makefile.linux_any_cpu;;\n            x86_64-*freebsd*)    echo makefile.freebsd6+;;\n            aarch64-*freebsd*)   echo makefile.freebsd6+;;\n            x86_64-*darwin*)     echo makefile.macosx_llvm_64bits;;\n            aarch64-*darwin*)    echo makefile.macosx_llvm_64bits;;\n        esac\n    }\n    cp -v $(target_makefile) makefile.machine\n\n    # clang doesn't like this c++11 narrowing, so we disable the error\n    if [[ \"${target}\" == *darwin* ]] || [[ \"${target}\" == *freebsd* ]]; then\n        CXXFLAGS=\"${CXXFLAGS} -Wno-c++11-narrowing\"\n    fi\n\n    install_license DOC/License.txt\n\n    make -j${nproc} 7za CC=\"${CC} ${CFLAGS}\" CXX=\"${CXX} ${CXXFLAGS}\"\n    install -Dvm 755 bin/7za \"${bindir}/7z\"\nfi\n"""
+version = "v17.6.1"
+
+[[dependencies]]
+compat = ""
+name = "LLVMCompilerRT_jll"
+platforms = ["x86_64-linux-gnu-sanitize+memory"]
+top_level = false
+type = "builddependency"
+uuid = "4e17d02c-6bf5-513e-be62-445f41c75a11"
+version-major = 13
+version-minor = 0
+version-patch = 1
+
+[[products]]
+binnames = ["7z"]
+type = "exe"
+variable_name = "p7zip"
+
+[[sources]]
+hash = "d9c3d157c62e842897d4447db717f813810e1423"
+type = "git"
+unpack_target = ""
+url = "https://github.com/p7zip-project/p7zip"
+[[sources]]
+filename = "7z2501.exe"
+hash = "b96831eec5928384f0543d6b57c1f802952a0f2668e662882c0a785a2b52fb3b"
+type = "file"
+url = "https://downloads.sourceforge.net/project/sevenzip/7-Zip/25.01/7z2501.exe"
+[[sources]]
+filename = "7z2501-x64.exe"
+hash = "78afa2a1c773caf3cf7edf62f857d2a8a5da55fb0fff5da416074c0d28b2b55f"
+type = "file"
+url = "https://downloads.sourceforge.net/project/sevenzip/7-Zip/25.01/7z2501-x64.exe"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

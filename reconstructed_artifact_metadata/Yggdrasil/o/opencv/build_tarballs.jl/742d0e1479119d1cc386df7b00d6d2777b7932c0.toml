@@ -1,0 +1,153 @@
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "OpenCV"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir\n# Apply patch for BB specific CMake changes\ncd opencv_contrib\ngit apply ../patches/opencv-julia.patch\ncd ..\nmkdir build && cd build\nexport USE_QT=\"ON\"\nif [[ \"${target}\" == *-apple-* ]]; then\n    # We want to use OpenBLAS over Accelerate framework...\n    export OpenBLAS_HOME=${prefix}\n    export CXXFLAGS=\"\"\n    # ...but we also need to rename quite a few symbols\n    for symbol in sgemm dgemm cgemm zgemm; do\n        # Rename CBLAS symbols for ILP64\n        CXXFLAGS=\"${CXXFLAGS} -Dcblas_${symbol}=cblas_${symbol}64_\"\n    done\n    for symbol in sgesv_ sposv_ spotrf_ sgesdd_ sgeqrf_ sgels_ dgeqrf_ dgesdd_ sgetrf_ dgesv_ dposv_ dgels_ dgetrf_ dpotrf_ dgeev_; do\n        # Rename LAPACK symbols for ILP64\n        CXXFLAGS=\"${CXXFLAGS} -D${symbol}=${symbol}64_\"\n    done\n    # Apply patch to help CMake find our 64-bit OpenBLAS\n    atomic_patch -p1 -d../opencv ../patches/find-openblas64.patch\n    # Disable QT\n    export USE_QT=\"OFF\"\nelif [[ \"${target}\" == *-w64-* ]]; then\n    # Needed for mingw compilation of big files\n    export CXXFLAGS=\"-Wa,-mbig-obj\"\n    export USE_QT=\"OFF\"\nfi\ncmake -DCMAKE_FIND_ROOT_PATH=${prefix} \\\n      -DJulia_PREFIX=${prefix} \\\n      -DWITH_JULIA=ON \\\n      -DCMAKE_INSTALL_PREFIX=${prefix} \\\n      -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n      -DCMAKE_BUILD_TYPE=Release \\\n      -DWITH_QT=${USE_QT} \\\n      -DOPENCV_EXTRA_MODULES_PATH=../opencv_contrib/modules \\\n      -DBUILD_LIST=core,imgproc,imgcodecs,highgui,videoio,dnn,features2d,objdetect,calib3d,video,gapi,stitching,julia \\\n      ../opencv/\nif [[ \"${target}\" == *-freebsd* ]]; then\n    atomic_patch -p1 ../patches/freebsd-malloc-h.patch\nfi\nmake -j${nproc}\nmake install\n\n# Install also libopencv_julia\ncp lib/libopencv_julia.* ${libdir}/.\n# Move julia bindings to the prefix\ncp -R OpenCV ${prefix}\n\ninstall_license ../opencv/{LICENSE,COPYRIGHT}\n"""
+version = "v4.5.2"
+
+[[dependencies]]
+compat = ""
+name = "Qt5Base_jll"
+type = "dependency"
+uuid = "ea2cea3b-5b76-57ae-a6ef-0a8af62496e1"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Libglvnd_jll"
+type = "dependency"
+uuid = "7e76a0d4-f3c7-5321-8279-8d96eeed0f29"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "libjulia_jll"
+type = "builddependency"
+version-major = 1
+version-minor = 6
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "libcxxwrap_julia_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libopencv_calib3d", "libopencv_calib3d452"]
+type = "lib"
+variable_name = "libopencv_calib3d"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libopencv_objdetect", "libopencv_objdetect452"]
+type = "lib"
+variable_name = "libopencv_objdetect"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libopencv_core", "libopencv_core452"]
+type = "lib"
+variable_name = "libopencv_core"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libopencv_dnn", "libopencv_dnn452"]
+type = "lib"
+variable_name = "libopencv_dnn"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libopencv_imgcodecs", "libopencv_imgcodecs452"]
+type = "lib"
+variable_name = "libopencv_imgcodecs"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libopencv_highgui", "libopencv_highgui452"]
+type = "lib"
+variable_name = "libopencv_highgui"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libopencv_flann", "libopencv_flann452"]
+type = "lib"
+variable_name = "libopencv_flann"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libopencv_gapi", "libopencv_gapi452"]
+type = "lib"
+variable_name = "libopencv_gapi"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libopencv_imgproc", "libopencv_imgproc452"]
+type = "lib"
+variable_name = "libopencv_imgproc"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libopencv_features2d", "libopencv_features2d452"]
+type = "lib"
+variable_name = "libopencv_features2d"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libopencv_stitching", "libopencv_stitching452"]
+type = "lib"
+variable_name = "libopencv_stitching"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libopencv_video", "libopencv_video452"]
+type = "lib"
+variable_name = "libopencv_video"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libopencv_videoio", "libopencv_videoio452"]
+type = "lib"
+variable_name = "libopencv_videoio"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libopencv_julia"]
+type = "lib"
+variable_name = "libopencv_julia"
+
+[[sources]]
+hash = "39d25787f16c4dd6435b9fe0a8253394ac51e7fb"
+type = "git"
+unpack_target = ""
+url = "https://github.com/opencv/opencv.git"
+[[sources]]
+hash = "f5d7f6712d4ff229ba4f45cf79dfd11c557d56fd"
+type = "git"
+unpack_target = ""
+url = "https://github.com/opencv/opencv_contrib.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

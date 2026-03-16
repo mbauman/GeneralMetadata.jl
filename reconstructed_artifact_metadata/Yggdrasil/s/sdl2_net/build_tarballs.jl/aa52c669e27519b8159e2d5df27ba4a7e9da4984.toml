@@ -1,0 +1,37 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "SDL2_net"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/SDL*/\n\nif [[ \"${target}\" == powerpc64le-* ]] || [[ \"${target}\" == *-freebsd* ]]; then\n    # We need to regenerate `configure` for this platforms\n\n    # Include directory with M4 macros\n    atomic_patch -p1 ../patches/configure-add-macro-dir.patch\n    # Create absolutely important files\n    touch AUTHORS NEWS README ChangeLog\n    # Regnerate `configure` script\n    autoreconf -fiv\nfi\n\nmkdir build && cd build\n../configure --prefix=${prefix} --build=${MACHTYPE} --host=${target}\nmake -j${nproc}\nmake install\n"""
+version = "v2.0.1"
+
+[[dependencies]]
+compat = ""
+name = "SDL2_jll"
+platforms = ["any"]
+type = "dependency"
+uuid = "ab825dc5-c88e-5901-9575-1e5e20358fcf"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libSDL2_net", "SDL2_net"]
+type = "lib"
+variable_name = "libSDL2_net"
+
+[[sources]]
+hash = "15ce8a7e5a23dafe8177c8df6e6c79b6749a03fff1e8196742d3571657609d21"
+type = "archive"
+unpack_target = ""
+url = "https://libsdl.org/projects/SDL_net/release/SDL2_net-2.0.1.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

@@ -1,0 +1,27 @@
+dependencies = []
+lazy_artifacts = false
+name = "MPICH"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1"]
+script = """# Enter the funzone\ncd ${WORKSPACE}/srcdir/mpich-*\n\natomic_patch -p1 ../patches/0001-romio-Use-tr-for-replacing-to-space-in-list-of-file-.patch\npushd src/mpi/romio\nautoreconf -vi\npopd\n\nEXTRA_FLAGS=()\nif [[ \"${target}\" == i686-linux-musl ]]; then\n    # For a bug in our Musl library, we can't run C++ programs on this platform,\n    # thus we need to pass a cached value for this test\n    EXTRA_FLAGS+=(ac_cv_sizeof_bool=\"1\")\nfi\n./configure --prefix=$prefix --host=$target \\\n    --enable-shared=yes \\\n    --enable-static=no \\\n    --disable-dependency-tracking \\\n    --disable-fortran \\\n    --docdir=/tmp \\\n    \"${EXTRA_FLAGS[@]}\"\n\n# Build the library\nmake -j${nproc}\n\n# Install the library\nmake install\n"""
+version = "v3.3.2"
+
+[[products]]
+dir_paths = []
+dont_dlopen = false
+libnames = ["libmpi"]
+type = "lib"
+variable_name = "libmpi"
+[[products]]
+binnames = ["mpiexec"]
+type = "exe"
+variable_name = "mpiexec"
+
+[[sources]]
+hash = "4bfaf8837a54771d3e4922c84071ef80ffebddbb6971a006038d91ee7ef959b9"
+type = "file"
+unpack_target = ""
+url = "https://www.mpich.org/static/downloads/3.3.2/mpich-3.3.2.tar.gz"
+[[sources]]
+path = "./bundled"
+type = "directory"
+unpack_target = ""

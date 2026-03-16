@@ -1,0 +1,56 @@
+lazy_artifacts = false
+name = "CeresSolver"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin14-cxx03", "x86_64-apple-darwin14-cxx11", "x86_64-unknown-freebsd11.1-cxx03", "x86_64-unknown-freebsd11.1-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir/ceres-solver-1.14.0\n\nmkdir cmake_build\ncd cmake_build/\n\nif [[ \"$target\" == *-freebsd* || \"$target\" == *-apple-* ]]; then\n  # Clang doesn't play nicely with OpenMP and\n  # compilation fails with glog due to a c++11 error\n  CMAKE_FLAGS=(-DCMAKE_TOOLCHAIN_FILE=/opt/$target/${target}_gcc.cmake\n               -DMINIGLOG=ON)\nelse\n  CMAKE_FLAGS=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN}\n               -DGLOG_INCLUDE_DIR_HINTS=${prefix}/include)\nfi\n\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix}\n              -DBUILD_SHARED_LIBS=ON\n              -DBUILD_EXAMPLES=OFF\n              -DBUILD_TESTING=OFF\n              -DOPENMP=ON\n              -DTBB=OFF\n              -DBLAS_LIBRARIES=${libdir}/libopenblas.${dlext}\n              -DLAPACK_LIBRARIES=${libdir}/libopenblas.${dlext}\n              -DMETIS_LIBRARY=${libdir}/libmetis.${dlext}\n              -DSUITESPARSE_INCLUDE_DIR_HINTS=${prefix}/include\n              -DAMD_LIBRARY=\"${libdir}/libamd.${dlext} ${libdir}/libsuitesparseconfig.${dlext}\"\n              -DCAMD_LIBRARY=\"${libdir}/libcamd.${dlext} ${libdir}/libsuitesparseconfig.${dlext}\"\n              -DCCOLAMD_LIBRARY=\"${libdir}/libccolamd.${dlext} ${libdir}/libsuitesparseconfig.${dlext}\"\n              -DCHOLMOD_LIBRARY=\"${libdir}/libcholmod.${dlext} ${libdir}/libsuitesparseconfig.${dlext}\"\n              -DCOLAMD_LIBRARY=\"${libdir}/libcolamd.${dlext} ${libdir}/libsuitepsarseconfig.${dlext}\"\n              -DSUITESPARSEQR_LIBRARY=\"${libdir}/libspqr.${dlext} ${libdir}/libsuitesparseconfig.${dlext}\"\n              -DSUITESPARSE_CONFIG_LIBRARY=\"${libdir}/libsuitesparseconfig.${dlext}\"\n              )\n\ncmake ${CMAKE_FLAGS[@]} ..\n\nmake -j${nproc}\nmake install\n\ncd ..\n"""
+version = "v1.14.0"
+
+[[dependencies]]
+name = "Eigen_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "glog_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "METIS_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "OpenBLAS32_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "SuiteSparse_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "CompilerSupportLibraries_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libceres"]
+type = "lib"
+variable_name = "libceres"
+
+[[sources]]
+hash = "4744005fc3b902fed886ea418df70690caa8e2ff6b5a90f3dd88a3d291ef8e8e"
+type = "archive"
+unpack_target = ""
+url = "http://ceres-solver.org/ceres-solver-1.14.0.tar.gz"

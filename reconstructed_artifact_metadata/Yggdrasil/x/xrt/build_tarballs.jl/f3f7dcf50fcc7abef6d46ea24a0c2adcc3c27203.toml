@@ -1,0 +1,190 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "xrt"
+platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd ${WORKSPACE}/srcdir/XRT\ninstall_license LICENSE\n\nif [[ \"${target}\" == *-linux-* ]]; then\n    # Apply patch with missing define\n    atomic_patch -p1 ../patches/linux/huge_shift.patch\nfi\n\nif [[ \"${target}\" == *-w64-* ]]; then\n    # mingw patches\n    atomic_patch -p1 ../patches/windows/fix_xclbinutil_cmake.patch\n    atomic_patch -p1 ../patches/windows/remove_duplicate_type_defs.patch\n    atomic_patch -p1 ../patches/windows/disable_trace.patch\n    atomic_patch -p1 ../patches/windows/config_reader.patch\n    atomic_patch -p1 ../patches/windows/unistd.patch\n    atomic_patch -p1 ../patches/windows/ocl_bindings.patch\n    atomic_patch -p1 ../patches/windows/aligned_malloc.patch\n    atomic_patch -p1 ../patches/windows/no_static_boost.patch\n    atomic_patch -p1 ../patches/windows/config.patch\n    atomic_patch -p1 ../patches/windows/xbutil.patch\n    atomic_patch -p1 ../patches/windows/xdp-exports.patch\n    atomic_patch -p1 ../patches/windows/xrt-core-lib.patch \n    export ADDITIONAL_CMAKE_CXX_FLAGS=\"-fpermissive -D_WINDOWS\"\nfi\n\natomic_patch -p1 ../patches/fix-install-dir.patch\n\n# Statically link to boost\nexport XRT_BOOST_INSTALL=${WORKSPACE}/destdir\n\ncd src\ncmake -S . -B build \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_CXX_FLAGS=\"${ADDITIONAL_CMAKE_CXX_FLAGS}\" \\\n    -DCMAKE_BUILD_TYPE=Release\ncmake --build build --parallel ${nproc}\ncmake --install build\n"""
+version = "v2.17.0"
+
+[[dependencies]]
+compat = ""
+name = "boost_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 1
+version-minor = 79
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "ELFIO_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenCL_Headers_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "ocl_icd_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "rapidjson_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "7.73, 8"
+name = "LibCURL_jll"
+platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "libdrm_jll"
+platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Libuuid_jll"
+platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LibYAML_jll"
+platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Ncurses_jll"
+platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "3.0.8"
+name = "OpenSSL_jll"
+platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "protobuf_c_jll"
+platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "systemd_jll"
+platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "systemtap_jll"
+platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libxrt_coreutil"]
+type = "lib"
+variable_name = "libxrt_coreutil"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libxilinxopencl"]
+type = "lib"
+variable_name = "libxilinxopencl"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libxrt_core"]
+type = "lib"
+variable_name = "libxrt_core"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libxdp_core"]
+type = "lib"
+variable_name = "libxdp_core"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libxrt++"]
+type = "lib"
+variable_name = "libxrtxx"
+[[products]]
+binnames = ["xbutil", "unwrapped/xbutil.exe"]
+type = "exe"
+variable_name = "xbutil"
+[[products]]
+binnames = ["xclbinutil", "unwrapped/xclbinutil.exe"]
+type = "exe"
+variable_name = "xclbinutil"
+
+[[sources]]
+hash = "a75e9843c875bac0f52d34a1763e39e16fb3c9a7"
+type = "git"
+unpack_target = ""
+url = "https://github.com/Xilinx/XRT.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

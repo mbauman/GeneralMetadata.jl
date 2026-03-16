@@ -1,0 +1,38 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "unpaper"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/unpaper-*\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    # FFMPEG_jll installs the pkgconfig files in the wrong directory for Windows\n    export PKG_CONFIG_PATH=\"${PKG_CONFIG_PATH}:${libdir}/pkgconfig\"\n    # Give some hints to the linker\n    export LDFLAGS=\"-L${libdir}\"\n    export LIBAV_LIBS=\"-lavformat -lavutil -lavcodec\"\nfi\n\napk add py3-sphinx\n\nmeson setup builddir --cross-file=\"${MESON_TARGET_TOOLCHAIN}\"\nmeson compile -C builddir\nmeson install -C builddir\n\ncd LICENSES\ninstall_license 0BSD.txt Apache-2.0.txt GPL-2.0-only.txt MIT.txt\n"""
+version = "v7.0.0"
+
+[[dependencies]]
+compat = ""
+name = "XSLT_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "8.0.1"
+name = "FFMPEG_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["unpaper"]
+type = "exe"
+variable_name = "unpaper"
+
+[[sources]]
+hash = "2575fbbf26c22719d1cb882b59602c9900c7f747118ac130883f63419be46a80"
+type = "archive"
+unpack_target = ""
+url = "https://www.flameeyes.com/files/unpaper-7.0.0.tar.xz"

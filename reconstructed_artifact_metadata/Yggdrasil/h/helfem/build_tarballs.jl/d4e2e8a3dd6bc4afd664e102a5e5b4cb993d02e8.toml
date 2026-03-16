@@ -1,0 +1,82 @@
+init_block = ""
+julia_compat = "1.5"
+lazy_artifacts = false
+name = "HelFEM"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cp -v ${WORKSPACE}/srcdir/HelFEM/julia/CMake.system ${WORKSPACE}/srcdir/HelFEM/CMake.system\n\n# Set up some platform specific CMake configuration. This is more or less borrowed from\n# the Armadillo build_tarballs.jl script:\n#   https://github.com/JuliaPackaging/Yggdrasil/blob/48d7a89b4aa46b1a8c91269bb138a660f4ee4ece/A/armadillo/build_tarballs.jl#L23-L52\n#\n# We need to manually set up OpenBLAS because FindOpenBLAS.cmake does not work with BB:\nif [[ \"${nbits}\" == 64 ]] && [[ \"${target}\" != aarch64* ]]; then\n    OPENBLAS=\"${libdir}/libopenblas64_.${dlext}\"\nelse\n    OPENBLAS=\"${libdir}/libopenblas.${dlext}\"\nfi\n\n# Compile libhelfem as a static library\ncd ${WORKSPACE}/srcdir/HelFEM/\ncmake \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_POSITION_INDEPENDENT_CODE=ON \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DHELFEM_BINARIES=OFF \\\n    -DHELFEM_FIND_DEPS=ON \\\n    -DUSE_OPENMP=OFF \\\n    -B build/ -S .\nmake -C build/ -j${nproc} helfem\nmake -C build/ install\n# Copy the HelFEM license\ninstall_license LICENSE\n\n# Compile the CxxWrap wrapper as a shared library\ncd ${WORKSPACE}/srcdir/HelFEM/julia\ncmake \\\n    -DBLAS_LIBRARIES=${OPENBLAS} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DCMAKE_FIND_ROOT_PATH=${prefix} \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DJulia_PREFIX=${prefix} \\\n    -B build/ -S .\nmake -C build/ -j${nproc}\nmake -C build/ install\n"""
+version = "v0.1.5"
+
+[[dependencies]]
+name = "libjulia_jll"
+type = "builddependency"
+
+    [[dependencies.version.ranges]]
+        [dependencies.version.ranges.lower]
+        n = 3
+        t = [1, 5, 3]
+
+        [dependencies.version.ranges.upper]
+        n = 3
+        t = [1, 5, 3]
+[[dependencies]]
+name = "libcxxwrap_julia_jll"
+type = "dependency"
+
+    [[dependencies.version.ranges]]
+        [dependencies.version.ranges.lower]
+        n = 0
+        t = [0, 0, 0]
+
+        [dependencies.version.ranges.upper]
+        n = 0
+        t = [0, 0, 0]
+[[dependencies]]
+name = "armadillo_jll"
+type = "dependency"
+
+    [[dependencies.version.ranges]]
+        [dependencies.version.ranges.lower]
+        n = 3
+        t = [9, 850, 1]
+
+        [dependencies.version.ranges.upper]
+        n = 3
+        t = [9, 850, 1]
+[[dependencies]]
+name = "GSL_jll"
+type = "dependency"
+
+    [[dependencies.version.ranges]]
+        [dependencies.version.ranges.lower]
+        n = 3
+        t = [2, 6, 0]
+
+        [dependencies.version.ranges.upper]
+        n = 3
+        t = [2, 6, 0]
+[[dependencies]]
+name = "OpenBLAS_jll"
+type = "dependency"
+
+    [[dependencies.version.ranges]]
+        [dependencies.version.ranges.lower]
+        n = 3
+        t = [0, 3, 9]
+
+        [dependencies.version.ranges.upper]
+        n = 3
+        t = [0, 3, 9]
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libhelfem-cxxwrap"]
+type = "lib"
+variable_name = "libhelfem"
+
+[[sources]]
+hash = "a4d3b2e6f16f7f7953afd5f69a44257a65c5b131"
+type = "git"
+unpack_target = ""
+url = "https://github.com/mortenpi/HelFEM.git"

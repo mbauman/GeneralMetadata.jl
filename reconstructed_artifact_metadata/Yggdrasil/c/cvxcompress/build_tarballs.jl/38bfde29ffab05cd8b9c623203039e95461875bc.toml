@@ -1,0 +1,42 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "CvxCompress"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd"]
+script = """install_license ${WORKSPACE}/srcdir/CvxCompress/LICENSE.md\n\ncd ${WORKSPACE}/srcdir/CvxCompress\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/cross-compile-cvxcompress-gencode.patch\n# Pull simde\ngit submodule update --init\n\n${CXX_FOR_BUILD} -O2 -o CvxCompress_GenCode Wavelet_Transform_Slow.cpp CvxCompress_GenCode.cpp\n./CvxCompress_GenCode\n\nif [[ \"${target}\" == *-freebsd* ]] || [[ \"${target}\" == *-apple-* ]]; then\n    CC=gcc\n    CXX=g++\nfi\n\n# Build\nmake -j${nproc} lib\n\n# Install\ninstall -Dvm 755 libcvxcompress.${dlext} \"${libdir}/libcvxcompress.${dlext}\"\ninstall -Dvm 644 CvxCompress.hxx \"${includedir}/CvxCompress.hxx\"\n\n"""
+version = "v1.2.1"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcvxcompress"]
+type = "lib"
+variable_name = "libcvxcompress"
+[[products]]
+paths = ["include/CvxCompress.hxx"]
+type = "file"
+variable_name = "CvxCompress_hxx"
+
+[[sources]]
+hash = "3d686fef6a2a08edaaece541ba852f43cf59abf1"
+type = "git"
+unpack_target = ""
+url = "https://github.com/ChevronETC/CvxCompress.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

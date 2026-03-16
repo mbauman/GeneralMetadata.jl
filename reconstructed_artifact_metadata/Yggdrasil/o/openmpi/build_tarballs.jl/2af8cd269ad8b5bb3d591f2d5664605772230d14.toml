@@ -1,0 +1,54 @@
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "OpenMPI"
+platforms = ["i686-linux-gnu-libgfortran3", "i686-linux-gnu-libgfortran4", "i686-linux-gnu-libgfortran5", "x86_64-linux-gnu-libgfortran3", "x86_64-linux-gnu-libgfortran4", "x86_64-linux-gnu-libgfortran5", "aarch64-linux-gnu-libgfortran3", "aarch64-linux-gnu-libgfortran4", "aarch64-linux-gnu-libgfortran5", "armv7l-linux-gnueabihf-libgfortran3", "armv7l-linux-gnueabihf-libgfortran4", "armv7l-linux-gnueabihf-libgfortran5", "powerpc64le-linux-gnu-libgfortran3", "powerpc64le-linux-gnu-libgfortran4", "powerpc64le-linux-gnu-libgfortran5", "i686-linux-musl-libgfortran3", "i686-linux-musl-libgfortran4", "i686-linux-musl-libgfortran5", "x86_64-linux-musl-libgfortran3", "x86_64-linux-musl-libgfortran4", "x86_64-linux-musl-libgfortran5", "aarch64-linux-musl-libgfortran3", "aarch64-linux-musl-libgfortran4", "aarch64-linux-musl-libgfortran5", "armv7l-linux-musleabihf-libgfortran3", "armv7l-linux-musleabihf-libgfortran4", "armv7l-linux-musleabihf-libgfortran5", "x86_64-apple-darwin-libgfortran3", "x86_64-apple-darwin-libgfortran4", "x86_64-apple-darwin-libgfortran5", "x86_64-unknown-freebsd-libgfortran3", "x86_64-unknown-freebsd-libgfortran4", "x86_64-unknown-freebsd-libgfortran5", "aarch64-apple-darwin-libgfortran5", "armv6l-linux-musleabihf-libgfortran3", "armv6l-linux-musleabihf-libgfortran4", "armv6l-linux-musleabihf-libgfortran5"]
+script = """################################################################################\n# Install OpenMPI\n################################################################################\n\n# Enter the funzone\ncd ${WORKSPACE}/srcdir/openmpi-*\n\nif [[ \"${target}\" == *-freebsd* ]]; then\n    # Help compiler find `complib/cl_types.h`.\n    export CPPFLAGS=\"-I/opt/${target}/${target}/sys-root/include/infiniband\"\nfi\n\n./configure --prefix=${prefix} \\\n    --build=${MACHTYPE} \\\n    --host=${target} \\\n    --enable-shared=yes \\\n    --enable-static=no \\\n    --without-cs-fs \\\n    --enable-mpi-fortran=usempif08 \\\n    --with-cross=${WORKSPACE}/srcdir/${target}\n\n# Build the library\nmake -j${nproc}\n\n# Install the library\nmake install\n\n################################################################################\n# Install MPIconstants\n################################################################################\n\ncd ${WORKSPACE}/srcdir/MPIconstants*\nmkdir build\ncd build\n\ncmake \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_FIND_ROOT_PATH=${prefix} \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DBUILD_SHARED_LIBS=ON \\\n    -DMPI_C_COMPILER=cc \\\n    -DMPI_C_LIB_NAMES='mpi' \\\n    -DMPI_mpi_LIBRARY=${prefix}/lib/libmpi.${dlext} \\\n    ..\n\ncmake --build . --config RelWithDebInfo --parallel $nproc\ncmake --build . --config RelWithDebInfo --parallel $nproc --target install\n\n################################################################################\n# Install licenses\n################################################################################\n\ninstall_license $WORKSPACE/srcdir/openmpi*/LICENSE $WORKSPACE/srcdir/MPIconstants-*/LICENSE.md\n"""
+version = "v4.1.1"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmpi"]
+type = "lib"
+variable_name = "libmpi"
+[[products]]
+binnames = ["mpiexec"]
+type = "exe"
+variable_name = "mpiexec"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libload_time_mpi_constants"]
+type = "lib"
+variable_name = "libload_time_mpi_constants"
+[[products]]
+binnames = ["generate_compile_time_mpi_constants"]
+type = "exe"
+variable_name = "generate_compile_time_mpi_constants"
+
+[[sources]]
+hash = "d80b9219e80ea1f8bcfe5ad921bd9014285c4948c5965f4156a3831e60776444"
+type = "archive"
+unpack_target = ""
+url = "https://download.open-mpi.org/release/open-mpi/v4.1/openmpi-4.1.1.tar.gz"
+[[sources]]
+hash = "3437eb7913cf213de80cef4ade7d73f0b3adfe9eadabe993b923dc50a21bd65e"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/eschnett/MPIconstants/archive/refs/tags/v1.3.2.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

@@ -1,0 +1,71 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "DSSP"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """MACHTYPE_FULL=x86_64-linux-musl-libgfortran5-cxx11\ncd $WORKSPACE/srcdir/\n\n# Install a newer MacOS SDK on x86_64-apple-darwin\n# Fixes compilation of libcifpp and dssp\n# - cmake fails on checking for std::filesystem\n# - compile error: 'any_cast<std::basic_string<char>>' is unavailable: introduced in macOS 10.14\nif [[ \"${target}\" == x86_64-apple-darwin* ]]; then\n    pushd $WORKSPACE/srcdir/MacOSX10.*.sdk\n    rm -rf /opt/${target}/${target}/sys-root/System\n    cp -ra usr/* \"/opt/${target}/${target}/sys-root/usr/.\"\n    cp -ra System \"/opt/${target}/${target}/sys-root/.\"\n    export MACOSX_DEPLOYMENT_TARGET=10.15\n    popd\nfi\n\n# build the tests if we are building for the build host platform\nCFG_TESTING=\"-DENABLE_TESTING=OFF\"\nif [[ \"${bb_full_target}\" == \"${MACHTYPE_FULL}\" ]]; then\n    CFG_TESTING=\"-DENABLE_TESTING=ON\"\nfi\n\n\n###########\n# libcifpp: install libcifpp static library\n###########\ncd libcifpp\n\n# mingw doesn't have ioctl\n# upstream PR: https://github.com/PDB-REDO/libcifpp/pull/45\natomic_patch -p1 ../patches/libcifpp-mingw-no-ioctl.patch\n\n# fixes for clang and libc++ on macos for missing C++20 features\n# (missing std::set::contains and operator<=>)\n# Upstream issue: https://github.com/PDB-REDO/libcifpp/issues/39\nif [[ \"${target}\" == *-apple-darwin* ]]; then\n    atomic_patch -p1 ../patches/libcifpp-clang-libc++-fixes.patch\nfi\n\nmkdir build && cd build\n# Set cmake cache vars because test programs can't be run during\n# cross-compilation\n#\n# -DSTD_REGEX_RUNNING=0               # std::regex works\n# -D_CXX_ATOMIC_BUILTIN_EXITCODE=0    # std::atomic works\n# -D_CXX_ATOMIC_BUILTIN_EXITCODE__TRYRUN_OUTPUT=0\n#\ncmake .. \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DCMAKE_PREFIX_PATH=${prefix} \\\n    -DBUILD_FOR_CCP4=OFF \\\n    -DCIFPP_DOWNLOAD_CCD=OFF \\\n    -DCIFPP_INSTALL_UPDATE_SCRIPT=OFF \\\n    -DBUILD_SHARED_LIBS=OFF \\\n    -DSTD_REGEX_RUNNING=OFF \\\n    -D_CXX_ATOMIC_BUILTIN_EXITCODE=0 \\\n    -D_CXX_ATOMIC_BUILTIN_EXITCODE__TRYRUN_OUTPUT=0 \\\n    ${CFG_TESTING}\n\nmake -j${nproc}\nif [[ \"${bb_full_target}\" == \"${MACHTYPE_FULL}\" ]]; then\n    # run the tests on the build host platform\n    make test\nfi\nmake install\ncp ../LICENSE LICENSE-libcifpp\ninstall_license LICENSE-libcifpp\ncd ../..\n\n\n###########\n# dssp: now compile dssp\n###########\ncd dssp\n\nmkdir build && cd build\ncmake .. \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DBUILD_FOR_CCP4=OFF \\\n    -DBUILD_WEBSERVER=OFF \\\n    ${CFG_TESTING}\n\nmake -j${nproc}\nmake install\n\n# run dssp tests\nif [[ \"${bb_full_target}\" == \"${MACHTYPE_FULL}\" ]]; then\n    # run the tests on the build host platform\n    make test\nfi\n\ninstall_license ../LICENSE\n"""
+version = "v4.4.0"
+
+[[dependencies]]
+compat = ""
+name = "Eigen_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "libmcfp_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "boost_jll"
+platforms = ["x86_64-linux-musl-cxx11"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["mkdssp"]
+type = "exe"
+variable_name = "mkdssp"
+
+[[sources]]
+hash = "c5ec1f2ddc800e7054d47a952b1ce21449f1d6b8"
+type = "git"
+unpack_target = ""
+url = "https://github.com/PDB-REDO/dssp"
+[[sources]]
+hash = "836aed6ea9a227b37e5b0d9cbcb1253f545d0778"
+type = "git"
+unpack_target = ""
+url = "https://github.com/PDB-REDO/libcifpp"
+[[sources]]
+hash = "2408d07df7f324d3beea818585a6d990ba99587c218a3969f924dfcc4de93b62"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.15.sdk.tar.xz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

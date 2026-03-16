@@ -1,0 +1,33 @@
+lazy_artifacts = false
+name = "Cgl"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin14-cxx03", "x86_64-apple-darwin14-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir/Cgl*\n\n# Remove misleading libtool files                                                                                            \nrm -f ${prefix}/lib/*.la                                                                                                     \nrm -f /opt/${target}/${target}/lib*/*.la                                                                                     \nupdate_configure_scripts\n\nmkdir build\ncd build/\n\nexport CPPFLAGS=\"${CPPFLAGS} -I${prefix}/include -I$prefix/include/coin\"\nexport CXXFLAGS=\"${CXXFLAGS} -std=c++11\"\nif [[ ${target} == *mingw* ]]; then\n    export LDFLAGS=\"-L$prefix/bin\"\nelif [[ ${target} == *linux* ]]; then\n    export LDFLAGS=\"-ldl -lrt\"\nfi\n\n../configure --prefix=$prefix --with-pic --disable-pkg-config --build=${MACHTYPE} --host=${target} \\\n--enable-shared lt_cv_deplibs_check_method=pass_all \\\n--with-coinutils-lib=\"-lCoinUtils\" \\\n--with-osi-lib=\"-lOsi -lCoinUtils\" \\\n--with-osiclp-lib=\"-lOsiClp -lClp -lOsi -lCoinUtils\"\n\nmake -j${nproc}\nmake install\n"""
+version = "v0.60.2"
+
+[[dependencies]]
+name = "Clp_jll"
+type = "dependency"
+uuid = "06985876-5285-5a41-9fcb-8948a742cc53"
+version-major = 1
+version-minor = 17
+version-patch = 3
+[[dependencies]]
+name = "CompilerSupportLibraries_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libCgl"]
+type = "lib"
+variable_name = "libCgl"
+
+[[sources]]
+hash = "6377b88754fafacf24baac28bb27c0623cc14457"
+type = "git"
+unpack_target = ""
+url = "https://github.com/coin-or/Cgl.git"

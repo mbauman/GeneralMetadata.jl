@@ -1,0 +1,82 @@
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "tectonic"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11", "aarch64-apple-darwin"]
+script = """cd $WORKSPACE/srcdir/tectonic-*/\n\nif [[ \"${target}\" == *-linux-musl* ]]; then\n    # Our Musl toolchain is missing a symlink `libc.musl-${musl_arch}.so.1` -> `libc.so`,\n    # let's create it manually until we fix it directly in the compiler shards.\n    case \"${target}\" in\n        i686*)\n            musl_arch=\"i386\" ;;\n        arm*)\n            musl_arch=\"armhf\" ;;\n        *)\n            musl_arch=\"${target%%-*}\" ;;\n    esac\n    # If this errors out because `libc.musl-${musl_arch}.so.1` already exists it'll mean we\n    # can remove this hack.\n    ln -sv libc.so /opt/${target}/${target}/sys-root/usr/lib/libc.musl-${musl_arch}.so.1\nelif [[ \"${target}\" == *-mingw* ]]; then\n    export RUSTFLAGS=\"-Clink-args=-L${libdir}\"\nfi\n\ncargo build --release --locked --features external-harfbuzz\ncp target/${rust_target}/release/tectonic${exeext} ${bindir}/\n"""
+version = "v0.8.0"
+
+[[dependencies]]
+compat = ""
+name = "Fontconfig_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "FreeType2_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Graphite2_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "2.8.1"
+name = "HarfBuzz_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "HarfBuzz_ICU_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "69.1"
+name = "ICU_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenSSL_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "libpng_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["tectonic"]
+type = "exe"
+variable_name = "tectonic"
+
+[[sources]]
+hash = "794cf34aee017b8a4288ed509a4e9d550a36aadc2bc0d35b1727d1135dac8e02"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/tectonic-typesetting/tectonic/archive/tectonic@0.8.0.tar.gz"

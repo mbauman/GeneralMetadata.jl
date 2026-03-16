@@ -1,0 +1,77 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "CXSparse"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """PROJECTS_TO_BUILD=\"cxsparse\"\nif [[ \"${target}\" == aarch64-apple-* ]]; then\n    # Linking libomp requires the function `__divdc3`, which is implemented in\n    # `libclang_rt.osx.a` from LLVM compiler-rt.\n    CMAKE_OPTIONS+=(\n        -DCMAKE_SHARED_LINKER_FLAGS=\"-L${libdir}/darwin -lclang_rt.osx\"\n    )\nfi\nUSE_OMP=false\nUSE_CUDA=false\nUSE_32BIT_BLAS=false\ncd $WORKSPACE/srcdir/SuiteSparse\n\n# Needs cmake >= 3.29 provided by jll\napk del cmake\n\nFLAGS+=(INSTALL=\"${prefix}\" INSTALL_LIB=\"${libdir}\" INSTALL_INCLUDE=\"${prefix}/include\")\n\nif [[ ${bb_full_target} == *-sanitize+memory* ]]; then\n    # Install msan runtime (for clang)\n    cp -rL ${libdir}/linux/* /opt/x86_64-linux-musl/lib/clang/*/lib/linux/\nfi\n\nif [[ ${nbits} == 64 ]] && [[ ${USE_32BIT_BLAS} == false ]]; then\n    CMAKE_OPTIONS+=(\n        -DBLAS64_SUFFIX=\"_64\"\n        -DSUITESPARSE_USE_64BIT_BLAS=YES\n    )\nelse\n    CMAKE_OPTIONS+=(\n        -DSUITESPARSE_USE_64BIT_BLAS=NO\n    )\nfi\n\n# some of these are not used for a particular builder\n# but most are. BLAS handling is the big one which isn't always used.\n# It's likely easier to keep them in common.jl than add them elsewhere.\n# TODO: Can BLAS handling be done by upstream now?\nmkdir -p build && cd build\ncmake -DCMAKE_BUILD_TYPE=Release \\\n      -DCMAKE_INSTALL_PREFIX=${prefix} \\\n      -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n      -DBUILD_STATIC_LIBS=OFF \\\n      -DBUILD_TESTING=OFF \\\n      -DBLA_VENDOR=libblastrampoline \\\n      -DSUITESPARSE_ENABLE_PROJECTS=${PROJECTS_TO_BUILD} \\\n      -DSUITESPARSE_DEMOS=OFF \\\n      -DSUITESPARSE_USE_STRICT=ON \\\n      -DSUITESPARSE_USE_FORTRAN=OFF \\\n      -DSUITESPARSE_USE_OPENMP=${USE_OMP} \\\n      -DSUITESPARSE_USE_CUDA=${USE_CUDA} \\\n      -DCHOLMOD_PARTITION=ON \\\n      \"${CMAKE_OPTIONS[@]}\" \\\n      ..\n\ncmake --build . --parallel ${nproc}\ncmake --install .\n\n# For now, we'll have to adjust the name of the Lbt library on macOS and FreeBSD.\n# Eventually, this should be fixed upstream\nif [[ ${target} == *-apple-* ]] || [[ ${target} == *freebsd* ]]; then\n    echo \"-- Modifying library name for libblastrampoline\"\n\n    BLAS_NAME=blastrampoline\n    for nm in libcholmod libspqr libumfpack; do\n        if [[ *\"${nm}\"* == PROJECTS_TO_BUILD ]]; then\n            # Figure out what version it probably latched on to:\n            if [[ ${target} == *-apple-* ]]; then\n                LBT_LINK=$(otool -L ${libdir}/${nm}.dylib | grep lib${BLAS_NAME} | awk '{ print $1 }')\n                install_name_tool -change ${LBT_LINK} @rpath/lib${BLAS_NAME}.dylib ${libdir}/${nm}.dylib\n            elif [[ ${target} == *freebsd* ]]; then\n                LBT_LINK=$(readelf -d ${libdir}/${nm}.so | grep lib${BLAS_NAME} | sed -e 's/.*\\[\\(.*\\)\\].*/\\1/')\n                patchelf --replace-needed ${LBT_LINK} lib${BLAS_NAME}.so ${libdir}/${nm}.so\n            fi\n        fi\n    done\nfi\n\n# Delete the extra soversion libraries built. https://github.com/JuliaPackaging/Yggdrasil/issues/7\nif [[ \"${target}\" == *-mingw* ]]; then\n    rm -f ${libdir}/lib*.*.${dlext}\n    rm -f ${libdir}/lib*.*.*.${dlext}\nfi\n\ninstall_license ../LICENSE.txt\n"""
+version = "v400.400.100"
+
+[[dependencies]]
+compat = "5.8.0"
+name = "libblastrampoline_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "8e850b90-86db-534c-a0d3-1478176c7d93"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LLVMCompilerRT_jll"
+platforms = ["x86_64-linux-gnu-sanitize+memory"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CMake_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LLVMCompilerRT_jll"
+platforms = ["aarch64-apple-darwin"]
+top_level = false
+type = "builddependency"
+uuid = "4e17d02c-6bf5-513e-be62-445f41c75a11"
+version-major = 16
+version-minor = 0
+version-patch = 6
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcxsparse"]
+type = "lib"
+variable_name = "libcxsparse"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsuitesparseconfig"]
+type = "lib"
+variable_name = "libsuitesparseconfig_cxsparse"
+
+[[sources]]
+hash = "31572b33461e17eb3836c8cda9b1e5920ab1dfa0"
+type = "git"
+unpack_target = ""
+url = "https://github.com/DrTimothyAldenDavis/SuiteSparse.git"

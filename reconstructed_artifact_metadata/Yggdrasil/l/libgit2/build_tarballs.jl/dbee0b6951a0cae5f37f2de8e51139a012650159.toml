@@ -1,0 +1,51 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.9"
+lazy_artifacts = false
+name = "LibGit2"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "x86_64-linux-gnu-sanitize+memory"]
+script = """cd $WORKSPACE/srcdir/libgit2*\n\nBUILD_FLAGS=(\n    -DCMAKE_BUILD_TYPE=Release\n    -DUSE_THREADS=ON\n    -DUSE_BUNDLED_ZLIB=ON\n    -DUSE_HTTPS=OpenSSL\n    -DUSE_SHA1=CollisionDetection\n    -DUSE_SSH=ON\n    -DBUILD_CLI=OFF\n    \"-DCMAKE_INSTALL_PREFIX=${prefix}\"\n    \"-DCMAKE_TOOLCHAIN_FILE=\"${CMAKE_TARGET_TOOLCHAIN}\"\"\n    # Make sure we don't link to mbedTLS:\n    # <https://github.com/JuliaPackaging/Yggdrasil/pull/8377#issuecomment-2027370830>.\n    # TODO: this hack can be removed when we'll link to a newer version of libssh2 which\n    # doesn't link to mbedTLS.\n    -DLIBSSH2_LDFLAGS=\"-L${libdir};-lssh2\"\n    -DLIBSSH2_LIBRARIES=\"ssh2\"\n)\n\nif [[ ${bb_full_target} == *-sanitize+memory* ]]; then\n    # Install msan runtime (for clang)\n    cp -rL ${libdir}/linux/* /opt/x86_64-linux-musl/lib/clang/*/lib/linux/\nfi\n\n# Special windows flags\nif [[ ${target} == *-mingw* ]]; then\n    BUILD_FLAGS+=(-DWIN32=ON -DMINGW=ON -DBUILD_TESTS=OFF)\n    if [[ ${target} == i686-* ]]; then\n        BUILD_FLAGS+=(-DCMAKE_C_FLAGS=\"-mincoming-stack-boundary=2\")\n    fi\n\n    # For some reason, CMake fails to find libssh2 using pkg-config.\n    BUILD_FLAGS+=(-Dssh2_RESOLVED=${bindir}/libssh2.dll)\nfi\n\n# Necessary for cmake to find openssl on Windows\nif [[ ${target} == x86_64-*-mingw* ]]; then\n    export OPENSSL_ROOT_DIR=${prefix}/lib64\nfi\n\nmkdir build && cd build\n\ncmake .. \"${BUILD_FLAGS[@]}\"\nmake -j${nproc}\nmake install\n"""
+version = "v1.8.0"
+
+[[dependencies]]
+compat = "1.11.0"
+name = "LibSSH2_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "3.0.8"
+name = "OpenSSL_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LLVMCompilerRT_jll"
+platforms = ["x86_64-linux-gnu-sanitize+memory"]
+top_level = false
+type = "builddependency"
+uuid = "4e17d02c-6bf5-513e-be62-445f41c75a11"
+version-major = 13
+version-minor = 0
+version-patch = 1
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgit2"]
+type = "lib"
+variable_name = "libgit2"
+
+[[sources]]
+hash = "d74d491481831ddcd23575d376e56d2197e95910"
+type = "git"
+unpack_target = ""
+url = "https://github.com/libgit2/libgit2.git"

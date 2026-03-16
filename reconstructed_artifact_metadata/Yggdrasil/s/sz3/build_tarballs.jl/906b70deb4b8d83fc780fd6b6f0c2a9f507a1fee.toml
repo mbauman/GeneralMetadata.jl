@@ -1,0 +1,93 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "SZ3"
+platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd"]
+script = """cd ${WORKSPACE}/srcdir\ncd SZ3-*\n\nhdf5_options=\nif test -f \"${includedir}/hdf5.h\"; then\n    # HDF5 is available, use it\n    hdf5_options='-DBUILD_H5Z_FILTER=ON'\nelse\n    # Create an empty library\n    echo 'int SZ_no_hdf5;' >hdf5sz3.cxx\n    c++ -fPIC -c hdf5sz3.cxx\n    c++ -shared -o libhdf5sz3.${dlext} hdf5sz3.o\n    install -Dvm 755 \"libhdf5sz3.${dlext}\" \"${libdir}/libhdf5sz3.${dlext}\"\nfi\n\nmkdir build\ncd build\ncmake \\\n    -DCMAKE_FIND_ROOT_PATH=${prefix} \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DBUILD_MDZ=ON \\\n    ${hdf5_options} \\\n    ..\ncmake --build . --config RelWithDebInfo --parallel ${nproc}\n\n# Fix permissions on generated file (chmod does not work)\ncat SZ3ConfigVersion.cmake >SZ3ConfigVersion.cmake.tmp\nmv SZ3ConfigVersion.cmake.tmp SZ3ConfigVersion.cmake\n\ncmake --build . --config RelWithDebInfo --parallel ${nproc} --target install\ninstall_license ../copyright-and-BSD-license.txt\n"""
+version = "v3.1.7"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LLVMOpenMP_jll"
+platforms = ["x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd"]
+top_level = false
+type = "dependency"
+uuid = "1d63c593-3942-5779-bab2-d838dc0a180e"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "GSL_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "HDF5_jll"
+platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "x86_64-apple-darwin", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "aarch64-apple-darwin"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zstd_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["mdz"]
+type = "exe"
+variable_name = "mdz"
+[[products]]
+binnames = ["mdz_smoke_test"]
+type = "exe"
+variable_name = "mdz_smoke_test"
+[[products]]
+binnames = ["sz3"]
+type = "exe"
+variable_name = "sz3"
+[[products]]
+binnames = ["sz3_smoke_test"]
+type = "exe"
+variable_name = "sz3_smoke_test"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libhdf5sz3"]
+type = "lib"
+variable_name = "libhdf5sz3"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libSZ3c"]
+type = "lib"
+variable_name = "libSZ3c"
+
+[[sources]]
+hash = "cf3ba7fae82f9483c4089963b9951ba9bf6b9eca5f712727fb92f2390b778aa8"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/szcompressor/SZ3/releases/download/v3.1.7/SZ3-3.1.7.zip"

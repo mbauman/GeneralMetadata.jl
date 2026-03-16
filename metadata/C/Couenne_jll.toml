@@ -5,77 +5,10 @@ registered = 2021-04-09T00:12:33.000Z
     [["0.5.8+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.5.8+0/Couenne.v0.5.8.aarch64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.5.8+0/Couenne.v0.5.8.aarch64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.5.8+0/Couenne.v0.5.8.armv7l-linux-gnueabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.5.8+0/Couenne.v0.5.8.armv7l-linux-musleabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.5.8+0/Couenne.v0.5.8.i686-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.5.8+0/Couenne.v0.5.8.i686-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.5.8+0/Couenne.v0.5.8.i686-w64-mingw32-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.5.8+0/Couenne.v0.5.8.powerpc64le-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.5.8+0/Couenne.v0.5.8.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.5.8+0/Couenne.v0.5.8.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.5.8+0/Couenne.v0.5.8.x86_64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.5.8+0/Couenne.v0.5.8.x86_64-w64-mingw32-cxx11.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/c0c9a1f0d2c87486b01587a8ca9ef28c1741e31d/C/Coin-OR/Couenne/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/c/coin-or/couenne/build_tarballs.jl/c0c9a1f0d2c87486b01587a8ca9ef28c1741e31d.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.3.0"
-
-        ["0.5.8+0".artifact_metadata.metadata]
-        init_block = ""
-        julia_compat = "1.0"
-        lazy_artifacts = false
-        name = "Couenne"
-        platforms = ["i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx11"]
-        script = """cd $WORKSPACE/srcdir/Couenne\n\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/fixes.patch\n\nif [[ ${target} == *mingw* ]]; then\n    # Disable user-interrupts on Windows.\n    sed -i s/'#define SIGNAL'// ${WORKSPACE}/srcdir/Couenne/Couenne/src/main/CouenneBab.cpp\n    # Export symbols from DLL\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/export.patch\nfi\n\n# asl.h defines a macro called `filename`. Very unhelpful.\nsed -i s/'#define filename'/'#define __asl_filename'/ /workspace/destdir/include/asl.h\nsed -i s/'filename;'/'__asl_filename;'/ /workspace/srcdir/Couenne/Couenne/src/readnl/readnl.cpp\n\n# Remove misleading libtool files\nrm -f ${libdir}/*.la\nupdate_configure_scripts\n\n# old and custom autoconf\nsed -i s/elf64ppc/elf64lppc/ configure\n\nexport CPPFLAGS=\"${CPPFLAGS} -I${includedir} -I${includedir}/coin -I${includedir}/coin-or\"\nexport CXXFLAGS=\"${CXXFLAGS} -std=c++11\"\n\nif [[ ${target} == *mingw* ]]; then\n    export LDFLAGS=\"-L${libdir}\"\n    export LT_LDFLAGS=\"-no-undefined\"\nelif [[ ${target} == *apple* ]]; then\n    # Turn off the annoying, but harmless, -Wdeprecated-register.\n    export CPPFLAGS=\"${CPPFLAGS} -Wno-deprecated-register\"\nfi\n\n./configure \\\n    --prefix=$prefix \\\n    --build=${MACHTYPE} \\\n    --host=${target} \\\n    --enable-static \\\n    --enable-shared \\\n    lt_cv_deplibs_check_method=pass_all \\\n    --with-asl-lib=\"-lasl -lipoptamplinterface\" \\\n    --with-bonmin-lib=\"-lbonminampl -lbonmin -lipoptamplinterface -lipopt -lCbc -lCgl -lOsiClp -lClp -lOsi -lCoinUtils -lasl -lopenblas\"\n\nmake\nmake install\n"""
-        version = "v0.5.8"
-
-            [["0.5.8+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "ASL_jll"
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["0.5.8+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Bonmin_jll"
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["0.5.8+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Cbc_jll"
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["0.5.8+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "CompilerSupportLibraries_jll"
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["0.5.8+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Ipopt_jll"
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["0.5.8+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libCouenne"]
-            type = "lib"
-            variable_name = "libcouenne"
-            [["0.5.8+0".artifact_metadata.metadata.products]]
-            binnames = ["couenne"]
-            type = "exe"
-            variable_name = "amplexe"
-
-            [["0.5.8+0".artifact_metadata.metadata.sources]]
-            hash = "7154f7a9b3cd84be378d02b483d090b76fc79ce8"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/coin-or/Couenne.git"
-            [["0.5.8+0".artifact_metadata.metadata.sources]]
-            follow_symlinks = false
-            path = "./bundled"
-            target = ""
-            type = "directory"
 
 ["0.500.801+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.801+0/Couenne.v0.500.801.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.801+0/Couenne.v0.500.801.aarch64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.801+0/Couenne.v0.500.801.aarch64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.801+0/Couenne.v0.500.801.armv6l-linux-gnueabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.801+0/Couenne.v0.500.801.armv6l-linux-musleabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.801+0/Couenne.v0.500.801.armv7l-linux-gnueabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.801+0/Couenne.v0.500.801.armv7l-linux-musleabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.801+0/Couenne.v0.500.801.i686-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.801+0/Couenne.v0.500.801.i686-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.801+0/Couenne.v0.500.801.i686-w64-mingw32-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.801+0/Couenne.v0.500.801.powerpc64le-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.801+0/Couenne.v0.500.801.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.801+0/Couenne.v0.500.801.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.801+0/Couenne.v0.500.801.x86_64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.801+0/Couenne.v0.500.801.x86_64-w64-mingw32-cxx11.tar.gz"]
@@ -84,70 +17,10 @@ registered = 2021-12-05T11:28:48.000Z
     [["0.500.801+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.801+0/Couenne.v0.500.801.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.801+0/Couenne.v0.500.801.aarch64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.801+0/Couenne.v0.500.801.aarch64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.801+0/Couenne.v0.500.801.armv6l-linux-gnueabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.801+0/Couenne.v0.500.801.armv6l-linux-musleabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.801+0/Couenne.v0.500.801.armv7l-linux-gnueabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.801+0/Couenne.v0.500.801.armv7l-linux-musleabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.801+0/Couenne.v0.500.801.i686-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.801+0/Couenne.v0.500.801.i686-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.801+0/Couenne.v0.500.801.i686-w64-mingw32-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.801+0/Couenne.v0.500.801.powerpc64le-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.801+0/Couenne.v0.500.801.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.801+0/Couenne.v0.500.801.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.801+0/Couenne.v0.500.801.x86_64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.801+0/Couenne.v0.500.801.x86_64-w64-mingw32-cxx11.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/cdac70b46905724e14461040f979895fda96c698/C/Coin-OR/Couenne/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/c/coin-or/couenne/build_tarballs.jl/cdac70b46905724e14461040f979895fda96c698.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.4.4"
-
-        ["0.500.801+0".artifact_metadata.metadata]
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "Couenne"
-        platforms = ["i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx11", "aarch64-apple-darwin", "armv6l-linux-gnueabihf-cxx11", "armv6l-linux-musleabihf-cxx11"]
-        script = """cd $WORKSPACE/srcdir/Couenne\n\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/fixes.patch\n\nif [[ ${target} == *mingw* ]]; then\n    # Disable user-interrupts on Windows.\n    sed -i s/'#define SIGNAL'// ${WORKSPACE}/srcdir/Couenne/Couenne/src/main/CouenneBab.cpp\n    # Export symbols from DLL\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/export.patch\nfi\n\n# asl.h defines a macro called `filename`. Very unhelpful.\nsed -i s/'#define filename'/'#define __asl_filename'/ /workspace/destdir/include/asl.h\nsed -i s/'filename;'/'__asl_filename;'/ /workspace/srcdir/Couenne/Couenne/src/readnl/readnl.cpp\n\n# Remove misleading libtool files\nrm -f ${libdir}/*.la\nupdate_configure_scripts\n\n# old and custom autoconf\nsed -i s/elf64ppc/elf64lppc/ configure\n\nexport CPPFLAGS=\"${CPPFLAGS} -I${includedir} -I${includedir}/coin -I${includedir}/coin-or\"\nexport CXXFLAGS=\"${CXXFLAGS} -std=c++11\"\n\nif [[ ${target} == *mingw* ]]; then\n    export LDFLAGS=\"-L${libdir}\"\n    export LT_LDFLAGS=\"-no-undefined\"\nelif [[ ${target} == *apple* ]]; then\n    # Turn off the annoying, but harmless, -Wdeprecated-register.\n    export CPPFLAGS=\"${CPPFLAGS} -Wno-deprecated-register\"\nfi\n\n./configure \\\n    --prefix=$prefix \\\n    --build=${MACHTYPE} \\\n    --host=${target} \\\n    --enable-static \\\n    --enable-shared \\\n    lt_cv_deplibs_check_method=pass_all \\\n    --with-asl-lib=\"-lasl -lipoptamplinterface\" \\\n    --with-bonmin-lib=\"-lbonminampl -lbonmin -lipoptamplinterface -lipopt -lCbc -lCgl -lOsiClp -lClp -lOsi -lCoinUtils -lasl -lopenblas\"\n\nmake -j${nproc}\nmake install\n"""
-        version = "v0.500.801"
-
-            [["0.500.801+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "ASL_jll"
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["0.500.801+0".artifact_metadata.metadata.dependencies]]
-            compat = "100.800.801"
-            name = "Bonmin_jll"
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["0.500.801+0".artifact_metadata.metadata.dependencies]]
-            compat = "200.1000.501"
-            name = "Cbc_jll"
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["0.500.801+0".artifact_metadata.metadata.dependencies]]
-            compat = "300.1400.400"
-            name = "Ipopt_jll"
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["0.500.801+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libCouenne"]
-            type = "lib"
-            variable_name = "libcouenne"
-            [["0.500.801+0".artifact_metadata.metadata.products]]
-            binnames = ["couenne"]
-            type = "exe"
-            variable_name = "amplexe"
-
-            [["0.500.801+0".artifact_metadata.metadata.sources]]
-            hash = "7154f7a9b3cd84be378d02b483d090b76fc79ce8"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/coin-or/Couenne.git"
-            [["0.500.801+0".artifact_metadata.metadata.sources]]
-            follow_symlinks = false
-            path = "./bundled"
-            target = ""
-            type = "directory"
 
 ["0.500.802+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.802+0/Couenne.v0.500.802.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.802+0/Couenne.v0.500.802.aarch64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.802+0/Couenne.v0.500.802.aarch64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.802+0/Couenne.v0.500.802.armv6l-linux-gnueabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.802+0/Couenne.v0.500.802.armv6l-linux-musleabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.802+0/Couenne.v0.500.802.armv7l-linux-gnueabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.802+0/Couenne.v0.500.802.armv7l-linux-musleabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.802+0/Couenne.v0.500.802.i686-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.802+0/Couenne.v0.500.802.i686-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.802+0/Couenne.v0.500.802.i686-w64-mingw32-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.802+0/Couenne.v0.500.802.powerpc64le-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.802+0/Couenne.v0.500.802.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.802+0/Couenne.v0.500.802.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.802+0/Couenne.v0.500.802.x86_64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.802+0/Couenne.v0.500.802.x86_64-w64-mingw32-cxx11.tar.gz"]
@@ -156,86 +29,7 @@ registered = 2025-09-24T04:24:57.000Z
     [["0.500.802+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.802+0/Couenne.v0.500.802.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.802+0/Couenne.v0.500.802.aarch64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.802+0/Couenne.v0.500.802.aarch64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.802+0/Couenne.v0.500.802.armv6l-linux-gnueabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.802+0/Couenne.v0.500.802.armv6l-linux-musleabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.802+0/Couenne.v0.500.802.armv7l-linux-gnueabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.802+0/Couenne.v0.500.802.armv7l-linux-musleabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.802+0/Couenne.v0.500.802.i686-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.802+0/Couenne.v0.500.802.i686-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.802+0/Couenne.v0.500.802.i686-w64-mingw32-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.802+0/Couenne.v0.500.802.powerpc64le-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.802+0/Couenne.v0.500.802.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.802+0/Couenne.v0.500.802.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.802+0/Couenne.v0.500.802.x86_64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Couenne_jll.jl/releases/download/Couenne-v0.500.802+0/Couenne.v0.500.802.x86_64-w64-mingw32-cxx11.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/056c7be0b102fe81087b902e5303ac7cb1b745d6/C/Coin-OR/Couenne/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/c/coin-or/couenne/build_tarballs.jl/056c7be0b102fe81087b902e5303ac7cb1b745d6.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.6.5"
-
-        ["0.500.802+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.9"
-        lazy_artifacts = false
-        name = "Couenne"
-        platforms = ["i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx11"]
-        script = """cd $WORKSPACE/srcdir/Couenne\n\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/fixes.patch\n\nif [[ ${target} == *mingw* ]]; then\n    # Disable user-interrupts on Windows.\n    sed -i s/'#define SIGNAL'// ${WORKSPACE}/srcdir/Couenne/Couenne/src/main/CouenneBab.cpp\n    # Export symbols from DLL\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/export.patch\nfi\n\n# asl.h defines a macro called `filename`. Very unhelpful.\nsed -i s/'#define filename'/'#define __asl_filename'/ /workspace/destdir/include/asl.h\nsed -i s/'filename;'/'__asl_filename;'/ /workspace/srcdir/Couenne/Couenne/src/readnl/readnl.cpp\n\n# Remove misleading libtool files\nrm -f ${libdir}/*.la\nupdate_configure_scripts\n\n# old and custom autoconf\nsed -i s/elf64ppc/elf64lppc/ configure\n\nexport CPPFLAGS=\"${CPPFLAGS} -I${includedir} -I${includedir}/coin -I${includedir}/coin-or\"\nexport CXXFLAGS=\"${CXXFLAGS} -std=c++11\"\n\nif [[ ${target} == *mingw* ]]; then\n    export LDFLAGS=\"-L${libdir}\"\n    export LT_LDFLAGS=\"-no-undefined\"\nelif [[ ${target} == *apple* ]]; then\n    # Turn off the annoying, but harmless, -Wdeprecated-register.\n    export CPPFLAGS=\"${CPPFLAGS} -Wno-deprecated-register\"\nfi\n\n# BLAS and LAPACK\nif [[ \"${target}\" == *mingw* ]]; then\n  LBT=\"-lblastrampoline-5\"\nelse\n  LBT=\"-lblastrampoline\"\nfi\n\n./configure \\\n    --prefix=$prefix \\\n    --build=${MACHTYPE} \\\n    --host=${target} \\\n    --enable-static \\\n    --enable-shared \\\n    lt_cv_deplibs_check_method=pass_all \\\n    --with-asl-lib=\"-lasl -lipoptamplinterface\" \\\n    --with-bonmin-lib=\"-lbonminampl -lbonmin -lipoptamplinterface -lipopt -lCbc -lCgl -lOsiClp -lClp -lOsi -lCoinUtils -lasl ${LBT}\"\n\nmake -j${nproc}\nmake install\n"""
-        version = "v0.500.802"
-
-            [["0.500.802+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "ASL_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["0.500.802+0".artifact_metadata.metadata.dependencies]]
-            compat = "100.800.902"
-            name = "Bonmin_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["0.500.802+0".artifact_metadata.metadata.dependencies]]
-            compat = "200.1000.1200"
-            name = "Cbc_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["0.500.802+0".artifact_metadata.metadata.dependencies]]
-            compat = "300.1400.1900"
-            name = "Ipopt_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["0.500.802+0".artifact_metadata.metadata.dependencies]]
-            compat = "5.4.0"
-            name = "libblastrampoline_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            uuid = "8e850b90-86db-534c-a0d3-1478176c7d93"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["0.500.802+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libCouenne"]
-            type = "lib"
-            variable_name = "libcouenne"
-            [["0.500.802+0".artifact_metadata.metadata.products]]
-            binnames = ["couenne"]
-            type = "exe"
-            variable_name = "amplexe"
-
-            [["0.500.802+0".artifact_metadata.metadata.sources]]
-            hash = "7154f7a9b3cd84be378d02b483d090b76fc79ce8"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/coin-or/Couenne.git"
-            [["0.500.802+0".artifact_metadata.metadata.sources]]
-            follow_symlinks = false
-            path = "./bundled"
-            target = ""
-            type = "directory"

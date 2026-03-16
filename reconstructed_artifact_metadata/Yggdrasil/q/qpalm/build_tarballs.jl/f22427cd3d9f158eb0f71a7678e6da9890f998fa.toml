@@ -1,0 +1,60 @@
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "QPALM"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "aarch64-apple-darwin", "armv6l-linux-gnueabihf", "armv6l-linux-musleabihf"]
+script = """cd $WORKSPACE/srcdir\ncd QPALM_vLADEL/\nln -s ${WORKSPACE}/srcdir/LADEL/* ${WORKSPACE}/srcdir/QPALM_vLADEL/LADEL/\nln -s ${WORKSPACE}/srcdir/QPALM.jl/* ${WORKSPACE}/srcdir/QPALM_vLADEL/interfaces/QPALM.jl/\n[[ $target == *-freebsd* ]] && patch -p1 < $WORKSPACE/srcdir/patches/freebsd.patch\nmkdir -p build\ncd build\nmkdir lib debug\ncd debug  # just following the instructions here\n\n[[ $target == *-mingw* ]] && BLAS=libopenblas.${dlext}.a || BLAS=libopenblas.${dlext}\n[[ $target == *-linux-* ]] && std=\"gnu99\" || std=\"c99\"\n\ncmake ../.. \\\n      -DCMAKE_BUILD_TYPE=release \\\n      -DCMAKE_INSTALL_PREFIX=$prefix \\\n      -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n      -DUSE_LADEL=ON \\\n      -DUSE_CHOLMOD=ON \\\n      -DINTERFACES=OFF \\\n      -DPYTHON=OFF \\\n      -DCOVERAGE=OFF \\\n      -DUNITTESTS=OFF \\\n      -DJULIA=ON \\\n      -DLAPACKE=${prefix}/lib/${BLAS} \\\n      -DLAPACK=${prefix}/lib/${BLAS} \\\n      -DCMAKE_C_FLAGS=\"-I${includedir} -std=${std}\"\n\nmake\n\n# make install doesn't appear to work...\nif [[ $target == *-mingw* ]]; then\n  # headers don't make it to build/include\n  cp ../../include/* $prefix/include\n  cp bin/* $prefix/bin\nelse\n  cp ../include/* $prefix/include\n  cp ../lib/* $prefix/lib\nfi\ncd ../..\nmv LICENSE LICENSE.QPALM\ninstall_license LICENSE.QPALM\nmv ${WORKSPACE}/srcdir/LADEL/LICENSE ./LICENSE.LADEL\ninstall_license LICENSE.LADEL\n"""
+version = "v0.1.1"
+
+[[dependencies]]
+compat = ""
+name = "OpenBLAS32_jll"
+type = "dependency"
+uuid = "656ef2d0-ae68-5445-9ca0-591084a874a2"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "SuiteSparse_jll"
+type = "dependency"
+uuid = "bea87d4a-7f5b-5778-9afe-8cc45184846c"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libladel"]
+type = "lib"
+variable_name = "libladel"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libqpalm"]
+type = "lib"
+variable_name = "libqpalm"
+
+[[sources]]
+hash = "370ccbeb33baaa566c3de2bde5a69944994593e2"
+type = "git"
+unpack_target = ""
+url = "https://github.com/Benny44/QPALM_vLADEL.git"
+[[sources]]
+hash = "585b766da25e028f368e4d9039ef69e326baeb5b"
+type = "git"
+unpack_target = ""
+url = "https://github.com/Benny44/LADEL.git"
+[[sources]]
+hash = "7b4424ce17ba232aa6e89648032c93572ca5a3e1"
+type = "git"
+unpack_target = ""
+url = "https://github.com/kul-optec/QPALM.jl.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

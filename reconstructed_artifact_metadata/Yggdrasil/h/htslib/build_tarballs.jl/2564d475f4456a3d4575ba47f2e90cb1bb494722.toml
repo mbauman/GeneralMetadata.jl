@@ -1,0 +1,80 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "htslib"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd"]
+script = """cd $WORKSPACE/srcdir/htslib-*\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target}\nmake -j${nproc}\nmake install\n\n# Delete static library\nrm \"${prefix}/lib/libhts.a\"\n\n# On Windows, product files are renamed so that BB can find them.\nif [[ ${target} == *-mingw32 ]]; then\n    # Add .exe extension to executables.\n    for exefile in bgzip tabix htsfile; do\n        mv \"${bindir}/${exefile}\" \"${bindir}/${exefile}${exeext}\"\n    done\nfi\n"""
+version = "v1.19.1"
+
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.0.8"
+name = "Bzip2_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "5.2.5"
+name = "XZ_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "7.73,8"
+name = "LibCURL_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "3.0.8"
+name = "OpenSSL_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libhts", "hts"]
+type = "lib"
+variable_name = "libhts"
+[[products]]
+binnames = ["bgzip"]
+type = "exe"
+variable_name = "bgzip"
+[[products]]
+binnames = ["tabix"]
+type = "exe"
+variable_name = "tabix"
+[[products]]
+binnames = ["htsfile"]
+type = "exe"
+variable_name = "htsfile"
+
+[[sources]]
+hash = "222d74d3574fb67b158c6988c980eeaaba8a0656f5e4ffb76b5fa57f035933ec"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/samtools/htslib/releases/download/1.19.1/htslib-1.19.1.tar.bz2"

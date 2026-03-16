@@ -5,66 +5,10 @@ registered = 2021-06-20T17:13:12.000Z
     [["0.1.0+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.1.0+0/QPALM.v0.1.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.1.0+0/QPALM.v0.1.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.1.0+0/QPALM.v0.1.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.1.0+0/QPALM.v0.1.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.1.0+0/QPALM.v0.1.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.1.0+0/QPALM.v0.1.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.1.0+0/QPALM.v0.1.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.1.0+0/QPALM.v0.1.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.1.0+0/QPALM.v0.1.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.1.0+0/QPALM.v0.1.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.1.0+0/QPALM.v0.1.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.1.0+0/QPALM.v0.1.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.1.0+0/QPALM.v0.1.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.1.0+0/QPALM.v0.1.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.1.0+0/QPALM.v0.1.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.1.0+0/QPALM.v0.1.0.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/1c93ce7251538101745b48a748762578e6d24c07/Q/QPALM/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/q/qpalm/build_tarballs.jl/1c93ce7251538101745b48a748762578e6d24c07.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.3.7"
-
-        ["0.1.0+0".artifact_metadata.metadata]
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "QPALM"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "aarch64-apple-darwin", "armv6l-linux-gnueabihf", "armv6l-linux-musleabihf"]
-        script = """cd $WORKSPACE/srcdir\ncd QPALM_vLADEL/\nln -s ${WORKSPACE}/srcdir/LADEL/* ${WORKSPACE}/srcdir/QPALM_vLADEL/LADEL/\n[[ $target == *-freebsd* ]] && patch -p1 < $WORKSPACE/srcdir/patches/freebsd.patch\nmkdir -p build\ncd build\nmkdir lib debug\ncd debug  # just following the instructions here\n\n[[ $target == *-mingw* ]] && BLAS=libopenblas.${dlext}.a || BLAS=libopenblas.${dlext}\n[[ $target == *-linux-* ]] && std=\"gnu99\" || std=\"c99\"\n\ncmake ../.. \\\n      -DCMAKE_BUILD_TYPE=release \\\n      -DCMAKE_INSTALL_PREFIX=$prefix \\\n      -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n      -DUSE_LADEL=ON \\\n      -DUSE_CHOLMOD=ON \\\n      -DINTERFACES=OFF \\\n      -DPYTHON=OFF \\\n      -DCOVERAGE=OFF \\\n      -DUNITTESTS=OFF \\\n      -DJULIA=OFF \\\n      -DLAPACKE=${prefix}/lib/${BLAS} \\\n      -DLAPACK=${prefix}/lib/${BLAS} \\\n      -DCMAKE_C_FLAGS=\"-I${includedir} -std=${std}\"\n\nmake\n\n# make install doesn't appear to work...\nif [[ $target == *-mingw* ]]; then\n  # headers don't make it to build/include\n  cp ../../include/* $prefix/include\n  cp bin/* $prefix/bin\nelse\n  cp ../include/* $prefix/include\n  cp ../lib/* $prefix/lib\nfi\ncd ../..\nmv LICENSE LICENSE.QPALM\ninstall_license LICENSE.QPALM\nmv ${WORKSPACE}/srcdir/LADEL/LICENSE ./LICENSE.LADEL\ninstall_license LICENSE.LADEL\n"""
-        version = "v0.1.0"
-
-            [["0.1.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "OpenBLAS32_jll"
-            type = "dependency"
-            uuid = "656ef2d0-ae68-5445-9ca0-591084a874a2"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["0.1.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "SuiteSparse_jll"
-            type = "dependency"
-            uuid = "bea87d4a-7f5b-5778-9afe-8cc45184846c"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["0.1.0+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libladel"]
-            type = "lib"
-            variable_name = "libladel"
-            [["0.1.0+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libqpalm"]
-            type = "lib"
-            variable_name = "libqpalm"
-
-            [["0.1.0+0".artifact_metadata.metadata.sources]]
-            hash = "370ccbeb33baaa566c3de2bde5a69944994593e2"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/Benny44/QPALM_vLADEL.git"
-            [["0.1.0+0".artifact_metadata.metadata.sources]]
-            hash = "585b766da25e028f368e4d9039ef69e326baeb5b"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/Benny44/LADEL.git"
-            [["0.1.0+0".artifact_metadata.metadata.sources]]
-            follow_symlinks = false
-            path = "./bundled"
-            target = ""
-            type = "directory"
 
 ["0.1.1+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.1.1+0/QPALM.v0.1.1.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.1.1+0/QPALM.v0.1.1.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.1.1+0/QPALM.v0.1.1.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.1.1+0/QPALM.v0.1.1.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.1.1+0/QPALM.v0.1.1.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.1.1+0/QPALM.v0.1.1.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.1.1+0/QPALM.v0.1.1.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.1.1+0/QPALM.v0.1.1.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.1.1+0/QPALM.v0.1.1.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.1.1+0/QPALM.v0.1.1.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.1.1+0/QPALM.v0.1.1.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.1.1+0/QPALM.v0.1.1.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.1.1+0/QPALM.v0.1.1.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.1.1+0/QPALM.v0.1.1.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.1.1+0/QPALM.v0.1.1.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.1.1+0/QPALM.v0.1.1.x86_64-w64-mingw32.tar.gz"]
@@ -73,71 +17,10 @@ registered = 2021-06-20T22:51:26.000Z
     [["0.1.1+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.1.1+0/QPALM.v0.1.1.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.1.1+0/QPALM.v0.1.1.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.1.1+0/QPALM.v0.1.1.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.1.1+0/QPALM.v0.1.1.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.1.1+0/QPALM.v0.1.1.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.1.1+0/QPALM.v0.1.1.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.1.1+0/QPALM.v0.1.1.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.1.1+0/QPALM.v0.1.1.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.1.1+0/QPALM.v0.1.1.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.1.1+0/QPALM.v0.1.1.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.1.1+0/QPALM.v0.1.1.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.1.1+0/QPALM.v0.1.1.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.1.1+0/QPALM.v0.1.1.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.1.1+0/QPALM.v0.1.1.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.1.1+0/QPALM.v0.1.1.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.1.1+0/QPALM.v0.1.1.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/f22427cd3d9f158eb0f71a7678e6da9890f998fa/Q/QPALM/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/q/qpalm/build_tarballs.jl/f22427cd3d9f158eb0f71a7678e6da9890f998fa.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.4.0"
-
-        ["0.1.1+0".artifact_metadata.metadata]
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "QPALM"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "aarch64-apple-darwin", "armv6l-linux-gnueabihf", "armv6l-linux-musleabihf"]
-        script = """cd $WORKSPACE/srcdir\ncd QPALM_vLADEL/\nln -s ${WORKSPACE}/srcdir/LADEL/* ${WORKSPACE}/srcdir/QPALM_vLADEL/LADEL/\nln -s ${WORKSPACE}/srcdir/QPALM.jl/* ${WORKSPACE}/srcdir/QPALM_vLADEL/interfaces/QPALM.jl/\n[[ $target == *-freebsd* ]] && patch -p1 < $WORKSPACE/srcdir/patches/freebsd.patch\nmkdir -p build\ncd build\nmkdir lib debug\ncd debug  # just following the instructions here\n\n[[ $target == *-mingw* ]] && BLAS=libopenblas.${dlext}.a || BLAS=libopenblas.${dlext}\n[[ $target == *-linux-* ]] && std=\"gnu99\" || std=\"c99\"\n\ncmake ../.. \\\n      -DCMAKE_BUILD_TYPE=release \\\n      -DCMAKE_INSTALL_PREFIX=$prefix \\\n      -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n      -DUSE_LADEL=ON \\\n      -DUSE_CHOLMOD=ON \\\n      -DINTERFACES=OFF \\\n      -DPYTHON=OFF \\\n      -DCOVERAGE=OFF \\\n      -DUNITTESTS=OFF \\\n      -DJULIA=ON \\\n      -DLAPACKE=${prefix}/lib/${BLAS} \\\n      -DLAPACK=${prefix}/lib/${BLAS} \\\n      -DCMAKE_C_FLAGS=\"-I${includedir} -std=${std}\"\n\nmake\n\n# make install doesn't appear to work...\nif [[ $target == *-mingw* ]]; then\n  # headers don't make it to build/include\n  cp ../../include/* $prefix/include\n  cp bin/* $prefix/bin\nelse\n  cp ../include/* $prefix/include\n  cp ../lib/* $prefix/lib\nfi\ncd ../..\nmv LICENSE LICENSE.QPALM\ninstall_license LICENSE.QPALM\nmv ${WORKSPACE}/srcdir/LADEL/LICENSE ./LICENSE.LADEL\ninstall_license LICENSE.LADEL\n"""
-        version = "v0.1.1"
-
-            [["0.1.1+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "OpenBLAS32_jll"
-            type = "dependency"
-            uuid = "656ef2d0-ae68-5445-9ca0-591084a874a2"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["0.1.1+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "SuiteSparse_jll"
-            type = "dependency"
-            uuid = "bea87d4a-7f5b-5778-9afe-8cc45184846c"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["0.1.1+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libladel"]
-            type = "lib"
-            variable_name = "libladel"
-            [["0.1.1+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libqpalm"]
-            type = "lib"
-            variable_name = "libqpalm"
-
-            [["0.1.1+0".artifact_metadata.metadata.sources]]
-            hash = "370ccbeb33baaa566c3de2bde5a69944994593e2"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/Benny44/QPALM_vLADEL.git"
-            [["0.1.1+0".artifact_metadata.metadata.sources]]
-            hash = "585b766da25e028f368e4d9039ef69e326baeb5b"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/Benny44/LADEL.git"
-            [["0.1.1+0".artifact_metadata.metadata.sources]]
-            hash = "7b4424ce17ba232aa6e89648032c93572ca5a3e1"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/kul-optec/QPALM.jl.git"
-            [["0.1.1+0".artifact_metadata.metadata.sources]]
-            follow_symlinks = false
-            path = "./bundled"
-            target = ""
-            type = "directory"
 
 ["0.2.0+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.2.0+0/QPALM.v0.2.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.2.0+0/QPALM.v0.2.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.2.0+0/QPALM.v0.2.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.2.0+0/QPALM.v0.2.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.2.0+0/QPALM.v0.2.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.2.0+0/QPALM.v0.2.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.2.0+0/QPALM.v0.2.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.2.0+0/QPALM.v0.2.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.2.0+0/QPALM.v0.2.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.2.0+0/QPALM.v0.2.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.2.0+0/QPALM.v0.2.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.2.0+0/QPALM.v0.2.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.2.0+0/QPALM.v0.2.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.2.0+0/QPALM.v0.2.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.2.0+0/QPALM.v0.2.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.2.0+0/QPALM.v0.2.0.x86_64-w64-mingw32.tar.gz"]
@@ -146,71 +29,10 @@ registered = 2021-07-07T14:36:44.000Z
     [["0.2.0+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.2.0+0/QPALM.v0.2.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.2.0+0/QPALM.v0.2.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.2.0+0/QPALM.v0.2.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.2.0+0/QPALM.v0.2.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.2.0+0/QPALM.v0.2.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.2.0+0/QPALM.v0.2.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.2.0+0/QPALM.v0.2.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.2.0+0/QPALM.v0.2.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.2.0+0/QPALM.v0.2.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.2.0+0/QPALM.v0.2.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.2.0+0/QPALM.v0.2.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.2.0+0/QPALM.v0.2.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.2.0+0/QPALM.v0.2.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.2.0+0/QPALM.v0.2.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.2.0+0/QPALM.v0.2.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.2.0+0/QPALM.v0.2.0.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/6e646998857b6dbe7a5fe21bc9ecf62000076a12/Q/QPALM/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/q/qpalm/build_tarballs.jl/6e646998857b6dbe7a5fe21bc9ecf62000076a12.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.4.0"
-
-        ["0.2.0+0".artifact_metadata.metadata]
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "QPALM"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "aarch64-apple-darwin", "armv6l-linux-gnueabihf", "armv6l-linux-musleabihf"]
-        script = """cd $WORKSPACE/srcdir\ncd QPALM_vLADEL/\nln -s ${WORKSPACE}/srcdir/LADEL/* ${WORKSPACE}/srcdir/QPALM_vLADEL/LADEL/\nln -s ${WORKSPACE}/srcdir/QPALM.jl/* ${WORKSPACE}/srcdir/QPALM_vLADEL/interfaces/QPALM.jl/\n[[ $target == *-freebsd* ]] && patch -p1 < $WORKSPACE/srcdir/patches/freebsd.patch\nmkdir -p build\ncd build\nmkdir lib debug\ncd debug  # just following the instructions here\n\n[[ $target == *-mingw* ]] && BLAS=libopenblas.${dlext}.a || BLAS=libopenblas.${dlext}\n[[ $target == *-linux-* ]] && std=\"gnu99\" || std=\"c99\"\n\ncmake ../.. \\\n      -DCMAKE_BUILD_TYPE=release \\\n      -DCMAKE_INSTALL_PREFIX=$prefix \\\n      -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n      -DUSE_LADEL=ON \\\n      -DUSE_CHOLMOD=ON \\\n      -DINTERFACES=OFF \\\n      -DPYTHON=OFF \\\n      -DCOVERAGE=OFF \\\n      -DUNITTESTS=OFF \\\n      -DJULIA=ON \\\n      -DLAPACKE=${prefix}/lib/${BLAS} \\\n      -DLAPACK=${prefix}/lib/${BLAS} \\\n      -DCMAKE_C_FLAGS=\"-I${includedir} -std=${std}\"\n\nmake\n\n# make install doesn't appear to work...\nif [[ $target == *-mingw* ]]; then\n  # headers don't make it to build/include\n  cp ../../include/* $prefix/include\n  cp bin/* $prefix/bin\nelse\n  cp ../include/* $prefix/include\n  cp ../lib/* $prefix/lib\nfi\ncd ../..\nmv LICENSE LICENSE.QPALM\ninstall_license LICENSE.QPALM\nmv ${WORKSPACE}/srcdir/LADEL/LICENSE ./LICENSE.LADEL\ninstall_license LICENSE.LADEL\n"""
-        version = "v0.2.0"
-
-            [["0.2.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "OpenBLAS32_jll"
-            type = "dependency"
-            uuid = "656ef2d0-ae68-5445-9ca0-591084a874a2"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["0.2.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "SuiteSparse_jll"
-            type = "dependency"
-            uuid = "bea87d4a-7f5b-5778-9afe-8cc45184846c"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["0.2.0+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libladel"]
-            type = "lib"
-            variable_name = "libladel"
-            [["0.2.0+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libqpalm"]
-            type = "lib"
-            variable_name = "libqpalm"
-
-            [["0.2.0+0".artifact_metadata.metadata.sources]]
-            hash = "e272603e833db9c6b6de0a7ca4630da2a7fd7268"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/Benny44/QPALM_vLADEL.git"
-            [["0.2.0+0".artifact_metadata.metadata.sources]]
-            hash = "5af7a8d6a7ad76aeb00edf2f673fb3e6b703c5f2"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/Benny44/LADEL.git"
-            [["0.2.0+0".artifact_metadata.metadata.sources]]
-            hash = "7b4424ce17ba232aa6e89648032c93572ca5a3e1"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/kul-optec/QPALM.jl.git"
-            [["0.2.0+0".artifact_metadata.metadata.sources]]
-            follow_symlinks = false
-            path = "./bundled"
-            target = ""
-            type = "directory"
 
 ["0.3.0+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.3.0+0/QPALM.v0.3.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.3.0+0/QPALM.v0.3.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.3.0+0/QPALM.v0.3.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.3.0+0/QPALM.v0.3.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.3.0+0/QPALM.v0.3.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.3.0+0/QPALM.v0.3.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.3.0+0/QPALM.v0.3.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.3.0+0/QPALM.v0.3.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.3.0+0/QPALM.v0.3.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.3.0+0/QPALM.v0.3.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.3.0+0/QPALM.v0.3.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.3.0+0/QPALM.v0.3.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.3.0+0/QPALM.v0.3.0.x86_64-w64-mingw32.tar.gz"]
@@ -219,66 +41,10 @@ registered = 2021-07-08T07:06:04.000Z
     [["0.3.0+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.3.0+0/QPALM.v0.3.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.3.0+0/QPALM.v0.3.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.3.0+0/QPALM.v0.3.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.3.0+0/QPALM.v0.3.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.3.0+0/QPALM.v0.3.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.3.0+0/QPALM.v0.3.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.3.0+0/QPALM.v0.3.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.3.0+0/QPALM.v0.3.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.3.0+0/QPALM.v0.3.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.3.0+0/QPALM.v0.3.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.3.0+0/QPALM.v0.3.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.3.0+0/QPALM.v0.3.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v0.3.0+0/QPALM.v0.3.0.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/c013ec08f7ab236148b497ba232bceeafad85e65/Q/QPALM/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/q/qpalm/build_tarballs.jl/c013ec08f7ab236148b497ba232bceeafad85e65.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.4.0"
-
-        ["0.3.0+0".artifact_metadata.metadata]
-        init_block = ""
-        julia_compat = "1.3"
-        lazy_artifacts = false
-        name = "QPALM"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd $WORKSPACE/srcdir\ncd QPALM_vLADEL/\nln -s ${WORKSPACE}/srcdir/LADEL/* ${WORKSPACE}/srcdir/QPALM_vLADEL/LADEL/\nln -s ${WORKSPACE}/srcdir/QPALM.jl/* ${WORKSPACE}/srcdir/QPALM_vLADEL/interfaces/QPALM.jl/\nmkdir -p build\ncd build\nmkdir lib debug\ncd debug  # just following the instructions here\n\n[[ $target == *-mingw* ]] && BLAS=libopenblas.${dlext}.a || BLAS=libopenblas.${dlext}\n[[ $target == *-linux-* ]] && std=\"gnu99\" || std=\"c99\"\n\ncmake ../.. \\\n      -DCMAKE_BUILD_TYPE=release \\\n      -DCMAKE_INSTALL_PREFIX=$prefix \\\n      -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n      -DUSE_LADEL=ON \\\n      -DUSE_CHOLMOD=ON \\\n      -DINTERFACES=OFF \\\n      -DPYTHON=OFF \\\n      -DCOVERAGE=OFF \\\n      -DUNITTESTS=OFF \\\n      -DJULIA=ON \\\n      -DLAPACKE=${prefix}/lib/${BLAS} \\\n      -DLAPACK=${prefix}/lib/${BLAS} \\\n      -DCMAKE_C_FLAGS=\"-I${includedir} -std=${std}\"\n\nmake\n\n# make install doesn't appear to work...\nif [[ $target == *-mingw* ]]; then\n  # headers don't make it to build/include\n  cp ../../include/* $prefix/include\n  cp bin/* $prefix/bin\nelse\n  cp ../include/* $prefix/include\n  cp ../lib/* $prefix/lib\nfi\ncd ../..\nmv LICENSE LICENSE.QPALM\ninstall_license LICENSE.QPALM\nmv ${WORKSPACE}/srcdir/LADEL/LICENSE ./LICENSE.LADEL\ninstall_license LICENSE.LADEL\n"""
-        version = "v0.3.0"
-
-            [["0.3.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "OpenBLAS32_jll"
-            type = "dependency"
-            uuid = "656ef2d0-ae68-5445-9ca0-591084a874a2"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["0.3.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "SuiteSparse_jll"
-            type = "dependency"
-            uuid = "bea87d4a-7f5b-5778-9afe-8cc45184846c"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["0.3.0+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libladel"]
-            type = "lib"
-            variable_name = "libladel"
-            [["0.3.0+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libqpalm"]
-            type = "lib"
-            variable_name = "libqpalm"
-
-            [["0.3.0+0".artifact_metadata.metadata.sources]]
-            hash = "e272603e833db9c6b6de0a7ca4630da2a7fd7268"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/Benny44/QPALM_vLADEL.git"
-            [["0.3.0+0".artifact_metadata.metadata.sources]]
-            hash = "5af7a8d6a7ad76aeb00edf2f673fb3e6b703c5f2"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/Benny44/LADEL.git"
-            [["0.3.0+0".artifact_metadata.metadata.sources]]
-            hash = "7b4424ce17ba232aa6e89648032c93572ca5a3e1"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/kul-optec/QPALM.jl.git"
 
 ["1.0.0+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v1.0.0+0/QPALM.v1.0.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v1.0.0+0/QPALM.v1.0.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v1.0.0+0/QPALM.v1.0.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v1.0.0+0/QPALM.v1.0.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v1.0.0+0/QPALM.v1.0.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v1.0.0+0/QPALM.v1.0.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v1.0.0+0/QPALM.v1.0.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v1.0.0+0/QPALM.v1.0.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v1.0.0+0/QPALM.v1.0.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v1.0.0+0/QPALM.v1.0.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v1.0.0+0/QPALM.v1.0.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v1.0.0+0/QPALM.v1.0.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v1.0.0+0/QPALM.v1.0.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v1.0.0+0/QPALM.v1.0.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v1.0.0+0/QPALM.v1.0.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v1.0.0+0/QPALM.v1.0.0.x86_64-w64-mingw32.tar.gz"]
@@ -287,35 +53,7 @@ registered = 2022-02-13T18:12:42.000Z
     [["1.0.0+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v1.0.0+0/QPALM.v1.0.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v1.0.0+0/QPALM.v1.0.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v1.0.0+0/QPALM.v1.0.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v1.0.0+0/QPALM.v1.0.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v1.0.0+0/QPALM.v1.0.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v1.0.0+0/QPALM.v1.0.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v1.0.0+0/QPALM.v1.0.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v1.0.0+0/QPALM.v1.0.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v1.0.0+0/QPALM.v1.0.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v1.0.0+0/QPALM.v1.0.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v1.0.0+0/QPALM.v1.0.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v1.0.0+0/QPALM.v1.0.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v1.0.0+0/QPALM.v1.0.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v1.0.0+0/QPALM.v1.0.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v1.0.0+0/QPALM.v1.0.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/QPALM_jll.jl/releases/download/QPALM-v1.0.0+0/QPALM.v1.0.0.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/1daa436ccc3391a16aca8dbca6ecbca585d7e154/Q/QPALM/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/q/qpalm/build_tarballs.jl/1daa436ccc3391a16aca8dbca6ecbca585d7e154.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.5.2"
-
-        ["1.0.0+0".artifact_metadata.metadata]
-        dependencies = []
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "QPALM"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd $WORKSPACE/srcdir\ncd QPALM\nrmdir LADEL\nmv ../LADEL .\ncmake -Bbuild-jl -SQPALM \\\n    -DCMAKE_TOOLCHAIN_FILE=\"${CMAKE_TARGET_TOOLCHAIN}\" \\\n    -DCMAKE_INSTALL_PREFIX:PATH=${prefix} \\\n    -DQPALM_WITH_JULIA:BOOL=On \\\n    -DCMAKE_BUILD_TYPE:STRING=Release \\\n    -DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=On\ncmake --build build-jl -j\ncmake --install build-jl --component julia_modules\nmv LICENSE LICENSE.QPALM\ninstall_license LICENSE.QPALM\nmv LADEL/LICENSE LICENSE.LADEL\ninstall_license LICENSE.LADEL\nmv LADEL/thirdparty/SuiteSparse/AMD/Doc/License.txt LICENSE.AMD\ninstall_license LICENSE.AMD\n"""
-        version = "v1.0.0"
-
-            [["1.0.0+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libqpalm_jll"]
-            type = "lib"
-            variable_name = "libqpalm_jll"
-
-            [["1.0.0+0".artifact_metadata.metadata.sources]]
-            hash = "9bd94ef60ca5d82cd8d5f05ac7efd5a449e501c0"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/kul-optec/QPALM.git"
-            [["1.0.0+0".artifact_metadata.metadata.sources]]
-            hash = "70ad69a621756e72b164dee302a826f9cc111c55"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/kul-optec/LADEL.git"

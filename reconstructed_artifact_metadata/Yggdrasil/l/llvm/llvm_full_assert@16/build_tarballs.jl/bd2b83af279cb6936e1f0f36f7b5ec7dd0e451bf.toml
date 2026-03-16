@@ -1,0 +1,121 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "LLVM_full_assert"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "riscv64-linux-gnu-cxx03", "riscv64-linux-gnu-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """LLVM_MAJ_VER=16\nLLVM_MIN_VER=0\nLLVM_PATCH_VER=6\nASSERTS=1\nLLVM_UPDATE_MAC_SDK=1\n# We want to exit the program if errors occur.\nset -o errexit\n\n# Increase max file descriptors\nfd_lim=$(ulimit -n -H)\nulimit -n $fd_lim\n\nif [[ (\"${target}\" == x86_64-apple-darwin*) && ! -z \"${LLVM_UPDATE_MAC_SDK}\" ]]; then\n    # LLVM 15 requires macOS SDK 10.14, see\n    # <https://github.com/JuliaPackaging/Yggdrasil/pull/5592#issuecomment-1309525112> and\n    # references therein.\n    pushd $WORKSPACE/srcdir/MacOSX10.*.sdk\n    rm -rf /opt/${target}/${target}/sys-root/System\n    cp -ra usr/* \"/opt/${target}/${target}/sys-root/usr/.\"\n    cp -ra System \"/opt/${target}/${target}/sys-root/.\"\n    export MACOSX_DEPLOYMENT_TARGET=10.14\n    popd\nfi\n\nif [[ ${bb_full_target} == *-sanitize+memory* ]]; then\n    # Install msan runtime (for clang)\n    cp -rL ${prefix}/lib/linux/* /opt/x86_64-linux-musl/lib/clang/*/lib/linux/\nfi\n\nif [[ ${target} == *mingw32* ]]; then\n    # Build system for Windows is plagued by race conditions.\n    # We disable Ccache for this platform to avoid caching\n    # possibly badly compiled racey code.\n    export CCACHE_DISABLE=true\nfi\n\ncd ${WORKSPACE}/srcdir/llvm-project/llvm\nLLVM_SRCDIR=$(pwd)\n\n# Apply all our patches\nif [ -d $WORKSPACE/srcdir/llvm_patches ]; then\nfor f in $WORKSPACE/srcdir/llvm_patches/*.patch; do\n    echo \"Applying patch ${f}\"\n    atomic_patch -p1 ${f}\ndone\nfi\n\nif [ -d $WORKSPACE/srcdir/clang_patches ]; then\ncd ${WORKSPACE}/srcdir/llvm-project/clang\nfor f in $WORKSPACE/srcdir/clang_patches/*.patch; do\n    echo \"Applying patch ${f}\"\n    atomic_patch -p1 ${f}\ndone\nfi\n\nif [ -d $WORKSPACE/srcdir/crt_patches ]; then\ncd ${WORKSPACE}/srcdir/llvm-project/compiler-rt\nfor f in $WORKSPACE/srcdir/crt_patches/*.patch; do\n    echo \"Applying patch ${f}\"\n    atomic_patch -p1 ${f}\ndone\nfi\n\nif [ -d $WORKSPACE/srcdir/libcxx_patches ]; then\ncd ${WORKSPACE}/srcdir/llvm-project/libcxx\nfor f in $WORKSPACE/srcdir/libcxx_patches/*.patch; do\n    echo \"Applying patch ${f}\"\n    atomic_patch -p1 ${f}\ndone\nfi\n\n# Patches from the monorepo\nif [ -d $WORKSPACE/srcdir/patches ]; then\ncd ${WORKSPACE}/srcdir/llvm-project\nfor f in $WORKSPACE/srcdir/patches/*.patch; do\n    echo \"Applying patch ${f}\"\n    atomic_patch -p1 ${f}\ndone\nfi\n\nif [[ ${bb_full_target} == *-sanitize+memory* ]]; then\n    # Install msan runtime (for clang)\n    cp -rL ${libdir}/linux/* /opt/x86_64-linux-musl/lib/clang/*/lib/linux/\nfi\n\n# The very first thing we need to do is to build llvm-tblgen for x86_64-linux-muslc\n# This is because LLVM's cross-compile setup is kind of borked, so we just\n# build the tools natively ourselves, directly.  :/\n\n# Build llvm-tblgen, clang-tblgen, and llvm-config\nmkdir ${WORKSPACE}/bootstrap\npushd ${WORKSPACE}/bootstrap\nCMAKE_FLAGS=()\nCMAKE_FLAGS+=(-DLLVM_TARGETS_TO_BUILD:STRING=host)\nCMAKE_FLAGS+=(-DLLVM_HOST_TRIPLE=${MACHTYPE})\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\nif [[ \"${LLVM_MAJ_VER}\" -gt \"11\" ]]; then\n    CMAKE_FLAGS+=(-DLLVM_ENABLE_PROJECTS='llvm;clang;clang-tools-extra;mlir')\nelse\n    CMAKE_FLAGS+=(-DLLVM_ENABLE_PROJECTS='llvm;clang;clang-tools-extra')\nfi\nif [[ \"${LLVM_MAJ_VER}\" -gt \"13\" ]]; then\n    CMAKE_FLAGS+=(-DMLIR_BUILD_MLIR_C_DYLIB:BOOL=ON)\nfi\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING=False)\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_HOST_TOOLCHAIN})\n\ncmake -GNinja ${LLVM_SRCDIR} ${CMAKE_FLAGS[@]}\nif [[ (\"${LLVM_MAJ_VER}\" -eq \"12\" && \"${LLVM_PATCH_VER}\" -gt \"0\") || \"${LLVM_MAJ_VER}\" -gt \"12\" ]]; then\n    ninja -j${nproc} llvm-tblgen clang-tblgen mlir-tblgen llvm-config\nelse\n    ninja -j${nproc} llvm-tblgen clang-tblgen llvm-config\nfi\nif [[ (\"${LLVM_MAJ_VER}\" -eq \"12\") || (\"${LLVM_MAJ_VER}\" -eq \"13\") ]]; then\n    ninja -j${nproc} mlir-linalg-ods-gen\nfi\nif [[ \"${LLVM_MAJ_VER}\" -gt \"12\" ]]; then\n    ninja -j${nproc} mlir-linalg-ods-yaml-gen\nfi\nif [[ \"${LLVM_MAJ_VER}\" -gt \"14\" ]]; then\n    ninja -j${nproc} clang-tidy-confusable-chars-gen clang-pseudo-gen mlir-pdll\nfi\nif [[ \"${LLVM_MAJ_VER}\" -ge \"19\" ]]; then\n    ninja -j${nproc} mlir-src-sharder\nfi\npopd\n\n# Let's do the actual build within the `build` subdirectory\nmkdir ${WORKSPACE}/build && cd ${WORKSPACE}/build\n\n# Accumulate these flags outside CMAKE_FLAGS,\n# they will be added at the end.\nCMAKE_CPP_FLAGS=()\nCMAKE_CXX_FLAGS=()\nCMAKE_C_FLAGS=()\n\nCMAKE_FLAGS=()\n\n# Release build for best performance\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\nif [[ \"${ASSERTS}\" == \"1\" ]]; then\n    CMAKE_FLAGS+=(-DLLVM_ENABLE_ASSERTIONS:BOOL=ON)\nfi\n\n# build for our host arch and our GPU targets NVidia and AMD\nTARGETS=(host)\n\nif [[ \"${target}\" != *-apple-darwin* ]]; then\n    TARGETS+=(AMDGPU NVPTX)\nfi\n\n# Add WASM and BPF for LLVM >6\nif [[ \"${LLVM_MAJ_VER}\" != \"6\" ]]; then\n    TARGETS+=(WebAssembly BPF AVR)\nfi\nLLVM_TARGETS=$(IFS=';' ; echo \"${TARGETS[*]}\")\nCMAKE_FLAGS+=(-DLLVM_TARGETS_TO_BUILD:STRING=$LLVM_TARGETS)\n\n# We mostly care about clang and LLVM\nPROJECTS=(llvm clang clang-tools-extra compiler-rt lld)\n# Note: we disable building MLIR dylib on 32-bit archs because of <https://github.com/llvm/llvm-project/issues/61581>.\nif [[ (\"${LLVM_MAJ_VER}\" -eq \"12\" && \"${LLVM_PATCH_VER}\" -gt \"0\") || \"${LLVM_MAJ_VER}\" -gt \"12\" ]]; then\n    PROJECTS+=(mlir)\nfi\nLLVM_PROJECTS=$(IFS=';' ; echo \"${PROJECTS[*]}\")\nCMAKE_FLAGS+=(-DLLVM_ENABLE_PROJECTS:STRING=$LLVM_PROJECTS)\n\nif [[ \"${LLVM_MAJ_VER}\" -gt \"13\" ]]; then\n    CMAKE_FLAGS+=(-DMLIR_BUILD_MLIR_C_DYLIB:BOOL=ON)\nfi\n\n# We want a build with no bindings\nCMAKE_FLAGS+=(-DLLVM_BINDINGS_LIST=\"\" )\n\n# Turn on ZLIB\nCMAKE_FLAGS+=(-DLLVM_ENABLE_ZLIB=ON)\n# Turn off XML2\nCMAKE_FLAGS+=(-DLLVM_ENABLE_LIBXML2=OFF)\n\n# Disable useless things like docs, terminfo, etc....\nCMAKE_FLAGS+=(-DLLVM_INCLUDE_DOCS=Off)\nCMAKE_FLAGS+=(-DLLVM_ENABLE_TERMINFO=Off)\nCMAKE_FLAGS+=(-DHAVE_HISTEDIT_H=Off)\nCMAKE_FLAGS+=(-DHAVE_LIBEDIT=Off)\n\n# We want a shared library\nif [ -z \"${LLVM_WANT_STATIC}\" ]; then\n    CMAKE_FLAGS+=(-DLLVM_BUILD_LLVM_DYLIB:BOOL=ON)\n    CMAKE_FLAGS+=(-DLLVM_LINK_LLVM_DYLIB:BOOL=ON)\n    # set a SONAME suffix for FreeBSD https://github.com/JuliaLang/julia/issues/32462\n    CMAKE_FLAGS+=(-DLLVM_VERSION_SUFFIX:STRING=\"jl\")\n    # Aggressively symbol version (added in LLVM 13.0.1)\n    CMAKE_FLAGS+=(-DLLVM_SHLIB_SYMBOL_VERSION:STRING=\"JL_LLVM_${LLVM_MAJ_VER}.${LLVM_MIN_VER}\")\nfi\n\n# We want to build LLVM with EH and RTTI\nif [ ! -z \"${LLVM_WANT_EH_RTTI}\" ]; then\n    CMAKE_FLAGS+=(-DLLVM_ENABLE_RTTI=ON)\n    CMAKE_FLAGS+=(-DLLVM_ENABLE_EH=ON)\nfi\n# Change this to check if we are building with clang?\nif [[ \"${bb_full_target}\" != *sanitize* && ( \"${target}\" == *linux* ) ]]; then\n    # https://bugs.llvm.org/show_bug.cgi?id=48221\n    CMAKE_CXX_FLAGS+=(-fno-gnu-unique)\nfi\n\n# Install things into $prefix, and make sure it knows we're cross-compiling\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix})\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING=True)\n\n# Julia expects the produced LLVM tools to be installed into tools and not bin\n# We can't simply move bin to tools since on MingW64 it will also contain the shlib.\nif [[ \"${LLVM_MAJ_VER}\" -ge \"16\" ]]; then\n    CMAKE_FLAGS+=(-DCMAKE_INSTALL_BINDIR=\"tools\")\nelse\n    CMAKE_FLAGS+=(-DLLVM_TOOLS_INSTALL_DIR=\"tools\")\n    CMAKE_FLAGS+=(-DCLANG_TOOLS_INSTALL_DIR=\"tools\")\nfi\n\n# Also build and install utils, since we want FileCheck, and lit\nCMAKE_FLAGS+=(-DLLVM_UTILS_INSTALL_DIR=\"tools\")\nCMAKE_FLAGS+=(-DLLVM_INCLUDE_UTILS=True -DLLVM_INSTALL_UTILS=True)\n\n# Include perf/oprofile/vtune markers\nif [[ ${target} == *linux* ]]; then\n    CMAKE_FLAGS+=(-DLLVM_USE_PERF=1)\n#     CMAKE_FLAGS+=(-DLLVM_USE_OPROFILE=1)\nfi\n# if [[ ${target} == *linux* ]] || [[ ${target} == *mingw32* ]]; then\nif [[ \"${LLVM_MAJ_VER}\" -ge \"12\" && ${target} == x86_64-linux* ]]; then\n    # Intel VTune is available only on x86_64 architectures\n    CMAKE_FLAGS+=(-DLLVM_USE_INTEL_JITEVENTS=1)\nfi\n\n\nif [[ \"${LLVM_MAJ_VER}\" -ge \"14\" ]]; then\n    CMAKE_FLAGS+=(-DLLVM_WINDOWS_PREFER_FORWARD_SLASH=False)\nfi\n\n# Tell LLVM where our pre-built tblgen tools are\nCMAKE_FLAGS+=(-DLLVM_TABLEGEN=${WORKSPACE}/bootstrap/bin/llvm-tblgen)\nCMAKE_FLAGS+=(-DCLANG_TABLEGEN=${WORKSPACE}/bootstrap/bin/clang-tblgen)\nCMAKE_FLAGS+=(-DLLVM_CONFIG_PATH=${WORKSPACE}/bootstrap/bin/llvm-config)\nif [[ ( \"${LLVM_MAJ_VER}\" -eq \"12\" && \"${LLVM_PATCH_VER}\" -gt \"0\" ) || \"${LLVM_MAJ_VER}\" -gt \"12\" ]]; then\n    CMAKE_FLAGS+=(-DMLIR_TABLEGEN=${WORKSPACE}/bootstrap/bin/mlir-tblgen)\nfi\nif [[ (\"${LLVM_MAJ_VER}\" -eq \"12\") || (\"${LLVM_MAJ_VER}\" -eq \"13\") ]]; then\n    CMAKE_FLAGS+=(-DMLIR_LINALG_ODS_GEN=${WORKSPACE}/bootstrap/bin/mlir-linalg-ods-gen)\nfi\nif [[ \"${LLVM_MAJ_VER}\" -gt \"12\" ]]; then\n    CMAKE_FLAGS+=(-DMLIR_LINALG_ODS_YAML_GEN=${WORKSPACE}/bootstrap/bin/mlir-linalg-ods-yaml-gen)\nfi\nif [[ \"${LLVM_MAJ_VER}\" -gt \"14\" ]]; then\n    CMAKE_FLAGS+=(-DCLANG_TIDY_CONFUSABLE_CHARS_GEN=${WORKSPACE}/bootstrap/bin/clang-tidy-confusable-chars-gen)\n    CMAKE_FLAGS+=(-DCLANG_PSEUDO_GEN=${WORKSPACE}/bootstrap/bin/clang-pseudo-gen)\n    CMAKE_FLAGS+=(-DMLIR_PDLL_TABLEGEN=${WORKSPACE}/bootstrap/bin/mlir-pdll)\nfi\nif [[ \"${LLVM_MAJ_VER}\" -ge \"19\" ]]; then\n    CMAKE_FLAGS+=(-DLLVM_NATIVE_TOOL_DIR=${WORKSPACE}/bootstrap/bin)\nfi\n\n# Explicitly use our cmake toolchain file\n# Windows runs out of symbols so use clang which can do some fancy things\nif [[ \"${target}\" == *mingw* && \"${LLVM_MAJ_VER}\" -ge \"16\" ]]; then\n    CMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN%.*}_clang.cmake)\nelse\n    CMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\nfi\n\n\n# Manually set the host triplet, as otherwise on some platforms it tries to guess using\n# `ld -v`, which is hilariously wrong.\nCMAKE_FLAGS+=(-DLLVM_HOST_TRIPLE=${target})\n\n# Most targets use the actual target string, but we disagree on `aarch64-darwin` and `arm64-darwin`\nCMAKE_TARGET=${target}\n\nif [[ \"${target}\" == *apple* ]]; then\n    # On OSX, we need to override LLVM's looking around for our SDK\n    CMAKE_FLAGS+=(-DDARWIN_macosx_CACHED_SYSROOT:STRING=/opt/${target}/${target}/sys-root)\n    if [[ \"${LLVM_MAJ_VER}\" -ge \"15\" ]]; then\n        CMAKE_FLAGS+=(-DDARWIN_macosx_OVERRIDE_SDK_VERSION:STRING=\"${MACOSX_DEPLOYMENT_TARGET}\")\n    else\n        CMAKE_FLAGS+=(-DDARWIN_macosx_OVERRIDE_SDK_VERSION:STRING=10.8)\n    fi\n    CMAKE_FLAGS+=(-DSANITIZER_MIN_OSX_VERSION=\"${MACOSX_DEPLOYMENT_TARGET}\")\n    # We need to link against libc++ on OSX\n    CMAKE_FLAGS+=(-DLLVM_ENABLE_LIBCXX=ON)\n    CMAKE_FLAGS+=(-DCOMPILER_RT_ENABLE_IOS=OFF)\n    CMAKE_FLAGS+=(-DCOMPILER_RT_ENABLE_WATCHOS=OFF)\n    CMAKE_FLAGS+=(-DCOMPILER_RT_ENABLE_TVOS=OFF)\n    CMAKE_FLAGS+=(-DCOMPILER_RT_ENABLE_MACCATALYST=OFF)\n\n    # If we're building for Apple, CMake gets confused with `aarch64-apple-darwin` and instead prefers\n    # `arm64-apple-darwin`.  If this issue persists, we may have to change our triplet printing.\n    if [[ \"${target}\" == aarch64* ]]; then\n        CMAKE_TARGET=arm64-${target#*-}\n    fi\n\n    if [[ \"${target}\" == x86_64* ]]; then\n        CMAKE_FLAGS+=(-DDARWIN_osx_BUILTIN_ARCHS=\"x86_64\")\n        CMAKE_FLAGS+=(-DDARWIN_osx_ARCHS=\"x86_64\")\n    fi\n\n    if [[ \"${LLVM_MAJ_VER}\" -gt \"12\" ]]; then\n        CMAKE_FLAGS+=(-DLLVM_HAVE_LIBXAR=OFF)\n    fi\nfi\n\nif [[ \"${LLVM_MAJ_VER}\" -ge \"16\" ]]; then\n    GCC_VERSION=$(gcc --version | head -1 | awk '{ print $3 }' | cut -d. -f1)\n    if [[ $version -le 10 && \"${target}\" == aarch64-linux* ]]; then\n        CMAKE_C_FLAGS+=(-mno-outline-atomics)\n        CMAKE_CPP_FLAGS+=(-mno-outline-atomics)\n    fi\nfi\n\nif [[ \"${target}\" == *apple* ]] || [[ \"${target}\" == *freebsd* ]]; then\n    # On clang-based platforms we need to override the check for ffs because it doesn't work with `clang`.\n    export ac_cv_have_decl___builtin_ffs=yes\n\n    # We don't use X-ray on BSD systems\n    CMAKE_FLAGS+=(-DCOMPILER_RT_BUILD_XRAY=OFF)\nfi\n\nif [[ \"${target}\" == *mingw* ]]; then\n    CMAKE_CPP_FLAGS+=(-remap -D__USING_SJLJ_EXCEPTIONS__ -D__CRT__NO_INLINE -pthread -DMLIR_CAPI_ENABLE_WINDOWS_DLL_DECLSPEC -Dmlir_arm_sme_abi_stubs_EXPORTS)\n    CMAKE_C_FLAGS+=(-pthread -DMLIR_CAPI_ENABLE_WINDOWS_DLL_DECLSPEC)\n    CMAKE_FLAGS+=(-DCOMPILER_RT_BUILD_SANITIZERS=OFF)\n    # Windows is case-insensitive and some dependencies take full advantage of that\n    echo \"BaseTsd.h basetsd.h\" >> /opt/${target}/${target}/include/header.gcc\n    CMAKE_FLAGS+=(-DCLANG_INCLUDE_TESTS=OFF)\nfi\n\nCMAKE_FLAGS+=(-DCOMPILER_RT_INCLUDE_TESTS=OFF)\nif [[ \"${target}\" == *musl* ]]; then\n    # Taken from https://git.alpinelinux.org/cgit/aports/tree/main/compiler-rt/APKBUILD\n    CMAKE_FLAGS+=(-DCOMPILER_RT_BUILD_SANITIZERS=OFF)\n    CMAKE_FLAGS+=(-DCOMPILER_RT_BUILD_XRAY=OFF)\nfi\n\nif [[ \"${target}\" == *freebsd* ]]; then\n    # On FreeBSD, we must force even statically-linked code to have -fPIC\n    CMAKE_FLAGS+=(-DCMAKE_POSITION_INDEPENDENT_CODE=TRUE)\nfi\n\n#This breaks things on LLVM15 and above, but probably should be off everywhere because we only build one runtime per run\nCMAKE_FLAGS+=(-DLLVM_ENABLE_PER_TARGET_RUNTIME_DIR=OFF)\n\n# Tell LLVM which compiler target to use, because it loses track for some reason\nCMAKE_FLAGS+=(-DCMAKE_C_COMPILER_TARGET=${CMAKE_TARGET})\nCMAKE_FLAGS+=(-DCMAKE_CXX_COMPILER_TARGET=${CMAKE_TARGET})\nCMAKE_FLAGS+=(-DCMAKE_ASM_COMPILER_TARGET=${CMAKE_TARGET})\n\n# Set the bug report URL to the Julia issue tracker\nCMAKE_FLAGS+=(-DBUG_REPORT_URL=\"https://github.com/julialang/julia\")\n\ncmake -GNinja ${LLVM_SRCDIR} ${CMAKE_FLAGS[@]} -DCMAKE_CXX_FLAGS=\"${CMAKE_CPP_FLAGS[*]} ${CMAKE_CXX_FLAGS[*]}\" -DCMAKE_C_FLAGS=\"${CMAKE_C_FLAGS[*]}\"\nninja -j${nproc} -vv\n\n# Install!\nninja install\n\nif [[ \"${LLVM_MAJ_VER}\" -ge \"16\" ]]; then\n    # We can now tell cmake to put the dlls in the right place, and the verifier doesn't find them\n    if [[ \"${target}\" == *mingw* ]]; then\n        cp -v ${prefix}/tools/*.dll ${libdir}/.\n    fi\nelse\n    # Life is harsh on Windows and dynamic libraries are\n    # expected to live alongside the binaries. So we have\n    # to copy the *.dll from bin/ to tools/ as well...\n    if [[ \"${target}\" == *mingw* ]]; then\n        cp -v ${libdir}/*.dll ${prefix}/tools/.\n    fi\nfi\n\n# Work around llvm-config bug by creating versioned symlink to libLLVM\n# https://github.com/JuliaLang/julia/pull/30033\nif [[ \"${target}\" == *darwin* ]]; then\n    LLVM_VER=$(${WORKSPACE}/bootstrap/bin/llvm-config --version | cut -d. -f1-2)\n    ln -s libLLVM.dylib ${prefix}/lib/libLLVM-${LLVM_VER}.dylib\nfi\n\n# Lit is a python dependency and there is no proper install target\ncp -r ${LLVM_SRCDIR}/utils/lit ${prefix}/tools/\n\ninstall_license ${WORKSPACE}/srcdir/llvm-project/llvm/LICENSE.TXT\n"""
+version = "v16.0.6"
+
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LLVMCompilerRT_jll"
+platforms = []
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libclang"]
+type = "lib"
+variable_name = "libclang"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["LTO", "libLTO"]
+type = "lib"
+variable_name = "liblto"
+[[products]]
+binnames = ["llvm-config"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_config"
+[[products]]
+binnames = ["clang", "clang-16"]
+dir_path = "tools"
+type = "exe"
+variable_name = "clang"
+[[products]]
+binnames = ["opt"]
+dir_path = "tools"
+type = "exe"
+variable_name = "opt"
+[[products]]
+binnames = ["llc"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llc"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["LLVM", "libLLVM", "libLLVM-16jl"]
+type = "lib"
+variable_name = "libllvm"
+[[products]]
+binnames = ["llvm-mca"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_mca"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["MLIR", "libMLIR"]
+type = "lib"
+variable_name = "mlir"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["MLIR-C", "libMLIR-C"]
+type = "lib"
+variable_name = "mlir_c"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libclang-cpp"]
+type = "lib"
+variable_name = "libclang_cpp"
+[[products]]
+binnames = ["lld"]
+dir_path = "tools"
+type = "exe"
+variable_name = "lld"
+[[products]]
+binnames = ["dsymutil"]
+dir_path = "tools"
+type = "exe"
+variable_name = "dsymutil"
+
+[[sources]]
+hash = "4a5c1da0d268d2858def6c1aa206ac4b31956208"
+type = "git"
+unpack_target = ""
+url = "https://github.com/JuliaLang/llvm-project.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"
+[[sources]]
+hash = "0f03869f72df8705b832910517b47dd5b79eb4e160512602f593ed243b28715f"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.14.sdk.tar.xz"

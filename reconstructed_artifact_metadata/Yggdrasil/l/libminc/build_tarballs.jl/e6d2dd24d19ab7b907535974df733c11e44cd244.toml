@@ -1,0 +1,53 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "libminc"
+platforms = ["x86_64-linux-gnu"]
+script = """cd ${WORKSPACE}/srcdir/libminc\nmkdir build\ncd build\ncmake .. \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DLIBMINC_BUILD_SHARED_LIBS:BOOL=ON \\\n    -DLIBMINC_MINC1_SUPPORT:BOOL=ON \\\n    -DBUILD_TESTING:BOOL=ON \\\n    -DLIBMINC_USE_NIFTI:BOOL=OFF \\\n    -DLIBMINC_BUILD_EZMINC=OFF\nmake -j${nproc}\nmake install\n\n\ncd ../../minc2-simple\nmkdir build\ncd build\ncmake .. \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DBUILD_EXAMPLES:BOOL=OFF \\\n    -DBUILD_TESTING:BOOL=OFF \\\n    -DLIBMINC_DIR:PATH=$prefix/lib/cmake\nmake -j${nproc}\nmake install\n    \n\ninstall_license ${WORKSPACE}/srcdir/libminc/COPYING\n"""
+version = "v2.4.7"
+
+[[dependencies]]
+compat = "~1.14.6"
+name = "HDF5_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "~401.900.300"
+name = "NetCDF_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libminc2"]
+type = "lib"
+variable_name = "libminc2"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libminc2-simple"]
+type = "lib"
+variable_name = "libminc2_simple"
+
+[[sources]]
+hash = "0e8ab9e6198c051547b0fcb592a44661f54f2b3d"
+type = "git"
+unpack_target = ""
+url = "https://github.com/BIC-MNI/libminc.git"
+[[sources]]
+hash = "eb7e8c4c5ff0316b76455757435281a925fb44f1"
+type = "git"
+unpack_target = ""
+url = "https://github.com/NIST-MNI/minc2-simple.git"

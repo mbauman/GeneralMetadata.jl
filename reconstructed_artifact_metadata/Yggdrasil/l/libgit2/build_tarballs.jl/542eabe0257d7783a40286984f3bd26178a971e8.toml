@@ -1,0 +1,37 @@
+init_block = ""
+lazy_artifacts = false
+name = "LibGit2"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/libgit2*/\n\natomic_patch -p1 $WORKSPACE/srcdir/patches/libgit2-agent-nonfatal.patch\n\nBUILD_FLAGS=(\n    -DCMAKE_BUILD_TYPE=Release\n    -DTHREADSAFE=ON\n    -DUSE_BUNDLED_ZLIB=ON\n    \"-DCMAKE_INSTALL_PREFIX=${prefix}\"\n    \"-DCMAKE_TOOLCHAIN_FILE=\"${CMAKE_TARGET_TOOLCHAIN}\"\"\n)\n\n# Special windows flags\nif [[ ${target} == *-mingw* ]]; then\n    BUILD_FLAGS+=(-DWIN32=ON -DMINGW=ON -DBUILD_CLAR=OFF)\n    if [[ ${target} == i686-* ]]; then\n        BUILD_FLAGS+=(-DCMAKE_C_FLAGS=\"-mincoming-stack-boundary=2\")\n    fi\nelif [[ ${target} == *linux* ]] || [[ ${target} == *freebsd* ]]; then\n    # If we're on Linux or FreeBSD, explicitly ask for mbedTLS instead of OpenSSL\n    BUILD_FLAGS+=(-DUSE_HTTPS=mbedTLS -DSHA1_BACKEND=CollisionDetection -DCMAKE_INSTALL_RPATH=\"\\$ORIGIN\")\nfi\nexport CFLAGS=\"-I${prefix}/include\"\n\nmkdir build && cd build\n\ncmake .. \"${BUILD_FLAGS[@]}\"\nmake -j${nproc}\nmake install\n"""
+version = "v1.0.0"
+
+[[dependencies]]
+name = "MbedTLS_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "LibSSH2_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgit2"]
+type = "lib"
+variable_name = "libgit2"
+
+[[sources]]
+hash = "7d3c7057f0e774aecd6fc4ef8333e69e5c4873e0"
+type = "git"
+unpack_target = ""
+url = "https://github.com/libgit2/libgit2.git"
+[[sources]]
+path = "./bundled"
+target = ""
+type = "directory"

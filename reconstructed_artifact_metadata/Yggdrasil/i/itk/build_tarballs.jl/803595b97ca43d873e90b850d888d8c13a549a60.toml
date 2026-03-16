@@ -1,0 +1,747 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "ITK"
+platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """if [[ \"${target}\" == *x86_64-w64-mingw32* ]]; then\n    CONFIG=msys2-64\n    OS=Windows\nelse\n    export CXXFLAGS=\"-DITK_LEGACY_REMOVE=OFF ${CXXFLAGS}\"\nfi\n\nexport LDFLAGS=\"-L${libdir}\"\ncd $WORKSPACE/srcdir/ITK*\nmkdir build/\ncmake -B build -S . \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DBUILD_SHARED_LIBS:BOOL=ON \\\n    -DITK_USE_SYSTEM_EXPAT:BOOL=ON \\\n    -DITK_USE_SYSTEM_FFTW:BOOL=ON \\\n    -DITK_USE_SYSTEM_HDF5:BOOL=ON \\\n    -DITK_USE_SYSTEM_JPEG:BOOL=ON \\\n    -DITK_USE_SYSTEM_TIFF:BOOL=ON \\\n    -DITK_USE_SYSTEM_PNG:BOOL=ON \\\n    -DITK_USE_SYSTEM_EIGEN:BOOL=ON \\\n    -DITK_USE_SYSTEM_ZLIB:BOOL=ON \\\n    -DQNANHIBIT_VALUE:BOOL=0 \\\n    -DQNANHIBIT_VALUE__TRYRUN_OUTPUT:STRING=0 \\\n    -DVXL_HAS_SSE2_HARDWARE_SUPPORT:STRING=1 \\\n    -DVCL_HAS_LFS:STRING=1 \\\n    -DDOUBLE_CONVERSION_CORRECT_DOUBLE_OPERATIONS:STRING=1 \\\n    -DHAVE_CLOCK_GETTIME_RUN:STRING=0 \\\n    -D_libcxx_run_result:STRING=0 \\\n    -D_libcxx_run_result__TRYRUN_OUTPUT:STRING=0 \\\n    -DITK_LEGACY_REMOVE=OFF \\\n    -DITK_BUILD_TESTING=OFF \\\n    -DBUILD_TESTING=OFF \\\n    -DITK_USE_WIN32_LIBS=ON \\\n    -DITK_SKIP_PATH_LENGTH_CHECKS=ON\n\ncmake --build build --parallel ${nproc}\ncmake --install build\ninstall_license ${WORKSPACE}/srcdir/ITK/LICENSE\n\nif [[ \"${target}\" == *x86_64-w64-mingw32* ]]; then\n    cp $prefix/lib/libitkminc2-5.3.dll $prefix/bin\n    cp $prefix/lib/libitkminc2-5.3.dll.a $prefix/bin\nfi\n"""
+version = "v5.3.3"
+
+[[dependencies]]
+compat = "2.6.5"
+name = "Expat_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "2e619515-83b5-522b-bb60-26c02a35a201"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "3.3.10"
+name = "FFTW_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "f5851436-0d7a-5f13-b9de-f02708fd171a"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "=1.14.3"
+name = "HDF5_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "0234f1f7-429e-5d53-9886-15a909be8d59"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "3.1.1"
+name = "JpegTurbo_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "aacddb02-875f-59d6-b918-886e6ef4fbf8"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "4.7.1"
+name = "Libtiff_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "89763e89-9b03-5906-acba-b20f662cd828"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.6.46"
+name = "libpng_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "b53b4c65-9356-5827-b1ea-8c7a1a84506f"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Eigen_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+uuid = "bc6bbf8a-a594-5541-9c57-10b0d0312c70"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.2.12"
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "83775a58-1f1d-513f-b197-d71354ab007a"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKRegistrationMethodsv4", "libITKRegistrationMethodsv4-5.3", "libITKRegistrationMethodsv4-5"]
+type = "lib"
+variable_name = "libITKRegistrationMethodsv4"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKIOCSV", "libITKIOCSV-5.3", "libITKIOCSV-5"]
+type = "lib"
+variable_name = "libITKIOCSV"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKImageFeature", "libITKImageFeature-5.3", "libITKImageFeature-5"]
+type = "lib"
+variable_name = "libITKImageFeature"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKIOStimulate", "libITKIOStimulate-5.3", "libITKIOStimulate-5"]
+type = "lib"
+variable_name = "libITKIOStimulate"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKIOMeshVTK", "libITKIOMeshVTK-5.3", "libITKIOMeshVTK-5"]
+type = "lib"
+variable_name = "libITKIOMeshVTK"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKLabelMap", "libITKLabelMap-5.3", "libITKLabelMap-5"]
+type = "lib"
+variable_name = "libITKLabelMap"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKIOBruker", "libITKIOBruker-5.3", "libITKIOBruker-5"]
+type = "lib"
+variable_name = "libITKIOBruker"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libitkgdcmDICT", "libitkgdcmDICT-5.3", "libitkgdcmDICT-5"]
+type = "lib"
+variable_name = "libitkgdcmDICT"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKIOJPEG", "libITKIOJPEG-5.3", "libITKIOJPEG-5"]
+type = "lib"
+variable_name = "libITKIOJPEG"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKIOPNG", "libITKIOPNG-5.3", "libITKIOPNG-5"]
+type = "lib"
+variable_name = "libITKIOPNG"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKIOGE", "libITKIOGE-5.3", "libITKIOGE-5"]
+type = "lib"
+variable_name = "libITKIOGE"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKDenoising", "libITKDenoising-5.3", "libITKDenoising-5"]
+type = "lib"
+variable_name = "libITKDenoising"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKIOLSM", "libITKIOLSM-5.3", "libITKIOLSM-5"]
+type = "lib"
+variable_name = "libITKIOLSM"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKniftiio", "libITKniftiio-5.3", "libITKniftiio-5"]
+type = "lib"
+variable_name = "libITKniftiio"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKIOImageBase", "libITKIOImageBase-5.3", "libITKIOImageBase-5"]
+type = "lib"
+variable_name = "libITKIOImageBase"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKTransform", "libITKTransform-5.3", "libITKTransform-5"]
+type = "lib"
+variable_name = "libITKTransform"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKIOMeshFreeSurfer", "libITKIOMeshFreeSurfer-5.3", "libITKIOMeshFreeSurfer-5"]
+type = "lib"
+variable_name = "libITKIOMeshFreeSurfer"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKIOMeshOBJ", "libITKIOMeshOBJ-5.3", "libITKIOMeshOBJ-5"]
+type = "lib"
+variable_name = "libITKIOMeshOBJ"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKDiffusionTensorImage", "libITKDiffusionTensorImage-5.3", "libITKDiffusionTensorImage-5"]
+type = "lib"
+variable_name = "libITKDiffusionTensorImage"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKImageIntensity", "libITKImageIntensity-5.3", "libITKImageIntensity-5"]
+type = "lib"
+variable_name = "libITKImageIntensity"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKIOHDF5", "libITKIOHDF5-5.3", "libITKIOHDF5-5"]
+type = "lib"
+variable_name = "libITKIOHDF5"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKIOIPL", "libITKIOIPL-5.3", "libITKIOIPL-5"]
+type = "lib"
+variable_name = "libITKIOIPL"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKIOGDCM", "libITKIOGDCM-5.3", "libITKIOGDCM-5"]
+type = "lib"
+variable_name = "libITKIOGDCM"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKIOTransformBase", "libITKIOTransformBase-5.3", "libITKIOTransformBase-5"]
+type = "lib"
+variable_name = "libITKIOTransformBase"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKIOMRC", "libITKIOMRC-5.3", "libITKIOMRC-5"]
+type = "lib"
+variable_name = "libITKIOMRC"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKIOGIPL", "libITKIOGIPL-5.3", "libITKIOGIPL-5"]
+type = "lib"
+variable_name = "libITKIOGIPL"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKIOMeshBYU", "libITKIOMeshBYU-5.3", "libITKIOMeshBYU-5"]
+type = "lib"
+variable_name = "libITKIOMeshBYU"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKIOMeta", "libITKIOMeta-5.3", "libITKIOMeta-5"]
+type = "lib"
+variable_name = "libITKIOMeta"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKIOMINC", "libITKIOMINC-5.3", "libITKIOMINC-5"]
+type = "lib"
+variable_name = "libITKIOMINC"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKDeformableMesh", "libITKDeformableMesh-5.3", "libITKDeformableMesh-5"]
+type = "lib"
+variable_name = "libITKDeformableMesh"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libitkgdcmDSED", "libitkgdcmDSED-5.3", "libitkgdcmDSED-5"]
+type = "lib"
+variable_name = "libitkgdcmDSED"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKIOSpatialObjects", "libITKIOSpatialObjects-5.3", "libITKIOSpatialObjects-5"]
+type = "lib"
+variable_name = "libITKIOSpatialObjects"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libitkgdcmIOD", "libitkgdcmIOD-5.3", "libitkgdcmIOD-5"]
+type = "lib"
+variable_name = "libitkgdcmIOD"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libitkgdcmCommon", "libitkgdcmCommon-5.3", "libitkgdcmCommon-5"]
+type = "lib"
+variable_name = "libitkgdcmCommon"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKIONRRD", "libITKIONRRD-5.3", "libITKIONRRD-5"]
+type = "lib"
+variable_name = "libITKIONRRD"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKIOTransformHDF5", "libITKIOTransformHDF5-5.3", "libITKIOTransformHDF5-5"]
+type = "lib"
+variable_name = "libITKIOTransformHDF5"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKIOJPEG2000", "libITKIOJPEG2000-5.3", "libITKIOJPEG2000-5"]
+type = "lib"
+variable_name = "libITKIOJPEG2000"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKIOMeshBase", "libITKIOMeshBase-5.3", "libITKIOMeshBase-5"]
+type = "lib"
+variable_name = "libITKIOMeshBase"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKIOBMP", "libITKIOBMP-5.3", "libITKIOBMP-5"]
+type = "lib"
+variable_name = "libITKIOBMP"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKIOBioRad", "libITKIOBioRad-5.3", "libITKIOBioRad-5"]
+type = "lib"
+variable_name = "libITKIOBioRad"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKCommon", "libITKCommon-5.3", "libITKCommon-5"]
+type = "lib"
+variable_name = "libITKCommon"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKSpatialObjects", "libITKSpatialObjects-5.3", "libITKSpatialObjects-5"]
+type = "lib"
+variable_name = "libITKSpatialObjects"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKDICOMParser", "libITKDICOMParser-5.3", "libITKDICOMParser-5"]
+type = "lib"
+variable_name = "libITKDICOMParser"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKIOMeshOFF", "libITKIOMeshOFF-5.3", "libITKIOMeshOFF-5"]
+type = "lib"
+variable_name = "libITKIOMeshOFF"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKIOMeshGifti", "libITKIOMeshGifti-5.3", "libITKIOMeshGifti-5"]
+type = "lib"
+variable_name = "libITKIOMeshGifti"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKMetaIO", "libITKMetaIO-5.3", "libITKMetaIO-5"]
+type = "lib"
+variable_name = "libITKMetaIO"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKIONIFTI", "libITKIONIFTI-5.3", "libITKIONIFTI-5"]
+type = "lib"
+variable_name = "libITKIONIFTI"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKNrrdIO", "libITKNrrdIO-5.3", "libITKNrrdIO-5"]
+type = "lib"
+variable_name = "libITKNrrdIO"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKConvolution", "libITKConvolution-5.3", "libITKConvolution-5"]
+type = "lib"
+variable_name = "libITKConvolution"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKTestKernel", "libITKTestKernel-5.3", "libITKTestKernel-5"]
+type = "lib"
+variable_name = "libITKTestKernel"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKBiasCorrection", "libITKBiasCorrection-5.3", "libITKBiasCorrection-5"]
+type = "lib"
+variable_name = "libITKBiasCorrection"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKFastMarching", "libITKFastMarching-5.3", "libITKFastMarching-5"]
+type = "lib"
+variable_name = "libITKFastMarching"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKPolynomials", "libITKPolynomials-5.3", "libITKPolynomials-5"]
+type = "lib"
+variable_name = "libITKPolynomials"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKColormap", "libITKColormap-5.3", "libITKColormap-5"]
+type = "lib"
+variable_name = "libITKColormap"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKPDEDeformableRegistration", "libITKPDEDeformableRegistration-5.3", "libITKPDEDeformableRegistration-5"]
+type = "lib"
+variable_name = "libITKPDEDeformableRegistration"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKIOSiemens", "libITKIOSiemens-5.3", "libITKIOSiemens-5"]
+type = "lib"
+variable_name = "libITKIOSiemens"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKIOTransformInsightLegacy", "libITKIOTransformInsightLegacy-5.3", "libITKIOTransformInsightLegacy-5"]
+type = "lib"
+variable_name = "libITKIOTransformInsightLegacy"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKIOTransformMatlab", "libITKIOTransformMatlab-5.3", "libITKIOTransformMatlab-5"]
+type = "lib"
+variable_name = "libITKIOTransformMatlab"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKKLMRegionGrowing", "libITKKLMRegionGrowing-5.3", "libITKKLMRegionGrowing-5"]
+type = "lib"
+variable_name = "libITKKLMRegionGrowing"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKMarkovRandomFieldsClassifiers", "libITKMarkovRandomFieldsClassifiers-5.3", "libITKMarkovRandomFieldsClassifiers-5"]
+type = "lib"
+variable_name = "libITKMarkovRandomFieldsClassifiers"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKQuadEdgeMeshFiltering", "libITKQuadEdgeMeshFiltering-5.3", "libITKQuadEdgeMeshFiltering-5"]
+type = "lib"
+variable_name = "libITKQuadEdgeMeshFiltering"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKRegionGrowing", "libITKRegionGrowing-5.3", "libITKRegionGrowing-5"]
+type = "lib"
+variable_name = "libITKRegionGrowing"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKVTK", "libITKVTK-5.3", "libITKVTK-5"]
+type = "lib"
+variable_name = "libITKVTK"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKWatersheds", "libITKWatersheds-5.3", "libITKWatersheds-5"]
+type = "lib"
+variable_name = "libITKWatersheds"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKVideoIO", "libITKVideoIO-5.3", "libITKVideoIO-5"]
+type = "lib"
+variable_name = "libITKVideoIO"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libitkgdcmMSFF", "libitkgdcmMSFF-5.3", "libitkgdcmMSFF-5"]
+type = "lib"
+variable_name = "libitkgdcmMSFF"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKgiftiio", "libITKgiftiio-5.3", "libITKgiftiio-5"]
+type = "lib"
+variable_name = "libITKgiftiio"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKQuadEdgeMesh", "libITKQuadEdgeMesh-5.3", "libITKQuadEdgeMesh-5"]
+type = "lib"
+variable_name = "libITKQuadEdgeMesh"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKznz", "libITKznz-5.3", "libITKznz-5"]
+type = "lib"
+variable_name = "libITKznz"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKIOVTK", "libITKIOVTK-5.3", "libITKIOVTK-5"]
+type = "lib"
+variable_name = "libITKIOVTK"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKFFT", "libITKFFT-5.3", "libITKFFT-5"]
+type = "lib"
+variable_name = "libITKFFT"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libitkopenjpeg", "libitkopenjpeg-5.3", "libitkopenjpeg-5"]
+type = "lib"
+variable_name = "libitkopenjpeg"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKIOTIFF", "libITKIOTIFF-5.3", "libITKIOTIFF-5"]
+type = "lib"
+variable_name = "libITKIOTIFF"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libitkminc2", "libitkminc2-5.3", "libitkminc2-5"]
+type = "lib"
+variable_name = "libitkminc2"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKIOXML", "libITKIOXML-5.3", "libITKIOXML-5"]
+type = "lib"
+variable_name = "libITKIOXML"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKTransformFactory", "libITKTransformFactory-5.3", "libITKTransformFactory-5"]
+type = "lib"
+variable_name = "libITKTransformFactory"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKMathematicalMorphology", "libITKMathematicalMorphology-5.3", "libITKMathematicalMorphology-5"]
+type = "lib"
+variable_name = "libITKMathematicalMorphology"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKPath", "libITKPath-5.3", "libITKPath-5"]
+type = "lib"
+variable_name = "libITKPath"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKMesh", "libITKMesh-5.3", "libITKMesh-5"]
+type = "lib"
+variable_name = "libITKMesh"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKSmoothing", "libITKSmoothing-5.3", "libITKSmoothing-5"]
+type = "lib"
+variable_name = "libITKSmoothing"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKOptimizersv4", "libITKOptimizersv4-5.3", "libITKOptimizersv4-5"]
+type = "lib"
+variable_name = "libITKOptimizersv4"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKOptimizers", "libITKOptimizers-5.3", "libITKOptimizers-5"]
+type = "lib"
+variable_name = "libITKOptimizers"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKStatistics", "libITKStatistics-5.3", "libITKStatistics-5"]
+type = "lib"
+variable_name = "libITKStatistics"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libitkNetlibSlatec", "libitkNetlibSlatec-5.3", "libitkNetlibSlatec-5"]
+type = "lib"
+variable_name = "libitkNetlibSlatec"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libitklbfgs", "libitklbfgs-5.3", "libitklbfgs-5"]
+type = "lib"
+variable_name = "libitklbfgs"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKVideoCore", "libITKVideoCore-5.3", "libITKVideoCore-5"]
+type = "lib"
+variable_name = "libITKVideoCore"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libitkdouble-conversion", "libitkdouble-conversion-5.3", "libitkdouble-conversion-5"]
+type = "lib"
+variable_name = "libitkdoubleConversion"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libitksys", "libitksys-5.3", "libitksys-5"]
+type = "lib"
+variable_name = "libitksys"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libITKVNLInstantiation", "libITKVNLInstantiation-5.3", "libITKVNLInstantiation-5"]
+type = "lib"
+variable_name = "libITKVNLInstantiation"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libitkvnl_algo", "libitkvnl_algo-5.3", "libitkvnl_algo-5"]
+type = "lib"
+variable_name = "libitkvnl_algo"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libitkvnl", "libitkvnl-5.3", "libitkvnl-5"]
+type = "lib"
+variable_name = "libitkvnl"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libitkv3p_netlib", "libitkv3p_netlib-5.3", "libitkv3p_netlib-5"]
+type = "lib"
+variable_name = "libitkv3p_netlib"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libitkvcl", "libitkvcl-5.3", "libitkvcl-5"]
+type = "lib"
+variable_name = "libitkvcl"
+
+[[sources]]
+hash = "1fc47c7bec4ee133318c1892b7b745763a17d411"
+type = "git"
+unpack_target = ""
+url = "https://github.com/InsightSoftwareConsortium/ITK.git"

@@ -1,0 +1,275 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.9"
+lazy_artifacts = false
+name = "casacore"
+platforms = ["i686-linux-gnu-libgfortran5-cxx11", "x86_64-linux-gnu-libgfortran5-cxx11", "aarch64-linux-gnu-libgfortran5-cxx11", "armv6l-linux-gnueabihf-libgfortran5-cxx11", "armv7l-linux-gnueabihf-libgfortran5-cxx11", "powerpc64le-linux-gnu-libgfortran5-cxx11", "x86_64-apple-darwin-libgfortran5", "aarch64-apple-darwin-libgfortran5"]
+script = """cd $WORKSPACE/srcdir/casacore\n\napk del cmake\n\nmkdir build && cd build\nCMAKE_FLAGS=()\n\n# Release build for best performance\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\n\n# Install things into $prefix\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix})\n\n# Set the toolchain\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\n\n# Disable OpenMP, it'll probably interfere with Julia's threads\nCMAKE_FLAGS+=(-DUSE_OPENMP=OFF)\n\n# Don't build python hooks\nCMAKE_FLAGS+=(-DBUILD_PYTHON3=OFF)\n\n# Build \"portable\" code\nCMAKE_FLAGS+=(-DPORTABLE=ON)\n\n# Stock FFTW3 has threads already baked in\nCMAKE_FLAGS+=(-DFFTW3_DISABLE_THREADS=yes)\n\n# linux builds need to link against rt (they don't do this for some reason)\nif [[ ${target} == *-linux-* ]]; then\n    CMAKE_FLAGS+=(-DCASACORE_ARCH_LIBS=\"-lrt\")\nfi\n\n# Explicitly link BLAS to LBT\nCMAKE_FLAGS+=(-DBLA_VENDOR=\"libblastrampoline\")\n\n# Configure\n${host_bindir}/cmake ${CMAKE_FLAGS[@]} ..\n\n# Make and install\nmake -j${nproc}\nmake install\nexit\n"""
+version = "v3.7.1"
+
+[[dependencies]]
+compat = ""
+name = "CMake_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "3.3.10"
+name = "FFTW_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "f5851436-0d7a-5f13-b9de-f02708fd171a"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "4.4.0"
+name = "CFITSIO_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "b3e40c51-02ae-5482-8a39-3ace5868dcf4"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "7.7.0"
+name = "WCS_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "550c8279-ae0e-5d1b-948f-937f2608a23e"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Readline_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "05236dd9-4125-5232-aa7c-9ec0c9b2c25a"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "~2.7.2"
+name = "GSL_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "1b77fbbe-d8ee-58f0-85f9-836ddc23a7a4"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "5.4"
+name = "libblastrampoline_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "8e850b90-86db-534c-a0d3-1478176c7d93"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenBLAS32_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "656ef2d0-ae68-5445-9ca0-591084a874a2"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcasa_casa"]
+type = "lib"
+variable_name = "libcasa_casa"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcasa_coordinates"]
+type = "lib"
+variable_name = "libcasa_coordinates"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcasa_derivedmscal"]
+type = "lib"
+variable_name = "libcasa_derivedmscal"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcasa_fits"]
+type = "lib"
+variable_name = "libcasa_fits"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcasa_images"]
+type = "lib"
+variable_name = "libcasa_images"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcasa_lattices"]
+type = "lib"
+variable_name = "libcasa_lattices"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcasa_meas"]
+type = "lib"
+variable_name = "libcasa_meas"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcasa_measures"]
+type = "lib"
+variable_name = "libcasa_measures"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcasa_mirlib"]
+type = "lib"
+variable_name = "libcasa_mirlib"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcasa_msfits"]
+type = "lib"
+variable_name = "libcasa_msfits"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcasa_ms"]
+type = "lib"
+variable_name = "libcasa_ms"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcasa_scimath_f"]
+type = "lib"
+variable_name = "libcasa_scimath_f"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcasa_scimath"]
+type = "lib"
+variable_name = "libcasa_scimath"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcasa_tables"]
+type = "lib"
+variable_name = "libcasa_tables"
+[[products]]
+binnames = ["findmeastable"]
+type = "exe"
+variable_name = "findmeastable"
+[[products]]
+binnames = ["fits2table"]
+type = "exe"
+variable_name = "fits2table"
+[[products]]
+binnames = ["image2fits"]
+type = "exe"
+variable_name = "image2fits"
+[[products]]
+binnames = ["imagecalc"]
+type = "exe"
+variable_name = "imagecalc"
+[[products]]
+binnames = ["imageregrid"]
+type = "exe"
+variable_name = "imageregrid"
+[[products]]
+binnames = ["imageslice"]
+type = "exe"
+variable_name = "imageslice"
+[[products]]
+binnames = ["lsmf"]
+type = "exe"
+variable_name = "lsmf"
+[[products]]
+binnames = ["measuresdata"]
+type = "exe"
+variable_name = "measuresdata"
+[[products]]
+binnames = ["measuresdata-update"]
+type = "exe"
+variable_name = "measuresdata_update"
+[[products]]
+binnames = ["ms2uvfits"]
+type = "exe"
+variable_name = "ms2uvfits"
+[[products]]
+binnames = ["msselect"]
+type = "exe"
+variable_name = "msselect"
+[[products]]
+binnames = ["readms"]
+type = "exe"
+variable_name = "readms"
+[[products]]
+binnames = ["showtableinfo"]
+type = "exe"
+variable_name = "showtableinfo"
+[[products]]
+binnames = ["showtablelock"]
+type = "exe"
+variable_name = "showtablelock"
+[[products]]
+binnames = ["tablefromascii"]
+type = "exe"
+variable_name = "tablefromascii"
+[[products]]
+binnames = ["taql"]
+type = "exe"
+variable_name = "taql"
+[[products]]
+binnames = ["tomf"]
+type = "exe"
+variable_name = "tomf"
+[[products]]
+binnames = ["writems"]
+type = "exe"
+variable_name = "writems"
+
+[[sources]]
+hash = "67b7d63dc333c5d4fce5d92f125c1e0ce0e3514a"
+type = "git"
+unpack_target = ""
+url = "https://github.com/casacore/casacore.git"

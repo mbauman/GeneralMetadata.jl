@@ -1,0 +1,77 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Qemu_static"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11"]
+script = """cd $WORKSPACE/srcdir/qemu-*\ninstall_license COPYING\n\n# check if we need to use a more recent glibc\nif [[ -f \"$prefix/usr/include/sched.h\" ]]; then\n    GLIBC_ARTIFACT_DIR=$(dirname $(dirname $(dirname $(realpath $prefix/usr/include/sched.h))))\n    rsync --archive ${GLIBC_ARTIFACT_DIR}/ /opt/${target}/${target}/sys-root/\nfi\n\n# include `falloc` header in `strace.c` (requires glibc 2.25)\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/qemu_falloc.patch\"\n\n# disable tests\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/qemu_disable_tests.patch\"\n\n# properly link to rt\n#atomic_patch -p1 \"${WORKSPACE}/srcdir/patches/qemu_link_rt.patch\"\n\n# recurse on execve\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/qemu_execve.patch\"\n\n# XXX: qemu uses meson, but uses a complex configure script to invoke it,\n#      so we can't just set --cross-file directly. instead, we need to set\n#      --cross-prefix to convince it's cross compiling, but that then requires\n#      specific binaries to be present there\ncross_prefix=$(dirname $(which gcc))\nln -s $(which pkg-config) $cross_prefix\n./configure --prefix=$prefix --cross-prefix=\"$cross_prefix/\" \\\n    --extra-cflags=\"-I${prefix}/include -Wno-unused-result\" \\\n    --target-list=\"aarch64-linux-user ppc64le-linux-user i386-linux-user x86_64-linux-user arm-linux-user\" \\\n    --static\n\nmake -j${nproc}\n\nmake install\n"""
+version = "v7.1.0"
+
+[[dependencies]]
+compat = ""
+name = "Glib_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "PCRE2_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Libiconv_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Glibc_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11"]
+top_level = false
+type = "builddependency"
+version-major = 2
+version-minor = 17
+version-patch = 0
+
+[[products]]
+binnames = ["qemu-aarch64"]
+type = "exe"
+variable_name = "qemu_aarch64"
+[[products]]
+binnames = ["qemu-arm"]
+type = "exe"
+variable_name = "qemu_arm"
+[[products]]
+binnames = ["qemu-i386"]
+type = "exe"
+variable_name = "qemu_i386"
+[[products]]
+binnames = ["qemu-ppc64le"]
+type = "exe"
+variable_name = "qemu_ppc64le"
+[[products]]
+binnames = ["qemu-x86_64"]
+type = "exe"
+variable_name = "qemu_x86_64"
+
+[[sources]]
+hash = "a0634e536bded57cf38ec8a751adb124b89c776fe0846f21ab6c6728f1cbbbe6"
+type = "archive"
+unpack_target = ""
+url = "https://download.qemu.org/qemu-7.1.0.tar.xz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

@@ -1,0 +1,35 @@
+lazy_artifacts = false
+name = "PARMETIS"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1"]
+script = """mkdir -p ${libdir}\ncd $WORKSPACE/srcdir/parmetis-4.0.3\n\nfor f in ${WORKSPACE}/srcdir/patches/*.patch; do\n  atomic_patch -p1 ${f}\ndone\n\ncd build\ncmake .. \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DSHARED=1 \\\n    -DGKLIB_PATH=$(realpath ../metis/GKlib) \\\n    -DMETIS_PATH=$(realpath ../metis) \\\n    -DMPI_INCLUDE_PATH=\"${prefix}/include\" \\\n    -DMPI_LIBRARIES=\"mpi\"\nmake -j${nproc}\nmake install\n"""
+version = "v4.0.3"
+
+[[dependencies]]
+name = "METIS_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "MPICH_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dont_dlopen = false
+libnames = ["libparmetis"]
+type = "lib"
+variable_name = "libparmetis"
+
+[[sources]]
+hash = "f2d9a231b7cf97f1fee6e8c9663113ebf6c240d407d3c118c55b3633d6be6e5f"
+type = "archive"
+unpack_target = ""
+url = "http://glaros.dtc.umn.edu/gkhome/fetch/sw/parmetis/parmetis-4.0.3.tar.gz"
+[[sources]]
+path = "./bundled"
+target = ""
+type = "directory"

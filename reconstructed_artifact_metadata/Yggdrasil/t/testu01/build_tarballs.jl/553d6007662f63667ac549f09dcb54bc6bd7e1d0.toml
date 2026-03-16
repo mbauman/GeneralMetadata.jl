@@ -1,0 +1,42 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "TestU01"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd ${WORKSPACE}/srcdir/TestU01*\nupdate_configure_scripts\n\nMFLAGS=(\n    -j${nproc}\n\n    # Always set this since the only executable we build is a host-tool\n    # and we don't want to accidentally try to rebuild it.\n    EXEEXT=\"\"\n)\n\nif [[ \"${target}\" = *-mingw* ]]; then\n  export lt_cv_deplibs_check_method=pass_all\n  export LDFLAGS=\"-lws2_32\"\nfi\n\n./bootstrap\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target}\n\n# Make `tcode` to run on the host, as it's used to bootstrap\nmake ${MFLAGS[@]} CC=\"${HOSTCC}\" LD=\"${HOSTLD}\" LDFLAGS=\"\" tcode\n\n# libtool is hopeless, I give up\nif [[ \"${target}\" = *-mingw* ]]; then\n    cp .libs/tcode tcode\nfi\n\n# Make the library we actually want to ship\nmake ${MFLAGS[@]}\nmake ${MFLAGS[@]} install\n\n# Compile TestU01extractors shim\nmake ${MFLAGS[@]} -C ../src/TestU01extractors/ install\n\n# Delete improperly-installed `tcode`\nrm ${bindir}/tcode\n\ninstall_license COPYING\n"""
+version = "v1.2.3"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libtestu01"]
+type = "lib"
+variable_name = "libtestu01"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libprobdist"]
+type = "lib"
+variable_name = "libprobdist"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libtestu01extractors"]
+type = "lib"
+variable_name = "libtestu01extractors"
+
+[[sources]]
+hash = "8e39bd74544f2b6d857a59e2787a5f1c87cc4313"
+type = "git"
+unpack_target = ""
+url = "https://github.com/blep/TestU01.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

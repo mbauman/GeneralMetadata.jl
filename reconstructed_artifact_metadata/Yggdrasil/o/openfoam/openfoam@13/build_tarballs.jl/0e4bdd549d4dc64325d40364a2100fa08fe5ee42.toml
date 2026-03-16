@@ -1,0 +1,122 @@
+augment_platform_block = """    using Base.BinaryPlatforms\n    # Can't use Preferences since we might be running this very early with a non-existing Manifest\nMPIPreferences_UUID = Base.UUID(\"3da0fdf6-3ccc-4f1b-acd9-58baa6c99267\")\nconst preferences = Base.get_preferences(MPIPreferences_UUID)\n\n# Keep logic in sync with MPIPreferences.jl\nfunction augment_mpi!(platform)\n    # Doesn't need to be `const` since we depend on MPIPreferences so we\n    # invalidate the cache when it changes.\n    # Note: MPIPreferences uses `Sys.iswindows()` without the `platform` argument.\n    binary = get(preferences, \"binary\", Sys.iswindows(platform) ? \"MicrosoftMPI_jll\" : \"MPICH_jll\")\n\n    abi = if binary == \"system\"\n        let abi = get(preferences, \"abi\", nothing)\n            if abi === nothing\n                error(\"MPIPreferences: Inconsistent state detected, binary set to system, but no ABI set.\")\n            else\n                abi\n            end\n        end\n    elseif binary == \"MicrosoftMPI_jll\"\n        \"MicrosoftMPI\"\n    elseif binary == \"MPICH_jll\"\n        \"MPICH\"\n    elseif binary == \"MPICH_CUDA_jll\"\n        \"MPICH\"\n    elseif binary == \"OpenMPI_jll\"\n        \"OpenMPI\"\n    elseif binary == \"MPItrampoline_jll\"\n        \"MPItrampoline\"\n    else\n        error(\"Unknown binary: $binary\")\n    end\n\n    if !haskey(platform, \"mpi\")\n        platform[\"mpi\"] = abi\n    end\n    return platform\nend\n\n    augment_platform!(platform::Platform) = augment_mpi!(platform)\n"""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = true
+name = "OpenFOAM"
+platforms = ["x86_64-linux-gnu-cxx11-mpi+mpich", "x86_64-linux-gnu-cxx11-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-mpi+openmpi"]
+script = """SCOTCH_VERSION=6.1.0\ncd ${WORKSPACE}/srcdir/OpenFOAM*\n\n#atomic_patch -p1 ../patches/etc-bashrc.patch\nln -sf /proc/self/fd /dev/fd\n\n# Set rpath-link in all C/C++ compilers\nLDFLAGS=\"\"\nfor dir in \"\" \"/dummy\" \"/mpi-system\"; do\n    LDFLAGS=\"${LDFLAGS} -Wl,-rpath-link=${PWD}/platforms/linux64GccDPInt32Opt/lib${dir}\"\ndone\nsed -i \"s?-m64?-m64 ${LDFLAGS}?g\" wmake/rules/*/c*\n\n# Set version of Scotch\necho \"export SCOTCH_VERSION=${SCOTCH_VERSION}\" > etc/config.sh/scotch\necho \"export SCOTCH_ARCH_PATH=${prefix}\"      >> etc/config.sh/scotch\n\n# Set up to use our MPI\nsed -i 's/WM_MPLIB=SYSTEMOPENMPI/WM_MPLIB=SYSTEMMPI/g' etc/bashrc\nexport MPI_ROOT=\"${prefix}\"\nexport MPI_ARCH_FLAGS=\"\"\nexport MPI_ARCH_INC=\"-I${includedir}\"\nif grep -q MPICH_NAME $prefix/include/mpi.h; then\n    export MPI_ARCH_LIBS=\"-L${libdir} -lmpi\"\nelif grep -q MPItrampoline $prefix/include/mpi.h; then\n    export MPI_ARCH_LIBS=\"-L${libdir} -lmpitrampoline\"\nelif grep -q OMPI_MAJOR_VERSION $prefix/include/mpi.h; then\n    export MPI_ARCH_LIBS=\"-L${libdir} -lmpi\"\nfi\n\n# Set up the environment.  Note, this script may internally have some failing command, which\n# would spring our traps, so we have to allow failures, sigh\nsource etc/bashrc || true\n\n# Remove zoltan decomposition\nexport ZOLTAN_VERSION=zoltan-none\nexport ZOLTAN_TYPE=none\n\n# Build!\n./Allwmake -j${nproc}\n\n# Highly advanced installation process (inspired by Debian:\n# https://salsa.debian.org/science-team/openfoam/-/tree/master/debian)\nmkdir -p ${libdir} ${bindir} ${prefix}/share/openfoam\ncp platforms/linux64GccDPInt32Opt/lib/{,dummy/,mpi-system/}*.${dlext}* ${libdir}\ncp platforms/linux64GccDPInt32Opt/bin/* ${bindir}\ncp -r -L bin/* ${bindir}\ncp -r etc/ ${prefix}/share/openfoam/\n"""
+version = "v13.0.20250911"
+
+[[dependencies]]
+compat = ""
+name = "flex_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "6.1.3"
+name = "SCOTCH_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "PTSCOTCH_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "METIS_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.2.12"
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "4.3.0 - 4"
+name = "MPICH_jll"
+platforms = ["x86_64-linux-gnu-cxx11-mpi+mpich"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "5.5.3 - 5"
+name = "MPItrampoline_jll"
+platforms = ["x86_64-linux-gnu-cxx11-mpi+mpitrampoline"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MicrosoftMPI_jll"
+platforms = []
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "4.1.8, 5.0.7"
+name = "OpenMPI_jll"
+platforms = ["x86_64-linux-gnu-cxx11-mpi+openmpi"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "0.1"
+name = "MPIPreferences"
+platforms = ["any"]
+top_level = true
+type = "dependency"
+uuid = "3da0fdf6-3ccc-4f1b-acd9-58baa6c99267"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libOpenFOAM"]
+type = "lib"
+variable_name = "libOpenFOAM"
+[[products]]
+binnames = ["simpleFoam"]
+type = "exe"
+variable_name = "simpleFoam"
+[[products]]
+paths = ["share/openfoam/etc"]
+type = "file"
+variable_name = "openfoam_etc"
+
+[[sources]]
+hash = "cde978a97c939b1d5c8f2efce4e12f9b9ec460a9"
+type = "git"
+unpack_target = ""
+url = "https://github.com/OpenFOAM/OpenFOAM-13.git"

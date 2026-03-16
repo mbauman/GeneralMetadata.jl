@@ -1,0 +1,110 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Pango"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """\nif [[ \"${target}\" == *-mingw* ]]; then\n    cd $WORKSPACE/srcdir/mingw*/mingw-w64-headers\n    ./configure --prefix=/opt/$target/$target/sys-root --enable-sdk=all --host=$target\n    make install\n\n    cd ../mingw-w64-crt/\n    if [ ${target} == \"i686-w64-mingw32\" ]; then\n        _crt_configure_args=\"--disable-lib64 --enable-lib32\"\n    elif [ ${target} == \"x86_64-w64-mingw32\" ]; then\n        _crt_configure_args=\"--disable-lib32 --enable-lib64\"\n    fi\n    ./configure --prefix=/opt/$target/$target/sys-root --enable-sdk=all --host=$target --enable-wildcard ${_crt_configure_args}\n    make -j${nproc}\n    make install\nfi\n\ncd $WORKSPACE/srcdir/pango-*/\n# fix a windows build issue: see https://gitlab.gnome.org/GNOME/pango/-/merge_requests/702\natomic_patch -p1 ../patches/dwrite.patch\npip3 install gi-docgen\nmkdir build && cd build\nmeson --cross-file=\"${MESON_TARGET_TOOLCHAIN}\" \\\n    -Dintrospection=disabled \\\n    ..\nninja -j${nproc}\nninja install\n\ninstall_license ../COPYING\n"""
+version = "v1.50.14"
+
+[[dependencies]]
+compat = "1.16.1"
+name = "Cairo_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Fontconfig_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "2.10.4"
+name = "FreeType2_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "FriBidi_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "2.68.1"
+name = "Glib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "2.8.1"
+name = "HarfBuzz_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_xorgproto_jll"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-unknown-freebsd"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libpango", "libpango-1", "libpango-1.0"]
+type = "lib"
+variable_name = "libpango"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libpangocairo", "libpangocairo-1", "libpangocairo-1.0"]
+type = "lib"
+variable_name = "libpangocairo"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libpangoft2", "libpangoft2-1", "libpangoft2-1.0"]
+type = "lib"
+variable_name = "libpangoft"
+
+[[sources]]
+hash = "1d67f205bfc318c27a29cfdfb6828568df566795df0cb51d2189cde7f2d581e8"
+type = "archive"
+unpack_target = ""
+url = "http://ftp.gnome.org/pub/GNOME/sources/pango/1.50/pango-1.50.14.tar.xz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"
+[[sources]]
+hash = "bd0ea1633bd830204cc23a696889335e9d4a32b8619439ee17f22188695fcc5f"
+type = "archive"
+unpack_target = ""
+url = "https://sourceforge.net/projects/mingw-w64/files/mingw-w64/mingw-w64-release/mingw-w64-v11.0.0.tar.bz2"

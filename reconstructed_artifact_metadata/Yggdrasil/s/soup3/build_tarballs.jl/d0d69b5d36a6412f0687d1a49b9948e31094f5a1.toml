@@ -1,0 +1,86 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Soup3"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/libsoup-*/\ninstall_license COPYING\n\nmkdir build_glib && cd build_glib\nmeson --cross-file=\"${MESON_TARGET_TOOLCHAIN}\" \\\n    --buildtype=release \\\n    -Dtls_check=false \\\n    -Dtests=false \\\n    -Ddocs=disabled \\\n    -Dsysprof=disabled \\\n    ..\n\nif [[ \"${target}\" != *darwin* ]]; then\n    # https://github.com/rbgirshick/py-faster-rcnn/issues/706\n    sed -i \"s/-R/-Wl,-rpath=/\" build.ninja\nfi\n\nif [[ \"${target}\" == *86*-linux-gnu* ]]; then\n    # https://stackoverflow.com/questions/2418157/c-error-undefined-reference-to-clock-gettime-and-clock-settime\n    sed -i 's/$ARGS -o $out $in $LINK_ARGS/$ARGS -o $out $in $LINK_ARGS -lrt/' build.ninja\nfi\n\nninja -j${nproc}\nninja install\n"""
+version = "v3.2.1"
+
+[[dependencies]]
+compat = ""
+name = "Gettext_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "2.74.0"
+name = "Glib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "SQLite_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "nghttp2_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "brotli_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "libpsl_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "GlibNetworking_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsoup", "libsoup-3", "libsoup-3.0"]
+type = "lib"
+variable_name = "libsoup"
+
+[[sources]]
+hash = "b1eb3d2c3be49fbbd051a71f6532c9626bcecea69783190690cd7e4dfdf28f29"
+type = "archive"
+unpack_target = ""
+url = "https://download.gnome.org/sources/libsoup/3.2/libsoup-3.2.1.tar.xz"

@@ -1,0 +1,33 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "TermInfoDB"
+script = """cd ${WORKSPACE}/srcdir/\n\n# Adopting the wisdom of https://mywiki.wooledge.org/ParsingLs (🙏 Mosè)\nshopt -s nullglob\n\ngunzip terminfo-*\nmkdir -p \"${prefix}/share/terminfo\"\ntic -sx -o \"${prefix}/share/terminfo\" ./terminfo-*\n\npushd \"${prefix}/share/terminfo/\"\n\n# The terminfo filesystem-based database contains both upper- and lowercase directory\n# names, which presents a problem for case-insensitive filesystems. Let's rename all\n# files and directories to lowercase. Unfortunately, we can't just `mv` the filename\n# to its lowercase counterpart because many of these files, including but not limited\n# to those whose names differ only by case, are actually hard links to one another\n# (they have the same inode) so `mv` sees it as a no-op and just does nothing.\n# Hence... this.\nfor dir in *; do\n    lcdir=\"${dir,,}\"\n    mkdir -p \"${lcdir}\"\n    for file in ${dir}/*; do\n        file=$(basename \"${file}\")\n        lcfile=\"${file,,}\"\n        if [ \"${dir}/${file}\" = \"${lcdir}/${lcfile}\" ]; then\n            # Already all lowercase, nothing to do\n            continue\n        fi\n        mv -f \"${dir}/${file}\" \"${lcdir}/${lcfile}.TEMP\"\n        rm -f \"${lcdir}/${lcfile}\"\n        mv -f \"${lcdir}/${lcfile}.TEMP\" \"${lcdir}/${lcfile}\"\n        if [ -e \"${dir}/${file}\" ] || [ -e \"${lcdir}/${lcfile}.TEMP\" ]; then\n            echo \"ERROR: '${dir}/${file}' not successfully renamed to lowercase!!!\"\n            exit 1\n        fi\n    done\n    if [ -z \"$(ls -A \"${dir}\")\" ]; then\n        rm -rf \"${dir}\"\n    fi\ndone\n\n# I'm not about to list the entire contents out as `FileProduct`s, so we'll do our\n# own mini-audit by checking that the expected directories exist. We know each is\n# non-empty based on the above.\ndirs=(*)\nexpected=(1 2 3 4 5 6 7 8 9 a b c d e f g h i j k l m n o p q r s t u v w x z)\nif [ ! -z \"$(echo ${dirs[@]} ${expected[@]} | tr ' ' '\\n' | sort | uniq -u)\" ]; then\n    echo \"ERROR: Build did not produce the expected set of directories!!!\"\n    exit 1\nfi\n\npopd\n\ninstall_license \"${WORKSPACE}/srcdir/COPYING\"\n"""
+version = "v2023.12.9"
+
+[[dependencies]]
+compat = ""
+name = "Ncurses_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+paths = ["share/terminfo/x/xterm"]
+type = "file"
+variable_name = "terminfo_xterm"
+
+[[sources]]
+filename = "terminfo-20231209.src.gz"
+hash = "2debcf2fd689988d44558bcd8a26a104b96542ffc9540f19e2586b3aeecd1c79"
+type = "file"
+url = "https://invisible-island.net/archives/ncurses/current/terminfo-20231209.src.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

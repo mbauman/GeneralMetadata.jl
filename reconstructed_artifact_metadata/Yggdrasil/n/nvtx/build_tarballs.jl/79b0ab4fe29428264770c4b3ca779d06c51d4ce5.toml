@@ -1,0 +1,37 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "NVTX"
+platforms = ["x86_64-linux-gnu", "powerpc64le-linux-gnu", "aarch64-linux-gnu", "x86_64-w64-mingw32"]
+script = """atomic_patch -p1 $WORKSPACE/srcdir/patches/nvtx-linux-limits.patch\natomic_patch -p1 $WORKSPACE/srcdir/patches/nvtx-windows-case.patch\natomic_patch -p1 $WORKSPACE/srcdir/patches/nvtx-pragma-hidden.patch\ncd ${WORKSPACE}/srcdir/\nmkdir -p ${libdir}\nif [[ \"${target}\" == *-linux-* ]]; then\n    CFLAGS=\"-fPIC\"\n    LIBS=\"-ldl\"\nfi\n${CC} -std=c99 -O2 ${CFLAGS} -shared ${LIBS} -I${prefix}/cuda/include -I${WORKSPACE}/srcdir/NVTX/c/include -o ${libdir}/libnvToolsExt.${dlext} nvtx.c\ninstall_license ${WORKSPACE}/srcdir/NVTX/LICENSE.txt\n"""
+version = "v3.1.0"
+
+[[dependencies]]
+compat = ""
+name = "CUDA_full_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnvToolsExt"]
+type = "lib"
+variable_name = "libnvToolsExt"
+
+[[sources]]
+hash = "e170594ac7cf1dac584da473d4ca9301087090c1"
+type = "git"
+unpack_target = ""
+url = "https://github.com/NVIDIA/NVTX"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

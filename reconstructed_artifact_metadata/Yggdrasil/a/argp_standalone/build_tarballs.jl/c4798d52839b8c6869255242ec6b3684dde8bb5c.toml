@@ -1,0 +1,34 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.9"
+lazy_artifacts = false
+name = "argp_standalone"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd"]
+script = """cd $WORKSPACE/srcdir/argp-*/\n\nfor p in $WORKSPACE/srcdir/patches/*.patch; do\n    atomic_patch -p1 $p\ndone\n\nCFLAGS=\"-fPIC\" ./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target}\nmake -j${nproc}\ninstall_license $WORKSPACE/srcdir/LICENSE\ninstall -D -m644 argp.h ${includedir}/argp.h\ninstall -D -m755 libargp.a ${libdir}/libargp.a\n"""
+version = "v1.3.1"
+
+[[products]]
+paths = ["lib/libargp.a"]
+type = "file"
+variable_name = "libargp"
+[[products]]
+paths = ["include/argp.h"]
+type = "file"
+variable_name = "argp_h"
+
+[[sources]]
+hash = "dec79694da1319acd2238ce95df57f3680fea2482096e483323fddf3d818d8be"
+type = "archive"
+unpack_target = ""
+url = "http://www.lysator.liu.se/~nisse/misc/argp-standalone-1.3.tar.gz"
+[[sources]]
+filename = "LICENSE"
+hash = "edaef632cbb643e4e7a221717a6c441a4c1a7c918e6e4d56debc3d8739b233f6"
+type = "file"
+url = "https://www.gnu.org/licenses/old-licenses/gpl-2.0.txt"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

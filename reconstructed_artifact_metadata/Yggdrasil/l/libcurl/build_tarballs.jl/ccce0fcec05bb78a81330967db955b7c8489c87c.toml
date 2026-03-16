@@ -1,0 +1,19 @@
+dependencies = ["LibSSH2_jll", "MbedTLS_jll", "Zlib_jll"]
+name = "LibCURL"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "arm-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "arm-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/curl-*\n\n# Holy crow we really configure the bitlets out of this thing\nFLAGS=(\n    # Disable....almost everything\n    --without-ssl --without-gnutls --without-gssapi\n    --without-libidn --without-libidn2 --without-libmetalink --without-librtmp\n    --without-nghttp2 --without-nss --without-polarssl\n    --without-spnego --without-libpsl --disable-ares --disable-manual\n    --disable-ldap --disable-ldaps --without-zsh-functions-dir\n    --disable-static\n\n    # Two things we actually enable\n    --with-libssh2=${prefix} --with-mbedtls=${prefix} --with-zlib=${prefix}\n)\n\n# We need to tell it where to find libssh2 on windows\nif [[ ${target} == *mingw* ]]; then\n    FLAGS+=(LDFLAGS=\"${LDFLAGS} -L${prefix}/bin\")\nfi\n\n./configure --prefix=$prefix --host=$target --build=${MACHTYPE} \"${FLAGS[@]}\"\nmake -j${nproc}\nmake install\n"""
+version = "v7.66.0"
+
+[[products]]
+dir_paths = []
+dont_dlopen = false
+libnames = ["libcurl"]
+type = "lib"
+variable_name = "libcurl"
+[[products]]
+binnames = ["curl"]
+type = "exe"
+variable_name = "curl"
+
+[[sources]]
+"https://curl.haxx.se/download/curl-7.66.0.tar.bz2" = "6618234e0235c420a21f4cb4c2dd0badde76e6139668739085a70c4e2fe7a141"

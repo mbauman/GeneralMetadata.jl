@@ -1,0 +1,55 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Blosc"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/c-blosc\nif [[ \"${target}\" == *mingw* ]]; then\n  atomic_patch -p1 ../patches/mingw.patch\nfi\nCMAKE_FLAGS=(\n    -B build\n    -DCMAKE_BUILD_TYPE=Release\n    -DCMAKE_INSTALL_PREFIX=$prefix\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN}\n    -DCMAKE_C_FLAGS=\"-std=gnu99\"\n    -DBUILD_BENCHMARKS=OFF\n    -DBUILD_STATIC=OFF\n    -DBUILD_TESTS=OFF\n    -DPREFER_EXTERNAL_LZ4=ON\n    -DPREFER_EXTERNAL_ZLIB=ON\n    -DPREFER_EXTERNAL_ZSTD=ON\n)\ncmake ${CMAKE_FLAGS[@]}\ncmake --build build --parallel ${nproc}\ncmake --install build\n\ninstall_license LICENSES/*.txt\n"""
+version = "v1.21.7"
+
+[[dependencies]]
+compat = "1.10.1"
+name = "Lz4_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.2.12"
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.5.7"
+name = "Zstd_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libblosc"]
+type = "lib"
+variable_name = "libblosc"
+
+[[sources]]
+hash = "616f4b7343a8479f7e71dd3d7025bd92c9a6bbd0"
+type = "git"
+unpack_target = ""
+url = "https://github.com/Blosc/c-blosc.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

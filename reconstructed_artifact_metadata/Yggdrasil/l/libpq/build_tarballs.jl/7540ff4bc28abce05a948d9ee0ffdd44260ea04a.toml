@@ -1,0 +1,44 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "LibPQ"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir\nmake CC=$BUILD_CC VERSION_DEPS= zic\nexport ZIC=$WORKSPACE/srcdir/zic\ncd $WORKSPACE/srcdir/postgresql-*/\nif [[ \"${target}\" == i686-linux-musl ]]; then\n    # Small hack: swear that we're cross-compiling.  Our `i686-linux-musl` is\n    # bugged and it can run only a few programs, with the result that the\n    # configure test to check whether we're cross-compiling returns that we're\n    # doing a native build, but then it fails to run a bunch of programs during\n    # other tests.\n    sed -i 's/cross_compiling=no/cross_compiling=yes/' configure\nfi\nFLAGS=()\nif [[ \"${target}\" == *-linux-* ]] || [[ \"${target}\" == *-freebsd* ]]; then\n    FLAGS+=(--with-gssapi)\n    if [[ \"${target}\" == *-freebsd* ]]; then\n        # Only for FreeBSD we need to hint that we need to libcom_err to get\n        # functions `add_error_table` and `remove_error_table`\n        export LIBS=-lcom_err\n    fi\nfi\n./configure --prefix=${prefix} \\\n    --build=${MACHTYPE} \\\n    --host=${target} \\\n    --with-includes=${includedir} \\\n    --with-libraries=${libdir} \\\n    --without-readline \\\n    --without-zlib \\\n    --with-openssl \\\n    \"${FLAGS[@]}\"\nmake -C src/interfaces/libpq -j${nproc}\nmake -C src/interfaces/libpq install\n\n# Delete static library\nrm ${prefix}/lib/libpq.a\ninstall_license COPYRIGHT\n"""
+version = "v14.3.0"
+
+[[dependencies]]
+compat = ""
+name = "OpenSSL_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Kerberos_krb5_jll"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-unknown-freebsd"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libpq"]
+type = "lib"
+variable_name = "LIBPQ_HANDLE"
+
+[[sources]]
+hash = "18eff30438703dd7a5f2a7ca916741bce3c99eadb4025bc6268af268e8e909c5"
+type = "archive"
+unpack_target = ""
+url = "https://ftp.postgresql.org/pub/source/v14.3/postgresql-14.3.tar.gz"
+[[sources]]
+hash = "584666393a5424d13d27ec01183da17703273664742e049d4f62f62dab631775"
+type = "archive"
+unpack_target = ""
+url = "https://data.iana.org/time-zones/releases/tzcode2021e.tar.gz"

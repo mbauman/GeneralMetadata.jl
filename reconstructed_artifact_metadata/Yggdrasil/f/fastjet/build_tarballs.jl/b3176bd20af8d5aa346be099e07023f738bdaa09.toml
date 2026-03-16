@@ -1,0 +1,39 @@
+dependencies = []
+name = "FastJet"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "arm-linux-gnueabihf-cxx03", "arm-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "arm-linux-musleabihf-cxx03", "arm-linux-musleabihf-cxx11", "x86_64-apple-darwin14-cxx03", "x86_64-apple-darwin14-cxx11", "x86_64-unknown-freebsd11.1-cxx03", "x86_64-unknown-freebsd11.1-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir/fastjet-*/\nexport CXXFLAGS=\"-O3 -Wall\"\nexport CFLAGS=\"-O3 -Wall\"\nif [[ \"${target}\" == *-freebsd* ]]; then\n    # Needed to fix the following errors\n    #   undefined reference to `backtrace_symbols'\n    #   undefined reference to `backtrace'\n    export LDFLAGS=\"-lexecinfo\"\nfi\nFLAGS=()\nif [[ \"${target}\" == *-mingw* ]]; then\n    # This is needed in order to build the shared library on Windows when we get\n    #   libtool: warning: undefined symbols not allowed in x86_64-w64-mingw32 shared libraries; building static only\n    FLAGS+=(LDFLAGS=\"-no-undefined\")\nfi\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} --disable-auto-ptr\nmake -j ${nprocs} \"${FLAGS[@]}\"\nmake install\n"""
+version = "v3.3.3"
+
+[[products]]
+dir_paths = []
+dont_dlopen = false
+libnames = ["libsiscone"]
+type = "lib"
+variable_name = "libsiscone"
+[[products]]
+dir_paths = []
+dont_dlopen = false
+libnames = ["libfastjetplugins"]
+type = "lib"
+variable_name = "libfastjetplugins"
+[[products]]
+dir_paths = []
+dont_dlopen = false
+libnames = ["libfastjettools"]
+type = "lib"
+variable_name = "libfastjettools"
+[[products]]
+dir_paths = []
+dont_dlopen = false
+libnames = ["libsiscone_spherical"]
+type = "lib"
+variable_name = "libsiscone_spherical"
+[[products]]
+dir_paths = []
+dont_dlopen = false
+libnames = ["libfastjet"]
+type = "lib"
+variable_name = "libfastjet"
+
+[[sources]]
+"http://fastjet.fr/repo/fastjet-3.3.3.tar.gz" = "30b0a0282ce5aeac9e45862314f5966f0be941ce118a83ee4805d39b827d732b"

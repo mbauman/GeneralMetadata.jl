@@ -1,0 +1,71 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = true
+name = "CUDNN"
+platforms = ["x86_64-linux-gnu-cuda+10.2", "x86_64-w64-mingw32-cuda+10.2", "aarch64-linux-gnu-cuda+10.2", "x86_64-linux-gnu-cuda+11.0", "powerpc64le-linux-gnu-cuda+11.0", "x86_64-w64-mingw32-cuda+11.0", "aarch64-linux-gnu-cuda+11.0", "x86_64-linux-gnu-cuda+11.1", "powerpc64le-linux-gnu-cuda+11.1", "x86_64-w64-mingw32-cuda+11.1", "aarch64-linux-gnu-cuda+11.1", "x86_64-linux-gnu-cuda+11.2", "powerpc64le-linux-gnu-cuda+11.2", "x86_64-w64-mingw32-cuda+11.2", "aarch64-linux-gnu-cuda+11.2", "x86_64-linux-gnu-cuda+11.3", "powerpc64le-linux-gnu-cuda+11.3", "x86_64-w64-mingw32-cuda+11.3", "aarch64-linux-gnu-cuda+11.3", "x86_64-linux-gnu-cuda+11.4", "powerpc64le-linux-gnu-cuda+11.4", "x86_64-w64-mingw32-cuda+11.4", "aarch64-linux-gnu-cuda+11.4"]
+script = """mkdir -p ${libdir} ${prefix}/include\n\ncd ${WORKSPACE}/srcdir\nif [[ ${target} == powerpc64le-linux-gnu ]]; then\n    cd cuda/targets/ppc64le-linux\n    find .\n\n    install_license NVIDIA_SLA_cuDNN_Support.txt\n\n    mv lib/libcudnn*.so* ${libdir}\n    mv include/* ${prefix}/include\nelif [[ ${target} == aarch64-linux-gnu && ${bb_full_target} == aarch64-linux-gnu-*-cuda+10.2 ]]; then\n    apk add dpkg\n    dpkg-deb -x libcudnn8_*.deb .\n    dpkg-deb -x libcudnn8-dev_*.deb .\n    mv -nv ./usr/include/aarch64-linux-gnu/* ${includedir}\n    mv -nv ./usr/lib/aarch64-linux-gnu/libcudnn*.so* ${libdir}\n    install_license ./usr/src/cudnn_samples_v8/NVIDIA_SLA_cuDNN_Support.txt\nelif [[ ${target} == *-linux-gnu ]]; then\n    cd cuda\n    find .\n\n    install_license NVIDIA_SLA_cuDNN_Support.txt\n\n    mv lib64/libcudnn*.so* ${libdir}\n    mv include/* ${prefix}/include\nelif [[ ${target} == x86_64-w64-mingw32 ]]; then\n    cd cuda\n    find .\n\n    install_license NVIDIA_SLA_cuDNN_Support.txt\n\n    mv bin/cudnn*64_*.dll ${libdir}\n    mv include/* ${prefix}/include\n\n    mv ../dll_x64/zlibwapi.dll ${libdir}\n\n    # fixup\n    chmod +x ${libdir}/*.dll\nfi\n"""
+version = "v8.2.4"
+
+[[dependencies]]
+compat = ""
+name = "CUDA_loader_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libcudnn", "cudnn64_8"]
+type = "lib"
+variable_name = "libcudnn"
+
+[[sources]]
+hash = "d23c94a3115a1c77116a6c127d9175fbf59f723364374f26a34699075f3222f1"
+type = "archive"
+unpack_target = ""
+url = "https://developer.nvidia.com/compute/machine-learning/cudnn/secure/8.2.4/10.2_20210831/cudnn-10.2-linux-x64-v8.2.4.15.tgz"
+[[sources]]
+hash = "a13eb10cfd7e6b7b8f39d8593038855b911012c29f03990878622bdae873c4a8"
+type = "archive"
+unpack_target = ""
+url = "https://developer.nvidia.com/compute/machine-learning/cudnn/secure/8.2.4/10.2_20210831/cudnn-10.2-windows10-x64-v8.2.4.15.zip"
+[[sources]]
+hash = "fd324c6923aa4f45a60413665e0b68bb34a7779d0861849e02d2711ff8efb9a4"
+type = "archive"
+unpack_target = ""
+url = "http://www.winimage.com/zLibDll/zlib123dllx64.zip"
+[[sources]]
+filename = "libcudnn8_8.2.4.15-1+cuda10.2_arm64.deb"
+hash = "3f08dbe14c3becb9fa1ed85cd4a080efb30edb0c4beb2fc1a2e14da3f2eefb79"
+type = "file"
+url = "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/arm64/libcudnn8_8.2.4.15-1+cuda10.2_arm64.deb"
+[[sources]]
+filename = "libcudnn8-dev_8.2.4.15-1+cuda10.2_arm64.deb"
+hash = "4816575e8a14baf3fc1619cb01c6dc2afd4f1b39210079d271208088ecc48702"
+type = "file"
+url = "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/arm64/libcudnn8-dev_8.2.4.15-1+cuda10.2_arm64.deb"
+[[sources]]
+hash = "0e5d2df890b9967efa6619da421310d97323565a79f05a1a8cb9b7165baad0d7"
+type = "archive"
+unpack_target = ""
+url = "https://developer.nvidia.com/compute/machine-learning/cudnn/secure/8.2.4/11.4_20210831/cudnn-11.4-linux-x64-v8.2.4.15.tgz"
+[[sources]]
+hash = "af8749ca83fd6bba117c8bee31b787b7f204946e864294030ee0091eb7d3577e"
+type = "archive"
+unpack_target = ""
+url = "https://developer.nvidia.com/compute/machine-learning/cudnn/secure/8.2.4/11.4_20210831/cudnn-11.4-linux-ppc64le-v8.2.4.15.tgz"
+[[sources]]
+hash = "f01594639de35c380b4e360673ccaf04cdb238578e4b284935ee3d5a45f51f3c"
+type = "archive"
+unpack_target = ""
+url = "https://developer.nvidia.com/compute/machine-learning/cudnn/secure/8.2.4/11.4_20210831/cudnn-11.4-windows-x64-v8.2.4.15.zip"
+[[sources]]
+hash = "48b11f19e9cd3414ec3c6c357ad228aebbd43282aae372d42cab2af67c32a08b"
+type = "archive"
+unpack_target = ""
+url = "https://developer.nvidia.com/compute/machine-learning/cudnn/secure/8.2.4/11.4_20210831/cudnn-11.4-linux-aarch64sbsa-v8.2.4.15.tgz"

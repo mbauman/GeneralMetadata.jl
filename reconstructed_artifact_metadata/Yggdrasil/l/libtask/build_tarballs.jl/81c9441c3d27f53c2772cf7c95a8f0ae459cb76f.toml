@@ -1,0 +1,28 @@
+init_block = ""
+julia_compat = "~1.5"
+lazy_artifacts = false
+name = "Libtask"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """# create output directory\nmkdir -p \"${libdir}\"\n\n# compile library\ncd \"${WORKSPACE}/srcdir/\"\n\nCFLAGS=\"-I${includedir} -I${includedir}/julia -O2 -shared -std=gnu99 -fPIC\"\nif [[ \"${target}\" == i686-* ]]; then\n  CFLAGS=\"${CFLAGS} -march=pentium4\"\nfi\nif [[ \"${target}\" == *-mingw* ]]; then\n  CFLAGS=\"${CFLAGS} -Wl,--export-all-symbols\"\nelif [[ \"${target}\" == *-linux-* ]]; then\n  CFLAGS=\"${CFLAGS} -Wl,--export-dynamic\"\nfi\n\nLDFLAGS=\"-L${libdir} -ljulia\"\nif [[ \"${target}\" == *-mingw* ]]; then\n  LDFLAGS=\"${LDFLAGS} -lopenlibm\"\nfi\n\n$CC $CFLAGS $LDFLAGS task.c -o \"${libdir}/libtask_julia.${dlext}\"\n\n# install license\ninstall_license LICENSE.md\n"""
+version = "v0.4.2"
+
+[[dependencies]]
+name = "libjulia_jll"
+type = "builddependency"
+version-major = 1
+version-minor = 5
+version-patch = 1
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libtask_julia"]
+type = "lib"
+variable_name = "libtask_julia"
+
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

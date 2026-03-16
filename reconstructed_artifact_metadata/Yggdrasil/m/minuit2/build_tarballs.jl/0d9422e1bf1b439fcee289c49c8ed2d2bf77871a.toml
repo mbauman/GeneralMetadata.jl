@@ -1,0 +1,23 @@
+dependencies = []
+lazy_artifacts = false
+name = "Minuit2"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin14-cxx03", "x86_64-apple-darwin14-cxx11", "x86_64-unknown-freebsd11.1-cxx03", "x86_64-unknown-freebsd11.1-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir/root-*/math/minuit2\n\n# Apply patch to add `project` command to CMake file\natomic_patch -p1 $WORKSPACE/srcdir/patches/cmake-add-project.patch\n\nsed -i '/^add_library(Minuit2$/a SHARED' src/CMakeLists.txt\nmkdir build && cd build\ncmake -DCMAKE_INSTALL_PREFIX=$prefix -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS=-DMATHCORE_STANDALONE=1 ..\nmake -j ${nproc}\nmake install\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    # We have to manually build the shared library\n    mkdir -p \"${libdir}\"\n    cd \"${prefix}/lib\"\n    ar x libMinuit2.dll.a\n    cc -shared -o \"${libdir}/libMinuit2.dll\" *.o\n    rm *.o\nfi\n"""
+version = "v6.18.4"
+
+[[products]]
+dir_paths = []
+dont_dlopen = false
+libnames = ["libMinuit2"]
+type = "lib"
+variable_name = "libMinuit2"
+
+[[sources]]
+hash = "82421a5f0486a2c66170300285dce49a961e3459cb5290f6fa579ef617dc8b0a"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/root-project/root/archive/v6-18-04.tar.gz"
+[[sources]]
+path = "./bundled"
+target = ""
+type = "directory"

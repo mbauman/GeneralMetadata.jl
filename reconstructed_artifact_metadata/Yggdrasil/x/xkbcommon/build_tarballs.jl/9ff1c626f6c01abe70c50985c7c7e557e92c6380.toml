@@ -1,0 +1,102 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "xkbcommon"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd"]
+script = """cd $WORKSPACE/srcdir/libxkbcommon\nmv $bindir/wayland-scanner $bindir/wayland-scanner_\nln -s `which wayland-scanner` $bindir\nmkdir build && cd build\ncp $prefix/libdata/pkgconfig/* $prefix/lib/pkgconfig || true\n\n# Need to disable PKG_CONFIG_SYSROOT_DIR because this behaviour shows up in meson:\n#\n#   # Basically what happens in meson when it resolves the /workspace/destdir symlink\n#   $ PKG_CONFIG_PATH=/workspace/destdir/lib/pkgconfig PKG_CONFIG_SYSROOT_DIR=/foo pkg-config --variable=wayland_scanner wayland-scanner\n#   /foo/workspace/destdir/lib/pkgconfig/../../bin/wayland-scanner\n#\n#   # What we want to happen\n#   $ PKG_CONFIG_PATH=/workspace/destdir/lib/pkgconfig PKG_CONFIG_SYSROOT_DIR='' pkg-config --variable=wayland_scanner wayland-scanner\n#   /workspace/destdir/lib/pkgconfig/../../bin/wayland-scanner\n#\n# See:\n# - https://github.com/JuliaPackaging/Yggdrasil/pull/3193#discussion_r654942322\n# - https://github.com/JuliaPackaging/Yggdrasil/pull/3193#discussion_r654943148\n# - https://github.com/pkgconf/pkgconf/issues/213\n\nPKG_CONFIG_SYSROOT_DIR='' meson .. --cross-file=\"${MESON_TARGET_TOOLCHAIN}\" \\\n    -Denable-docs=false\nninja -j${nproc}\nninja install\nrm $bindir/wayland-scanner\nmv $bindir/wayland-scanner_ $bindir/wayland-scanner\nrm -f $prefix/lib/pkgconfig/epoll-shim*.pc\n"""
+version = "v1.8.1"
+
+[[dependencies]]
+compat = ""
+name = "Xorg_xorgproto_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_xkeyboard_config_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_libxcb_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Wayland_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Wayland_protocols_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "EpollShim_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Wayland_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Wayland_protocols_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libxkbcommon"]
+type = "lib"
+variable_name = "libxkbcommon"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libxkbcommon-x11"]
+type = "lib"
+variable_name = "libxkbcommon_x11"
+
+[[sources]]
+hash = "b3465081878e80ca6c11fe35c81787ec374ec15a"
+type = "git"
+unpack_target = ""
+url = "https://github.com/xkbcommon/libxkbcommon"

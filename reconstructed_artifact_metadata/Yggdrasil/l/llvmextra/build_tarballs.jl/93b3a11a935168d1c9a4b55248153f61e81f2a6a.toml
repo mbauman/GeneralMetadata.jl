@@ -1,0 +1,108 @@
+augment_platform_block = """using Base.BinaryPlatforms\n\n    function augment_llvm!(platform::Platform)\n        haskey(platform, \"llvm_version\") && return platform\n\n        llvm_version = Base.libllvm_version\n        # does our LLVM build use assertions?\n        llvm_assertions = try\n            cglobal((:_ZN4llvm24DisableABIBreakingChecksE, Base.libllvm_path()), Cvoid)\n            false\n        catch\n            true\n        end\n        platform[\"llvm_version\"] = if llvm_assertions\n            \"$(llvm_version.major).asserts\"\n        else\n            \"$(llvm_version.major)\"\n        end\n        return platform\n    end\n\n\nfunction augment_platform!(platform::Platform)\n    augment_llvm!(platform)\nend"""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = true
+name = "LLVMExtra"
+platforms = ["i686-linux-gnu-cxx03-llvm_version+11", "i686-linux-gnu-cxx11-llvm_version+11", "x86_64-linux-gnu-cxx03-llvm_version+11", "x86_64-linux-gnu-cxx11-llvm_version+11", "aarch64-linux-gnu-cxx03-llvm_version+11", "aarch64-linux-gnu-cxx11-llvm_version+11", "armv6l-linux-gnueabihf-cxx03-llvm_version+11", "armv6l-linux-gnueabihf-cxx11-llvm_version+11", "armv7l-linux-gnueabihf-cxx03-llvm_version+11", "armv7l-linux-gnueabihf-cxx11-llvm_version+11", "powerpc64le-linux-gnu-cxx03-llvm_version+11", "powerpc64le-linux-gnu-cxx11-llvm_version+11", "i686-linux-musl-cxx03-llvm_version+11", "i686-linux-musl-cxx11-llvm_version+11", "x86_64-linux-musl-cxx03-llvm_version+11", "x86_64-linux-musl-cxx11-llvm_version+11", "aarch64-linux-musl-cxx03-llvm_version+11", "aarch64-linux-musl-cxx11-llvm_version+11", "armv6l-linux-musleabihf-cxx03-llvm_version+11", "armv6l-linux-musleabihf-cxx11-llvm_version+11", "armv7l-linux-musleabihf-cxx03-llvm_version+11", "armv7l-linux-musleabihf-cxx11-llvm_version+11", "x86_64-apple-darwin-llvm_version+11", "aarch64-apple-darwin-llvm_version+11", "x86_64-unknown-freebsd-llvm_version+11", "i686-w64-mingw32-cxx03-llvm_version+11", "i686-w64-mingw32-cxx11-llvm_version+11", "x86_64-w64-mingw32-cxx03-llvm_version+11", "x86_64-w64-mingw32-cxx11-llvm_version+11", "i686-linux-gnu-cxx03-llvm_version+11.asserts", "i686-linux-gnu-cxx11-llvm_version+11.asserts", "x86_64-linux-gnu-cxx03-llvm_version+11.asserts", "x86_64-linux-gnu-cxx11-llvm_version+11.asserts", "aarch64-linux-gnu-cxx03-llvm_version+11.asserts", "aarch64-linux-gnu-cxx11-llvm_version+11.asserts", "armv6l-linux-gnueabihf-cxx03-llvm_version+11.asserts", "armv6l-linux-gnueabihf-cxx11-llvm_version+11.asserts", "armv7l-linux-gnueabihf-cxx03-llvm_version+11.asserts", "armv7l-linux-gnueabihf-cxx11-llvm_version+11.asserts", "powerpc64le-linux-gnu-cxx03-llvm_version+11.asserts", "powerpc64le-linux-gnu-cxx11-llvm_version+11.asserts", "i686-linux-musl-cxx03-llvm_version+11.asserts", "i686-linux-musl-cxx11-llvm_version+11.asserts", "x86_64-linux-musl-cxx03-llvm_version+11.asserts", "x86_64-linux-musl-cxx11-llvm_version+11.asserts", "aarch64-linux-musl-cxx03-llvm_version+11.asserts", "aarch64-linux-musl-cxx11-llvm_version+11.asserts", "armv6l-linux-musleabihf-cxx03-llvm_version+11.asserts", "armv6l-linux-musleabihf-cxx11-llvm_version+11.asserts", "armv7l-linux-musleabihf-cxx03-llvm_version+11.asserts", "armv7l-linux-musleabihf-cxx11-llvm_version+11.asserts", "x86_64-apple-darwin-llvm_version+11.asserts", "aarch64-apple-darwin-llvm_version+11.asserts", "x86_64-unknown-freebsd-llvm_version+11.asserts", "i686-w64-mingw32-cxx03-llvm_version+11.asserts", "i686-w64-mingw32-cxx11-llvm_version+11.asserts", "x86_64-w64-mingw32-cxx03-llvm_version+11.asserts", "x86_64-w64-mingw32-cxx11-llvm_version+11.asserts", "i686-linux-gnu-cxx03-llvm_version+12", "i686-linux-gnu-cxx11-llvm_version+12", "x86_64-linux-gnu-cxx03-llvm_version+12", "x86_64-linux-gnu-cxx11-llvm_version+12", "aarch64-linux-gnu-cxx03-llvm_version+12", "aarch64-linux-gnu-cxx11-llvm_version+12", "armv6l-linux-gnueabihf-cxx03-llvm_version+12", "armv6l-linux-gnueabihf-cxx11-llvm_version+12", "armv7l-linux-gnueabihf-cxx03-llvm_version+12", "armv7l-linux-gnueabihf-cxx11-llvm_version+12", "powerpc64le-linux-gnu-cxx03-llvm_version+12", "powerpc64le-linux-gnu-cxx11-llvm_version+12", "i686-linux-musl-cxx03-llvm_version+12", "i686-linux-musl-cxx11-llvm_version+12", "x86_64-linux-musl-cxx03-llvm_version+12", "x86_64-linux-musl-cxx11-llvm_version+12", "aarch64-linux-musl-cxx03-llvm_version+12", "aarch64-linux-musl-cxx11-llvm_version+12", "armv6l-linux-musleabihf-cxx03-llvm_version+12", "armv6l-linux-musleabihf-cxx11-llvm_version+12", "armv7l-linux-musleabihf-cxx03-llvm_version+12", "armv7l-linux-musleabihf-cxx11-llvm_version+12", "x86_64-apple-darwin-llvm_version+12", "aarch64-apple-darwin-llvm_version+12", "x86_64-unknown-freebsd-llvm_version+12", "i686-w64-mingw32-cxx03-llvm_version+12", "i686-w64-mingw32-cxx11-llvm_version+12", "x86_64-w64-mingw32-cxx03-llvm_version+12", "x86_64-w64-mingw32-cxx11-llvm_version+12", "i686-linux-gnu-cxx03-llvm_version+12.asserts", "i686-linux-gnu-cxx11-llvm_version+12.asserts", "x86_64-linux-gnu-cxx03-llvm_version+12.asserts", "x86_64-linux-gnu-cxx11-llvm_version+12.asserts", "aarch64-linux-gnu-cxx03-llvm_version+12.asserts", "aarch64-linux-gnu-cxx11-llvm_version+12.asserts", "armv6l-linux-gnueabihf-cxx03-llvm_version+12.asserts", "armv6l-linux-gnueabihf-cxx11-llvm_version+12.asserts", "armv7l-linux-gnueabihf-cxx03-llvm_version+12.asserts", "armv7l-linux-gnueabihf-cxx11-llvm_version+12.asserts", "powerpc64le-linux-gnu-cxx03-llvm_version+12.asserts", "powerpc64le-linux-gnu-cxx11-llvm_version+12.asserts", "i686-linux-musl-cxx03-llvm_version+12.asserts", "i686-linux-musl-cxx11-llvm_version+12.asserts", "x86_64-linux-musl-cxx03-llvm_version+12.asserts", "x86_64-linux-musl-cxx11-llvm_version+12.asserts", "aarch64-linux-musl-cxx03-llvm_version+12.asserts", "aarch64-linux-musl-cxx11-llvm_version+12.asserts", "armv6l-linux-musleabihf-cxx03-llvm_version+12.asserts", "armv6l-linux-musleabihf-cxx11-llvm_version+12.asserts", "armv7l-linux-musleabihf-cxx03-llvm_version+12.asserts", "armv7l-linux-musleabihf-cxx11-llvm_version+12.asserts", "x86_64-apple-darwin-llvm_version+12.asserts", "aarch64-apple-darwin-llvm_version+12.asserts", "x86_64-unknown-freebsd-llvm_version+12.asserts", "i686-w64-mingw32-cxx03-llvm_version+12.asserts", "i686-w64-mingw32-cxx11-llvm_version+12.asserts", "x86_64-w64-mingw32-cxx03-llvm_version+12.asserts", "x86_64-w64-mingw32-cxx11-llvm_version+12.asserts", "i686-linux-gnu-cxx03-llvm_version+13", "i686-linux-gnu-cxx11-llvm_version+13", "x86_64-linux-gnu-cxx03-llvm_version+13", "x86_64-linux-gnu-cxx11-llvm_version+13", "aarch64-linux-gnu-cxx03-llvm_version+13", "aarch64-linux-gnu-cxx11-llvm_version+13", "armv6l-linux-gnueabihf-cxx03-llvm_version+13", "armv6l-linux-gnueabihf-cxx11-llvm_version+13", "armv7l-linux-gnueabihf-cxx03-llvm_version+13", "armv7l-linux-gnueabihf-cxx11-llvm_version+13", "powerpc64le-linux-gnu-cxx03-llvm_version+13", "powerpc64le-linux-gnu-cxx11-llvm_version+13", "i686-linux-musl-cxx03-llvm_version+13", "i686-linux-musl-cxx11-llvm_version+13", "x86_64-linux-musl-cxx03-llvm_version+13", "x86_64-linux-musl-cxx11-llvm_version+13", "aarch64-linux-musl-cxx03-llvm_version+13", "aarch64-linux-musl-cxx11-llvm_version+13", "armv6l-linux-musleabihf-cxx03-llvm_version+13", "armv6l-linux-musleabihf-cxx11-llvm_version+13", "armv7l-linux-musleabihf-cxx03-llvm_version+13", "armv7l-linux-musleabihf-cxx11-llvm_version+13", "x86_64-apple-darwin-llvm_version+13", "aarch64-apple-darwin-llvm_version+13", "x86_64-unknown-freebsd-llvm_version+13", "i686-w64-mingw32-cxx03-llvm_version+13", "i686-w64-mingw32-cxx11-llvm_version+13", "x86_64-w64-mingw32-cxx03-llvm_version+13", "x86_64-w64-mingw32-cxx11-llvm_version+13", "i686-linux-gnu-cxx03-llvm_version+13.asserts", "i686-linux-gnu-cxx11-llvm_version+13.asserts", "x86_64-linux-gnu-cxx03-llvm_version+13.asserts", "x86_64-linux-gnu-cxx11-llvm_version+13.asserts", "aarch64-linux-gnu-cxx03-llvm_version+13.asserts", "aarch64-linux-gnu-cxx11-llvm_version+13.asserts", "armv6l-linux-gnueabihf-cxx03-llvm_version+13.asserts", "armv6l-linux-gnueabihf-cxx11-llvm_version+13.asserts", "armv7l-linux-gnueabihf-cxx03-llvm_version+13.asserts", "armv7l-linux-gnueabihf-cxx11-llvm_version+13.asserts", "powerpc64le-linux-gnu-cxx03-llvm_version+13.asserts", "powerpc64le-linux-gnu-cxx11-llvm_version+13.asserts", "i686-linux-musl-cxx03-llvm_version+13.asserts", "i686-linux-musl-cxx11-llvm_version+13.asserts", "x86_64-linux-musl-cxx03-llvm_version+13.asserts", "x86_64-linux-musl-cxx11-llvm_version+13.asserts", "aarch64-linux-musl-cxx03-llvm_version+13.asserts", "aarch64-linux-musl-cxx11-llvm_version+13.asserts", "armv6l-linux-musleabihf-cxx03-llvm_version+13.asserts", "armv6l-linux-musleabihf-cxx11-llvm_version+13.asserts", "armv7l-linux-musleabihf-cxx03-llvm_version+13.asserts", "armv7l-linux-musleabihf-cxx11-llvm_version+13.asserts", "x86_64-apple-darwin-llvm_version+13.asserts", "aarch64-apple-darwin-llvm_version+13.asserts", "x86_64-unknown-freebsd-llvm_version+13.asserts", "i686-w64-mingw32-cxx03-llvm_version+13.asserts", "i686-w64-mingw32-cxx11-llvm_version+13.asserts", "x86_64-w64-mingw32-cxx03-llvm_version+13.asserts", "x86_64-w64-mingw32-cxx11-llvm_version+13.asserts", "i686-linux-gnu-cxx03-llvm_version+14", "i686-linux-gnu-cxx11-llvm_version+14", "x86_64-linux-gnu-cxx03-llvm_version+14", "x86_64-linux-gnu-cxx11-llvm_version+14", "aarch64-linux-gnu-cxx03-llvm_version+14", "aarch64-linux-gnu-cxx11-llvm_version+14", "armv6l-linux-gnueabihf-cxx03-llvm_version+14", "armv6l-linux-gnueabihf-cxx11-llvm_version+14", "armv7l-linux-gnueabihf-cxx03-llvm_version+14", "armv7l-linux-gnueabihf-cxx11-llvm_version+14", "powerpc64le-linux-gnu-cxx03-llvm_version+14", "powerpc64le-linux-gnu-cxx11-llvm_version+14", "i686-linux-musl-cxx03-llvm_version+14", "i686-linux-musl-cxx11-llvm_version+14", "x86_64-linux-musl-cxx03-llvm_version+14", "x86_64-linux-musl-cxx11-llvm_version+14", "aarch64-linux-musl-cxx03-llvm_version+14", "aarch64-linux-musl-cxx11-llvm_version+14", "armv6l-linux-musleabihf-cxx03-llvm_version+14", "armv6l-linux-musleabihf-cxx11-llvm_version+14", "armv7l-linux-musleabihf-cxx03-llvm_version+14", "armv7l-linux-musleabihf-cxx11-llvm_version+14", "x86_64-apple-darwin-llvm_version+14", "aarch64-apple-darwin-llvm_version+14", "x86_64-unknown-freebsd-llvm_version+14", "i686-w64-mingw32-cxx03-llvm_version+14", "i686-w64-mingw32-cxx11-llvm_version+14", "x86_64-w64-mingw32-cxx03-llvm_version+14", "x86_64-w64-mingw32-cxx11-llvm_version+14", "i686-linux-gnu-cxx03-llvm_version+14.asserts", "i686-linux-gnu-cxx11-llvm_version+14.asserts", "x86_64-linux-gnu-cxx03-llvm_version+14.asserts", "x86_64-linux-gnu-cxx11-llvm_version+14.asserts", "aarch64-linux-gnu-cxx03-llvm_version+14.asserts", "aarch64-linux-gnu-cxx11-llvm_version+14.asserts", "armv6l-linux-gnueabihf-cxx03-llvm_version+14.asserts", "armv6l-linux-gnueabihf-cxx11-llvm_version+14.asserts", "armv7l-linux-gnueabihf-cxx03-llvm_version+14.asserts", "armv7l-linux-gnueabihf-cxx11-llvm_version+14.asserts", "powerpc64le-linux-gnu-cxx03-llvm_version+14.asserts", "powerpc64le-linux-gnu-cxx11-llvm_version+14.asserts", "i686-linux-musl-cxx03-llvm_version+14.asserts", "i686-linux-musl-cxx11-llvm_version+14.asserts", "x86_64-linux-musl-cxx03-llvm_version+14.asserts", "x86_64-linux-musl-cxx11-llvm_version+14.asserts", "aarch64-linux-musl-cxx03-llvm_version+14.asserts", "aarch64-linux-musl-cxx11-llvm_version+14.asserts", "armv6l-linux-musleabihf-cxx03-llvm_version+14.asserts", "armv6l-linux-musleabihf-cxx11-llvm_version+14.asserts", "armv7l-linux-musleabihf-cxx03-llvm_version+14.asserts", "armv7l-linux-musleabihf-cxx11-llvm_version+14.asserts", "x86_64-apple-darwin-llvm_version+14.asserts", "aarch64-apple-darwin-llvm_version+14.asserts", "x86_64-unknown-freebsd-llvm_version+14.asserts", "i686-w64-mingw32-cxx03-llvm_version+14.asserts", "i686-w64-mingw32-cxx11-llvm_version+14.asserts", "x86_64-w64-mingw32-cxx03-llvm_version+14.asserts", "x86_64-w64-mingw32-cxx11-llvm_version+14.asserts"]
+script = """cd LLVM.jl/deps/LLVMExtra\n\nCMAKE_FLAGS=()\n# Release build for best performance\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=RelWithDebInfo)\n# Install things into $prefix\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix})\n# Explicitly use our cmake toolchain file and tell CMake we're cross-compiling\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING:BOOL=ON)\n# Tell CMake where LLVM is\nCMAKE_FLAGS+=(-DLLVM_DIR=\"${prefix}/lib/cmake/llvm\")\n# Force linking against shared lib\nCMAKE_FLAGS+=(-DLLVM_LINK_LLVM_DYLIB=ON)\n# Build the library\nCMAKE_FLAGS+=(-DBUILD_SHARED_LIBS=ON)\ncmake -B build -S . -GNinja ${CMAKE_FLAGS[@]}\n\nninja -C build -j ${nproc} install\n"""
+version = "v0.0.15"
+
+[[dependencies]]
+compat = ""
+name = "LLVM_full_jll"
+platforms = ["any"]
+type = "builddependency"
+version-major = 11
+version-minor = 0
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "LLVM_full_assert_jll"
+platforms = ["any"]
+type = "builddependency"
+version-major = 11
+version-minor = 0
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "LLVM_full_jll"
+platforms = ["any"]
+type = "builddependency"
+version-major = 12
+version-minor = 0
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "LLVM_full_assert_jll"
+platforms = ["any"]
+type = "builddependency"
+version-major = 12
+version-minor = 0
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "LLVM_full_jll"
+platforms = ["any"]
+type = "builddependency"
+version-major = 13
+version-minor = 0
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "LLVM_full_assert_jll"
+platforms = ["any"]
+type = "builddependency"
+version-major = 13
+version-minor = 0
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "LLVM_full_jll"
+platforms = ["any"]
+type = "builddependency"
+version-major = 14
+version-minor = 0
+version-patch = 2
+[[dependencies]]
+compat = ""
+name = "LLVM_full_assert_jll"
+platforms = ["any"]
+type = "builddependency"
+version-major = 14
+version-minor = 0
+version-patch = 2
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libLLVMExtra-11", "libLLVMExtra"]
+type = "lib"
+variable_name = "libLLVMExtra"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libLLVMExtra-12", "libLLVMExtra"]
+type = "lib"
+variable_name = "libLLVMExtra"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libLLVMExtra-13", "libLLVMExtra"]
+type = "lib"
+variable_name = "libLLVMExtra"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libLLVMExtra-14", "libLLVMExtra"]
+type = "lib"
+variable_name = "libLLVMExtra"
+
+[[sources]]
+hash = "815f00afeae7ef817db187645fc0e3774253d092"
+type = "git"
+unpack_target = ""
+url = "https://github.com/maleadt/LLVM.jl.git"

@@ -1,0 +1,74 @@
+lazy_artifacts = false
+name = "Clp"
+platforms = ["i686-linux-gnu-libgfortran3-cxx03", "i686-linux-gnu-libgfortran4-cxx03", "i686-linux-gnu-libgfortran5-cxx03", "i686-linux-gnu-libgfortran3-cxx11", "i686-linux-gnu-libgfortran4-cxx11", "i686-linux-gnu-libgfortran5-cxx11", "x86_64-linux-gnu-libgfortran3-cxx03", "x86_64-linux-gnu-libgfortran4-cxx03", "x86_64-linux-gnu-libgfortran5-cxx03", "x86_64-linux-gnu-libgfortran3-cxx11", "x86_64-linux-gnu-libgfortran4-cxx11", "x86_64-linux-gnu-libgfortran5-cxx11", "aarch64-linux-gnu-libgfortran3-cxx03", "aarch64-linux-gnu-libgfortran4-cxx03", "aarch64-linux-gnu-libgfortran5-cxx03", "aarch64-linux-gnu-libgfortran3-cxx11", "aarch64-linux-gnu-libgfortran4-cxx11", "aarch64-linux-gnu-libgfortran5-cxx11", "armv7l-linux-gnueabihf-libgfortran3-cxx03", "armv7l-linux-gnueabihf-libgfortran4-cxx03", "armv7l-linux-gnueabihf-libgfortran5-cxx03", "armv7l-linux-gnueabihf-libgfortran3-cxx11", "armv7l-linux-gnueabihf-libgfortran4-cxx11", "armv7l-linux-gnueabihf-libgfortran5-cxx11", "i686-linux-musl-libgfortran3-cxx03", "i686-linux-musl-libgfortran4-cxx03", "i686-linux-musl-libgfortran5-cxx03", "i686-linux-musl-libgfortran3-cxx11", "i686-linux-musl-libgfortran4-cxx11", "i686-linux-musl-libgfortran5-cxx11", "x86_64-linux-musl-libgfortran3-cxx03", "x86_64-linux-musl-libgfortran4-cxx03", "x86_64-linux-musl-libgfortran5-cxx03", "x86_64-linux-musl-libgfortran3-cxx11", "x86_64-linux-musl-libgfortran4-cxx11", "x86_64-linux-musl-libgfortran5-cxx11", "aarch64-linux-musl-libgfortran3-cxx03", "aarch64-linux-musl-libgfortran4-cxx03", "aarch64-linux-musl-libgfortran5-cxx03", "aarch64-linux-musl-libgfortran3-cxx11", "aarch64-linux-musl-libgfortran4-cxx11", "aarch64-linux-musl-libgfortran5-cxx11", "armv7l-linux-musleabihf-libgfortran3-cxx03", "armv7l-linux-musleabihf-libgfortran4-cxx03", "armv7l-linux-musleabihf-libgfortran5-cxx03", "armv7l-linux-musleabihf-libgfortran3-cxx11", "armv7l-linux-musleabihf-libgfortran4-cxx11", "armv7l-linux-musleabihf-libgfortran5-cxx11", "x86_64-apple-darwin14-libgfortran3-cxx03", "x86_64-apple-darwin14-libgfortran4-cxx03", "x86_64-apple-darwin14-libgfortran5-cxx03", "x86_64-apple-darwin14-libgfortran3-cxx11", "x86_64-apple-darwin14-libgfortran4-cxx11", "x86_64-apple-darwin14-libgfortran5-cxx11", "i686-w64-mingw32-libgfortran3-cxx03", "i686-w64-mingw32-libgfortran4-cxx03", "i686-w64-mingw32-libgfortran5-cxx03", "i686-w64-mingw32-libgfortran3-cxx11", "i686-w64-mingw32-libgfortran4-cxx11", "i686-w64-mingw32-libgfortran5-cxx11", "x86_64-w64-mingw32-libgfortran3-cxx03", "x86_64-w64-mingw32-libgfortran4-cxx03", "x86_64-w64-mingw32-libgfortran5-cxx03", "x86_64-w64-mingw32-libgfortran3-cxx11", "x86_64-w64-mingw32-libgfortran4-cxx11", "x86_64-w64-mingw32-libgfortran5-cxx11"]
+script = """cd $WORKSPACE/srcdir/Clp*\n\n# Remove misleading libtool files\nrm -f ${prefix}/lib/*.la\nrm -f /opt/${target}/${target}/lib*/*.la\nupdate_configure_scripts\n\nmkdir build\ncd build/\n\nexport CPPFLAGS=\"${CPPFLAGS} -DNDEBUG -I${prefix}/include -I$prefix/include/coin\"\nexport CXXFLAGS=\"${CXXFLAGS} -std=c++11\"\nif [[ ${target} == *mingw* ]]; then\n    export LDFLAGS=\"-L$prefix/bin\"\nelif [[ ${target} == *linux* ]]; then\n    export LDFLAGS=\"-ldl -lrt\"\nfi\n\nif [[ ${target} == *aarch64* ]] || [[ ${target} == *arm* ]]; then\n   export CPPFLAGS=\"${CPPFLAGS} -D__arm__\"\nfi\n\n../configure --prefix=$prefix --with-pic --disable-pkg-config --build=${MACHTYPE} --host=${target} \\\n--disable-debug --disable-dependency-tracking \\\n--enable-shared lt_cv_deplibs_check_method=pass_all \\\n--with-blas=\"-lopenblas\" --with-lapack=\"-openblas\" \\\n--with-coinutils-lib=\"-lCoinUtils\" \\\n--with-osi-lib=\"-lOsi -lCoinUtils\" \\\n--with-mumps-lib=\"-L${prefix}/lib -ldmumps -lzmumps -lcmumps -lsmumps -lmumps_common -lmpiseq -lpord -lmetis -lopenblas -lgfortran -lpthread\" \\\n--with-mumps-incdir=\"${prefix}/include/mumps_seq\" \\\n--with-metis-lib=\"-L${prefix}/lib -lmetis\" --with-metis-incdir=\"${prefix}/include\"\n\nmake -j${nproc}\nmake install\n"""
+version = "v1.16.11"
+
+[[dependencies]]
+name = "CoinUtils_jll"
+type = "dependency"
+uuid = "be027038-0da8-5614-b30d-e42594cb92df"
+version-major = 2
+version-minor = 11
+version-patch = 3
+[[dependencies]]
+name = "Osi_jll"
+type = "dependency"
+uuid = "7da25872-d9ce-5375-a4d3-7a845f58efdd"
+version-major = 0
+version-minor = 108
+version-patch = 5
+[[dependencies]]
+name = "OpenBLAS32_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "CompilerSupportLibraries_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "MUMPS_seq_jll"
+type = "builddependency"
+uuid = "d7ed1dd3-d0ae-5e8e-bfb4-87a502085b8d"
+version-major = 4
+version-minor = 10
+version-patch = 0
+[[dependencies]]
+name = "METIS_jll"
+type = "builddependency"
+uuid = "d00139f3-1899-568f-a2f0-47f597d42d70"
+version-major = 4
+version-minor = 0
+version-patch = 3
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libClp"]
+type = "lib"
+variable_name = "libClp"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libOsiClp"]
+type = "lib"
+variable_name = "libOsiClp"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libClpSolver"]
+type = "lib"
+variable_name = "libClpSolver"
+
+[[sources]]
+hash = "aae123d7a3c633a382b7cb9c1f4f78ed6559a10b"
+type = "git"
+unpack_target = ""
+url = "https://github.com/coin-or/Clp.git"

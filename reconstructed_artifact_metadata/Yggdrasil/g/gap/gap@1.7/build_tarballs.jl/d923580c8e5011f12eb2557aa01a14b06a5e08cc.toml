@@ -1,0 +1,59 @@
+init_block = """\n    sym = dlsym(libgap_handle, :GAP_InitJuliaMemoryInterface)\n    ccall(sym, Nothing, (Any, Ptr{Nothing}), @__MODULE__, C_NULL)\n"""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "GAP"
+platforms = ["x86_64-linux-gnu", "aarch64-linux-gnu", "powerpc64le-linux-gnu", "x86_64-linux-musl", "aarch64-linux-musl", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-apple-darwin"]
+script = """cd ${WORKSPACE}/srcdir/gap*\n\nfor f in ${WORKSPACE}/srcdir/patches/*.patch; do\n    atomic_patch -p1 ${f}\ndone\n\n# run autogen.sh if compiling from it source and/or if configure was patched\n./autogen.sh\n\n# provide some generated code\ncp ${WORKSPACE}/srcdir/generated/c_*.c src/\n\n# compile GAP\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \\\n    --with-gmp=${prefix} \\\n    --with-readline=${prefix} \\\n    --with-zlib=${prefix} \\\n    --with-gc=julia \\\n    --with-julia\nmake -j${nproc}\n\n# install GAP binaries\nmake install-bin install-headers install-libgap\n\n# also install config.h\ncp build/config.h ${prefix}/include/gap\n\n# the license\ninstall_license LICENSE\n\n# get rid of *.la files, they just cause trouble\nrm ${prefix}/lib/*.la\n\n# get rid of the wrapper shell script, which is useless for us\nmv ${prefix}/bin/gap.real ${prefix}/bin/gap\n\n# install gac and sysinfo.gap\nmkdir -p ${prefix}/share/gap/\ncp gac sysinfo.gap ${prefix}/share/gap/\n\n# We deliberately do NOT install the GAP library, documentation, etc. because\n# they are identical across all platforms; instead, we use another platform\n# independent artifact to ship them to the user.\n"""
+version = "v400.1190.107"
+
+[[dependencies]]
+compat = "6.2.0"
+name = "GMP_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "8.1.1"
+name = "Readline_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "libjulia_jll"
+type = "builddependency"
+version-major = 1
+version-minor = 7
+version-patch = 0
+
+[[products]]
+binnames = ["gap"]
+type = "exe"
+variable_name = "gap"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgap"]
+type = "lib"
+variable_name = "libgap"
+
+[[sources]]
+hash = "1acc687282c70418f0f825d8c169d03234aa1c6c"
+type = "git"
+unpack_target = ""
+url = "https://github.com/gap-system/gap.git"
+[[sources]]
+follow_symlinks = false
+path = "../bundled"
+target = ""
+type = "directory"

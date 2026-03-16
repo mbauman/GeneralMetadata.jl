@@ -1,0 +1,32 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Tcl"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """if [[ \"${target}\" == *-mingw* ]]; then\n    # Cross-compile libtommath from source to fix C runtime mismatch.\n    # The pre-built libtommath.dll in the Tcl source tree was compiled with MSVC (UCRT)\n    # but tcl90.dll is cross-compiled with MinGW (msvcrt), causing a crash at mp_init.\n    cd $WORKSPACE/srcdir/tcl/libtommath\n    TOMMATH_CFLAGS=\"-O2 -I. -DTCL_WITH_EXTERNAL_TOMMATH\"\n    if [[ \"${target}\" == x86_64-* ]] || [[ \"${target}\" == aarch64-* ]]; then\n        TOMMATH_CFLAGS=\"${TOMMATH_CFLAGS} -DMP_64BIT\"\n    fi\n    ${CC} ${TOMMATH_CFLAGS} -shared -o libtommath.dll bn_*.c \\\n        -Wl,--out-implib,libtommath.dll.a\n    # Replace pre-built binaries with cross-compiled ones.\n    if [[ \"${target}\" == aarch64-*mingw* ]]; then\n        cp libtommath.dll libtommath.dll.a win64-arm/\n    elif [[ \"${target}\" == x86_64-*mingw* ]]; then\n        cp libtommath.dll libtommath.dll.a win64/\n    fi\n\n    cd $WORKSPACE/srcdir/tcl/win/\n    # `make install` calls `tclsh` on Windows\n    apk add tcl\nelse\n    cd $WORKSPACE/srcdir/tcl/unix/\nfi\n\n# musl needs bsd-compat-headers for sys/queue.h\n# Copy header to sysroot since cross-compiler doesn't see /usr/include\nif [[ \"${target}\" == *-musl* ]]; then\n    apk add bsd-compat-headers\n    cp /usr/include/sys/queue.h /opt/${target}/${target}/sys-root/usr/include/sys/\nfi\n\nFLAGS=(--disable-zipfs --enable-threads --disable-rpath)\n\nif [[ \"${target}\" == x86_64-* ]] || [[ \"${target}\" == aarch64-* ]]; then\n    FLAGS+=(--enable-64bit)\nfi\n\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \"${FLAGS[@]}\"\nmake -j${nproc}\nmake install\n# Tk needs private headers\nmake install-private-headers\n\n# Install license file\ninstall_license $WORKSPACE/srcdir/tcl/license.terms\n"""
+version = "v9.0.3"
+
+[[dependencies]]
+compat = "1.2.12"
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libtcl9.0", "libtcl9", "tcl90"]
+type = "lib"
+variable_name = "libtcl"
+
+[[sources]]
+hash = "bcd73c5cf807577f93f890c0efdd577b14a66418"
+type = "git"
+unpack_target = ""
+url = "https://github.com/tcltk/tcl.git"

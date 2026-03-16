@@ -1,0 +1,28 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "aws_c_common"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/aws-c-common\n\n# Upstreamed in <https://github.com/awslabs/aws-c-common/pull/1058>.\n# Patch for MinGW toolchain\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/add-winnt-h.patch\"\nfind . -type f -exec sed -i -e 's/Windows.h/windows.h/g' \\\n     -e 's/Shlwapi.h/shlwapi.h/g' \\\n     '{}' \\;\nsed -i -e 's/BCrypt/bcrypt/g' \\\n    -e 's/Kernel32/kernel32/g' \\\n    -e 's/Ws2_32/ws2_32/g' \\\n    -e 's/Shlwapi/shlwapi/g' \\\n    CMakeLists.txt\n\nmkdir build && cd build\nif [[ \"${target}\" =~ \"mingw\" ]]; then\n   # Require Windows 7\n   export CFLAGS=\"-D_WIN32_WINNT=0x0601\"\nfi\ncmake -DCMAKE_INSTALL_PREFIX=${prefix} \\\n\t-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n\t-DBUILD_TESTING=OFF \\\n\t-DCMAKE_BUILD_TYPE=Release \\\n        -DBUILD_SHARED_LIBS=ON \\\n\t..\ncmake --build . -j${nproc} --target install\n"""
+version = "v0.9.3"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libaws-c-common"]
+type = "lib"
+variable_name = "libaws_c_common"
+
+[[sources]]
+hash = "997380c904671f88086847e8dc839bceab3d7821"
+type = "git"
+unpack_target = ""
+url = "https://github.com/awslabs/aws-c-common.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

@@ -1,0 +1,85 @@
+init_block = ""
+lazy_artifacts = false
+name = "OpenLDAPClient"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir\napk add groff\ncd openldap*\n\n#needed to build shared libraries\nif [[ \"${target}\" == *-freebsd* || \"${target}\" == powerpc* || \"${target}\" == *-mingw* ]]; then\n\tlibtoolize --force --copy\n\tAUTOMAKE=/bin/true autoreconf -fi\nfi\n\n#need a posix regex\nif [[ \"${target}\" == *-mingw* ]]; then\n\tcp ${prefix}/include/pcreposix.h ${prefix}/include/regex.h \n\texport LDFLAGS=\"-lpcreposix-0 -L${prefix}/bin\"\nfi\n\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} --disable-slapd --without-yielding_select --disable-static --enable-shared --enable-modules=yes --enable-hdb=no --enable-bdb=no\nsed -in-place 's/#define NEED_MEMCMP_REPLACEMENT 1/\\/\\* #undef NEED_MEMCMP_REPLACEMENT \\*\\//' include/portable.h\n\nmake depend\nmake -j${nproc} \nmake install\n\nif [[ \"${target}\" == *-mingw* ]]; then \n    # Cover up the traces of the hack \n    rm ${prefix}/include/regex.h \nfi \n"""
+version = "v2.4.50"
+
+[[dependencies]]
+name = "OpenSSL_jll"
+type = "dependency"
+uuid = "458c3c95-2e84-50aa-8efc-19380b2a3a95"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "PCRE_jll"
+type = "dependency"
+uuid = "2f80f16e-611a-54ab-bc61-aa92de5b98fc"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["ldapdelete"]
+type = "exe"
+variable_name = "ldapdelete"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libldap"]
+type = "lib"
+variable_name = "libldap"
+[[products]]
+binnames = ["ldapsearch"]
+type = "exe"
+variable_name = "ldapsearch"
+[[products]]
+binnames = ["ldapwhoami"]
+type = "exe"
+variable_name = "ldapwhoami"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["liblber"]
+type = "lib"
+variable_name = "liblber"
+[[products]]
+binnames = ["ldapurl"]
+type = "exe"
+variable_name = "ldapurl"
+[[products]]
+binnames = ["ldappasswd"]
+type = "exe"
+variable_name = "ldappasswd"
+[[products]]
+binnames = ["ldapmodify"]
+type = "exe"
+variable_name = "ldapmodify"
+[[products]]
+binnames = ["ldapexop"]
+type = "exe"
+variable_name = "ldapexop"
+[[products]]
+binnames = ["ldapmodrdn"]
+type = "exe"
+variable_name = "ldapmodrdn"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libldap_r"]
+type = "lib"
+variable_name = "libldap_r"
+[[products]]
+binnames = ["ldapcompare"]
+type = "exe"
+variable_name = "ldapcompare"
+
+[[sources]]
+hash = "5cb57d958bf5c55a678c6a0f06821e0e5504d5a92e6a33240841fbca1db586b8"
+type = "archive"
+unpack_target = ""
+url = "https://www.openldap.org/software/download/OpenLDAP/openldap-release/openldap-2.4.50.tgz"

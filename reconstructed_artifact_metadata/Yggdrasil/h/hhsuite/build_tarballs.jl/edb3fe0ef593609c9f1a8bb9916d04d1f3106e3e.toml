@@ -1,0 +1,127 @@
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "HHsuite"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "x86_64-unknown-freebsd"]
+script = """cd ${WORKSPACE}/srcdir/hh-suite-*/\n\n# patch CMakeLists.txt so it doesn't set -march unnecessarily on ARM\natomic_patch -p1 ../patches/arm-simd-march-cmakefile.patch\n\n# macos: use gcc/g++ so we can use openmp\nif [[ \"${target}\" == *-apple-darwin* ]]; then\n    CMAKE_TARGET_TOOLCHAIN=\"${CMAKE_TARGET_TOOLCHAIN/%.cmake/_gcc.cmake}\"\n    echo \"[INFO] setting CMAKE_TARGET_TOOLCHAIN = ${CMAKE_TARGET_TOOLCHAIN}\"\nfi\n\nexport CPPFLAGS=\"-I${includedir}\"\nexport LDFLAGS=\"-L${libdir}\"\n\narch_opts=\nif [[ ${target} == x86_64-* ]]; then\n    arch_opts=\"-DHAVE_SSE2=ON -DHAVE_SSE4_1=ON -DHAVE_AVX2=ON\"\nelif [[ ${target} == aarch64-* ]]; then\n    arch_opts=\"-DHAVE_ARM8=ON\"\nelif [[ ${target} == powerpc64le-* ]]; then\n    arch_opts=\"-DHAVE_POWER8=ON -DHAVE_POWER9=ON\"\nfi\n\nmkdir build && cd build\ncmake .. \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DNATIVE_ARCH=OFF \\\n    ${arch_opts}\nmake -j${nproc}\nmake install\n\ninstall_license ../LICENSE\n"""
+version = "v3.3.0"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["a3m_database_extract"]
+type = "exe"
+variable_name = "a3m_database_extract"
+[[products]]
+binnames = ["a3m_database_filter"]
+type = "exe"
+variable_name = "a3m_database_filter"
+[[products]]
+binnames = ["a3m_database_reduce"]
+type = "exe"
+variable_name = "a3m_database_reduce"
+[[products]]
+binnames = ["a3m_extract"]
+type = "exe"
+variable_name = "a3m_extract"
+[[products]]
+binnames = ["a3m_reduce"]
+type = "exe"
+variable_name = "a3m_reduce"
+[[products]]
+binnames = ["cstranslate"]
+type = "exe"
+variable_name = "cstranslate"
+[[products]]
+binnames = ["ffindex_apply"]
+type = "exe"
+variable_name = "ffindex_apply"
+[[products]]
+binnames = ["ffindex_build"]
+type = "exe"
+variable_name = "ffindex_build"
+[[products]]
+binnames = ["ffindex_from_fasta"]
+type = "exe"
+variable_name = "ffindex_from_fasta"
+[[products]]
+binnames = ["ffindex_from_fasta_with_split"]
+type = "exe"
+variable_name = "ffindex_from_fasta_with_split"
+[[products]]
+binnames = ["ffindex_get"]
+type = "exe"
+variable_name = "ffindex_get"
+[[products]]
+binnames = ["ffindex_modify"]
+type = "exe"
+variable_name = "ffindex_modify"
+[[products]]
+binnames = ["ffindex_order"]
+type = "exe"
+variable_name = "ffindex_order"
+[[products]]
+binnames = ["ffindex_reduce"]
+type = "exe"
+variable_name = "ffindex_reduce"
+[[products]]
+binnames = ["ffindex_unpack"]
+type = "exe"
+variable_name = "ffindex_unpack"
+[[products]]
+binnames = ["hhalign"]
+type = "exe"
+variable_name = "hhalign"
+[[products]]
+binnames = ["hhalign_omp"]
+type = "exe"
+variable_name = "hhalign_omp"
+[[products]]
+binnames = ["hhblits"]
+type = "exe"
+variable_name = "hhblits"
+[[products]]
+binnames = ["hhblits_ca3m"]
+type = "exe"
+variable_name = "hhblits_ca3m"
+[[products]]
+binnames = ["hhblits_omp"]
+type = "exe"
+variable_name = "hhblits_omp"
+[[products]]
+binnames = ["hhconsensus"]
+type = "exe"
+variable_name = "hhconsensus"
+[[products]]
+binnames = ["hhfilter"]
+type = "exe"
+variable_name = "hhfilter"
+[[products]]
+binnames = ["hhmake"]
+type = "exe"
+variable_name = "hhmake"
+[[products]]
+binnames = ["hhsearch"]
+type = "exe"
+variable_name = "hhsearch"
+[[products]]
+binnames = ["hhsearch_omp"]
+type = "exe"
+variable_name = "hhsearch_omp"
+
+[[sources]]
+hash = "dd67f7f3bf601e48c9c0bc4cf1fbe3b946f787a808bde765e9436a48d27b0964"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/soedinglab/hh-suite/archive/refs/tags/v3.3.0.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

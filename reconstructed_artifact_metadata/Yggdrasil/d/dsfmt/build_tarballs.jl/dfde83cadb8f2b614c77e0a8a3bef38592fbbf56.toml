@@ -1,0 +1,27 @@
+dependencies = []
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "dSFMT"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/dSFMT*/\n\natomic_patch -p1 $WORKSPACE/srcdir/patches/dSFMT.h.patch\natomic_patch -p1 $WORKSPACE/srcdir/patches/dSFMT.c.patch\n\nFLAGS=(\n    -DNDEBUG -DDSFMT_MEXP=19937 -fPIC -DDSFMT_DO_NOT_USE_OLD_NAMES\n    -O3 -finline-functions -fomit-frame-pointer -fno-strict-aliasing\n    --param max-inline-insns-single=1800 -Wmissing-prototypes -Wall -std=c99 -shared\n)\n\nif [[ ${target} == x86_64* ]]; then\n    FLAGS+=(-msse2 -DHAVE_SSE2)\nfi\n\nmkdir -p \"${libdir}\"\n${CC} ${FLAGS[@]} ${CFLAGS} ${CPPFLAGS} ${LDFLAGS} -o \"${libdir}/libdSFMT.${dlext}\" dSFMT.c\n"""
+version = "v2.2.3"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libdSFMT"]
+type = "lib"
+variable_name = "libdSFMT"
+
+[[sources]]
+hash = "92822573b490d7ff0f3bea72a94870aadae289ea"
+type = "git"
+unpack_target = ""
+url = "https://github.com/MersenneTwister-Lab/dSFMT.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

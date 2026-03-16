@@ -1,0 +1,71 @@
+lazy_artifacts = false
+name = "Cbc"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin14-cxx03", "x86_64-apple-darwin14-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir/Cbc*\n\n# Remove misleading libtool files\nrm -f ${prefix}/lib/*.la\nrm -f /opt/${target}/${target}/lib*/*.la\nupdate_configure_scripts\n\n# Apply patch related to https://github.com/JuliaOpt/Cbc.jl/issues/117 and https://github.com/coin-or/Cbc/issues/267\n(cd Cbc/src && atomic_patch -p0 $WORKSPACE/srcdir/patches/no_lp.patch)\n\nmkdir build\ncd build/\n\nexport CPPFLAGS=\"${CPPFLAGS} -I${prefix}/include -I$prefix/include/coin\"\nexport CXXFLAGS=\"${CXXFLAGS} -std=c++11\"\nif [[ ${target} == *mingw* ]]; then\n    export LDFLAGS=\"-L$prefix/bin\"\nelif [[ ${target} == *linux* ]]; then\n    export LDFLAGS=\"-ldl -lrt\"\nfi\n\n../configure --prefix=$prefix --with-pic --disable-pkg-config  --build=${MACHTYPE} --host=${target} \\\n--enable-shared lt_cv_deplibs_check_method=pass_all \\\n--with-blas-lib=\"-lopenblas\" --with-lapack-lib=\"-lopenblas\" \\\n--with-metis-lib=\"-lmetis\" \\\n--with-coinutils-lib=\"-lCoinUtils\" \\\n--with-osi-lib=\"-lOsi -lCoinUtils\" \\\n--with-clp-lib=\"-lClp -lOsiClp -lCoinUtils\" \\\n--with-cgl-lib=\"-lCgl -lClp -lOsiClp -lOsi -lCoinUtils\" \\\n--with-coindepend-lib=\"-lCgl -lClp -lOsiClp -lOsi -lCoinUtils\" \\\n--enable-cbc-parallel\n\nmake -j${nproc}\nmake install\n"""
+version = "v2.10.3"
+
+[[dependencies]]
+name = "Clp_jll"
+type = "dependency"
+uuid = "06985876-5285-5a41-9fcb-8948a742cc53"
+version-major = 1
+version-minor = 17
+version-patch = 3
+[[dependencies]]
+name = "Cgl_jll"
+type = "dependency"
+uuid = "3830e938-1dd0-5f3e-8b8e-b3ee43226782"
+version-major = 0
+version-minor = 60
+version-patch = 2
+[[dependencies]]
+name = "Osi_jll"
+type = "dependency"
+uuid = "7da25872-d9ce-5375-a4d3-7a845f58efdd"
+version-major = 0
+version-minor = 108
+version-patch = 5
+[[dependencies]]
+name = "CoinUtils_jll"
+type = "dependency"
+uuid = "be027038-0da8-5614-b30d-e42594cb92df"
+version-major = 2
+version-minor = 11
+version-patch = 3
+[[dependencies]]
+name = "OpenBLAS32_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "CompilerSupportLibraries_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libCbc"]
+type = "lib"
+variable_name = "libCbc"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libCbcSolver"]
+type = "lib"
+variable_name = "libcbcsolver"
+
+[[sources]]
+hash = "6fe3addaa76436d479d4431add67b371e11d3e83"
+type = "git"
+unpack_target = ""
+url = "https://github.com/coin-or/Cbc.git"
+[[sources]]
+path = "./bundled"
+target = ""
+type = "directory"

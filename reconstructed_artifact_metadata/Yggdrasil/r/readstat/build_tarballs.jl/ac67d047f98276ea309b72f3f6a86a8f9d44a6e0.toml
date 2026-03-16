@@ -1,0 +1,43 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "ReadStat"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """# Add `gettext` for `autogen.sh`\napk update\napk add gettext-dev\n\n# GCC builds complain about string truncation, but we don't care\nif [[ ${target} != *apple* ]] && [[ ${target} != *freebsd* ]]; then\n    export CFLAGS=\"${CFLAGS} -Wno-stringop-truncation\"\nfi\n\n# Windows doesn't search ${prefix}/include?\nexport CPPFLAGS=\"${CPPFLAGS} -I${prefix}/include\"\n\n# Fix \"Undefined symbols for architecture arm64: \"_libiconv\",\"\nexport LDFLAGS=\"-L${libdir}\"\n\ncd $WORKSPACE/srcdir/ReadStat/\n./autogen.sh\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target}\nmake -j${nproc}\nmake install\n"""
+version = "v1.1.8"
+
+[[dependencies]]
+compat = ""
+name = "Libiconv_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["readstat"]
+type = "exe"
+variable_name = "readstat"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libreadstat"]
+type = "lib"
+variable_name = "libreadstat"
+
+[[sources]]
+hash = "f0b31497d69ec1b0585a73eeede3048a4ed15cbc"
+type = "git"
+unpack_target = ""
+url = "https://github.com/WizardMac/ReadStat.git"

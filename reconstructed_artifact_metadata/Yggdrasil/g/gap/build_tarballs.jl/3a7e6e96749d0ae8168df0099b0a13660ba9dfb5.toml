@@ -1,0 +1,80 @@
+augment_platform_block = ""
+init_block = """\n    sym = dlsym(libgap_handle, :GAP_InitJuliaMemoryInterface)\n    ccall(sym, Nothing, (Any, Ptr{Nothing}), @__MODULE__, C_NULL)\n"""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "GAP"
+platforms = ["x86_64-linux-gnu-cxx03-julia_version+1.6.0", "x86_64-linux-gnu-cxx11-julia_version+1.6.0", "aarch64-linux-gnu-cxx03-julia_version+1.6.0", "aarch64-linux-gnu-cxx11-julia_version+1.6.0", "powerpc64le-linux-gnu-cxx03-julia_version+1.6.0", "powerpc64le-linux-gnu-cxx11-julia_version+1.6.0", "x86_64-linux-musl-cxx03-julia_version+1.6.0", "x86_64-linux-musl-cxx11-julia_version+1.6.0", "aarch64-linux-musl-cxx03-julia_version+1.6.0", "aarch64-linux-musl-cxx11-julia_version+1.6.0", "x86_64-apple-darwin-julia_version+1.6.0", "x86_64-unknown-freebsd-julia_version+1.6.0", "x86_64-linux-gnu-cxx03-julia_version+1.7.0", "x86_64-linux-gnu-cxx11-julia_version+1.7.0", "aarch64-linux-gnu-cxx03-julia_version+1.7.0", "aarch64-linux-gnu-cxx11-julia_version+1.7.0", "powerpc64le-linux-gnu-cxx03-julia_version+1.7.0", "powerpc64le-linux-gnu-cxx11-julia_version+1.7.0", "x86_64-linux-musl-cxx03-julia_version+1.7.0", "x86_64-linux-musl-cxx11-julia_version+1.7.0", "aarch64-linux-musl-cxx03-julia_version+1.7.0", "aarch64-linux-musl-cxx11-julia_version+1.7.0", "x86_64-apple-darwin-julia_version+1.7.0", "aarch64-apple-darwin-julia_version+1.7.0", "x86_64-unknown-freebsd-julia_version+1.7.0", "x86_64-linux-gnu-cxx03-julia_version+1.8.0", "x86_64-linux-gnu-cxx11-julia_version+1.8.0", "aarch64-linux-gnu-cxx03-julia_version+1.8.0", "aarch64-linux-gnu-cxx11-julia_version+1.8.0", "powerpc64le-linux-gnu-cxx03-julia_version+1.8.0", "powerpc64le-linux-gnu-cxx11-julia_version+1.8.0", "x86_64-linux-musl-cxx03-julia_version+1.8.0", "x86_64-linux-musl-cxx11-julia_version+1.8.0", "aarch64-linux-musl-cxx03-julia_version+1.8.0", "aarch64-linux-musl-cxx11-julia_version+1.8.0", "x86_64-apple-darwin-julia_version+1.8.0", "aarch64-apple-darwin-julia_version+1.8.0", "x86_64-unknown-freebsd-julia_version+1.8.0", "x86_64-linux-gnu-cxx03-julia_version+1.9.0", "x86_64-linux-gnu-cxx11-julia_version+1.9.0", "aarch64-linux-gnu-cxx03-julia_version+1.9.0", "aarch64-linux-gnu-cxx11-julia_version+1.9.0", "powerpc64le-linux-gnu-cxx03-julia_version+1.9.0", "powerpc64le-linux-gnu-cxx11-julia_version+1.9.0", "x86_64-linux-musl-cxx03-julia_version+1.9.0", "x86_64-linux-musl-cxx11-julia_version+1.9.0", "aarch64-linux-musl-cxx03-julia_version+1.9.0", "aarch64-linux-musl-cxx11-julia_version+1.9.0", "x86_64-apple-darwin-julia_version+1.9.0", "aarch64-apple-darwin-julia_version+1.9.0", "x86_64-unknown-freebsd-julia_version+1.9.0"]
+script = """cd ${WORKSPACE}/srcdir/gap*\n\nfor f in ${WORKSPACE}/srcdir/patches/*.patch; do\n    atomic_patch -p1 ${f}\ndone\n\n# HACK: determine Julia version\ncat > version.c <<EOF\n#include <stdio.h>\n#include \"julia/julia_version.h\"\nint main(int argc, char**argv)\n{\n    printf(\"%d.%d\", JULIA_VERSION_MAJOR, JULIA_VERSION_MINOR);\n    return 0;\n}\nEOF\n${CC_BUILD} -Wall version.c -o julia_version\njulia_version=$(./julia_version)\n\n# must run autogen.sh if compiling from git snapshot and/or if configure was patched;\n# it doesn't hurt otherwise, too, so just always do it\n./autogen.sh\n\n# configure GAP\n# the custom ARCHEXT ensures that the different Julia versions use\n# different GAParch values\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \\\n    ARCHEXT=\"$julia_version\" \\\n    --with-gmp=${prefix} \\\n    --with-readline=${prefix} \\\n    --with-zlib=${prefix} \\\n    --with-gc=julia \\\n    --with-julia\nmkdir -p build\n\n# configure & compile a native version of GAP to generate ffdata.{c,h}, c_oper1.c and c_type1.c\nmkdir native-build\ncd native-build\nrm ${host_libdir}/*.la  # delete *.la, they hardcode libdir='/workspace/destdir/lib'\n../configure --build=${MACHTYPE} --host=${MACHTYPE} \\\n    --with-gmp=${host_prefix} \\\n    --without-readline \\\n    --with-zlib=${host_prefix} \\\n    CC=${CC_BUILD} CXX=${CXX_BUILD}\nmake -j${nproc}\ncp build/c_*.c ../src/\ncp ffgen ..\ncp build/ffdata.* ../build/\ncd ..\n\n# remove the native build, it has done its job\nrm -rf native-build\n\n# compile GAP\nmake -j${nproc}\n\n# install GAP binaries\nmake install-bin install-headers install-libgap\n\n# FIXME: until install-headers is fixed, also install generated headers\ncp build/*.h ${prefix}/include/gap/\n\n# the license\ninstall_license LICENSE\n\n# get rid of *.la files, they just cause trouble\nrm ${prefix}/lib/*.la\n\n# get rid of the wrapper shell script, which is useless for us\nmv ${libdir}/gap/gap ${prefix}/bin/gap\n\n# install gac and sysinfo.gap\nmkdir -p ${prefix}/share/gap/\ncp gac sysinfo.gap ${prefix}/share/gap/\n\n# We deliberately do NOT install the GAP library, documentation, etc. because\n# they are identical across all platforms; instead, we use another platform\n# independent artifact to ship them to the user.\n"""
+version = "v400.1192.1"
+
+[[dependencies]]
+compat = ""
+name = "GMP_jll"
+platforms = ["any"]
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "GMP_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Readline_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "libjulia_jll"
+platforms = ["any"]
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["gap"]
+type = "exe"
+variable_name = "gap"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgap"]
+type = "lib"
+variable_name = "libgap"
+
+[[sources]]
+hash = "977fb055cf3793aa4c329e3d6ea765774fecc8ac"
+type = "git"
+unpack_target = ""
+url = "https://github.com/gap-system/gap.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

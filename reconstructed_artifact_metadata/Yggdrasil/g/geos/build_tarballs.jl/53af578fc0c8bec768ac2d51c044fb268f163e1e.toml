@@ -1,0 +1,19 @@
+dependencies = []
+name = "GEOS"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "arm-linux-gnueabihf-cxx03", "arm-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "arm-linux-musleabihf-cxx03", "arm-linux-musleabihf-cxx11", "x86_64-apple-darwin14-cxx03", "x86_64-apple-darwin14-cxx11", "x86_64-unknown-freebsd11.1-cxx03", "x86_64-unknown-freebsd11.1-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir/geos-*/\n\n# ppc64le doesn't think it can create shared libraries, because `./configure`\n# passes in `-m elf64ppc` when it should be passing `-m elf64lppc`, because this\n# is ppc64le not ppc64.  Teach it the difference.\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/configure_ppc64le.patch\"\n\n# arm complains about duplicate symbols unless we disable inlining\nEXTRA_CONFIGURE_FLAGS=()\nif [[ ${target} == arm* ]]; then\n    EXTRA_CONFIGURE_FLAGS+=(--disable-inline)\nfi\nexport CFLAGS=\"-O2\"\nexport CXXFLAGS=\"-O2\"\n./configure --prefix=$prefix --build=${MACHTYPE} --host=$target --enable-shared --disable-static ${EXTRA_CONFIGURE_FLAGS[@]}\nmake -j${nproc}\nmake install\n"""
+sources = [{"http://download.osgeo.org/geos/geos-3.8.0.tar.bz2" = "99114c3dc95df31757f44d2afde73e61b9f742f0b683fd1894cbbee05dda62d5"}, "./bundled"]
+version = "v3.8.0"
+
+[[products]]
+dir_paths = []
+dont_dlopen = false
+libnames = ["libgeos_c"]
+type = "lib"
+variable_name = "libgeos"
+[[products]]
+dir_paths = []
+dont_dlopen = false
+libnames = ["libgeos", "libgeos-3-8"]
+type = "lib"
+variable_name = "libgeos_cpp"

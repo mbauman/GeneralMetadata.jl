@@ -1,0 +1,25 @@
+dependencies = []
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "CUDA_full"
+platforms = ["x86_64-linux-gnu", "powerpc64le-linux-gnu", "x86_64-w64-mingw32"]
+products = []
+script = """cd ${WORKSPACE}/srcdir\n\n# use a temporary directory to avoid running out of tmpfs\ntemp=${WORKSPACE}/tmpdir\nmkdir ${temp}\n\nmkdir ${prefix}/cuda\nif [[ ${target} == *-linux-gnu ]]; then\n    # don't run the embedded installer (libc issue, doesn't work on ppc),\n    # but instruct makeself to uncompress the embedded archive.\n    sh installer.run --noexec --target \"${temp}\"\n    cd ${temp}/builds\n    find .\n\n    cp cuda_documentation/EULA.txt ${prefix}/cuda\n\n    for project in cuda_cudart cuda_cuobjdump cuda_cupti cuda_gdb cuda_memcheck \\\n                   cuda_nvcc cuda_nvdisasm cuda_nvml_dev cuda_nvprof cuda_nvprune \\\n                   cuda_nvrtc cuda_nvtx cuda_sanitizer_api \\\n                   libcublas libcufft libcurand libcusolver libcusparse \\\n                   libnpp libnvjpeg; do\n        [[ -d ${project} ]] || { echo \"${project} does not exist!\"; exit 1; }\n        cp -a ${project}/* ${prefix}/cuda\n    done\n\n    cp -a integration/Sanitizer/* ${prefix}/cuda/bin\nelif [[ ${target} == x86_64-w64-mingw32 ]]; then\n    apk del ninja   # hack\n    apk add p7zip\n\n    7z x installer.exe -o${temp}\n    cd ${temp}\n    find .\n\n    mv cuda_documentation/Doc/EULA.txt ${prefix}/cuda\n\n    for project in cuda_cudart cuda_cuobjdump cuda_cupti cuda_memcheck \\\n                   cuda_nvcc cuda_nvdisasm cuda_nvml_dev cuda_nvprof cuda_nvprune \\\n                   cuda_nvrtc cuda_nvtx cuda_sanitizer_api \\\n                   libcublas libcufft libcurand libcusolver libcusparse  \\\n                   libnpp libnvjpeg; do\n        [[ -d ${project} ]] || { echo \"${project} does not exist!\"; exit 1; }\n        cp -a ${project}/*/* ${prefix}/cuda\n    done\n\n    # NVIDIA Tools Extension Library\n    7z x \"nsight_nvtx/nsight_nvtx/NVIDIA NVTX Installer.x86_64\".*.msi -o${temp}/nvtx_installer\n    find nvtx_installer\n    for file in nvtx_installer/*.*_*; do\n        mv $file $(echo $file | sed 's/\\.\\(\\w*\\)_.*/.\\1/')\n    done\n    mv nvtx_installer/*.dll ${prefix}/cuda/bin\n    mv nvtx_installer/*64_*.lib ${prefix}/cuda/lib/x64\n    mv nvtx_installer/*32_*.lib ${prefix}/cuda/lib/Win32\n    mv nvtx_installer/*.h ${prefix}/cuda/include\n\n    # fixup\n    chmod +x ${prefix}/cuda/bin/*.{exe,dll}\n\n    # clean-up\n    rm ${prefix}/cuda/*.nvi\nfi\n\nrm -rf ${temp}\n\ncd ${prefix}/cuda\ninstall_license EULA.txt\n"""
+version = "v11.0.3"
+
+[[sources]]
+filename = "installer.run"
+hash = "b079c4e408adf88c3f1ffb8418a97dc4227c37935676b4bf4ca0beec6c328cc0"
+type = "file"
+url = "https://developer.download.nvidia.com/compute/cuda/11.0.3/local_installers/cuda_11.0.3_450.51.06_linux.run"
+[[sources]]
+filename = "installer.run"
+hash = "4775b21df004b1433bafff9b48a324075c008509f4c0fe28cd060d042d2e0794"
+type = "file"
+url = "https://developer.download.nvidia.com/compute/cuda/11.0.3/local_installers/cuda_11.0.3_450.51.06_linux_ppc64le.run"
+[[sources]]
+filename = "installer.exe"
+hash = "a639e0c097717c5f544f7a81b7162b4cb49243a30fd892f3267bc5532c8e2584"
+type = "file"
+url = "http://developer.download.nvidia.com/compute/cuda/11.0.3/local_installers/cuda_11.0.3_451.82_win10.exe"

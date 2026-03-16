@@ -1,0 +1,44 @@
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "lrslib"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "aarch64-apple-darwin", "armv6l-linux-gnueabihf", "armv6l-linux-musleabihf"]
+script = """cd $WORKSPACE/srcdir/lrslib*\nextraargs=\"\"\ncflags=\"-fPIC -O3 -Wall -DLRS_QUIET\"\n\n# 32bit linux, arm and windows:\nif [[ $target == i686* ]] || [[ $target == arm* ]]; then\n  # no 128 bit support needs extra flags\n  extraargs=\"BITS=-DB32 MPLRSOBJ2= SHLIBOBJ2= \"\nfi\n\nif [[ $target == *apple* ]]; then\n  export CC=gcc\n  sed -i -e 's#-Wl,-soname=#-install_name #' makefile\n  extraargs=\"SONAME=liblrs.0.dylib SHLINK=liblrs.dylib SHLIB=liblrs.0.0.0.dylib ${extraargs}\"\nelif [[ $target == *freebsd* ]]; then\n  export CC=\"gcc\"\nelif [[ $target == *mingw* ]]; then\n  extraargs=\"SONAME=liblrs-0.dll SHLINK=liblrs.dll SHLIB=liblrs-0-0-0.dll ${extraargs}\"\n  cflags=\"$cflags -DSIGNALS -DTIMES\"\nfi\n\nmake prefix=${prefix} \\\n     INCLUDEDIR=${includedir} \\\n     LIBDIR=${libdir} \\\n     CFLAGS=\"${cflags}\" \\\n     ${extraargs} \\\n     -j ${nproc} \\\n   install\n\nif [[ $target == *mingw* ]]; then\n  # rename binaries and move libraries\n  for file in ${bindir}/{lrs,lrsnash}; do mv $file $file.exe; done\n  mv ${prefix}/lib/*lrs*.dll ${libdir}/\nfi\n\n${CC} -shared ${cflags} -o \"${libdir}/liblrsnash.${dlext}\" lrsnashlib.c -L${libdir} -llrs -lgmp -Wl,-rpath,${libdir} -DMA -DGMP -DLRS_QUIET -I${includedir}\n"""
+version = "v0.3.3"
+
+[[dependencies]]
+compat = ""
+name = "GMP_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["lrs"]
+type = "exe"
+variable_name = "lrs"
+[[products]]
+binnames = ["lrsnash"]
+type = "exe"
+variable_name = "lrsnash"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["liblrs"]
+type = "lib"
+variable_name = "liblrs"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["liblrsnash"]
+type = "lib"
+variable_name = "liblrsnash"
+
+[[sources]]
+hash = "df22682cd742315fe04f866cfe4804d5950f7dc7f514d5b5f36f5b7f5aff9188"
+type = "archive"
+unpack_target = ""
+url = "http://cgm.cs.mcgill.ca/~avis/C/lrslib/archive/lrslib-071b.tar.gz"

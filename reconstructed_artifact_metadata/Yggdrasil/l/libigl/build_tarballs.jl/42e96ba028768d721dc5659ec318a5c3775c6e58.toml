@@ -1,0 +1,110 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "libigl"
+platforms = ["x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "riscv64-linux-gnu-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "aarch64-apple-darwin"]
+script = """cd $WORKSPACE/srcdir/libigl\n\napk del cmake\n\n# Fix gettimeofday declaration issue on macOS by defining _DEFAULT_SOURCE\n# This is needed for GLFW's posix_time.c which uses gettimeofday\nif [[ \"${target}\" == *darwin* ]]; then\n    EXTRA_CMAKE_FLAGS=\"-DCMAKE_C_FLAGS=-D_DEFAULT_SOURCE\"\nelse\n    EXTRA_CMAKE_FLAGS=\"\"\nfi\n\nmkdir -p build\ncd build\ncmake \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    ${EXTRA_CMAKE_FLAGS} \\\n    -DBLA_VENDOR=OpenBLAS \\\n    -DLIBIGL_USE_STATIC_LIBRARY=ON \\\n    -DLIBIGL_BUILD_TESTS=OFF \\\n    -DLIBIGL_BUILD_TUTORIALS=OFF \\\n    -DLIBIGL_EMBREE=OFF \\\n    -DLIBIGL_GLFW=ON \\\n    -DLIBIGL_IMGUI=ON \\\n    -DLIBIGL_OPENGL=ON \\\n    -DLIBIGL_COPYLEFT_CGAL=ON \\\n    -DLIBIGL_PNG=OFF \\\n    -DLIBIGL_RESTRICTED_MATLAB=OFF \\\n    -DLIBIGL_RESTRICTED_MOSEK=OFF \\\n    ..\n\nmake -j${nproc}\nmake install\ncd $WORKSPACE/srcdir/libigl\ninstall_license LICENSE.GPL LICENSE.MPL2\n"""
+version = "v2.6.0"
+
+[[dependencies]]
+compat = ""
+name = "GMP_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MPFR_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenBLAS32_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "ICU_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Eigen_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CGAL_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CMake_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "GLFW_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Libglvnd_jll"
+platforms = ["x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "riscv64-linux-gnu-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_xorgproto_jll"
+platforms = ["x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "riscv64-linux-gnu-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+paths = ["lib/libigl.a"]
+type = "file"
+variable_name = "libigl_a"
+
+[[sources]]
+hash = "40e7900ccbd767f1f360e0eb10f0f1a6432e0993"
+type = "git"
+unpack_target = ""
+url = "https://github.com/libigl/libigl.git"

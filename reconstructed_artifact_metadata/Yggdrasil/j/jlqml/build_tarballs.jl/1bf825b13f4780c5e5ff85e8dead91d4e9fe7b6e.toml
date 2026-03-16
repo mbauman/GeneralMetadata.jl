@@ -1,0 +1,59 @@
+init_block = ""
+lazy_artifacts = false
+name = "jlqml"
+platforms = ["armv7l-linux-gnueabihf-cxx11", "x86_64-linux-gnu-cxx11", "x86_64-apple-darwin14-cxx11", "x86_64-w64-mingw32-cxx11"]
+script = """if test -f \"$prefix/lib/cmake/Qt5Gui/Qt5GuiConfigExtras.cmake\"; then\n    sed -i 's/_qt5gui_find_extra_libs.*AGL.framework.*//' $prefix/lib/cmake/Qt5Gui/Qt5GuiConfigExtras.cmake\nfi\n\n# Override compiler ID to silence the horrible \"No features found\" cmake error\nif [[ $target == *\"apple-darwin\"* ]]; then\n  macos_extra_flags=\"-DCMAKE_CXX_COMPILER_ID=AppleClang -DCMAKE_CXX_COMPILER_VERSION=10.0.0 -DCMAKE_CXX_STANDARD_COMPUTED_DEFAULT=11\"\nfi\n\nJulia_PREFIX=${WORKSPACE}/srcdir/julia-$target\n\nmkdir build\ncd build\ncmake -DJulia_PREFIX=$Julia_PREFIX -DCMAKE_FIND_ROOT_PATH=$prefix -DJlCxx_DIR=$prefix/lib/cmake/JlCxx -DQt5Core_DIR=$prefix/lib/cmake/Qt5Core -DQt5Quick_DIR=$prefix/lib/cmake/Qt5Quick -DQt5Svg_DIR=$prefix/lib/cmake/Qt5Svg -DQt5Widgets_DIR=$prefix/lib/cmake/Qt5Widgets -DCMAKE_INSTALL_PREFIX=$prefix -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} $macos_extra_flags -DCMAKE_BUILD_TYPE=Release ../jlqml/\nVERBOSE=ON cmake --build . --config Release --target install -- -j${nproc}\ninstall_license $WORKSPACE/srcdir/jlqml*/LICENSE.md\n"""
+version = "v0.1.1"
+
+[[dependencies]]
+name = "libcxxwrap_julia_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Qt_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Libglvnd_jll"
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libjlqml"]
+type = "lib"
+variable_name = "libjlqml"
+
+[[sources]]
+hash = "1d7d72f7cc9fac09fc0dc79359b7d9288c2bc847"
+type = "git"
+unpack_target = "jlqml"
+url = "/home/runner/src/julia/jlqml/.git"
+[[sources]]
+hash = "378b6a23ce4363eeb7afd5bd8092f902caa512f2f987dfc47fc51ae6bdff0e56"
+type = "archive"
+unpack_target = "julia-x86_64-linux-gnu"
+url = "https://github.com/JuliaBinaryWrappers/Julia_jll.jl/releases/download/Julia-v1.4.1+1/Julia.v1.4.1.x86_64-linux-gnu-libgfortran4-cxx11.tar.gz"
+[[sources]]
+hash = "621029838e895bf5f201d0858fdbd31f1bb7f458aa0bc0646b4b30185a7d8e7c"
+type = "archive"
+unpack_target = "julia-x86_64-w64-mingw32"
+url = "https://github.com/JuliaBinaryWrappers/Julia_jll.jl/releases/download/Julia-v1.4.1+1/Julia.v1.4.1.x86_64-w64-mingw32-libgfortran4-cxx11.tar.gz"
+[[sources]]
+hash = "0d733c2e0147d6ffb731b638a8b1bd4225069c5735df22bc3a953dffce663d74"
+type = "archive"
+unpack_target = "julia-arm-linux-gnueabihf"
+url = "https://github.com/JuliaBinaryWrappers/Julia_jll.jl/releases/download/Julia-v1.4.1+1/Julia.v1.4.1.armv7l-linux-gnueabihf-libgfortran4-cxx11.tar.gz"
+[[sources]]
+hash = "f6d94a3184b0241f20f78523de581949afa038f3e320fb9fd20a83019968adca"
+type = "archive"
+unpack_target = "julia-x86_64-apple-darwin14"
+url = "https://github.com/JuliaBinaryWrappers/Julia_jll.jl/releases/download/Julia-v1.4.1+1/Julia.v1.4.1.x86_64-apple-darwin14-libgfortran4-cxx11.tar.gz"
