@@ -1,3 +1,45 @@
 ["2018.6.22+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/NNPACK_jll.jl/releases/download/NNPACK-v2018.6.22+0/NNPACK.v2018.6.22.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/NNPACK_jll.jl/releases/download/NNPACK-v2018.6.22+0/NNPACK.v2018.6.22.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/NNPACK_jll.jl/releases/download/NNPACK-v2018.6.22+0/NNPACK.v2018.6.22.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/NNPACK_jll.jl/releases/download/NNPACK-v2018.6.22+0/NNPACK.v2018.6.22.x86_64-apple-darwin14.tar.gz", "https://github.com/JuliaBinaryWrappers/NNPACK_jll.jl/releases/download/NNPACK-v2018.6.22+0/NNPACK.v2018.6.22.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/NNPACK_jll.jl/releases/download/NNPACK-v2018.6.22+0/NNPACK.v2018.6.22.x86_64-linux-musl.tar.gz"]
 registered = 2020-01-27T22:57:26.000Z
+
+    [["2018.6.22+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/NNPACK_jll.jl/releases/download/NNPACK-v2018.6.22+0/NNPACK.v2018.6.22.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/NNPACK_jll.jl/releases/download/NNPACK-v2018.6.22+0/NNPACK.v2018.6.22.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/NNPACK_jll.jl/releases/download/NNPACK-v2018.6.22+0/NNPACK.v2018.6.22.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/NNPACK_jll.jl/releases/download/NNPACK-v2018.6.22+0/NNPACK.v2018.6.22.x86_64-apple-darwin14.tar.gz", "https://github.com/JuliaBinaryWrappers/NNPACK_jll.jl/releases/download/NNPACK-v2018.6.22+0/NNPACK.v2018.6.22.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/NNPACK_jll.jl/releases/download/NNPACK-v2018.6.22+0/NNPACK.v2018.6.22.x86_64-linux-musl.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/dc2135e65af8e68badafd32b2d47208bd8c99e74/N/NNPACK/build_tarballs.jl"
+    metadata_source = "retrospective (by timestamp)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.2.2"
+
+        ["2018.6.22+0".artifact_metadata.metadata]
+        dependencies = []
+        name = "NNPACK"
+        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "x86_64-apple-darwin14"]
+        script = """# Prepare peachpy\ncd ${WORKSPACE}/srcdir/PeachPy\npython3 setup.py develop\n\nmkdir ${WORKSPACE}/srcdir/NNPACK/build\ncd ${WORKSPACE}/srcdir/NNPACK/build\n\n# If we're on Linux, we need to add in `-lrt` as a library to link against\nEXTRA_FLAGS=()\nif [[ \"${target}\" == *-linux-* ]]; then\n    EXTRA_FLAGS+=(\"-DCMAKE_CXX_STANDARD_LIBRARIES=-lrt\")\nfi\n\n# On ARM/AArch64, use `clang` instead of `gcc`.\nTOOLCHAIN=\"/opt/${target}/${target}.cmake\"\nif [[ \"${target}\" == arm-* ]] || [[ \"${target}\" == aarch64-* ]]; then\n    TOOLCHAIN=\"/opt/${target}/${target}_clang.cmake\"\nfi\n\n# NNPACK wants \"armv7l\", not just \"arm\", so GIVE IT WHAT IT WANTS\n# Disabled for now because it thinks we don't have NEON\n#if [[ \"${target}\" == arm-* ]]; then\n#    sed -i.bak -e \"s/set(CMAKE_SYSTEM_PROCESSOR arm)/set(CMAKE_SYSTEM_PROCESSOR armv7l)/g\" \"${TOOLCHAIN}\"\n#fi\n\ncmake -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=\"${TOOLCHAIN}\" \\\n    -DPYTHON_EXECUTABLE=/usr/bin/python3 \\\n    -DPYTHON_LIBRARY=/usr/lib/libpython3.so \\\n    -DPYTHON_SIX_SOURCE_DIR=$(echo ${WORKSPACE}/srcdir/six*/) \\\n    -DPYTHON_OPCODES_SOURCE_DIR=$(echo ${WORKSPACE}/srcdir/opcodes*/) \\\n    -DPYTHON_PEACHPY_SOURCE_DIR=${WORKSPACE}/srcdir/PeachPy \\\n    -DCPUINFO_SOURCE_DIR=${WORKSPACE}/srcdir/cpuinfo \\\n    -DFP16_SOURCE_DIR=${WORKSPACE}/srcdir/FP16 \\\n    -DFXDIV_SOURCE_DIR=${WORKSPACE}/srcdir/FXdiv \\\n    -DPSIMD_SOURCE_DIR=${WORKSPACE}/srcdir/psimd \\\n    -DPTHREADPOOL_SOURCE_DIR=${WORKSPACE}/srcdir/pthreadpool \\\n    -DGOOGLETEST_SOURCE_DIR=$(echo ${WORKSPACE}/srcdir/googletest*/) \\\n    -DCMAKE_POSITION_INDEPENDENT_CODE=ON \\\n    -DNNPACK_LIBRARY_TYPE=\"shared\" \\\n    \"${EXTRA_FLAGS[@]}\" \\\n    ..\nmake -j${nproc} VERBOSE=1\nmake install\n\ninstall_license ${WORKSPACE}/srcdir/NNPACK/LICENSE\n"""
+        version = "v2018.6.22"
+
+            [["2018.6.22+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dont_dlopen = false
+            libnames = ["libnnpack"]
+            type = "lib"
+            variable_name = "libnnpack"
+
+            [["2018.6.22+0".artifact_metadata.metadata.sources]]
+            "https://github.com/Maratyszcza/NNPACK.git" = "c039579abe21f5756e0f0e45e8e767adccc11852"
+            [["2018.6.22+0".artifact_metadata.metadata.sources]]
+            "https://github.com/Maratyszcza/cpuinfo.git" = "4e8f04355892c5deb64a51731a6afdb544a4294d"
+            [["2018.6.22+0".artifact_metadata.metadata.sources]]
+            "https://github.com/Maratyszcza/FP16.git" = "4b37bd31c9cc1380ef9f205f7dd031efe0e847ab"
+            [["2018.6.22+0".artifact_metadata.metadata.sources]]
+            "https://github.com/Maratyszcza/FXdiv.git" = "811b482bcd9e8d98ad80c6c78d5302bb830184b0"
+            [["2018.6.22+0".artifact_metadata.metadata.sources]]
+            "https://pypi.python.org/packages/e8/59/8c2e293c9c8d60f206fd5d0f6c8236a2e0a97832379ac319077441552c6a/opcodes-0.3.13.tar.gz" = "1859c23143fe20daa4110be87a947cbf3eefa048da71dde642290213f251590c"
+            [["2018.6.22+0".artifact_metadata.metadata.sources]]
+            "https://github.com/Maratyszcza/psimd.git" = "3d8bfe7318423462a6d9e0c6537e75efd4822c49"
+            [["2018.6.22+0".artifact_metadata.metadata.sources]]
+            "https://github.com/Maratyszcza/PeachPy.git" = "01d15157a973a4ae16b8046313ddab371ea582db"
+            [["2018.6.22+0".artifact_metadata.metadata.sources]]
+            "https://pypi.python.org/packages/16/d8/bc6316cf98419719bd59c91742194c111b6f2e85abac88e496adefaf7afe/six-1.11.0.tar.gz" = "70e8a77beed4562e7f14fe23a786b54f6296e34344c23bc42f07b15018ff98e9"
+            [["2018.6.22+0".artifact_metadata.metadata.sources]]
+            "https://github.com/Maratyszcza/pthreadpool.git" = "3fb19c58b46f3cbc78a27c7b207a6eb7946633c0"
+            [["2018.6.22+0".artifact_metadata.metadata.sources]]
+            "https://github.com/google/googletest/archive/release-1.8.0.tar.gz" = "58a6f4277ca2bc8565222b3bbd58a177609e9c488e8a72649359ba51450db7d8"

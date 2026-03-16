@@ -2,25 +2,279 @@
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.4.0+0/libcgal_julia.v0.4.0.i686-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.4.0+0/libcgal_julia.v0.4.0.i686-w64-mingw32-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.4.0+0/libcgal_julia.v0.4.0.x86_64-apple-darwin14-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.4.0+0/libcgal_julia.v0.4.0.x86_64-apple-darwin14-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.4.0+0/libcgal_julia.v0.4.0.x86_64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.4.0+0/libcgal_julia.v0.4.0.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.4.0+0/libcgal_julia.v0.4.0.x86_64-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.4.0+0/libcgal_julia.v0.4.0.x86_64-w64-mingw32-cxx11.tar.gz"]
 registered = 2020-01-30T19:27:15.000Z
 
+    [["0.4.0+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.4.0+0/libcgal_julia.v0.4.0.i686-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.4.0+0/libcgal_julia.v0.4.0.i686-w64-mingw32-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.4.0+0/libcgal_julia.v0.4.0.x86_64-apple-darwin14-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.4.0+0/libcgal_julia.v0.4.0.x86_64-apple-darwin14-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.4.0+0/libcgal_julia.v0.4.0.x86_64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.4.0+0/libcgal_julia.v0.4.0.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.4.0+0/libcgal_julia.v0.4.0.x86_64-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.4.0+0/libcgal_julia.v0.4.0.x86_64-w64-mingw32-cxx11.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/93f95358d48f48c39d751b4ab5a6e8a96567622c/L/libcgal_julia/build_tarballs.jl"
+    metadata_source = "retrospective (by timestamp)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.2.2"
+
+        ["0.4.0+0".artifact_metadata.metadata]
+        dependencies = ["CGAL_jll", "libcxxwrap_julia_jll"]
+        name = "libcgal_julia"
+        platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11", "x86_64-apple-darwin14-cxx03", "x86_64-apple-darwin14-cxx11"]
+        script = """## pre-build setup\n# exit on error\nset -eu\n\n# HACK: download julia..\ncurl -Lo julia.tar.gz https://github.com/JuliaPackaging/JuliaBuilder/releases/download/v1.0.0-2/julia-1.0.0-$target.tar.gz\nmkdir julia && tar xf julia.tar.gz -C julia\nJulia_PREFIX=\"$PWD/julia\"\n\n## configure build\nmkdir -p build && cd build\n\ncmake ../libcgal-julia*/ \\\n  `# cmake specific` \\\n  -DCMAKE_TOOLCHAIN_FILE=\"$CMAKE_TARGET_TOOLCHAIN\" \\\n  -DCMAKE_BUILD_TYPE=Release \\\n  -DCMAKE_CXX_FLAGS=\"-march=x86-64\" \\\n  -DCMAKE_FIND_ROOT_PATH=\"$prefix\" \\\n  -DCMAKE_INSTALL_PREFIX=\"$prefix\" \\\n  `# tell libcxxwrap-julia where julia is` \\\n  -DJulia_PREFIX=\"$Julia_PREFIX\"\n\n## and away we go..\nVERBOSE=ON cmake --build . --config Release --target install -- -j$nproc\n\ninstall_license ../libcgal-julia*/LICENSE\n\n# HACK: Apparently, this isn't a simple build system anymore..\ncase $target in\n  *mingw32*) mv \"$prefix/lib/\"*.dll \"$prefix/bin\" ;;\nesac\n"""
+        version = "v0.4.0"
+
+            [["0.4.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dont_dlopen = false
+            libnames = ["libcgal_julia"]
+            type = "lib"
+            variable_name = "libcgal_julia"
+
+            [["0.4.0+0".artifact_metadata.metadata.sources]]
+            "https://github.com/rgcv/libcgal-julia.git" = "8d97853ac3baf5fee431d005b23a45e0390a9f81"
+
 ["0.5.1+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.5.1+0/libcgal_julia.v0.5.1.i686-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.5.1+0/libcgal_julia.v0.5.1.i686-w64-mingw32-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.5.1+0/libcgal_julia.v0.5.1.x86_64-apple-darwin14-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.5.1+0/libcgal_julia.v0.5.1.x86_64-apple-darwin14-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.5.1+0/libcgal_julia.v0.5.1.x86_64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.5.1+0/libcgal_julia.v0.5.1.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.5.1+0/libcgal_julia.v0.5.1.x86_64-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.5.1+0/libcgal_julia.v0.5.1.x86_64-w64-mingw32-cxx11.tar.gz"]
 registered = 2020-02-09T02:20:37.000Z
+
+    [["0.5.1+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.5.1+0/libcgal_julia.v0.5.1.i686-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.5.1+0/libcgal_julia.v0.5.1.i686-w64-mingw32-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.5.1+0/libcgal_julia.v0.5.1.x86_64-apple-darwin14-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.5.1+0/libcgal_julia.v0.5.1.x86_64-apple-darwin14-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.5.1+0/libcgal_julia.v0.5.1.x86_64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.5.1+0/libcgal_julia.v0.5.1.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.5.1+0/libcgal_julia.v0.5.1.x86_64-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.5.1+0/libcgal_julia.v0.5.1.x86_64-w64-mingw32-cxx11.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/d33ec0fc7feeea19a5689ae25913c0dea11c439a/L/libcgal_julia/build_tarballs.jl"
+    metadata_source = "retrospective (by timestamp)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.2.2"
+
+        ["0.5.1+0".artifact_metadata.metadata]
+        lazy_artifacts = false
+        name = "libcgal_julia"
+        platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11", "x86_64-apple-darwin14-cxx03", "x86_64-apple-darwin14-cxx11"]
+        script = """## pre-build setup\n# exit on error\nset -eu\n\n# HACK: download julia..\ncurl -Lo julia.tar.gz https://github.com/JuliaPackaging/JuliaBuilder/releases/download/v1.0.0-2/julia-1.0.0-$target.tar.gz\nmkdir julia && tar xf julia.tar.gz -C julia\nJulia_PREFIX=\"$PWD/julia\"\n\n## configure build\nmkdir -p build && cd build\n\ncmake ../libcgal-julia*/ \\\n  `# cmake specific` \\\n  -DCMAKE_TOOLCHAIN_FILE=\"$CMAKE_TARGET_TOOLCHAIN\" \\\n  -DCMAKE_BUILD_TYPE=Release \\\n  -DCMAKE_CXX_FLAGS=\"-march=x86-64\" \\\n  -DCMAKE_FIND_ROOT_PATH=\"$prefix\" \\\n  -DCMAKE_INSTALL_PREFIX=\"$prefix\" \\\n  `# tell libcxxwrap-julia where julia is` \\\n  -DJulia_PREFIX=\"$Julia_PREFIX\"\n\n## and away we go..\nVERBOSE=ON cmake --build . --config Release --target install -- -j$nproc\n\ninstall_license ../libcgal-julia*/LICENSE\n\n# HACK: Apparently, this isn't a simple build system anymore..\ncase $target in\n  *mingw32*) mv \"$prefix/lib/\"*.dll \"$prefix/bin\" ;;\nesac\n"""
+        version = "v0.5.1"
+
+            [["0.5.1+0".artifact_metadata.metadata.dependencies]]
+            name = "CGAL_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["0.5.1+0".artifact_metadata.metadata.dependencies]]
+            name = "libcxxwrap_julia_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["0.5.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dont_dlopen = false
+            libnames = ["libcgal_julia_exact"]
+            type = "lib"
+            variable_name = "libcgal_julia_exact"
+            [["0.5.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dont_dlopen = false
+            libnames = ["libcgal_julia_inexact"]
+            type = "lib"
+            variable_name = "libcgal_julia_inexact"
+
+            [["0.5.1+0".artifact_metadata.metadata.sources]]
+            hash = "370a0af377082ed73c57e7392a74645500ba2a0a"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/rgcv/libcgal-julia.git"
 
 ["0.6.0+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.0+0/libcgal_julia.v0.6.0.i686-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.0+0/libcgal_julia.v0.6.0.i686-w64-mingw32-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.0+0/libcgal_julia.v0.6.0.x86_64-apple-darwin14-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.0+0/libcgal_julia.v0.6.0.x86_64-apple-darwin14-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.0+0/libcgal_julia.v0.6.0.x86_64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.0+0/libcgal_julia.v0.6.0.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.0+0/libcgal_julia.v0.6.0.x86_64-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.0+0/libcgal_julia.v0.6.0.x86_64-w64-mingw32-cxx11.tar.gz"]
 registered = 2020-02-12T00:57:14.000Z
 
+    [["0.6.0+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.0+0/libcgal_julia.v0.6.0.i686-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.0+0/libcgal_julia.v0.6.0.i686-w64-mingw32-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.0+0/libcgal_julia.v0.6.0.x86_64-apple-darwin14-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.0+0/libcgal_julia.v0.6.0.x86_64-apple-darwin14-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.0+0/libcgal_julia.v0.6.0.x86_64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.0+0/libcgal_julia.v0.6.0.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.0+0/libcgal_julia.v0.6.0.x86_64-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.0+0/libcgal_julia.v0.6.0.x86_64-w64-mingw32-cxx11.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/2ae0f2333501d2227068806627db8ef1385d155c/L/libcgal_julia/build_tarballs.jl"
+    metadata_source = "retrospective (by timestamp)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.2.2"
+
+        ["0.6.0+0".artifact_metadata.metadata]
+        lazy_artifacts = false
+        name = "libcgal_julia"
+        platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11", "x86_64-apple-darwin14-cxx03", "x86_64-apple-darwin14-cxx11"]
+        script = """## pre-build setup\n# exit on error\nset -eu\n\n# HACK: download julia..\ncurl -Lo julia.tar.gz https://github.com/JuliaPackaging/JuliaBuilder/releases/download/v1.0.0-2/julia-1.0.0-$target.tar.gz\nmkdir julia && tar xf julia.tar.gz -C julia\nJulia_PREFIX=\"$PWD/julia\"\n\n## configure build\nmkdir -p build && cd build\n\ncmake ../libcgal-julia*/ \\\n  `# cmake specific` \\\n  -DCMAKE_TOOLCHAIN_FILE=\"$CMAKE_TARGET_TOOLCHAIN\" \\\n  -DCMAKE_BUILD_TYPE=Release \\\n  -DCMAKE_CXX_FLAGS=\"-march=x86-64\" \\\n  -DCMAKE_FIND_ROOT_PATH=\"$prefix\" \\\n  -DCMAKE_INSTALL_PREFIX=\"$prefix\" \\\n  `# tell libcxxwrap-julia where julia is` \\\n  -DJulia_PREFIX=\"$Julia_PREFIX\"\n\n## and away we go..\nVERBOSE=ON cmake --build . --config Release --target install -- -j$nproc\n\ninstall_license ../libcgal-julia*/LICENSE\n\n# HACK: Apparently, this isn't a simple build system anymore..\ncase $target in\n  *mingw32*) mv \"$prefix/lib/\"*.dll \"$prefix/bin\" ;;\nesac\n"""
+        version = "v0.6.0"
+
+            [["0.6.0+0".artifact_metadata.metadata.dependencies]]
+            name = "CGAL_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["0.6.0+0".artifact_metadata.metadata.dependencies]]
+            name = "libcxxwrap_julia_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["0.6.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dont_dlopen = false
+            libnames = ["libcgal_julia_exact"]
+            type = "lib"
+            variable_name = "libcgal_julia_exact"
+            [["0.6.0+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dont_dlopen = false
+            libnames = ["libcgal_julia_inexact"]
+            type = "lib"
+            variable_name = "libcgal_julia_inexact"
+
+            [["0.6.0+0".artifact_metadata.metadata.sources]]
+            hash = "a3e634e6d0df0d6046daa4de531f91ca0f5673ff"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/rgcv/libcgal-julia.git"
+
 ["0.6.1+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.1+0/libcgal_julia.v0.6.1.i686-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.1+0/libcgal_julia.v0.6.1.i686-w64-mingw32-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.1+0/libcgal_julia.v0.6.1.x86_64-apple-darwin14-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.1+0/libcgal_julia.v0.6.1.x86_64-apple-darwin14-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.1+0/libcgal_julia.v0.6.1.x86_64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.1+0/libcgal_julia.v0.6.1.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.1+0/libcgal_julia.v0.6.1.x86_64-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.1+0/libcgal_julia.v0.6.1.x86_64-w64-mingw32-cxx11.tar.gz"]
 registered = 2020-02-12T06:57:11.000Z
+
+    [["0.6.1+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.1+0/libcgal_julia.v0.6.1.i686-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.1+0/libcgal_julia.v0.6.1.i686-w64-mingw32-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.1+0/libcgal_julia.v0.6.1.x86_64-apple-darwin14-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.1+0/libcgal_julia.v0.6.1.x86_64-apple-darwin14-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.1+0/libcgal_julia.v0.6.1.x86_64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.1+0/libcgal_julia.v0.6.1.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.1+0/libcgal_julia.v0.6.1.x86_64-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.1+0/libcgal_julia.v0.6.1.x86_64-w64-mingw32-cxx11.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/1f1970d0c3a4fda6dcb27d94a913b4c100fee3eb/L/libcgal_julia/build_tarballs.jl"
+    metadata_source = "retrospective (by timestamp)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.2.2"
+
+        ["0.6.1+0".artifact_metadata.metadata]
+        lazy_artifacts = false
+        name = "libcgal_julia"
+        platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11", "x86_64-apple-darwin14-cxx03", "x86_64-apple-darwin14-cxx11"]
+        script = """## pre-build setup\n# exit on error\nset -eu\n\n# HACK: download julia..\ncurl -Lo julia.tar.gz https://github.com/JuliaPackaging/JuliaBuilder/releases/download/v1.0.0-2/julia-1.0.0-$target.tar.gz\nmkdir julia && tar xf julia.tar.gz -C julia\nJulia_PREFIX=\"$PWD/julia\"\n\n## configure build\nmkdir -p build && cd build\n\ncmake ../libcgal-julia*/ \\\n  `# cmake specific` \\\n  -DCMAKE_TOOLCHAIN_FILE=\"$CMAKE_TARGET_TOOLCHAIN\" \\\n  -DCMAKE_BUILD_TYPE=Release \\\n  -DCMAKE_CXX_FLAGS=\"-march=x86-64\" \\\n  -DCMAKE_FIND_ROOT_PATH=\"$prefix\" \\\n  -DCMAKE_INSTALL_PREFIX=\"$prefix\" \\\n  `# tell libcxxwrap-julia where julia is` \\\n  -DJulia_PREFIX=\"$Julia_PREFIX\"\n\n## and away we go..\nVERBOSE=ON cmake --build . --config Release --target install -- -j$nproc\n\ninstall_license ../libcgal-julia*/LICENSE\n\n# HACK: Apparently, this isn't a simple build system anymore..\ncase $target in\n  *mingw32*) mv \"$prefix/lib/\"*.dll \"$prefix/bin\" ;;\nesac\n"""
+        version = "v0.6.1"
+
+            [["0.6.1+0".artifact_metadata.metadata.dependencies]]
+            name = "CGAL_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["0.6.1+0".artifact_metadata.metadata.dependencies]]
+            name = "libcxxwrap_julia_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["0.6.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dont_dlopen = false
+            libnames = ["libcgal_julia_exact"]
+            type = "lib"
+            variable_name = "libcgal_julia_exact"
+            [["0.6.1+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dont_dlopen = false
+            libnames = ["libcgal_julia_inexact"]
+            type = "lib"
+            variable_name = "libcgal_julia_inexact"
+
+            [["0.6.1+0".artifact_metadata.metadata.sources]]
+            hash = "019daea1373e91fb8c2e95b29db26751a4917df8"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/rgcv/libcgal-julia.git"
 
 ["0.6.2+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.2+0/libcgal_julia.v0.6.2.i686-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.2+0/libcgal_julia.v0.6.2.i686-w64-mingw32-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.2+0/libcgal_julia.v0.6.2.x86_64-apple-darwin14-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.2+0/libcgal_julia.v0.6.2.x86_64-apple-darwin14-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.2+0/libcgal_julia.v0.6.2.x86_64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.2+0/libcgal_julia.v0.6.2.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.2+0/libcgal_julia.v0.6.2.x86_64-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.2+0/libcgal_julia.v0.6.2.x86_64-w64-mingw32-cxx11.tar.gz"]
 registered = 2020-02-17T17:45:16.000Z
 
+    [["0.6.2+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.2+0/libcgal_julia.v0.6.2.i686-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.2+0/libcgal_julia.v0.6.2.i686-w64-mingw32-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.2+0/libcgal_julia.v0.6.2.x86_64-apple-darwin14-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.2+0/libcgal_julia.v0.6.2.x86_64-apple-darwin14-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.2+0/libcgal_julia.v0.6.2.x86_64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.2+0/libcgal_julia.v0.6.2.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.2+0/libcgal_julia.v0.6.2.x86_64-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.2+0/libcgal_julia.v0.6.2.x86_64-w64-mingw32-cxx11.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/7c5091991ca47f17362db6df53f1c155f8cf1ea9/L/libcgal_julia/build_tarballs.jl"
+    metadata_source = "retrospective (by timestamp)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.2.3"
+
+        ["0.6.2+0".artifact_metadata.metadata]
+        lazy_artifacts = false
+        name = "libcgal_julia"
+        platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11", "x86_64-apple-darwin14-cxx03", "x86_64-apple-darwin14-cxx11"]
+        script = """## pre-build setup\n# exit on error\nset -eu\n\n# HACK: download julia..\ncurl -Lo julia.tar.gz https://github.com/JuliaPackaging/JuliaBuilder/releases/download/v1.0.0-2/julia-1.0.0-$target.tar.gz\nmkdir julia && tar xf julia.tar.gz -C julia\nJulia_PREFIX=\"$PWD/julia\"\n\n## configure build\nmkdir -p build && cd build\n\ncmake ../libcgal-julia*/ \\\n  `# cmake specific` \\\n  -DCMAKE_TOOLCHAIN_FILE=\"$CMAKE_TARGET_TOOLCHAIN\" \\\n  -DCMAKE_BUILD_TYPE=Release \\\n  -DCMAKE_CXX_FLAGS=\"-march=x86-64\" \\\n  -DCMAKE_FIND_ROOT_PATH=\"$prefix\" \\\n  -DCMAKE_INSTALL_PREFIX=\"$prefix\" \\\n  `# tell libcxxwrap-julia where julia is` \\\n  -DJulia_PREFIX=\"$Julia_PREFIX\"\n\n## and away we go..\nVERBOSE=ON cmake --build . --config Release --target install -- -j$nproc\n\ninstall_license ../libcgal-julia*/LICENSE\n\n# HACK: Apparently, this isn't a simple build system anymore..\ncase $target in\n  *mingw32*) mv \"$prefix/lib/\"*.dll \"$prefix/bin\" ;;\nesac\n"""
+        version = "v0.6.2"
+
+            [["0.6.2+0".artifact_metadata.metadata.dependencies]]
+            name = "CGAL_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["0.6.2+0".artifact_metadata.metadata.dependencies]]
+            name = "libcxxwrap_julia_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["0.6.2+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dont_dlopen = false
+            libnames = ["libcgal_julia_exact"]
+            type = "lib"
+            variable_name = "libcgal_julia_exact"
+            [["0.6.2+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dont_dlopen = false
+            libnames = ["libcgal_julia_inexact"]
+            type = "lib"
+            variable_name = "libcgal_julia_inexact"
+
+            [["0.6.2+0".artifact_metadata.metadata.sources]]
+            hash = "cd5cd8c3ff79afef72f2f282fe5ab6dc1b912fd1"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/rgcv/libcgal-julia.git"
+
 ["0.6.3+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.3+0/libcgal_julia.v0.6.3.i686-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.3+0/libcgal_julia.v0.6.3.i686-w64-mingw32-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.3+0/libcgal_julia.v0.6.3.x86_64-apple-darwin14-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.3+0/libcgal_julia.v0.6.3.x86_64-apple-darwin14-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.3+0/libcgal_julia.v0.6.3.x86_64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.3+0/libcgal_julia.v0.6.3.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.3+0/libcgal_julia.v0.6.3.x86_64-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.3+0/libcgal_julia.v0.6.3.x86_64-w64-mingw32-cxx11.tar.gz"]
 registered = 2020-02-19T01:33:33.000Z
+
+    [["0.6.3+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.3+0/libcgal_julia.v0.6.3.i686-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.3+0/libcgal_julia.v0.6.3.i686-w64-mingw32-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.3+0/libcgal_julia.v0.6.3.x86_64-apple-darwin14-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.3+0/libcgal_julia.v0.6.3.x86_64-apple-darwin14-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.3+0/libcgal_julia.v0.6.3.x86_64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.3+0/libcgal_julia.v0.6.3.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.3+0/libcgal_julia.v0.6.3.x86_64-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.6.3+0/libcgal_julia.v0.6.3.x86_64-w64-mingw32-cxx11.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/f7e4db1c56c27aab69e37f8cd06dd3788e294ac7/L/libcgal_julia/build_tarballs.jl"
+    metadata_source = "retrospective (by timestamp)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.2.3"
+
+        ["0.6.3+0".artifact_metadata.metadata]
+        lazy_artifacts = false
+        name = "libcgal_julia"
+        platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11", "x86_64-apple-darwin14-cxx03", "x86_64-apple-darwin14-cxx11"]
+        script = """## pre-build setup\n# exit on error\nset -eu\n\n# HACK: download julia..\ncurl -Lo julia.tar.gz https://github.com/JuliaPackaging/JuliaBuilder/releases/download/v1.0.0-2/julia-1.0.0-$target.tar.gz\nmkdir julia && tar xf julia.tar.gz -C julia\nJulia_PREFIX=\"$PWD/julia\"\n\n## configure build\nmkdir -p build && cd build\n\ncmake ../libcgal-julia*/ \\\n  `# cmake specific` \\\n  -DCMAKE_TOOLCHAIN_FILE=\"$CMAKE_TARGET_TOOLCHAIN\" \\\n  -DCMAKE_BUILD_TYPE=Release \\\n  -DCMAKE_CXX_FLAGS=\"-march=x86-64\" \\\n  -DCMAKE_FIND_ROOT_PATH=\"$prefix\" \\\n  -DCMAKE_INSTALL_PREFIX=\"$prefix\" \\\n  `# tell libcxxwrap-julia where julia is` \\\n  -DJulia_PREFIX=\"$Julia_PREFIX\"\n\n## and away we go..\nVERBOSE=ON cmake --build . --config Release --target install -- -j$nproc\n\ninstall_license ../libcgal-julia*/LICENSE\n\n# HACK: Apparently, this isn't a simple build system anymore..\ncase $target in\n  *mingw32*) mv \"$prefix/lib/\"*.dll \"$prefix/bin\" ;;\nesac\n"""
+        version = "v0.6.3"
+
+            [["0.6.3+0".artifact_metadata.metadata.dependencies]]
+            name = "CGAL_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["0.6.3+0".artifact_metadata.metadata.dependencies]]
+            name = "libcxxwrap_julia_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["0.6.3+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dont_dlopen = false
+            libnames = ["libcgal_julia_exact"]
+            type = "lib"
+            variable_name = "libcgal_julia_exact"
+            [["0.6.3+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dont_dlopen = false
+            libnames = ["libcgal_julia_inexact"]
+            type = "lib"
+            variable_name = "libcgal_julia_inexact"
+
+            [["0.6.3+0".artifact_metadata.metadata.sources]]
+            hash = "d66dd1616cfe2b35f4027f77e94dc7b04e109e18"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/rgcv/libcgal-julia.git"
 
 ["0.7.0+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.7.0+0/libcgal_julia.v0.7.0.x86_64-apple-darwin14-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.7.0+0/libcgal_julia.v0.7.0.x86_64-apple-darwin14-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.7.0+0/libcgal_julia.v0.7.0.x86_64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.7.0+0/libcgal_julia.v0.7.0.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.7.0+0/libcgal_julia.v0.7.0.x86_64-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/libcgal_julia_jll.jl/releases/download/libcgal_julia-v0.7.0+0/libcgal_julia.v0.7.0.x86_64-w64-mingw32-cxx11.tar.gz"]
