@@ -15,7 +15,7 @@ versions as its top-level keys. Each version entry has the following fields:
 * `artifact_metadata::Vector{<:Dict}`. Optional. A collection of tables, each with the fields:
     * `artifact_urls::Vector{String}`. Required. The artifact_urls for which this entry pertains. Must be a (non-strict) subset of the package's `artifact_urls`.
     * `buildscript::String`. Optional. The URL of the buildscript
-    * `metadata::Any`. Optional. An arbitrary blob that contains information about these artifact URLs.
+    * `metadata::String`. Optional. Either a URL or a path in this repository that points to the build metadata
     * `metadata_type::String`. Optional. An identifier for the type of `metadata`, currently only `"BinaryBuilder --meta-json"`
     * `metadata_version::String`. Optional. The version of the metadata schema
     * `metadata_source::String`. Optional. Information about how the given metadata was obtained
