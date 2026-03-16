@@ -300,7 +300,7 @@ function metadata_for_jll_release(org, repo, tag)
                         # ugh. https://github.com/JuliaPackaging/Yggdrasil/blob/e0c5ee45cb0b6aea8006ad25f388ad116da22a01/.ci/azp_agent/install_agents.sh#L54-L57
                         # We have to guess based on the behaviors here; we don't have easy access to every nightly. Fortunately this only
                         # happened during the 1.6-DEV period, but there are periods where neither release 1.6 nor 1.5 work
-                        if DateTime(release_published_at) > DateTime(2021, 2, 18, 23, 18, 14)
+                        if DateTime(chopsuffix(release_published_at, "Z")) > DateTime(2021, 2, 18, 23, 18, 14)
                             # 1.6.0 begins working after https://github.com/JuliaPackaging/Yggdrasil/pull/2593 (ARGS not defined error)
                             "1.6.0"
                         else
