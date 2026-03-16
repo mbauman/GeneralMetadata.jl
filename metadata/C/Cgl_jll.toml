@@ -2,25 +2,299 @@
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+0/Cgl.v0.59.10.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+0/Cgl.v0.59.10.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+0/Cgl.v0.59.10.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+0/Cgl.v0.59.10.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+0/Cgl.v0.59.10.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+0/Cgl.v0.59.10.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+0/Cgl.v0.59.10.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+0/Cgl.v0.59.10.x86_64-apple-darwin14.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+0/Cgl.v0.59.10.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+0/Cgl.v0.59.10.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+0/Cgl.v0.59.10.x86_64-w64-mingw32.tar.gz"]
 registered = 2020-04-04T22:33:16.000Z
 
+    [["0.59.10+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+0/Cgl.v0.59.10.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+0/Cgl.v0.59.10.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+0/Cgl.v0.59.10.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+0/Cgl.v0.59.10.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+0/Cgl.v0.59.10.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+0/Cgl.v0.59.10.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+0/Cgl.v0.59.10.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+0/Cgl.v0.59.10.x86_64-apple-darwin14.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+0/Cgl.v0.59.10.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+0/Cgl.v0.59.10.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+0/Cgl.v0.59.10.x86_64-w64-mingw32.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/185ff1158dce6865945e7d53bdbda0fa246c3287/C/Cgl/build_tarballs.jl"
+    metadata_source = "retrospective (by timestamp)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.2.4"
+
+        ["0.59.10+0".artifact_metadata.metadata]
+        lazy_artifacts = false
+        name = "Cgl"
+        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin14", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+        script = """cd $WORKSPACE/srcdir/Cgl*\nupdate_configure_scripts\n\n# Remove misleading libtool files\nrm -f ${prefix}/lib/*.la\n\nmkdir build\ncd build/\n\nexport CPPFLAGS=\"-I${prefix}/include -I${prefix}/include/coin\"\nif [[ ${target} == *mingw* ]]; then\n    export LDFLAGS=\"-L$prefix/bin\"\nelif [[ ${target} == *linux* ]]; then\n    export LDFLAGS=\"-ldl -lrt\"\nfi\n\n../configure --prefix=$prefix --with-pic --disable-pkg-config --build=${MACHTYPE} --host=${target} --enable-shared \\\n--enable-dependency-linking lt_cv_deplibs_check_method=pass_all \\\n--with-coinutils-lib=\"-lCoinUtils\" \\\n--with-osi-lib=\"-lOsi -lCoinUtils\" \\\n--with-osiclp-lib=\"-lOsiClp -lClp -lOsi -lCoinUtils\"\n\nmake -j${nproc}\nmake install\n"""
+        version = "v0.59.10"
+
+            [["0.59.10+0".artifact_metadata.metadata.dependencies]]
+            name = "Clp_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["0.59.10+0".artifact_metadata.metadata.dependencies]]
+            name = "Osi_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["0.59.10+0".artifact_metadata.metadata.dependencies]]
+            name = "CoinUtils_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["0.59.10+0".artifact_metadata.metadata.dependencies]]
+            name = "CompilerSupportLibraries_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["0.59.10+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libCgl"]
+            type = "lib"
+            variable_name = "libCgl"
+
+            [["0.59.10+0".artifact_metadata.metadata.sources]]
+            hash = "8152008bfe6bc84e9d46a43472734d40dd79dbb2"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/coin-or/Cgl.git"
+
 ["0.59.10+1"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+1/Cgl.v0.59.10.aarch64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+1/Cgl.v0.59.10.aarch64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+1/Cgl.v0.59.10.aarch64-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+1/Cgl.v0.59.10.aarch64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+1/Cgl.v0.59.10.armv7l-linux-gnueabihf-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+1/Cgl.v0.59.10.armv7l-linux-gnueabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+1/Cgl.v0.59.10.armv7l-linux-musleabihf-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+1/Cgl.v0.59.10.armv7l-linux-musleabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+1/Cgl.v0.59.10.i686-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+1/Cgl.v0.59.10.i686-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+1/Cgl.v0.59.10.i686-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+1/Cgl.v0.59.10.i686-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+1/Cgl.v0.59.10.i686-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+1/Cgl.v0.59.10.i686-w64-mingw32-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+1/Cgl.v0.59.10.x86_64-apple-darwin14-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+1/Cgl.v0.59.10.x86_64-apple-darwin14-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+1/Cgl.v0.59.10.x86_64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+1/Cgl.v0.59.10.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+1/Cgl.v0.59.10.x86_64-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+1/Cgl.v0.59.10.x86_64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+1/Cgl.v0.59.10.x86_64-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+1/Cgl.v0.59.10.x86_64-w64-mingw32-cxx11.tar.gz"]
 registered = 2020-04-05T00:03:33.000Z
+
+    [["0.59.10+1".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+1/Cgl.v0.59.10.aarch64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+1/Cgl.v0.59.10.aarch64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+1/Cgl.v0.59.10.aarch64-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+1/Cgl.v0.59.10.aarch64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+1/Cgl.v0.59.10.armv7l-linux-gnueabihf-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+1/Cgl.v0.59.10.armv7l-linux-gnueabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+1/Cgl.v0.59.10.armv7l-linux-musleabihf-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+1/Cgl.v0.59.10.armv7l-linux-musleabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+1/Cgl.v0.59.10.i686-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+1/Cgl.v0.59.10.i686-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+1/Cgl.v0.59.10.i686-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+1/Cgl.v0.59.10.i686-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+1/Cgl.v0.59.10.i686-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+1/Cgl.v0.59.10.i686-w64-mingw32-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+1/Cgl.v0.59.10.x86_64-apple-darwin14-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+1/Cgl.v0.59.10.x86_64-apple-darwin14-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+1/Cgl.v0.59.10.x86_64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+1/Cgl.v0.59.10.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+1/Cgl.v0.59.10.x86_64-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+1/Cgl.v0.59.10.x86_64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+1/Cgl.v0.59.10.x86_64-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.59.10+1/Cgl.v0.59.10.x86_64-w64-mingw32-cxx11.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/69503c5fbd956185527c4a0a1f2827a6389a1008/C/Cgl/build_tarballs.jl"
+    metadata_source = "retrospective (by timestamp)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.2.4"
+
+        ["0.59.10+1".artifact_metadata.metadata]
+        lazy_artifacts = false
+        name = "Cgl"
+        platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin14-cxx03", "x86_64-apple-darwin14-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+        script = """cd $WORKSPACE/srcdir/Cgl*\nupdate_configure_scripts\n\n# Remove misleading libtool files\nrm -f ${prefix}/lib/*.la\n\nmkdir build\ncd build/\n\nexport CPPFLAGS=\"-I${prefix}/include -I${prefix}/include/coin\"\nexport CXXFLAGS=\"-std=c++11\"\nif [[ ${target} == *mingw* ]]; then\n    export LDFLAGS=\"-L$prefix/bin\"\nelif [[ ${target} == *linux* ]]; then\n    export LDFLAGS=\"-ldl -lrt\"\nfi\n\n../configure --prefix=$prefix --with-pic --disable-pkg-config --build=${MACHTYPE} --host=${target} --enable-shared \\\n--enable-dependency-linking lt_cv_deplibs_check_method=pass_all \\\n--with-coinutils-lib=\"-lCoinUtils\" \\\n--with-osi-lib=\"-lOsi -lCoinUtils\" \\\n--with-osiclp-lib=\"-lOsiClp -lClp -lOsi -lCoinUtils\"\n\nmake -j${nproc}\nmake install\n"""
+        version = "v0.59.10"
+
+            [["0.59.10+1".artifact_metadata.metadata.dependencies]]
+            name = "Clp_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["0.59.10+1".artifact_metadata.metadata.dependencies]]
+            name = "Osi_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["0.59.10+1".artifact_metadata.metadata.dependencies]]
+            name = "CoinUtils_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+            [["0.59.10+1".artifact_metadata.metadata.dependencies]]
+            name = "CompilerSupportLibraries_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["0.59.10+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libCgl", "libCgl-1"]
+            type = "lib"
+            variable_name = "libCgl"
+
+            [["0.59.10+1".artifact_metadata.metadata.sources]]
+            hash = "8152008bfe6bc84e9d46a43472734d40dd79dbb2"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/coin-or/Cgl.git"
 
 ["0.60.2+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+0/Cgl.v0.60.2.aarch64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+0/Cgl.v0.60.2.aarch64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+0/Cgl.v0.60.2.aarch64-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+0/Cgl.v0.60.2.aarch64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+0/Cgl.v0.60.2.armv7l-linux-gnueabihf-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+0/Cgl.v0.60.2.armv7l-linux-gnueabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+0/Cgl.v0.60.2.armv7l-linux-musleabihf-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+0/Cgl.v0.60.2.armv7l-linux-musleabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+0/Cgl.v0.60.2.i686-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+0/Cgl.v0.60.2.i686-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+0/Cgl.v0.60.2.i686-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+0/Cgl.v0.60.2.i686-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+0/Cgl.v0.60.2.i686-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+0/Cgl.v0.60.2.i686-w64-mingw32-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+0/Cgl.v0.60.2.x86_64-apple-darwin14-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+0/Cgl.v0.60.2.x86_64-apple-darwin14-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+0/Cgl.v0.60.2.x86_64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+0/Cgl.v0.60.2.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+0/Cgl.v0.60.2.x86_64-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+0/Cgl.v0.60.2.x86_64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+0/Cgl.v0.60.2.x86_64-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+0/Cgl.v0.60.2.x86_64-w64-mingw32-cxx11.tar.gz"]
 registered = 2020-04-07T22:48:01.000Z
 
+    [["0.60.2+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+0/Cgl.v0.60.2.aarch64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+0/Cgl.v0.60.2.aarch64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+0/Cgl.v0.60.2.aarch64-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+0/Cgl.v0.60.2.aarch64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+0/Cgl.v0.60.2.armv7l-linux-gnueabihf-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+0/Cgl.v0.60.2.armv7l-linux-gnueabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+0/Cgl.v0.60.2.armv7l-linux-musleabihf-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+0/Cgl.v0.60.2.armv7l-linux-musleabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+0/Cgl.v0.60.2.i686-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+0/Cgl.v0.60.2.i686-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+0/Cgl.v0.60.2.i686-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+0/Cgl.v0.60.2.i686-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+0/Cgl.v0.60.2.i686-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+0/Cgl.v0.60.2.i686-w64-mingw32-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+0/Cgl.v0.60.2.x86_64-apple-darwin14-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+0/Cgl.v0.60.2.x86_64-apple-darwin14-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+0/Cgl.v0.60.2.x86_64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+0/Cgl.v0.60.2.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+0/Cgl.v0.60.2.x86_64-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+0/Cgl.v0.60.2.x86_64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+0/Cgl.v0.60.2.x86_64-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+0/Cgl.v0.60.2.x86_64-w64-mingw32-cxx11.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/6d097eed1c8bb811462fc983d785f6472d1c66c1/./C/Coin-OR/Cgl/build_tarballs.jl"
+    metadata_source = "retrospective (by timestamp)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.2.4"
+
+        ["0.60.2+0".artifact_metadata.metadata]
+        lazy_artifacts = false
+        name = "Cgl"
+        platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin14-cxx03", "x86_64-apple-darwin14-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+        script = """cd $WORKSPACE/srcdir/Cgl*\n\n# Remove misleading libtool files                                                                                            \nrm -f ${prefix}/lib/*.la                                                                                                     \nrm -f /opt/${target}/${target}/lib*/*.la                                                                                     \nupdate_configure_scripts\n\nmkdir build\ncd build/\n\nexport CPPFLAGS=\"${CPPFLAGS} -I${prefix}/include -I$prefix/include/coin\"\nexport CXXFLAGS=\"${CXXFLAGS} -std=c++11\"\nif [[ ${target} == *mingw* ]]; then\n    export LDFLAGS=\"-L$prefix/bin\"\nelif [[ ${target} == *linux* ]]; then\n    export LDFLAGS=\"-ldl -lrt\"\nfi\n\n../configure --prefix=$prefix --with-pic --disable-pkg-config --build=${MACHTYPE} --host=${target} \\\n--enable-shared lt_cv_deplibs_check_method=pass_all \\\n--with-coinutils-lib=\"-lCoinUtils\" \\\n--with-osi-lib=\"-lOsi -lCoinUtils\" \\\n--with-osiclp-lib=\"-lOsiClp -lClp -lOsi -lCoinUtils\"\n\nmake -j${nproc}\nmake install\n"""
+        version = "v0.60.2"
+
+            [["0.60.2+0".artifact_metadata.metadata.dependencies]]
+            name = "Clp_jll"
+            type = "dependency"
+            uuid = "06985876-5285-5a41-9fcb-8948a742cc53"
+            version-major = 1
+            version-minor = 17
+            version-patch = 3
+            [["0.60.2+0".artifact_metadata.metadata.dependencies]]
+            name = "CompilerSupportLibraries_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["0.60.2+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libCgl"]
+            type = "lib"
+            variable_name = "libCgl"
+
+            [["0.60.2+0".artifact_metadata.metadata.sources]]
+            hash = "6377b88754fafacf24baac28bb27c0623cc14457"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/coin-or/Cgl.git"
+
 ["0.60.2+1"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+1/Cgl.v0.60.2.aarch64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+1/Cgl.v0.60.2.aarch64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+1/Cgl.v0.60.2.aarch64-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+1/Cgl.v0.60.2.aarch64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+1/Cgl.v0.60.2.armv7l-linux-gnueabihf-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+1/Cgl.v0.60.2.armv7l-linux-gnueabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+1/Cgl.v0.60.2.armv7l-linux-musleabihf-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+1/Cgl.v0.60.2.armv7l-linux-musleabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+1/Cgl.v0.60.2.i686-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+1/Cgl.v0.60.2.i686-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+1/Cgl.v0.60.2.i686-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+1/Cgl.v0.60.2.i686-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+1/Cgl.v0.60.2.i686-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+1/Cgl.v0.60.2.i686-w64-mingw32-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+1/Cgl.v0.60.2.x86_64-apple-darwin14-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+1/Cgl.v0.60.2.x86_64-apple-darwin14-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+1/Cgl.v0.60.2.x86_64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+1/Cgl.v0.60.2.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+1/Cgl.v0.60.2.x86_64-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+1/Cgl.v0.60.2.x86_64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+1/Cgl.v0.60.2.x86_64-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+1/Cgl.v0.60.2.x86_64-w64-mingw32-cxx11.tar.gz"]
 registered = 2020-04-08T15:10:04.000Z
+
+    [["0.60.2+1".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+1/Cgl.v0.60.2.aarch64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+1/Cgl.v0.60.2.aarch64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+1/Cgl.v0.60.2.aarch64-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+1/Cgl.v0.60.2.aarch64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+1/Cgl.v0.60.2.armv7l-linux-gnueabihf-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+1/Cgl.v0.60.2.armv7l-linux-gnueabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+1/Cgl.v0.60.2.armv7l-linux-musleabihf-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+1/Cgl.v0.60.2.armv7l-linux-musleabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+1/Cgl.v0.60.2.i686-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+1/Cgl.v0.60.2.i686-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+1/Cgl.v0.60.2.i686-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+1/Cgl.v0.60.2.i686-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+1/Cgl.v0.60.2.i686-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+1/Cgl.v0.60.2.i686-w64-mingw32-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+1/Cgl.v0.60.2.x86_64-apple-darwin14-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+1/Cgl.v0.60.2.x86_64-apple-darwin14-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+1/Cgl.v0.60.2.x86_64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+1/Cgl.v0.60.2.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+1/Cgl.v0.60.2.x86_64-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+1/Cgl.v0.60.2.x86_64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+1/Cgl.v0.60.2.x86_64-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+1/Cgl.v0.60.2.x86_64-w64-mingw32-cxx11.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/5606be13268295d6a6f0dc0cb0c77e71ce1aae19/./C/Coin-OR/Cgl/build_tarballs.jl"
+    metadata_source = "retrospective (by timestamp)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.2.4"
+
+        ["0.60.2+1".artifact_metadata.metadata]
+        lazy_artifacts = false
+        name = "Cgl"
+        platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin14-cxx03", "x86_64-apple-darwin14-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+        script = """cd $WORKSPACE/srcdir/Cgl*\n\n# Remove misleading libtool files\nrm -f ${prefix}/lib/*.la\nrm -f /opt/${target}/${target}/lib*/*.la\nupdate_configure_scripts\n\nmkdir build\ncd build/\n\nexport CPPFLAGS=\"${CPPFLAGS} -I${prefix}/include -I$prefix/include/coin\"\nexport CXXFLAGS=\"${CXXFLAGS} -std=c++11\"\nif [[ ${target} == *mingw* ]]; then\n    export LDFLAGS=\"-L$prefix/bin\"\nelif [[ ${target} == *linux* ]]; then\n    export LDFLAGS=\"-ldl -lrt\"\nfi\n\n../configure --prefix=$prefix --with-pic --disable-pkg-config --build=${MACHTYPE} --host=${target} \\\n--enable-shared lt_cv_deplibs_check_method=pass_all \\\n--with-coinutils-lib=\"-lCoinUtils\" \\\n--with-osi-lib=\"-lOsi -lCoinUtils\" \\\n--with-osiclp-lib=\"-lOsiClp -lClp -lOsi -lCoinUtils\"\n\nmake -j${nproc}\nmake install\n"""
+        version = "v0.60.2"
+
+            [["0.60.2+1".artifact_metadata.metadata.dependencies]]
+            name = "Clp_jll"
+            type = "dependency"
+            uuid = "06985876-5285-5a41-9fcb-8948a742cc53"
+            version-major = 1
+            version-minor = 17
+            version-patch = 3
+            [["0.60.2+1".artifact_metadata.metadata.dependencies]]
+            name = "CompilerSupportLibraries_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["0.60.2+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libCgl"]
+            type = "lib"
+            variable_name = "libCgl"
+
+            [["0.60.2+1".artifact_metadata.metadata.sources]]
+            hash = "6377b88754fafacf24baac28bb27c0623cc14457"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/coin-or/Cgl.git"
 
 ["0.60.2+2"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+2/Cgl.v0.60.2.aarch64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+2/Cgl.v0.60.2.aarch64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+2/Cgl.v0.60.2.aarch64-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+2/Cgl.v0.60.2.aarch64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+2/Cgl.v0.60.2.armv7l-linux-gnueabihf-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+2/Cgl.v0.60.2.armv7l-linux-gnueabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+2/Cgl.v0.60.2.armv7l-linux-musleabihf-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+2/Cgl.v0.60.2.armv7l-linux-musleabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+2/Cgl.v0.60.2.i686-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+2/Cgl.v0.60.2.i686-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+2/Cgl.v0.60.2.i686-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+2/Cgl.v0.60.2.i686-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+2/Cgl.v0.60.2.i686-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+2/Cgl.v0.60.2.i686-w64-mingw32-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+2/Cgl.v0.60.2.x86_64-apple-darwin14-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+2/Cgl.v0.60.2.x86_64-apple-darwin14-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+2/Cgl.v0.60.2.x86_64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+2/Cgl.v0.60.2.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+2/Cgl.v0.60.2.x86_64-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+2/Cgl.v0.60.2.x86_64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+2/Cgl.v0.60.2.x86_64-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+2/Cgl.v0.60.2.x86_64-w64-mingw32-cxx11.tar.gz"]
 registered = 2020-04-16T04:30:22.000Z
 
+    [["0.60.2+2".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+2/Cgl.v0.60.2.aarch64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+2/Cgl.v0.60.2.aarch64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+2/Cgl.v0.60.2.aarch64-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+2/Cgl.v0.60.2.aarch64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+2/Cgl.v0.60.2.armv7l-linux-gnueabihf-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+2/Cgl.v0.60.2.armv7l-linux-gnueabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+2/Cgl.v0.60.2.armv7l-linux-musleabihf-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+2/Cgl.v0.60.2.armv7l-linux-musleabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+2/Cgl.v0.60.2.i686-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+2/Cgl.v0.60.2.i686-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+2/Cgl.v0.60.2.i686-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+2/Cgl.v0.60.2.i686-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+2/Cgl.v0.60.2.i686-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+2/Cgl.v0.60.2.i686-w64-mingw32-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+2/Cgl.v0.60.2.x86_64-apple-darwin14-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+2/Cgl.v0.60.2.x86_64-apple-darwin14-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+2/Cgl.v0.60.2.x86_64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+2/Cgl.v0.60.2.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+2/Cgl.v0.60.2.x86_64-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+2/Cgl.v0.60.2.x86_64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+2/Cgl.v0.60.2.x86_64-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+2/Cgl.v0.60.2.x86_64-w64-mingw32-cxx11.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/7a52b20eb3ade6d7c2df97b99cf1fa9bbc082596/./C/Coin-OR/Cgl/build_tarballs.jl"
+    metadata_source = "retrospective (by timestamp)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.2.4"
+
+        ["0.60.2+2".artifact_metadata.metadata]
+        lazy_artifacts = false
+        name = "Cgl"
+        platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin14-cxx03", "x86_64-apple-darwin14-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+        script = """cd $WORKSPACE/srcdir/Cgl*\n\n# Remove misleading libtool files\nrm -f ${prefix}/lib/*.la\nrm -f /opt/${target}/${target}/lib*/*.la\nupdate_configure_scripts\n\nmkdir build\ncd build/\n\nexport CPPFLAGS=\"${CPPFLAGS} -I${prefix}/include -I$prefix/include/coin\"\nexport CXXFLAGS=\"${CXXFLAGS} -std=c++11\"\nif [[ ${target} == *mingw* ]]; then\n    export LDFLAGS=\"-L$prefix/bin\"\nelif [[ ${target} == *linux* ]]; then\n    export LDFLAGS=\"-ldl -lrt\"\nfi\n\n../configure --prefix=$prefix --with-pic --disable-pkg-config --build=${MACHTYPE} --host=${target} \\\n--enable-shared lt_cv_deplibs_check_method=pass_all \\\n--with-coinutils-lib=\"-lCoinUtils\" \\\n--with-osi-lib=\"-lOsi -lCoinUtils\" \\\n--with-osiclp-lib=\"-lOsiClp -lClp -lOsi -lCoinUtils\"\n\nmake -j${nproc}\nmake install\n"""
+        version = "v0.60.2"
+
+            [["0.60.2+2".artifact_metadata.metadata.dependencies]]
+            name = "Clp_jll"
+            type = "dependency"
+            uuid = "06985876-5285-5a41-9fcb-8948a742cc53"
+            version-major = 1
+            version-minor = 17
+            version-patch = 6
+            [["0.60.2+2".artifact_metadata.metadata.dependencies]]
+            name = "CompilerSupportLibraries_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["0.60.2+2".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libCgl"]
+            type = "lib"
+            variable_name = "libCgl"
+
+            [["0.60.2+2".artifact_metadata.metadata.sources]]
+            hash = "6377b88754fafacf24baac28bb27c0623cc14457"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/coin-or/Cgl.git"
+
 ["0.60.2+3"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+3/Cgl.v0.60.2.aarch64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+3/Cgl.v0.60.2.aarch64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+3/Cgl.v0.60.2.aarch64-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+3/Cgl.v0.60.2.aarch64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+3/Cgl.v0.60.2.armv7l-linux-gnueabihf-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+3/Cgl.v0.60.2.armv7l-linux-gnueabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+3/Cgl.v0.60.2.armv7l-linux-musleabihf-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+3/Cgl.v0.60.2.armv7l-linux-musleabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+3/Cgl.v0.60.2.i686-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+3/Cgl.v0.60.2.i686-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+3/Cgl.v0.60.2.i686-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+3/Cgl.v0.60.2.i686-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+3/Cgl.v0.60.2.i686-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+3/Cgl.v0.60.2.i686-w64-mingw32-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+3/Cgl.v0.60.2.x86_64-apple-darwin14-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+3/Cgl.v0.60.2.x86_64-apple-darwin14-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+3/Cgl.v0.60.2.x86_64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+3/Cgl.v0.60.2.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+3/Cgl.v0.60.2.x86_64-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+3/Cgl.v0.60.2.x86_64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+3/Cgl.v0.60.2.x86_64-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+3/Cgl.v0.60.2.x86_64-w64-mingw32-cxx11.tar.gz"]
 registered = 2020-04-17T03:56:26.000Z
+
+    [["0.60.2+3".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+3/Cgl.v0.60.2.aarch64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+3/Cgl.v0.60.2.aarch64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+3/Cgl.v0.60.2.aarch64-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+3/Cgl.v0.60.2.aarch64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+3/Cgl.v0.60.2.armv7l-linux-gnueabihf-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+3/Cgl.v0.60.2.armv7l-linux-gnueabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+3/Cgl.v0.60.2.armv7l-linux-musleabihf-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+3/Cgl.v0.60.2.armv7l-linux-musleabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+3/Cgl.v0.60.2.i686-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+3/Cgl.v0.60.2.i686-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+3/Cgl.v0.60.2.i686-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+3/Cgl.v0.60.2.i686-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+3/Cgl.v0.60.2.i686-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+3/Cgl.v0.60.2.i686-w64-mingw32-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+3/Cgl.v0.60.2.x86_64-apple-darwin14-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+3/Cgl.v0.60.2.x86_64-apple-darwin14-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+3/Cgl.v0.60.2.x86_64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+3/Cgl.v0.60.2.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+3/Cgl.v0.60.2.x86_64-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+3/Cgl.v0.60.2.x86_64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+3/Cgl.v0.60.2.x86_64-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+3/Cgl.v0.60.2.x86_64-w64-mingw32-cxx11.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/28a4fd8410d12ff9f1fbdb97a94f31cbfbe5376f/./C/Coin-OR/Cgl/build_tarballs.jl"
+    metadata_source = "retrospective (by timestamp)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.2.4"
+
+        ["0.60.2+3".artifact_metadata.metadata]
+        lazy_artifacts = false
+        name = "Cgl"
+        platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin14-cxx03", "x86_64-apple-darwin14-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+        script = """cd $WORKSPACE/srcdir/Cgl*\n\n# Remove misleading libtool files\nrm -f ${prefix}/lib/*.la\nrm -f /opt/${target}/${target}/lib*/*.la\nupdate_configure_scripts\n\nmkdir build\ncd build/\n\nexport CPPFLAGS=\"${CPPFLAGS} -DNDEBUG -I${prefix}/include -I$prefix/include/coin\"\nexport CXXFLAGS=\"${CXXFLAGS} -std=c++11\"\nif [[ ${target} == *mingw* ]]; then\n    export LDFLAGS=\"-L$prefix/bin\"\nelif [[ ${target} == *linux* ]]; then\n    export LDFLAGS=\"-ldl -lrt\"\nfi\n\n../configure --prefix=$prefix --with-pic --disable-pkg-config --build=${MACHTYPE} --host=${target} \\\n--enable-shared lt_cv_deplibs_check_method=pass_all \\\n--with-coinutils-lib=\"-lCoinUtils\" \\\n--with-osi-lib=\"-lOsi -lCoinUtils\" \\\n--with-osiclp-lib=\"-lOsiClp -lClp -lOsi -lCoinUtils\"\n\nmake -j${nproc}\nmake install\n"""
+        version = "v0.60.2"
+
+            [["0.60.2+3".artifact_metadata.metadata.dependencies]]
+            name = "Clp_jll"
+            type = "dependency"
+            uuid = "06985876-5285-5a41-9fcb-8948a742cc53"
+            version-major = 1
+            version-minor = 17
+            version-patch = 6
+            [["0.60.2+3".artifact_metadata.metadata.dependencies]]
+            name = "CompilerSupportLibraries_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["0.60.2+3".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libCgl"]
+            type = "lib"
+            variable_name = "libCgl"
+
+            [["0.60.2+3".artifact_metadata.metadata.sources]]
+            hash = "6377b88754fafacf24baac28bb27c0623cc14457"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/coin-or/Cgl.git"
 
 ["0.60.2+4"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+4/Cgl.v0.60.2.aarch64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+4/Cgl.v0.60.2.aarch64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+4/Cgl.v0.60.2.aarch64-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+4/Cgl.v0.60.2.aarch64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+4/Cgl.v0.60.2.armv7l-linux-gnueabihf-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+4/Cgl.v0.60.2.armv7l-linux-gnueabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+4/Cgl.v0.60.2.armv7l-linux-musleabihf-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+4/Cgl.v0.60.2.armv7l-linux-musleabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+4/Cgl.v0.60.2.i686-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+4/Cgl.v0.60.2.i686-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+4/Cgl.v0.60.2.i686-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+4/Cgl.v0.60.2.i686-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+4/Cgl.v0.60.2.i686-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+4/Cgl.v0.60.2.i686-w64-mingw32-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+4/Cgl.v0.60.2.x86_64-apple-darwin14-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+4/Cgl.v0.60.2.x86_64-apple-darwin14-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+4/Cgl.v0.60.2.x86_64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+4/Cgl.v0.60.2.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+4/Cgl.v0.60.2.x86_64-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+4/Cgl.v0.60.2.x86_64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+4/Cgl.v0.60.2.x86_64-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.2+4/Cgl.v0.60.2.x86_64-w64-mingw32-cxx11.tar.gz"]
@@ -166,9 +440,93 @@ registered = 2020-11-09T15:26:34.000Z
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+0/Cgl.v0.60.3.aarch64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+0/Cgl.v0.60.3.aarch64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+0/Cgl.v0.60.3.aarch64-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+0/Cgl.v0.60.3.aarch64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+0/Cgl.v0.60.3.armv7l-linux-gnueabihf-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+0/Cgl.v0.60.3.armv7l-linux-gnueabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+0/Cgl.v0.60.3.armv7l-linux-musleabihf-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+0/Cgl.v0.60.3.armv7l-linux-musleabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+0/Cgl.v0.60.3.i686-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+0/Cgl.v0.60.3.i686-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+0/Cgl.v0.60.3.i686-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+0/Cgl.v0.60.3.i686-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+0/Cgl.v0.60.3.i686-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+0/Cgl.v0.60.3.i686-w64-mingw32-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+0/Cgl.v0.60.3.x86_64-apple-darwin14-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+0/Cgl.v0.60.3.x86_64-apple-darwin14-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+0/Cgl.v0.60.3.x86_64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+0/Cgl.v0.60.3.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+0/Cgl.v0.60.3.x86_64-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+0/Cgl.v0.60.3.x86_64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+0/Cgl.v0.60.3.x86_64-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+0/Cgl.v0.60.3.x86_64-w64-mingw32-cxx11.tar.gz"]
 registered = 2020-04-05T16:45:44.000Z
 
+    [["0.60.3+0".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+0/Cgl.v0.60.3.aarch64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+0/Cgl.v0.60.3.aarch64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+0/Cgl.v0.60.3.aarch64-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+0/Cgl.v0.60.3.aarch64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+0/Cgl.v0.60.3.armv7l-linux-gnueabihf-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+0/Cgl.v0.60.3.armv7l-linux-gnueabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+0/Cgl.v0.60.3.armv7l-linux-musleabihf-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+0/Cgl.v0.60.3.armv7l-linux-musleabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+0/Cgl.v0.60.3.i686-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+0/Cgl.v0.60.3.i686-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+0/Cgl.v0.60.3.i686-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+0/Cgl.v0.60.3.i686-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+0/Cgl.v0.60.3.i686-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+0/Cgl.v0.60.3.i686-w64-mingw32-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+0/Cgl.v0.60.3.x86_64-apple-darwin14-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+0/Cgl.v0.60.3.x86_64-apple-darwin14-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+0/Cgl.v0.60.3.x86_64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+0/Cgl.v0.60.3.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+0/Cgl.v0.60.3.x86_64-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+0/Cgl.v0.60.3.x86_64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+0/Cgl.v0.60.3.x86_64-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+0/Cgl.v0.60.3.x86_64-w64-mingw32-cxx11.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/4bf0b96e594e3ca76679dfe1ad9ab68715e87357/C/Cgl/build_tarballs.jl"
+    metadata_source = "retrospective (by timestamp)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.2.4"
+
+        ["0.60.3+0".artifact_metadata.metadata]
+        lazy_artifacts = false
+        name = "Cgl"
+        platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin14-cxx03", "x86_64-apple-darwin14-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+        script = """cd $WORKSPACE/srcdir/Cgl*\nupdate_configure_scripts\n\n# Remove misleading libtool files\nrm -f ${prefix}/lib/*.la\n\nmkdir build\ncd build/\n\nexport CPPFLAGS=\"-I${prefix}/include -I${prefix}/include/coin\"\nexport CXXFLAGS=\"-std=c++11\"\nif [[ ${target} == *mingw* ]]; then\n    export LDFLAGS=\"-L$prefix/bin\"\nelif [[ ${target} == *linux* ]]; then\n    export LDFLAGS=\"-ldl -lrt\"\nfi\n\n../configure --prefix=$prefix --with-pic --disable-pkg-config --build=${MACHTYPE} --host=${target} --enable-shared \\\n--enable-dependency-linking lt_cv_deplibs_check_method=pass_all \\\n--with-coinutils-lib=\"-lCoinUtils\" \\\n--with-osi-lib=\"-lOsi -lCoinUtils\" \\\n--with-osiclp-lib=\"-lOsiClp -lClp -lOsi -lCoinUtils\"\n\nmake -j${nproc}\nmake install\n"""
+        version = "v0.60.3"
+
+            [["0.60.3+0".artifact_metadata.metadata.dependencies]]
+            name = "Clp_jll"
+            type = "dependency"
+            uuid = "06985876-5285-5a41-9fcb-8948a742cc53"
+            version-major = 1
+            version-minor = 17
+            version-patch = 5
+            [["0.60.3+0".artifact_metadata.metadata.dependencies]]
+            name = "CompilerSupportLibraries_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["0.60.3+0".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libCgl"]
+            type = "lib"
+            variable_name = "libCgl"
+
+            [["0.60.3+0".artifact_metadata.metadata.sources]]
+            hash = "31797b2997219934db02a40d501c4b6d8efa7398"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/coin-or/Cgl.git"
+
 ["0.60.3+1"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+1/Cgl.v0.60.3.aarch64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+1/Cgl.v0.60.3.aarch64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+1/Cgl.v0.60.3.aarch64-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+1/Cgl.v0.60.3.aarch64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+1/Cgl.v0.60.3.armv7l-linux-gnueabihf-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+1/Cgl.v0.60.3.armv7l-linux-gnueabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+1/Cgl.v0.60.3.armv7l-linux-musleabihf-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+1/Cgl.v0.60.3.armv7l-linux-musleabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+1/Cgl.v0.60.3.i686-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+1/Cgl.v0.60.3.i686-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+1/Cgl.v0.60.3.i686-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+1/Cgl.v0.60.3.i686-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+1/Cgl.v0.60.3.i686-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+1/Cgl.v0.60.3.i686-w64-mingw32-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+1/Cgl.v0.60.3.x86_64-apple-darwin14-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+1/Cgl.v0.60.3.x86_64-apple-darwin14-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+1/Cgl.v0.60.3.x86_64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+1/Cgl.v0.60.3.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+1/Cgl.v0.60.3.x86_64-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+1/Cgl.v0.60.3.x86_64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+1/Cgl.v0.60.3.x86_64-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+1/Cgl.v0.60.3.x86_64-w64-mingw32-cxx11.tar.gz"]
 registered = 2020-04-05T21:34:01.000Z
+
+    [["0.60.3+1".artifact_metadata]]
+    artifact_urls = ["https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+1/Cgl.v0.60.3.aarch64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+1/Cgl.v0.60.3.aarch64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+1/Cgl.v0.60.3.aarch64-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+1/Cgl.v0.60.3.aarch64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+1/Cgl.v0.60.3.armv7l-linux-gnueabihf-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+1/Cgl.v0.60.3.armv7l-linux-gnueabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+1/Cgl.v0.60.3.armv7l-linux-musleabihf-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+1/Cgl.v0.60.3.armv7l-linux-musleabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+1/Cgl.v0.60.3.i686-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+1/Cgl.v0.60.3.i686-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+1/Cgl.v0.60.3.i686-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+1/Cgl.v0.60.3.i686-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+1/Cgl.v0.60.3.i686-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+1/Cgl.v0.60.3.i686-w64-mingw32-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+1/Cgl.v0.60.3.x86_64-apple-darwin14-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+1/Cgl.v0.60.3.x86_64-apple-darwin14-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+1/Cgl.v0.60.3.x86_64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+1/Cgl.v0.60.3.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+1/Cgl.v0.60.3.x86_64-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+1/Cgl.v0.60.3.x86_64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+1/Cgl.v0.60.3.x86_64-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.60.3+1/Cgl.v0.60.3.x86_64-w64-mingw32-cxx11.tar.gz"]
+    buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/d6d0907524811c3599b817ad3adcae148f8dedf8/./C/Coin-OR/Cgl/build_tarballs.jl"
+    metadata_source = "retrospective (by timestamp)"
+    metadata_type = "BinaryBuilder --meta-json"
+    metadata_version = "0.2.4"
+
+        ["0.60.3+1".artifact_metadata.metadata]
+        lazy_artifacts = false
+        name = "Cgl"
+        platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin14-cxx03", "x86_64-apple-darwin14-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+        script = """cd $WORKSPACE/srcdir/Cgl*\nupdate_configure_scripts\n\n# Remove misleading libtool files\nrm -f ${prefix}/lib/*.la\n\nmkdir build\ncd build/\n\nexport CPPFLAGS=\"-I${prefix}/include -I${prefix}/include/coin\"\nexport CXXFLAGS=\"-std=c++11\"\nif [[ ${target} == *mingw* ]]; then\n    export LDFLAGS=\"-L$prefix/bin\"\nelif [[ ${target} == *linux* ]]; then\n    export LDFLAGS=\"-ldl -lrt\"\nfi\n\n../configure --prefix=$prefix --with-pic --disable-pkg-config --build=${MACHTYPE} --host=${target} --enable-shared \\\n--enable-dependency-linking lt_cv_deplibs_check_method=pass_all \\\n--with-coinutils-lib=\"-lCoinUtils\" \\\n--with-osi-lib=\"-lOsi -lCoinUtils\" \\\n--with-osiclp-lib=\"-lOsiClp -lClp -lOsi -lCoinUtils\"\n\nmake -j${nproc}\nmake install\n"""
+        version = "v0.60.3"
+
+            [["0.60.3+1".artifact_metadata.metadata.dependencies]]
+            name = "Clp_jll"
+            type = "dependency"
+            uuid = "06985876-5285-5a41-9fcb-8948a742cc53"
+            version-major = 1
+            version-minor = 17
+            version-patch = 5
+            [["0.60.3+1".artifact_metadata.metadata.dependencies]]
+            name = "CompilerSupportLibraries_jll"
+            type = "dependency"
+            version-major = 0
+            version-minor = 0
+            version-patch = 0
+
+            [["0.60.3+1".artifact_metadata.metadata.products]]
+            dir_paths = []
+            dlopen_flags = []
+            dont_dlopen = false
+            libnames = ["libCgl"]
+            type = "lib"
+            variable_name = "libCgl"
+
+            [["0.60.3+1".artifact_metadata.metadata.sources]]
+            hash = "31797b2997219934db02a40d501c4b6d8efa7398"
+            type = "git"
+            unpack_target = ""
+            url = "https://github.com/coin-or/Cgl.git"
 
 ["0.6000.200+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.6000.200+0/Cgl.v0.6000.200.aarch64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.6000.200+0/Cgl.v0.6000.200.aarch64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.6000.200+0/Cgl.v0.6000.200.aarch64-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.6000.200+0/Cgl.v0.6000.200.aarch64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.6000.200+0/Cgl.v0.6000.200.armv7l-linux-gnueabihf-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.6000.200+0/Cgl.v0.6000.200.armv7l-linux-gnueabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.6000.200+0/Cgl.v0.6000.200.armv7l-linux-musleabihf-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.6000.200+0/Cgl.v0.6000.200.armv7l-linux-musleabihf-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.6000.200+0/Cgl.v0.6000.200.i686-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.6000.200+0/Cgl.v0.6000.200.i686-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.6000.200+0/Cgl.v0.6000.200.i686-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.6000.200+0/Cgl.v0.6000.200.i686-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.6000.200+0/Cgl.v0.6000.200.i686-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.6000.200+0/Cgl.v0.6000.200.i686-w64-mingw32-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.6000.200+0/Cgl.v0.6000.200.powerpc64le-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.6000.200+0/Cgl.v0.6000.200.powerpc64le-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.6000.200+0/Cgl.v0.6000.200.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.6000.200+0/Cgl.v0.6000.200.x86_64-linux-gnu-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.6000.200+0/Cgl.v0.6000.200.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.6000.200+0/Cgl.v0.6000.200.x86_64-linux-musl-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.6000.200+0/Cgl.v0.6000.200.x86_64-linux-musl-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.6000.200+0/Cgl.v0.6000.200.x86_64-w64-mingw32-cxx03.tar.gz", "https://github.com/JuliaBinaryWrappers/Cgl_jll.jl/releases/download/Cgl-v0.6000.200+0/Cgl.v0.6000.200.x86_64-w64-mingw32-cxx11.tar.gz"]
