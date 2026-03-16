@@ -270,7 +270,11 @@ function metadata_for_jll_release(org, repo, tag)
                                 "*/$jllname@$jllversion/build_tarballs.jl",
                                 "*/$jllname@$(majorminorpatch(VersionNumber(jllversion)))/build_tarballs.jl",
                                 "*/$jllname@$(majorminor(VersionNumber(jllversion)))/build_tarballs.jl",
-                                "*/$jllname@$(major(VersionNumber(jllversion)))/build_tarballs.jl")
+                                "*/$jllname@$(major(VersionNumber(jllversion)))/build_tarballs.jl",
+                                "*/$jllname@v$jllversion/build_tarballs.jl",
+                                "*/$jllname@v$(majorminorpatch(VersionNumber(jllversion)))/build_tarballs.jl",
+                                "*/$jllname@v$(majorminor(VersionNumber(jllversion)))/build_tarballs.jl",
+                                "*/$jllname@v$(major(VersionNumber(jllversion)))/build_tarballs.jl")
                 pathmatches = split(readchomp(`find . -ipath $searchpath`), "\n", keepempty=false)
                 if length(pathmatches) == 1
                     buildscript = joinpath(yggy, pathmatches[1])
