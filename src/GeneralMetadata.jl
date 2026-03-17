@@ -300,19 +300,19 @@ end
 
 function gather_artifact_urls(uuid, sha)
     repo_url = registered_package_repo(uuid)
-    m = match(r"^https?://github\.com/([^/]+)/([^/]+)(?:.git)?$", repo_url)
+    m = match(r"^https?://github\.com/([^/]+)/([^/]+?)(?:.git)?$", repo_url)
     artifact_toml = try
         org, repo = m.captures
         GitHub.get_file(org, repo, sha, in(Artifacts.artifact_names))
     catch _
-        url = "https://pkg.julialang.org/package/$(uuid)/$(sha)"
+        # Fallback to getting it from the storage server
         mktemp() do _, iogz
-            Downloads.download(url, iogz)
+            Downloads.download("https://pkg.julialang.org/package/$(uuid)/$(sha)", iogz)
             seekstart(iogz)
-            artifact_toml = untar_file(x->x.path in Artifacts.artifact_names, GzipDecompressorStream(iogz))
-            isnothing(artifact_toml) ? "" : artifact_toml
+            untar_file(x->x.path in Artifacts.artifact_names, GzipDecompressorStream(iogz))
         end
     end
+    isnothing(artifact_toml) && return String[]
     artifacts = TOML.parse(artifact_toml)
     urls = Set{String}()
     for (_, artifact_info) in artifacts
