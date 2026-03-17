@@ -600,8 +600,7 @@ function update_jll_metadata!(meta; force = false, timelimit=Dates.Minute(90))
         end
     end
     if length(failures) > 0
-        @warn "encountered $(length(failures)) failures:"
-        println(join(replace.(failures, ('\n'=>" ",)), "\n"))
+        @warn "encountered $(length(failures)) jll metadata failures"
     end
     return meta
 end
