@@ -8,7 +8,7 @@ using DataStructures: DataStructures, DefaultDict
 
 include("GitHub.jl")
 
-## Abstract away some Pkg internals into one common place:
+# Abstract away some Pkg internals into one common place:
 function registered_package_names()
     registry = only(filter(x->x.name == "General", Pkg.Registry.reachable_registries()))
     return Set(x.name for x in values(registry.pkgs))
@@ -30,12 +30,28 @@ function _registered_package_versions(registry, pkgentry)
     return pkgentry.info.version_info
 end
 
+function registered_package_repo(pkgname; registry=only(filter(x->x.name == "General", Pkg.Registry.reachable_registries())))
+    pkg_info = only(values(filter(((k,v),)->v.name == pkgname, registry.pkgs)))
+    return _registered_package_repo(registry, pkg_info)
+end
+function registered_package_repo(pkguuid::Base.UUID; registry = only(filter(x->x.name == "General", Pkg.Registry.reachable_registries())))
+    return _registered_package_repo(registry, registry[pkguuid])
+end
+function _registered_package_repo(registry, pkgentry)
+    if VERSION < v"1.13-"
+        Pkg.Registry.init_package_info!(pkgentry)
+    else
+        Pkg.Registry.init_package_info!(registry, pkgentry)
+    end
+    return pkgentry.info.repo
+end
+
 function uuid_from_name(pkg_name)
     registry = only(filter(x->x.name == "General", Pkg.Registry.reachable_registries()))
     return only(Pkg.Registry.uuids_from_name(registry, pkg_name))
 end
 
-## The main entry point:
+# The main entry point:
 function metadata()
     meta = Dict{String,Any}()
     for (root, _, files) in walkdir(joinpath(@__DIR__, "..", "metadata")), file in files
@@ -277,26 +293,37 @@ function all_matches(pattern_project_pairs, needle)
     return result
 end
 
-function gather_artifact_urls(uuid, sha)
-    url = "https://pkg.julialang.org/package/$(uuid)/$(sha)"
-    mktemp() do _, iogz
-        Downloads.download(url, iogz)
-        seekstart(iogz)
-        artifact_toml = untar_file(x->x.path in Artifacts.artifact_names, GzipDecompressorStream(iogz))
-        isnothing(artifact_toml) && return String[]
+function package_repository(uuid)
+    registry = only(filter(x->x.name == "General", Pkg.Registry.reachable_registries()))
+    return registry[uuid].info.repo
+end
 
-        artifacts = TOML.parse(artifact_toml)
-        urls = Set{String}()
-        for (_, artifact_info) in artifacts
-            # Normalize to a vector of dicts, even if there's only one artifact
-            for entry in (artifact_info isa AbstractDict ? [artifact_info] : artifact_info)
-                for dl in get(entry, "download", [])
-                    push!(urls, dl["url"])
-                end
+function gather_artifact_urls(uuid, sha)
+    repo_url = registered_package_repo(uuid)
+    m = match(r"^https?://github\.com/([^/]+)/([^/]+)(?:.git)?$", repo_url)
+    artifact_toml = try
+        org, repo = m.captures
+        GitHub.get_file(org, repo, sha, in(Artifacts.artifact_names))
+    catch _
+        url = "https://pkg.julialang.org/package/$(uuid)/$(sha)"
+        mktemp() do _, iogz
+            Downloads.download(url, iogz)
+            seekstart(iogz)
+            artifact_toml = untar_file(x->x.path in Artifacts.artifact_names, GzipDecompressorStream(iogz))
+            isnothing(artifact_toml) ? "" : artifact_toml
+        end
+    end
+    artifacts = TOML.parse(artifact_toml)
+    urls = Set{String}()
+    for (_, artifact_info) in artifacts
+        # Normalize to a vector of dicts, even if there's only one artifact
+        for entry in (artifact_info isa AbstractDict ? [artifact_info] : artifact_info)
+            for dl in get(entry, "download", [])
+                push!(urls, dl["url"])
             end
         end
-        return sort(collect(urls))
     end
+    return sort(collect(urls))
 end
 
 function get_artifact_toml(tarball)
@@ -327,19 +354,7 @@ function update_artifact_urls!(meta = metadata(); max_downloads=10000)
         for (ver, ver_info) in pkg_info
             haskey(ver_info, "artifact_urls") && continue
             @info "Updating artifact URLs for $pkg_name v$ver"
-            artifact_urls = try
-                gather_artifact_urls(pkg_uuid, reg_info[VersionNumber(ver)].git_tree_sha1)
-            catch ex
-                @warn "Failed to gather artifact URLs for $pkg_name version $ver:" ex
-                if ex isa Downloads.RequestError && ex.response.status == 404
-                    # If we get a 404, skip all subsquent versions of this package, but keep going with other packages.
-                    break
-                else
-                    # For all other errors, ensure we don't hammer with more than 5 retries
-                    download_count += max(10, max_downloads÷5)
-                    break
-                end
-            end
+            artifact_urls = gather_artifact_urls(pkg_uuid, reg_info[VersionNumber(ver)].git_tree_sha1)
             download_count += 1
             ver_info["artifact_urls"] = artifact_urls
         end
