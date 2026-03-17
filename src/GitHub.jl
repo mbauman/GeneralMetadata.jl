@@ -1,5 +1,7 @@
 module GitHub
 
+import HTTP, JSON
+
 const API_BASE = "https://api.github.com"
 function build_headers()
     headers = [
