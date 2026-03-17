@@ -1,0 +1,66 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "GDB"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """apk add texinfo\n\ncd $WORKSPACE/srcdir/gdb-*/\ninstall_license COPYING\n\nCONFIGURE_FLAGS=(--prefix=${prefix} --build=${MACHTYPE} --host=${target})\nCONFIGURE_FLAGS+=(--with-expat)\nCONFIGURE_FLAGS+=(--with-system-zlib)   # to avoid linking against libcrypt.so.1\nif [[ ${target} != *mingw* ]]; then\n    # Python_jll is not yet available for Windows\n    CONFIGURE_FLAGS+=(--with-python=${WORKSPACE}/srcdir/python-cross-configure.sh)\nfi\n./configure ${CONFIGURE_FLAGS[@]}\n\nmake -j${nproc} all\nmake install\n"""
+version = "v12.1.0"
+
+[[dependencies]]
+compat = ""
+name = "GMP_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "781609d7-10c4-51f6-84f2-b8444358ff6d"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Expat_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "~3.8.8"
+name = "Python_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["gdbserver"]
+type = "exe"
+variable_name = "gdbserver"
+[[products]]
+binnames = ["gdb"]
+type = "exe"
+variable_name = "gdb"
+
+[[sources]]
+hash = "0e1793bf8f2b54d53f46dea84ccfd446f48f81b297b28c4f7fc017b818d69fed"
+type = "archive"
+unpack_target = ""
+url = "https://ftp.gnu.org/gnu/gdb/gdb-12.1.tar.xz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

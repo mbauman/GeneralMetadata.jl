@@ -5,48 +5,10 @@ registered = 2023-11-23T14:45:55.000Z
     [["0.1.0+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.1.0+0/CUDSS.v0.1.0.x86_64-linux-gnu-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.1.0+0/CUDSS.v0.1.0.x86_64-w64-mingw32-cuda+12.0.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/33778387974f8c2aea0734f659fac251ae68c89f/C/CUDA/CUDSS/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/c/cuda/cudss/build_tarballs.jl/33778387974f8c2aea0734f659fac251ae68c89f.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.5.6"
-
-        ["0.1.0+0".artifact_metadata.metadata]
-        augment_platform_block = """using Base.BinaryPlatforms\n\ntry\n    using CUDA_Runtime_jll\ncatch\n    # during initial package installation, CUDA_Runtime_jll may not be available.\n    # in that case, we just won't select an artifact.\nend\n\n# can't use Preferences for the same reason\nconst CUDA_Runtime_jll_uuid = Base.UUID(\"76a88914-d11a-5bdc-97e0-2f5a05c973a2\")\nconst preferences = Base.get_preferences(CUDA_Runtime_jll_uuid)\nBase.record_compiletime_preference(CUDA_Runtime_jll_uuid, \"version\")\nBase.record_compiletime_preference(CUDA_Runtime_jll_uuid, \"local\")\nconst local_toolkit = something(tryparse(Bool, get(preferences, \"local\", \"false\")), false)\n\nfunction cuda_comparison_strategy(_a::String, _b::String, a_requested::Bool, b_requested::Bool)\n    # if we're using a local toolkit, we can't use artifacts\n    if local_toolkit\n        return false\n    end\n\n    # if either isn't a version number (e.g. \"none\"), perform a simple equality check\n    a = tryparse(VersionNumber, _a)\n    b = tryparse(VersionNumber, _b)\n    if a === nothing || b === nothing\n        return _a == _b\n    end\n\n    # if both b and a requested, then we fall back to equality\n    if a_requested && b_requested\n        return Base.thisminor(a) == Base.thisminor(b)\n    end\n\n    # otherwise, do the comparison between the the single version cap and the single version:\n    function is_compatible(artifact::VersionNumber, host::VersionNumber)\n        if host >= v\"11.0\"\n            # enhanced compatibility, semver-style\n            artifact.major == host.major &&\n            Base.thisminor(artifact) <= Base.thisminor(host)\n        else\n            Base.thisminor(artifact) == Base.thisminor(host)\n        end\n    end\n    if a_requested\n        is_compatible(b, a)\n    else\n        is_compatible(a, b)\n    end\nend\n\nfunction augment_platform!(platform::Platform)\n    if !@isdefined(CUDA_Runtime_jll)\n        # don't set to nothing or Pkg will download any artifact\n        platform[\"cuda\"] = \"none\"\n    end\n\n    if !haskey(platform, \"cuda\")\n        CUDA_Runtime_jll.augment_platform!(platform)\n    end\n    BinaryPlatforms.set_compare_strategy!(platform, \"cuda\", cuda_comparison_strategy)\n\n    # store the fact that we're using a local CUDA toolkit, for debugging purposes\n    platform[\"cuda_local\"] = string(local_toolkit)\n\n    return platform\nend"""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = true
-        name = "CUDSS"
-        platforms = ["x86_64-linux-gnu-cuda+12.0", "x86_64-w64-mingw32-cuda+12.0"]
-        script = """mkdir -p ${libdir} ${prefix}/include\n\ncd ${WORKSPACE}/srcdir\nif [[ ${target} == *-linux-gnu ]]; then\n\n    cd libcudss-*\n    install_license LICENSE\n    mv lib/libcudss*.so* ${libdir}\n    mv include/* ${prefix}/include\n\nelif [[ ${target} == x86_64-w64-mingw32 ]]; then\n\n    cd libcudss-*\n    install_license LICENSE\n    mv bin/cudss*64_*.dll ${libdir}\n    mv include/* ${prefix}/include\n\n    # fixup\n    chmod +x ${libdir}/*.dll\nfi\n"""
-        version = "v0.1.0"
-
-            [["0.1.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "CUDA_Runtime_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "runtimedependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["0.1.0+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libcudss", "cudss64_0"]
-            type = "lib"
-            variable_name = "libcudss"
-
-            [["0.1.0+0".artifact_metadata.metadata.sources]]
-            hash = "52b5f6b0a2626cde63bc5f0fd24aabb5a260370b6ac18af5e3ce201d79fd673a"
-            type = "archive"
-            unpack_target = ""
-            url = "https://developer.download.nvidia.com/compute/cudss/redist/libcudss/linux-x86_64/libcudss-linux-x86_64-0.1.0.45_cuda12-archive.tar.xz"
-            [["0.1.0+0".artifact_metadata.metadata.sources]]
-            hash = "bfe5eac48753ea286ba3a3d6e11af03a9e576cbf3adc7d602e8824364c089ced"
-            type = "archive"
-            unpack_target = ""
-            url = "https://developer.download.nvidia.com/compute/cudss/redist/libcudss/windows-x86_64/libcudss-windows-x86_64-0.1.0.45_cuda12-archive.zip"
 
 ["0.2.0+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.2.0+0/CUDSS.v0.2.0.x86_64-linux-gnu-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.2.0+0/CUDSS.v0.2.0.x86_64-w64-mingw32-cuda+12.0.tar.gz"]
@@ -55,48 +17,10 @@ registered = 2024-03-06T01:12:58.000Z
     [["0.2.0+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.2.0+0/CUDSS.v0.2.0.x86_64-linux-gnu-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.2.0+0/CUDSS.v0.2.0.x86_64-w64-mingw32-cuda+12.0.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/036d0bec4cf3c306c74b5849ed4672af0d52cc82/C/CUDA/CUDSS/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/c/cuda/cudss/build_tarballs.jl/036d0bec4cf3c306c74b5849ed4672af0d52cc82.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.5.8"
-
-        ["0.2.0+0".artifact_metadata.metadata]
-        augment_platform_block = """using Base.BinaryPlatforms\n\ntry\n    using CUDA_Runtime_jll\ncatch\n    # during initial package installation, CUDA_Runtime_jll may not be available.\n    # in that case, we just won't select an artifact.\nend\n\n# can't use Preferences for the same reason\nconst CUDA_Runtime_jll_uuid = Base.UUID(\"76a88914-d11a-5bdc-97e0-2f5a05c973a2\")\nconst preferences = Base.get_preferences(CUDA_Runtime_jll_uuid)\nBase.record_compiletime_preference(CUDA_Runtime_jll_uuid, \"version\")\nBase.record_compiletime_preference(CUDA_Runtime_jll_uuid, \"local\")\nconst local_toolkit = something(tryparse(Bool, get(preferences, \"local\", \"false\")), false)\n\nfunction cuda_comparison_strategy(_a::String, _b::String, a_requested::Bool, b_requested::Bool)\n    # if we're using a local toolkit, we can't use artifacts\n    if local_toolkit\n        return false\n    end\n\n    # if either isn't a version number (e.g. \"none\"), perform a simple equality check\n    a = tryparse(VersionNumber, _a)\n    b = tryparse(VersionNumber, _b)\n    if a === nothing || b === nothing\n        return _a == _b\n    end\n\n    # if both b and a requested, then we fall back to equality\n    if a_requested && b_requested\n        return Base.thisminor(a) == Base.thisminor(b)\n    end\n\n    # otherwise, do the comparison between the the single version cap and the single version:\n    function is_compatible(artifact::VersionNumber, host::VersionNumber)\n        if host >= v\"11.0\"\n            # enhanced compatibility, semver-style\n            artifact.major == host.major &&\n            Base.thisminor(artifact) <= Base.thisminor(host)\n        else\n            Base.thisminor(artifact) == Base.thisminor(host)\n        end\n    end\n    if a_requested\n        is_compatible(b, a)\n    else\n        is_compatible(a, b)\n    end\nend\n\nfunction augment_platform!(platform::Platform)\n    if !@isdefined(CUDA_Runtime_jll)\n        # don't set to nothing or Pkg will download any artifact\n        platform[\"cuda\"] = \"none\"\n    end\n\n    if !haskey(platform, \"cuda\")\n        CUDA_Runtime_jll.augment_platform!(platform)\n    end\n    BinaryPlatforms.set_compare_strategy!(platform, \"cuda\", cuda_comparison_strategy)\n\n    # store the fact that we're using a local CUDA toolkit, for debugging purposes\n    platform[\"cuda_local\"] = string(local_toolkit)\n\n    return platform\nend"""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = true
-        name = "CUDSS"
-        platforms = ["x86_64-linux-gnu-cuda+12.0", "x86_64-w64-mingw32-cuda+12.0"]
-        script = """mkdir -p ${libdir} ${prefix}/include\n\ncd ${WORKSPACE}/srcdir\nif [[ ${target} == *-linux-gnu ]]; then\n\n    cd libcudss-*\n    install_license LICENSE\n    mv lib/libcudss*.so* ${libdir}\n    mv include/* ${prefix}/include\n\nelif [[ ${target} == x86_64-w64-mingw32 ]]; then\n\n    cd libcudss-*\n    install_license LICENSE\n    mv lib/cudss.lib ${prefix}/lib\n    mv bin/cudss*64_*.dll ${libdir}\n    mv include/* ${prefix}/include\n\n    # fixup\n    chmod +x ${libdir}/*.dll\nfi\n"""
-        version = "v0.2.0"
-
-            [["0.2.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "CUDA_Runtime_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "runtimedependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["0.2.0+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libcudss", "cudss64_0"]
-            type = "lib"
-            variable_name = "libcudss"
-
-            [["0.2.0+0".artifact_metadata.metadata.sources]]
-            hash = "b6afb777f8737f9e9a6e6461777c75da1613414c09e26da224a696f8b29c3a60"
-            type = "archive"
-            unpack_target = ""
-            url = "https://developer.download.nvidia.com/compute/cudss/redist/libcudss/linux-x86_64/libcudss-linux-x86_64-0.2.0.12_cuda12-archive.tar.xz"
-            [["0.2.0+0".artifact_metadata.metadata.sources]]
-            hash = "c8525aea67246847cb7e4df1f0c860cf969f85fdbbdd693bb57805961fd432fd"
-            type = "archive"
-            unpack_target = ""
-            url = "https://developer.download.nvidia.com/compute/cudss/redist/libcudss/windows-x86_64/libcudss-windows-x86_64-0.2.0.12_cuda12-archive.zip"
 
 ["0.2.0+1"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.2.0+1/CUDSS.v0.2.0.aarch64-linux-gnu-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.2.0+1/CUDSS.v0.2.0.x86_64-linux-gnu-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.2.0+1/CUDSS.v0.2.0.x86_64-w64-mingw32-cuda+12.0.tar.gz"]
@@ -105,53 +29,10 @@ registered = 2024-03-06T02:21:34.000Z
     [["0.2.0+1".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.2.0+1/CUDSS.v0.2.0.aarch64-linux-gnu-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.2.0+1/CUDSS.v0.2.0.x86_64-linux-gnu-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.2.0+1/CUDSS.v0.2.0.x86_64-w64-mingw32-cuda+12.0.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/ad6387904b455db6168e1263caace6c214800940/C/CUDA/CUDSS/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/c/cuda/cudss/build_tarballs.jl/ad6387904b455db6168e1263caace6c214800940.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.5.8"
-
-        ["0.2.0+1".artifact_metadata.metadata]
-        augment_platform_block = """using Base.BinaryPlatforms\n\ntry\n    using CUDA_Runtime_jll\ncatch\n    # during initial package installation, CUDA_Runtime_jll may not be available.\n    # in that case, we just won't select an artifact.\nend\n\n# can't use Preferences for the same reason\nconst CUDA_Runtime_jll_uuid = Base.UUID(\"76a88914-d11a-5bdc-97e0-2f5a05c973a2\")\nconst preferences = Base.get_preferences(CUDA_Runtime_jll_uuid)\nBase.record_compiletime_preference(CUDA_Runtime_jll_uuid, \"version\")\nBase.record_compiletime_preference(CUDA_Runtime_jll_uuid, \"local\")\nconst local_toolkit = something(tryparse(Bool, get(preferences, \"local\", \"false\")), false)\n\nfunction cuda_comparison_strategy(_a::String, _b::String, a_requested::Bool, b_requested::Bool)\n    # if we're using a local toolkit, we can't use artifacts\n    if local_toolkit\n        return false\n    end\n\n    # if either isn't a version number (e.g. \"none\"), perform a simple equality check\n    a = tryparse(VersionNumber, _a)\n    b = tryparse(VersionNumber, _b)\n    if a === nothing || b === nothing\n        return _a == _b\n    end\n\n    # if both b and a requested, then we fall back to equality\n    if a_requested && b_requested\n        return Base.thisminor(a) == Base.thisminor(b)\n    end\n\n    # otherwise, do the comparison between the the single version cap and the single version:\n    function is_compatible(artifact::VersionNumber, host::VersionNumber)\n        if host >= v\"11.0\"\n            # enhanced compatibility, semver-style\n            artifact.major == host.major &&\n            Base.thisminor(artifact) <= Base.thisminor(host)\n        else\n            Base.thisminor(artifact) == Base.thisminor(host)\n        end\n    end\n    if a_requested\n        is_compatible(b, a)\n    else\n        is_compatible(a, b)\n    end\nend\n\nfunction augment_platform!(platform::Platform)\n    if !@isdefined(CUDA_Runtime_jll)\n        # don't set to nothing or Pkg will download any artifact\n        platform[\"cuda\"] = \"none\"\n    end\n\n    if !haskey(platform, \"cuda\")\n        CUDA_Runtime_jll.augment_platform!(platform)\n    end\n    BinaryPlatforms.set_compare_strategy!(platform, \"cuda\", cuda_comparison_strategy)\n\n    # store the fact that we're using a local CUDA toolkit, for debugging purposes\n    platform[\"cuda_local\"] = string(local_toolkit)\n\n    return platform\nend"""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = true
-        name = "CUDSS"
-        platforms = ["x86_64-linux-gnu-cuda+12.0", "aarch64-linux-gnu-cuda+12.0", "x86_64-w64-mingw32-cuda+12.0"]
-        script = """mkdir -p ${libdir} ${prefix}/include\n\ncd ${WORKSPACE}/srcdir\nif [[ ${target} == *-linux-gnu ]]; then\n\n    cd libcudss-*\n    install_license LICENSE\n    mv lib/libcudss*.so* ${libdir}\n    mv include/* ${prefix}/include\n\nelif [[ ${target} == x86_64-w64-mingw32 ]]; then\n\n    cd libcudss-*\n    install_license LICENSE\n    mv lib/cudss.lib ${prefix}/lib\n    mv bin/cudss*64_*.dll ${libdir}\n    mv include/* ${prefix}/include\n\n    # fixup\n    chmod +x ${libdir}/*.dll\nfi\n"""
-        version = "v0.2.0"
-
-            [["0.2.0+1".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "CUDA_Runtime_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "runtimedependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["0.2.0+1".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libcudss", "cudss64_0"]
-            type = "lib"
-            variable_name = "libcudss"
-
-            [["0.2.0+1".artifact_metadata.metadata.sources]]
-            hash = "b6afb777f8737f9e9a6e6461777c75da1613414c09e26da224a696f8b29c3a60"
-            type = "archive"
-            unpack_target = ""
-            url = "https://developer.download.nvidia.com/compute/cudss/redist/libcudss/linux-x86_64/libcudss-linux-x86_64-0.2.0.12_cuda12-archive.tar.xz"
-            [["0.2.0+1".artifact_metadata.metadata.sources]]
-            hash = "5c7dac6abeffb37e6aeb6083e13198cc15305d21efbd605e9bf601dd201a9d4f"
-            type = "archive"
-            unpack_target = ""
-            url = "https://developer.download.nvidia.com/compute/cudss/redist/libcudss/linux-sbsa/libcudss-linux-sbsa-0.2.0.12_cuda12-archive.tar.xz"
-            [["0.2.0+1".artifact_metadata.metadata.sources]]
-            hash = "c8525aea67246847cb7e4df1f0c860cf969f85fdbbdd693bb57805961fd432fd"
-            type = "archive"
-            unpack_target = ""
-            url = "https://developer.download.nvidia.com/compute/cudss/redist/libcudss/windows-x86_64/libcudss-windows-x86_64-0.2.0.12_cuda12-archive.zip"
 
 ["0.2.1+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.2.1+0/CUDSS.v0.2.1.aarch64-linux-gnu-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.2.1+0/CUDSS.v0.2.1.x86_64-linux-gnu-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.2.1+0/CUDSS.v0.2.1.x86_64-w64-mingw32-cuda+12.0.tar.gz"]
@@ -160,53 +41,10 @@ registered = 2024-04-19T18:55:51.000Z
     [["0.2.1+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.2.1+0/CUDSS.v0.2.1.aarch64-linux-gnu-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.2.1+0/CUDSS.v0.2.1.x86_64-linux-gnu-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.2.1+0/CUDSS.v0.2.1.x86_64-w64-mingw32-cuda+12.0.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/3d606377c53491f5ddad517de6bc273326ec8f4c/C/CUDA/CUDSS/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/c/cuda/cudss/build_tarballs.jl/3d606377c53491f5ddad517de6bc273326ec8f4c.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.5.8"
-
-        ["0.2.1+0".artifact_metadata.metadata]
-        augment_platform_block = """using Base.BinaryPlatforms\n\ntry\n    using CUDA_Runtime_jll\ncatch\n    # during initial package installation, CUDA_Runtime_jll may not be available.\n    # in that case, we just won't select an artifact.\nend\n\n# can't use Preferences for the same reason\nconst CUDA_Runtime_jll_uuid = Base.UUID(\"76a88914-d11a-5bdc-97e0-2f5a05c973a2\")\nconst preferences = Base.get_preferences(CUDA_Runtime_jll_uuid)\nBase.record_compiletime_preference(CUDA_Runtime_jll_uuid, \"version\")\nBase.record_compiletime_preference(CUDA_Runtime_jll_uuid, \"local\")\nconst local_toolkit = something(tryparse(Bool, get(preferences, \"local\", \"false\")), false)\n\nfunction cuda_comparison_strategy(_a::String, _b::String, a_requested::Bool, b_requested::Bool)\n    # if we're using a local toolkit, we can't use artifacts\n    if local_toolkit\n        return false\n    end\n\n    # if either isn't a version number (e.g. \"none\"), perform a simple equality check\n    a = tryparse(VersionNumber, _a)\n    b = tryparse(VersionNumber, _b)\n    if a === nothing || b === nothing\n        return _a == _b\n    end\n\n    # if both b and a requested, then we fall back to equality\n    if a_requested && b_requested\n        return Base.thisminor(a) == Base.thisminor(b)\n    end\n\n    # otherwise, do the comparison between the the single version cap and the single version:\n    function is_compatible(artifact::VersionNumber, host::VersionNumber)\n        if host >= v\"11.0\"\n            # enhanced compatibility, semver-style\n            artifact.major == host.major &&\n            Base.thisminor(artifact) <= Base.thisminor(host)\n        else\n            Base.thisminor(artifact) == Base.thisminor(host)\n        end\n    end\n    if a_requested\n        is_compatible(b, a)\n    else\n        is_compatible(a, b)\n    end\nend\n\nfunction augment_platform!(platform::Platform)\n    if !@isdefined(CUDA_Runtime_jll)\n        # don't set to nothing or Pkg will download any artifact\n        platform[\"cuda\"] = \"none\"\n    end\n\n    if !haskey(platform, \"cuda\")\n        CUDA_Runtime_jll.augment_platform!(platform)\n    end\n    BinaryPlatforms.set_compare_strategy!(platform, \"cuda\", cuda_comparison_strategy)\n\n    # store the fact that we're using a local CUDA toolkit, for debugging purposes\n    platform[\"cuda_local\"] = string(local_toolkit)\n\n    return platform\nend"""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = true
-        name = "CUDSS"
-        platforms = ["x86_64-linux-gnu-cuda+12.0", "aarch64-linux-gnu-cuda+12.0", "x86_64-w64-mingw32-cuda+12.0"]
-        script = """mkdir -p ${libdir} ${prefix}/include\n\ncd ${WORKSPACE}/srcdir\nif [[ ${target} == *-linux-gnu ]]; then\n\n    cd libcudss-*\n    install_license LICENSE\n    mv lib/libcudss*.so* ${libdir}\n    mv include/* ${prefix}/include\n\nelif [[ ${target} == x86_64-w64-mingw32 ]]; then\n\n    cd libcudss-*\n    install_license LICENSE\n    mv lib/cudss.lib ${prefix}/lib\n    mv bin/cudss*64_*.dll ${libdir}\n    mv include/* ${prefix}/include\n\n    # fixup\n    chmod +x ${libdir}/*.dll\nfi\n"""
-        version = "v0.2.1"
-
-            [["0.2.1+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "CUDA_Runtime_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "runtimedependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["0.2.1+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libcudss", "cudss64_0"]
-            type = "lib"
-            variable_name = "libcudss"
-
-            [["0.2.1+0".artifact_metadata.metadata.sources]]
-            hash = "7b57df176b79d9566f2e1cd92aa30924650bacde96b25cb95392d503ba5e1634"
-            type = "archive"
-            unpack_target = ""
-            url = "https://developer.download.nvidia.com/compute/cudss/redist/libcudss/linux-x86_64/libcudss-linux-x86_64-0.2.1.3_cuda12-archive.tar.xz"
-            [["0.2.1+0".artifact_metadata.metadata.sources]]
-            hash = "12503d270fe969b521bbe615a9ef00805d56487e3b2a4143899c27329c22b4e7"
-            type = "archive"
-            unpack_target = ""
-            url = "https://developer.download.nvidia.com/compute/cudss/redist/libcudss/linux-sbsa/libcudss-linux-sbsa-0.2.1.3_cuda12-archive.tar.xz"
-            [["0.2.1+0".artifact_metadata.metadata.sources]]
-            hash = "0353c12dde22283a3672bf28aeedbc663f76066ac1b22a33930ceb9dcb658983"
-            type = "archive"
-            unpack_target = ""
-            url = "https://developer.download.nvidia.com/compute/cudss/redist/libcudss/windows-x86_64/libcudss-windows-x86_64-0.2.1.3_cuda12-archive.zip"
 
 ["0.3.0+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.3.0+0/CUDSS.v0.3.0.aarch64-linux-gnu-cuda_platform+jetson-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.3.0+0/CUDSS.v0.3.0.aarch64-linux-gnu-cuda_platform+sbsa-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.3.0+0/CUDSS.v0.3.0.x86_64-linux-gnu-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.3.0+0/CUDSS.v0.3.0.x86_64-w64-mingw32-cuda+12.0.tar.gz"]
@@ -215,58 +53,10 @@ registered = 2024-07-03T18:24:03.000Z
     [["0.3.0+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.3.0+0/CUDSS.v0.3.0.aarch64-linux-gnu-cuda_platform+jetson-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.3.0+0/CUDSS.v0.3.0.aarch64-linux-gnu-cuda_platform+sbsa-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.3.0+0/CUDSS.v0.3.0.x86_64-linux-gnu-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.3.0+0/CUDSS.v0.3.0.x86_64-w64-mingw32-cuda+12.0.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/7a0a22b826725b7a13a2acf19e88a9ecc856a440/C/CUDA/CUDSS/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/c/cuda/cudss/build_tarballs.jl/7a0a22b826725b7a13a2acf19e88a9ecc856a440.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.5.8"
-
-        ["0.3.0+0".artifact_metadata.metadata]
-        augment_platform_block = """using Base.BinaryPlatforms\n\ntry\n    using CUDA_Runtime_jll\ncatch\n    # during initial package installation, CUDA_Runtime_jll may not be available.\n    # in that case, we just won't select an artifact.\nend\n\n# can't use Preferences for the same reason\nconst CUDA_Runtime_jll_uuid = Base.UUID(\"76a88914-d11a-5bdc-97e0-2f5a05c973a2\")\nconst preferences = Base.get_preferences(CUDA_Runtime_jll_uuid)\nBase.record_compiletime_preference(CUDA_Runtime_jll_uuid, \"version\")\nBase.record_compiletime_preference(CUDA_Runtime_jll_uuid, \"local\")\nconst local_toolkit = something(tryparse(Bool, get(preferences, \"local\", \"false\")), false)\n\nfunction cuda_comparison_strategy(_a::String, _b::String, a_requested::Bool, b_requested::Bool)\n    # if we're using a local toolkit, we can't use artifacts\n    if local_toolkit\n        return false\n    end\n\n    # if either isn't a version number (e.g. \"none\"), perform a simple equality check\n    a = tryparse(VersionNumber, _a)\n    b = tryparse(VersionNumber, _b)\n    if a === nothing || b === nothing\n        return _a == _b\n    end\n\n    # if both b and a requested, then we fall back to equality\n    if a_requested && b_requested\n        return Base.thisminor(a) == Base.thisminor(b)\n    end\n\n    # otherwise, do the comparison between the the single version cap and the single version:\n    function is_compatible(artifact::VersionNumber, host::VersionNumber)\n        if host >= v\"11.0\"\n            # enhanced compatibility, semver-style\n            artifact.major == host.major &&\n            Base.thisminor(artifact) <= Base.thisminor(host)\n        else\n            Base.thisminor(artifact) == Base.thisminor(host)\n        end\n    end\n    if a_requested\n        is_compatible(b, a)\n    else\n        is_compatible(a, b)\n    end\nend\n\nfunction augment_platform!(platform::Platform)\n    if !@isdefined(CUDA_Runtime_jll)\n        # don't set to nothing or Pkg will download any artifact\n        platform[\"cuda\"] = \"none\"\n    end\n\n    if !haskey(platform, \"cuda\")\n        CUDA_Runtime_jll.augment_platform!(platform)\n    end\n    BinaryPlatforms.set_compare_strategy!(platform, \"cuda\", cuda_comparison_strategy)\n\n    return platform\nend"""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = true
-        name = "CUDSS"
-        platforms = ["x86_64-linux-gnu-cuda+12.0", "aarch64-linux-gnu-cuda_platform+jetson-cuda+12.0", "aarch64-linux-gnu-cuda_platform+sbsa-cuda+12.0", "x86_64-w64-mingw32-cuda+12.0"]
-        script = """mkdir -p ${libdir} ${prefix}/include\n\ncd ${WORKSPACE}/srcdir\nif [[ ${target} == *-linux-gnu ]]; then\n\n    cd libcudss-*\n    install_license LICENSE\n    mv lib/libcudss*.so* ${libdir}\n    mv include/* ${prefix}/include\n\nelif [[ ${target} == x86_64-w64-mingw32 ]]; then\n\n    cd libcudss-*\n    install_license LICENSE\n    mv lib/cudss.lib ${prefix}/lib\n    mv bin/cudss*64_*.dll ${libdir}\n    mv include/* ${prefix}/include\n\n    # fixup\n    chmod +x ${libdir}/*.dll\nfi\n"""
-        version = "v0.3.0"
-
-            [["0.3.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "CUDA_Runtime_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "runtimedependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["0.3.0+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libcudss", "cudss64_0"]
-            type = "lib"
-            variable_name = "libcudss"
-
-            [["0.3.0+0".artifact_metadata.metadata.sources]]
-            hash = "acc90b40334cd2e4409ec9e4200c8276f7acd50d61b7349b4ffdaeda4b2bf515"
-            type = "archive"
-            unpack_target = ""
-            url = "https://developer.download.nvidia.com/compute/cudss/redist/libcudss/linux-x86_64/libcudss-linux-x86_64-0.3.0.9_cuda12-archive.tar.xz"
-            [["0.3.0+0".artifact_metadata.metadata.sources]]
-            hash = "857dea350bb19553bbd1f8eb55b1ed80a3783a6e184beb7eb7face8408462eb6"
-            type = "archive"
-            unpack_target = ""
-            url = "https://developer.download.nvidia.com/compute/cudss/redist/libcudss/linux-aarch64/libcudss-linux-aarch64-0.3.0.9_cuda12-archive.tar.xz"
-            [["0.3.0+0".artifact_metadata.metadata.sources]]
-            hash = "6eadd70e6442b43194e697c13080dae3cf1771257a334e7d7b658825a3e73a3b"
-            type = "archive"
-            unpack_target = ""
-            url = "https://developer.download.nvidia.com/compute/cudss/redist/libcudss/linux-sbsa/libcudss-linux-sbsa-0.3.0.9_cuda12-archive.tar.xz"
-            [["0.3.0+0".artifact_metadata.metadata.sources]]
-            hash = "ac0979610d3eda9e6ce803380587118c6ec72b7dc580e6e96392ac065010196f"
-            type = "archive"
-            unpack_target = ""
-            url = "https://developer.download.nvidia.com/compute/cudss/redist/libcudss/windows-x86_64/libcudss-windows-x86_64-0.3.0.9_cuda12-archive.zip"
 
 ["0.4.0+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.4.0+0/CUDSS.v0.4.0.aarch64-linux-gnu-cuda_platform+jetson-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.4.0+0/CUDSS.v0.4.0.aarch64-linux-gnu-cuda_platform+sbsa-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.4.0+0/CUDSS.v0.4.0.x86_64-linux-gnu-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.4.0+0/CUDSS.v0.4.0.x86_64-w64-mingw32-cuda+12.0.tar.gz"]
@@ -275,58 +65,10 @@ registered = 2024-12-11T15:57:34.000Z
     [["0.4.0+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.4.0+0/CUDSS.v0.4.0.aarch64-linux-gnu-cuda_platform+jetson-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.4.0+0/CUDSS.v0.4.0.aarch64-linux-gnu-cuda_platform+sbsa-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.4.0+0/CUDSS.v0.4.0.x86_64-linux-gnu-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.4.0+0/CUDSS.v0.4.0.x86_64-w64-mingw32-cuda+12.0.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/23bb021b0f0a885c33140bafb4618b7d247fa952/C/CUDA/CUDSS/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/c/cuda/cudss/build_tarballs.jl/23bb021b0f0a885c33140bafb4618b7d247fa952.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.6.0"
-
-        ["0.4.0+0".artifact_metadata.metadata]
-        augment_platform_block = """using Base.BinaryPlatforms\n\ntry\n    using CUDA_Runtime_jll\ncatch\n    # during initial package installation, CUDA_Runtime_jll may not be available.\n    # in that case, we just won't select an artifact.\nend\n\n# can't use Preferences for the same reason\nconst CUDA_Runtime_jll_uuid = Base.UUID(\"76a88914-d11a-5bdc-97e0-2f5a05c973a2\")\nconst preferences = Base.get_preferences(CUDA_Runtime_jll_uuid)\nBase.record_compiletime_preference(CUDA_Runtime_jll_uuid, \"version\")\nBase.record_compiletime_preference(CUDA_Runtime_jll_uuid, \"local\")\nconst local_toolkit = something(tryparse(Bool, get(preferences, \"local\", \"false\")), false)\n\nfunction cuda_comparison_strategy(_a::String, _b::String, a_requested::Bool, b_requested::Bool)\n    # if we're using a local toolkit, we can't use artifacts\n    if local_toolkit\n        return false\n    end\n\n    # if either isn't a version number (e.g. \"none\"), perform a simple equality check\n    a = tryparse(VersionNumber, _a)\n    b = tryparse(VersionNumber, _b)\n    if a === nothing || b === nothing\n        return _a == _b\n    end\n\n    # if both b and a requested, then we fall back to equality\n    if a_requested && b_requested\n        return Base.thisminor(a) == Base.thisminor(b)\n    end\n\n    # otherwise, do the comparison between the the single version cap and the single version:\n    function is_compatible(artifact::VersionNumber, host::VersionNumber)\n        if host >= v\"11.0\"\n            # enhanced compatibility, semver-style\n            artifact.major == host.major &&\n            Base.thisminor(artifact) <= Base.thisminor(host)\n        else\n            Base.thisminor(artifact) == Base.thisminor(host)\n        end\n    end\n    if a_requested\n        is_compatible(b, a)\n    else\n        is_compatible(a, b)\n    end\nend\n\nfunction augment_platform!(platform::Platform)\n    if !@isdefined(CUDA_Runtime_jll)\n        # don't set to nothing or Pkg will download any artifact\n        platform[\"cuda\"] = \"none\"\n    end\n\n    if !haskey(platform, \"cuda\")\n        CUDA_Runtime_jll.augment_platform!(platform)\n    end\n    BinaryPlatforms.set_compare_strategy!(platform, \"cuda\", cuda_comparison_strategy)\n\n    return platform\nend"""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = true
-        name = "CUDSS"
-        platforms = ["x86_64-linux-gnu-cuda+12.0", "aarch64-linux-gnu-cuda_platform+jetson-cuda+12.0", "aarch64-linux-gnu-cuda_platform+sbsa-cuda+12.0", "x86_64-w64-mingw32-cuda+12.0"]
-        script = """mkdir -p ${libdir} ${prefix}/include\n\ncd ${WORKSPACE}/srcdir\nif [[ ${target} == *-linux-gnu ]]; then\n\n    cd libcudss-*\n    install_license LICENSE\n    mv lib/libcudss*.so* ${libdir}\n    mv include/* ${prefix}/include\n\nelif [[ ${target} == x86_64-w64-mingw32 ]]; then\n\n    cd libcudss-*\n    install_license LICENSE\n    mv lib/cudss.lib ${prefix}/lib\n    mv bin/cudss*64_*.dll ${libdir}\n    mv include/* ${prefix}/include\n\n    # fixup\n    chmod +x ${libdir}/*.dll\nfi\n"""
-        version = "v0.4.0"
-
-            [["0.4.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "CUDA_Runtime_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "runtimedependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["0.4.0+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libcudss", "cudss64_0"]
-            type = "lib"
-            variable_name = "libcudss"
-
-            [["0.4.0+0".artifact_metadata.metadata.sources]]
-            hash = "64d77f5a3d2fafc99704da0c0e686d920265708358b9ced5755da713f3ff0620"
-            type = "archive"
-            unpack_target = ""
-            url = "https://developer.download.nvidia.com/compute/cudss/redist/libcudss/linux-x86_64/libcudss-linux-x86_64-0.4.0.2_cuda12-archive.tar.xz"
-            [["0.4.0+0".artifact_metadata.metadata.sources]]
-            hash = "915f3a611af8baaa76bfe3c82a2e3ca88f400597ade0566206313a8ec3852cf3"
-            type = "archive"
-            unpack_target = ""
-            url = "https://developer.download.nvidia.com/compute/cudss/redist/libcudss/linux-aarch64/libcudss-linux-aarch64-0.4.0.2_cuda12-archive.tar.xz"
-            [["0.4.0+0".artifact_metadata.metadata.sources]]
-            hash = "b52dfec1ee10bf49c706dd36d4808e7fa02f3c8a85f1c2bb7e0da48dcae51cb0"
-            type = "archive"
-            unpack_target = ""
-            url = "https://developer.download.nvidia.com/compute/cudss/redist/libcudss/linux-sbsa/libcudss-linux-sbsa-0.4.0.2_cuda12-archive.tar.xz"
-            [["0.4.0+0".artifact_metadata.metadata.sources]]
-            hash = "d0801e78eab1be1240198e292bc496bb1804f2068975aaaf80ba31c3e400c625"
-            type = "archive"
-            unpack_target = ""
-            url = "https://developer.download.nvidia.com/compute/cudss/redist/libcudss/windows-x86_64/libcudss-windows-x86_64-0.4.0.2_cuda12-archive.zip"
 
 ["0.5.0+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.5.0+0/CUDSS.v0.5.0.aarch64-linux-gnu-cuda_platform+jetson-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.5.0+0/CUDSS.v0.5.0.aarch64-linux-gnu-cuda_platform+sbsa-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.5.0+0/CUDSS.v0.5.0.x86_64-linux-gnu-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.5.0+0/CUDSS.v0.5.0.x86_64-w64-mingw32-cuda+12.0.tar.gz"]
@@ -335,76 +77,10 @@ registered = 2025-02-24T16:20:15.000Z
     [["0.5.0+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.5.0+0/CUDSS.v0.5.0.aarch64-linux-gnu-cuda_platform+jetson-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.5.0+0/CUDSS.v0.5.0.aarch64-linux-gnu-cuda_platform+sbsa-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.5.0+0/CUDSS.v0.5.0.x86_64-linux-gnu-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.5.0+0/CUDSS.v0.5.0.x86_64-w64-mingw32-cuda+12.0.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/58b5a4db7f4aa78c7f6e9685b8a8e2d937539e66/C/CUDA/CUDSS/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/c/cuda/cudss/build_tarballs.jl/58b5a4db7f4aa78c7f6e9685b8a8e2d937539e66.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.6.4"
-
-        ["0.5.0+0".artifact_metadata.metadata]
-        augment_platform_block = """using Base.BinaryPlatforms\n\ntry\n    using CUDA_Runtime_jll\ncatch\n    # during initial package installation, CUDA_Runtime_jll may not be available.\n    # in that case, we just won't select an artifact.\nend\n\n# can't use Preferences for the same reason\nconst CUDA_Runtime_jll_uuid = Base.UUID(\"76a88914-d11a-5bdc-97e0-2f5a05c973a2\")\nconst preferences = Base.get_preferences(CUDA_Runtime_jll_uuid)\nBase.record_compiletime_preference(CUDA_Runtime_jll_uuid, \"version\")\nBase.record_compiletime_preference(CUDA_Runtime_jll_uuid, \"local\")\nconst local_toolkit = something(tryparse(Bool, get(preferences, \"local\", \"false\")), false)\n\nfunction cuda_comparison_strategy(_a::String, _b::String, a_requested::Bool, b_requested::Bool)\n    # if we're using a local toolkit, we can't use artifacts\n    if local_toolkit\n        return false\n    end\n\n    # if either isn't a version number (e.g. \"none\"), perform a simple equality check\n    a = tryparse(VersionNumber, _a)\n    b = tryparse(VersionNumber, _b)\n    if a === nothing || b === nothing\n        return _a == _b\n    end\n\n    # if both b and a requested, then we fall back to equality\n    if a_requested && b_requested\n        return Base.thisminor(a) == Base.thisminor(b)\n    end\n\n    # otherwise, do the comparison between the the single version cap and the single version:\n    function is_compatible(artifact::VersionNumber, host::VersionNumber)\n        if host >= v\"11.0\"\n            # enhanced compatibility, semver-style\n            artifact.major == host.major &&\n            Base.thisminor(artifact) <= Base.thisminor(host)\n        else\n            Base.thisminor(artifact) == Base.thisminor(host)\n        end\n    end\n    if a_requested\n        is_compatible(b, a)\n    else\n        is_compatible(a, b)\n    end\nend\n\nfunction augment_platform!(platform::Platform)\n    if !@isdefined(CUDA_Runtime_jll)\n        # don't set to nothing or Pkg will download any artifact\n        platform[\"cuda\"] = \"none\"\n    end\n\n    if !haskey(platform, \"cuda\")\n        CUDA_Runtime_jll.augment_platform!(platform)\n    end\n    BinaryPlatforms.set_compare_strategy!(platform, \"cuda\", cuda_comparison_strategy)\n\n    return platform\nend"""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = true
-        name = "CUDSS"
-        platforms = ["x86_64-linux-gnu-cuda+12.0", "aarch64-linux-gnu-cuda_platform+jetson-cuda+12.0", "aarch64-linux-gnu-cuda_platform+sbsa-cuda+12.0", "x86_64-w64-mingw32-cuda+12.0"]
-        script = """mkdir -p ${libdir} ${prefix}/include\n\ncd ${WORKSPACE}/srcdir\nif [[ ${target} == *-linux-gnu ]]; then\n\n    cd libcudss-*\n    install_license LICENSE\n    mv lib/libcudss*.so* ${libdir}\n    mv include/* ${prefix}/include\n\nelif [[ ${target} == x86_64-w64-mingw32 ]]; then\n\n    cd libcudss-*\n    install_license LICENSE\n    mv lib/cudss*.lib ${prefix}/lib\n    mv bin/cudss*.dll ${libdir}\n    mv include/* ${prefix}/include\n\n    # fixup\n    chmod +x ${libdir}/*.dll\nfi\n"""
-        version = "v0.5.0"
-
-            [["0.5.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "CompilerSupportLibraries_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["0.5.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "CUDA_Runtime_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "runtimedependency"
-            uuid = "76a88914-d11a-5bdc-97e0-2f5a05c973a2"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["0.5.0+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libcudss", "cudss64_0"]
-            type = "lib"
-            variable_name = "libcudss"
-            [["0.5.0+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libcudss_mtlayer_gomp", "cudss_mtlayer_vcomp140"]
-            type = "lib"
-            variable_name = "libcudss_mtlayer"
-
-            [["0.5.0+0".artifact_metadata.metadata.sources]]
-            hash = "5245d2ba26a590839e2f1dd074f87e39ee5cc201c3b29245b35c7060d59c37a5"
-            type = "archive"
-            unpack_target = ""
-            url = "https://developer.download.nvidia.com/compute/cudss/redist/libcudss/linux-x86_64/libcudss-linux-x86_64-0.5.0.16_cuda12-archive.tar.xz"
-            [["0.5.0+0".artifact_metadata.metadata.sources]]
-            hash = "5d07496e90fc0afb334a7e434c86c6083b1e8cf56dc65d70a01bd811e54096d7"
-            type = "archive"
-            unpack_target = ""
-            url = "https://developer.download.nvidia.com/compute/cudss/redist/libcudss/linux-aarch64/libcudss-linux-aarch64-0.5.0.16_cuda12-archive.tar.xz"
-            [["0.5.0+0".artifact_metadata.metadata.sources]]
-            hash = "cb59cfa26b3a4277c55ddc700ef65bffb5369d4afc2cdf08c20a9ae324bed664"
-            type = "archive"
-            unpack_target = ""
-            url = "https://developer.download.nvidia.com/compute/cudss/redist/libcudss/linux-sbsa/libcudss-linux-sbsa-0.5.0.16_cuda12-archive.tar.xz"
-            [["0.5.0+0".artifact_metadata.metadata.sources]]
-            hash = "f9e0394bc839870c7e01abea2cb433a9352adaa91146ec25cca5960905c2c72e"
-            type = "archive"
-            unpack_target = ""
-            url = "https://developer.download.nvidia.com/compute/cudss/redist/libcudss/windows-x86_64/libcudss-windows-x86_64-0.5.0.16_cuda12-archive.zip"
 
 ["0.6.0+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.6.0+0/CUDSS.v0.6.0.aarch64-linux-gnu-cuda_platform+jetson-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.6.0+0/CUDSS.v0.6.0.aarch64-linux-gnu-cuda_platform+sbsa-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.6.0+0/CUDSS.v0.6.0.x86_64-linux-gnu-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.6.0+0/CUDSS.v0.6.0.x86_64-w64-mingw32-cuda+12.0.tar.gz"]
@@ -413,69 +89,10 @@ registered = 2025-06-17T03:06:43.000Z
     [["0.6.0+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.6.0+0/CUDSS.v0.6.0.aarch64-linux-gnu-cuda_platform+jetson-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.6.0+0/CUDSS.v0.6.0.aarch64-linux-gnu-cuda_platform+sbsa-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.6.0+0/CUDSS.v0.6.0.x86_64-linux-gnu-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.6.0+0/CUDSS.v0.6.0.x86_64-w64-mingw32-cuda+12.0.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/3086d2ed6d2611c9f636d18dcfb4d1f27d126683/C/CUDA/CUDSS/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/c/cuda/cudss/build_tarballs.jl/3086d2ed6d2611c9f636d18dcfb4d1f27d126683.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.6.4"
-
-        ["0.6.0+0".artifact_metadata.metadata]
-        augment_platform_block = """using Base.BinaryPlatforms\n\ntry\n    using CUDA_Runtime_jll\ncatch\n    # during initial package installation, CUDA_Runtime_jll may not be available.\n    # in that case, we just won't select an artifact.\nend\n\n# can't use Preferences for the same reason\nconst CUDA_Runtime_jll_uuid = Base.UUID(\"76a88914-d11a-5bdc-97e0-2f5a05c973a2\")\nconst preferences = Base.get_preferences(CUDA_Runtime_jll_uuid)\nBase.record_compiletime_preference(CUDA_Runtime_jll_uuid, \"version\")\nBase.record_compiletime_preference(CUDA_Runtime_jll_uuid, \"local\")\nconst local_toolkit = something(tryparse(Bool, get(preferences, \"local\", \"false\")), false)\n\nfunction cuda_comparison_strategy(_a::String, _b::String, a_requested::Bool, b_requested::Bool)\n    # if we're using a local toolkit, we can't use artifacts\n    if local_toolkit\n        return false\n    end\n\n    # if either isn't a version number (e.g. \"none\"), perform a simple equality check\n    a = tryparse(VersionNumber, _a)\n    b = tryparse(VersionNumber, _b)\n    if a === nothing || b === nothing\n        return _a == _b\n    end\n\n    # if both b and a requested, then we fall back to equality\n    if a_requested && b_requested\n        return Base.thisminor(a) == Base.thisminor(b)\n    end\n\n    # otherwise, do the comparison between the the single version cap and the single version:\n    function is_compatible(artifact::VersionNumber, host::VersionNumber)\n        if host >= v\"11.0\"\n            # enhanced compatibility, semver-style\n            artifact.major == host.major &&\n            Base.thisminor(artifact) <= Base.thisminor(host)\n        else\n            Base.thisminor(artifact) == Base.thisminor(host)\n        end\n    end\n    if a_requested\n        is_compatible(b, a)\n    else\n        is_compatible(a, b)\n    end\nend\n\nfunction augment_platform!(platform::Platform)\n    if !@isdefined(CUDA_Runtime_jll)\n        # don't set to nothing or Pkg will download any artifact\n        platform[\"cuda\"] = \"none\"\n    end\n\n    if !haskey(platform, \"cuda\")\n        CUDA_Runtime_jll.augment_platform!(platform)\n    end\n    BinaryPlatforms.set_compare_strategy!(platform, \"cuda\", cuda_comparison_strategy)\n\n    return platform\nend"""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = true
-        name = "CUDSS"
-        platforms = ["x86_64-linux-gnu-cuda+12.0", "aarch64-linux-gnu-cuda_platform+jetson-cuda+12.0", "aarch64-linux-gnu-cuda_platform+sbsa-cuda+12.0", "x86_64-w64-mingw32-cuda+12.0"]
-        script = """mkdir -p ${libdir} ${prefix}/include\n\ncd ${WORKSPACE}/srcdir\nif [[ ${target} == *-linux-gnu ]]; then\n\n    cd libcudss-*\n    install_license LICENSE\n    mv lib/libcudss*.so* ${libdir}\n    mv include/* ${prefix}/include\n\nelif [[ ${target} == x86_64-w64-mingw32 ]]; then\n\n    cd libcudss-*\n    install_license LICENSE\n    mv lib/cudss*.lib ${prefix}/lib\n    mv bin/cudss*.dll ${libdir}\n    mv include/* ${prefix}/include\n\n    # fixup\n    chmod +x ${libdir}/*.dll\nfi\n"""
-        version = "v0.6.0"
-
-            [["0.6.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "CompilerSupportLibraries_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["0.6.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "CUDA_Runtime_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "runtimedependency"
-            uuid = "76a88914-d11a-5bdc-97e0-2f5a05c973a2"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["0.6.0+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libcudss", "cudss64_0"]
-            type = "lib"
-            variable_name = "libcudss"
-
-            [["0.6.0+0".artifact_metadata.metadata.sources]]
-            hash = "159ce1d4e3e4bba13b0bd15cf943e44b869c53b7a94f9bac980768c927f02e75"
-            type = "archive"
-            unpack_target = ""
-            url = "https://developer.download.nvidia.com/compute/cudss/redist/libcudss/linux-x86_64/libcudss-linux-x86_64-0.6.0.5_cuda12-archive.tar.xz"
-            [["0.6.0+0".artifact_metadata.metadata.sources]]
-            hash = "e6f5d5122d735f9dbfd42c9eaba067a557a5613ee4a6001806935de11aff4b09"
-            type = "archive"
-            unpack_target = ""
-            url = "https://developer.download.nvidia.com/compute/cudss/redist/libcudss/linux-aarch64/libcudss-linux-aarch64-0.6.0.5_cuda12-archive.tar.xz"
-            [["0.6.0+0".artifact_metadata.metadata.sources]]
-            hash = "b56cd0841c543bb81b2665063967f56cf3a3a22a445ddf1642c7f765f2059b42"
-            type = "archive"
-            unpack_target = ""
-            url = "https://developer.download.nvidia.com/compute/cudss/redist/libcudss/linux-sbsa/libcudss-linux-sbsa-0.6.0.5_cuda12-archive.tar.xz"
-            [["0.6.0+0".artifact_metadata.metadata.sources]]
-            hash = "45319317d9f67fecc9af7e5cf162cb46111f5d35b06871c147fa8f030d7cecc5"
-            type = "archive"
-            unpack_target = ""
-            url = "https://developer.download.nvidia.com/compute/cudss/redist/libcudss/windows-x86_64/libcudss-windows-x86_64-0.6.0.5_cuda12-archive.zip"
 
 ["0.7.0+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.7.0+0/CUDSS.v0.7.0.aarch64-linux-gnu-cuda+13.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.7.0+0/CUDSS.v0.7.0.aarch64-linux-gnu-cuda_platform+jetson-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.7.0+0/CUDSS.v0.7.0.aarch64-linux-gnu-cuda_platform+sbsa-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.7.0+0/CUDSS.v0.7.0.x86_64-linux-gnu-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.7.0+0/CUDSS.v0.7.0.x86_64-linux-gnu-cuda+13.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.7.0+0/CUDSS.v0.7.0.x86_64-w64-mingw32-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.7.0+0/CUDSS.v0.7.0.x86_64-w64-mingw32-cuda+13.0.tar.gz"]
@@ -484,84 +101,10 @@ registered = 2025-10-02T12:47:48.000Z
     [["0.7.0+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.7.0+0/CUDSS.v0.7.0.aarch64-linux-gnu-cuda+13.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.7.0+0/CUDSS.v0.7.0.aarch64-linux-gnu-cuda_platform+jetson-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.7.0+0/CUDSS.v0.7.0.aarch64-linux-gnu-cuda_platform+sbsa-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.7.0+0/CUDSS.v0.7.0.x86_64-linux-gnu-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.7.0+0/CUDSS.v0.7.0.x86_64-linux-gnu-cuda+13.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.7.0+0/CUDSS.v0.7.0.x86_64-w64-mingw32-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.7.0+0/CUDSS.v0.7.0.x86_64-w64-mingw32-cuda+13.0.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/5ba4f95970ae3706c339b75ed53bce66c0a0733e/C/CUDA/CUDSS/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/c/cuda/cudss/build_tarballs.jl/5ba4f95970ae3706c339b75ed53bce66c0a0733e.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.6.5"
-
-        ["0.7.0+0".artifact_metadata.metadata]
-        augment_platform_block = """using Base.BinaryPlatforms\n\ntry\n    using CUDA_Runtime_jll\ncatch\n    # during initial package installation, CUDA_Runtime_jll may not be available.\n    # in that case, we just won't select an artifact.\nend\n\n# can't use Preferences for the same reason\nconst CUDA_Runtime_jll_uuid = Base.UUID(\"76a88914-d11a-5bdc-97e0-2f5a05c973a2\")\nconst preferences = Base.get_preferences(CUDA_Runtime_jll_uuid)\nBase.record_compiletime_preference(CUDA_Runtime_jll_uuid, \"version\")\nBase.record_compiletime_preference(CUDA_Runtime_jll_uuid, \"local\")\nconst local_toolkit = something(tryparse(Bool, get(preferences, \"local\", \"false\")), false)\n\nfunction cuda_comparison_strategy(_a::String, _b::String, a_requested::Bool, b_requested::Bool)\n    # if we're using a local toolkit, we can't use artifacts\n    if local_toolkit\n        return false\n    end\n\n    # if either isn't a version number (e.g. \"none\"), perform a simple equality check\n    a = tryparse(VersionNumber, _a)\n    b = tryparse(VersionNumber, _b)\n    if a === nothing || b === nothing\n        return _a == _b\n    end\n\n    # if both b and a requested, then we fall back to equality\n    if a_requested && b_requested\n        return Base.thisminor(a) == Base.thisminor(b)\n    end\n\n    # otherwise, do the comparison between the the single version cap and the single version:\n    function is_compatible(artifact::VersionNumber, host::VersionNumber)\n        if host >= v\"11.0\"\n            # enhanced compatibility, semver-style\n            artifact.major == host.major &&\n            Base.thisminor(artifact) <= Base.thisminor(host)\n        else\n            Base.thisminor(artifact) == Base.thisminor(host)\n        end\n    end\n    if a_requested\n        is_compatible(b, a)\n    else\n        is_compatible(a, b)\n    end\nend\n\nfunction augment_platform!(platform::Platform)\n    if !@isdefined(CUDA_Runtime_jll)\n        # don't set to nothing or Pkg will download any artifact\n        platform[\"cuda\"] = \"none\"\n    end\n\n    if !haskey(platform, \"cuda\")\n        CUDA_Runtime_jll.augment_platform!(platform)\n    end\n    BinaryPlatforms.set_compare_strategy!(platform, \"cuda\", cuda_comparison_strategy)\n\n    return platform\nend"""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = true
-        name = "CUDSS"
-        platforms = ["x86_64-linux-gnu-cuda+12.0", "aarch64-linux-gnu-cuda_platform+jetson-cuda+12.0", "aarch64-linux-gnu-cuda_platform+sbsa-cuda+12.0", "x86_64-w64-mingw32-cuda+12.0", "x86_64-linux-gnu-cuda+13.0", "aarch64-linux-gnu-cuda+13.0", "x86_64-w64-mingw32-cuda+13.0"]
-        script = """mkdir -p ${libdir} ${prefix}/include\n\ncd ${WORKSPACE}/srcdir\nif [[ ${target} == *-linux-gnu ]]; then\n\n    cd libcudss-*\n    install_license LICENSE\n    mv lib/libcudss*.so* ${libdir}\n    mv include/* ${prefix}/include\n\nelif [[ ${target} == x86_64-w64-mingw32 ]]; then\n\n    cd libcudss-*\n    install_license LICENSE\n    mv lib/cudss*.lib ${prefix}/lib\n    mv bin/cudss*.dll ${libdir}\n    mv include/* ${prefix}/include\n\n    # fixup\n    chmod +x ${libdir}/*.dll\nfi\n"""
-        version = "v0.7.0"
-
-            [["0.7.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "CompilerSupportLibraries_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["0.7.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "CUDA_Runtime_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "runtimedependency"
-            uuid = "76a88914-d11a-5bdc-97e0-2f5a05c973a2"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["0.7.0+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libcudss", "cudss64_0"]
-            type = "lib"
-            variable_name = "libcudss"
-
-            [["0.7.0+0".artifact_metadata.metadata.sources]]
-            hash = "c98d5ef87e8b6a356b21a678715033b19620ce58b5fa64c97e25e6d3e76e42dc"
-            type = "archive"
-            unpack_target = ""
-            url = "https://developer.download.nvidia.com/compute/cudss/redist/libcudss/linux-x86_64/libcudss-linux-x86_64-0.7.0.20_cuda12-archive.tar.xz"
-            [["0.7.0+0".artifact_metadata.metadata.sources]]
-            hash = "ce3de5e6a0cee00fd1fc355881308ef0c692c6e14b6a5625aa35a7f9df98b846"
-            type = "archive"
-            unpack_target = ""
-            url = "https://developer.download.nvidia.com/compute/cudss/redist/libcudss/linux-aarch64/libcudss-linux-aarch64-0.7.0.20_cuda12-archive.tar.xz"
-            [["0.7.0+0".artifact_metadata.metadata.sources]]
-            hash = "92f3425e7badcd2d6324efbe8c7ca314a36295ab550238f7772137c3652d7884"
-            type = "archive"
-            unpack_target = ""
-            url = "https://developer.download.nvidia.com/compute/cudss/redist/libcudss/linux-sbsa/libcudss-linux-sbsa-0.7.0.20_cuda12-archive.tar.xz"
-            [["0.7.0+0".artifact_metadata.metadata.sources]]
-            hash = "69b7e5dc98f2d6242eb8e072d7a73e1f573d8a1bb65d97463ba72e9334d67f58"
-            type = "archive"
-            unpack_target = ""
-            url = "https://developer.download.nvidia.com/compute/cudss/redist/libcudss/windows-x86_64/libcudss-windows-x86_64-0.7.0.20_cuda12-archive.zip"
-            [["0.7.0+0".artifact_metadata.metadata.sources]]
-            hash = "939606e8d062ee0fc28094e7be19e22191662e8593bc7f5eec16220ad836feb9"
-            type = "archive"
-            unpack_target = ""
-            url = "https://developer.download.nvidia.com/compute/cudss/redist/libcudss/linux-x86_64/libcudss-linux-x86_64-0.7.0.20_cuda13-archive.tar.xz"
-            [["0.7.0+0".artifact_metadata.metadata.sources]]
-            hash = "f915eb581ab965d0baa74cd1e529086fce00e9d14d9366da4480b5ef7fabb8a6"
-            type = "archive"
-            unpack_target = ""
-            url = "https://developer.download.nvidia.com/compute/cudss/redist/libcudss/linux-sbsa/libcudss-linux-sbsa-0.7.0.20_cuda13-archive.tar.xz"
-            [["0.7.0+0".artifact_metadata.metadata.sources]]
-            hash = "a35f34a1995b5951cfe5b625e17d33ebe0e7e487476b5315a229cf348dcc2c0b"
-            type = "archive"
-            unpack_target = ""
-            url = "https://developer.download.nvidia.com/compute/cudss/redist/libcudss/windows-x86_64/libcudss-windows-x86_64-0.7.0.20_cuda13-archive.zip"
 
 ["0.7.1+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.7.1+0/CUDSS.v0.7.1.aarch64-linux-gnu-cuda+13.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.7.1+0/CUDSS.v0.7.1.aarch64-linux-gnu-cuda_platform+jetson-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.7.1+0/CUDSS.v0.7.1.aarch64-linux-gnu-cuda_platform+sbsa-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.7.1+0/CUDSS.v0.7.1.x86_64-linux-gnu-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.7.1+0/CUDSS.v0.7.1.x86_64-linux-gnu-cuda+13.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.7.1+0/CUDSS.v0.7.1.x86_64-w64-mingw32-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.7.1+0/CUDSS.v0.7.1.x86_64-w64-mingw32-cuda+13.0.tar.gz"]
@@ -570,81 +113,7 @@ registered = 2025-10-21T14:10:00.000Z
     [["0.7.1+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.7.1+0/CUDSS.v0.7.1.aarch64-linux-gnu-cuda+13.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.7.1+0/CUDSS.v0.7.1.aarch64-linux-gnu-cuda_platform+jetson-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.7.1+0/CUDSS.v0.7.1.aarch64-linux-gnu-cuda_platform+sbsa-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.7.1+0/CUDSS.v0.7.1.x86_64-linux-gnu-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.7.1+0/CUDSS.v0.7.1.x86_64-linux-gnu-cuda+13.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.7.1+0/CUDSS.v0.7.1.x86_64-w64-mingw32-cuda+12.0.tar.gz", "https://github.com/JuliaBinaryWrappers/CUDSS_jll.jl/releases/download/CUDSS-v0.7.1+0/CUDSS.v0.7.1.x86_64-w64-mingw32-cuda+13.0.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/2d07bff8b2e601306f34d274954ef5193ccd4b0e/C/CUDA/CUDSS/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/c/cuda/cudss/build_tarballs.jl/2d07bff8b2e601306f34d274954ef5193ccd4b0e.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.6.5"
-
-        ["0.7.1+0".artifact_metadata.metadata]
-        augment_platform_block = """using Base.BinaryPlatforms\n\ntry\n    using CUDA_Runtime_jll\ncatch\n    # during initial package installation, CUDA_Runtime_jll may not be available.\n    # in that case, we just won't select an artifact.\nend\n\n# can't use Preferences for the same reason\nconst CUDA_Runtime_jll_uuid = Base.UUID(\"76a88914-d11a-5bdc-97e0-2f5a05c973a2\")\nconst preferences = Base.get_preferences(CUDA_Runtime_jll_uuid)\nBase.record_compiletime_preference(CUDA_Runtime_jll_uuid, \"version\")\nBase.record_compiletime_preference(CUDA_Runtime_jll_uuid, \"local\")\nconst local_toolkit = something(tryparse(Bool, get(preferences, \"local\", \"false\")), false)\n\nfunction cuda_comparison_strategy(_a::String, _b::String, a_requested::Bool, b_requested::Bool)\n    # if we're using a local toolkit, we can't use artifacts\n    if local_toolkit\n        return false\n    end\n\n    # if either isn't a version number (e.g. \"none\"), perform a simple equality check\n    a = tryparse(VersionNumber, _a)\n    b = tryparse(VersionNumber, _b)\n    if a === nothing || b === nothing\n        return _a == _b\n    end\n\n    # if both b and a requested, then we fall back to equality\n    if a_requested && b_requested\n        return Base.thisminor(a) == Base.thisminor(b)\n    end\n\n    # otherwise, do the comparison between the the single version cap and the single version:\n    function is_compatible(artifact::VersionNumber, host::VersionNumber)\n        if host >= v\"11.0\"\n            # enhanced compatibility, semver-style\n            artifact.major == host.major &&\n            Base.thisminor(artifact) <= Base.thisminor(host)\n        else\n            Base.thisminor(artifact) == Base.thisminor(host)\n        end\n    end\n    if a_requested\n        is_compatible(b, a)\n    else\n        is_compatible(a, b)\n    end\nend\n\nfunction augment_platform!(platform::Platform)\n    if !@isdefined(CUDA_Runtime_jll)\n        # don't set to nothing or Pkg will download any artifact\n        platform[\"cuda\"] = \"none\"\n    end\n\n    if !haskey(platform, \"cuda\")\n        CUDA_Runtime_jll.augment_platform!(platform)\n    end\n    BinaryPlatforms.set_compare_strategy!(platform, \"cuda\", cuda_comparison_strategy)\n\n    return platform\nend"""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = true
-        name = "CUDSS"
-        platforms = ["x86_64-linux-gnu-cuda+12.0", "aarch64-linux-gnu-cuda_platform+jetson-cuda+12.0", "aarch64-linux-gnu-cuda_platform+sbsa-cuda+12.0", "x86_64-w64-mingw32-cuda+12.0", "x86_64-linux-gnu-cuda+13.0", "aarch64-linux-gnu-cuda+13.0", "x86_64-w64-mingw32-cuda+13.0"]
-        script = """mkdir -p ${libdir} ${prefix}/include\n\ncd ${WORKSPACE}/srcdir\nif [[ ${target} == *-linux-gnu ]]; then\n\n    cd libcudss-*\n    install_license LICENSE\n    mv lib/libcudss*.so* ${libdir}\n    mv include/* ${prefix}/include\n\nelif [[ ${target} == x86_64-w64-mingw32 ]]; then\n\n    cd libcudss-*\n    install_license LICENSE\n    mv lib/cudss*.lib ${prefix}/lib\n    mv bin/cudss*.dll ${libdir}\n    mv include/* ${prefix}/include\n\n    # fixup\n    chmod +x ${libdir}/*.dll\nfi\n"""
-        version = "v0.7.1"
-
-            [["0.7.1+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "CompilerSupportLibraries_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["0.7.1+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "CUDA_Runtime_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "runtimedependency"
-            uuid = "76a88914-d11a-5bdc-97e0-2f5a05c973a2"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["0.7.1+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libcudss", "cudss64_0"]
-            type = "lib"
-            variable_name = "libcudss"
-
-            [["0.7.1+0".artifact_metadata.metadata.sources]]
-            hash = "946571d9ea164f948e402dd97a14541cb90fbec800336cfa7ae644af5937632f"
-            type = "archive"
-            unpack_target = ""
-            url = "https://developer.download.nvidia.com/compute/cudss/redist/libcudss/linux-x86_64/libcudss-linux-x86_64-0.7.1.4_cuda12-archive.tar.xz"
-            [["0.7.1+0".artifact_metadata.metadata.sources]]
-            hash = "f283c31b6badf4a5277014295705eac8e6e28f27de30d746719ea1cef7a750b8"
-            type = "archive"
-            unpack_target = ""
-            url = "https://developer.download.nvidia.com/compute/cudss/redist/libcudss/linux-aarch64/libcudss-linux-aarch64-0.7.1.4_cuda12-archive.tar.xz"
-            [["0.7.1+0".artifact_metadata.metadata.sources]]
-            hash = "a4ddd47ad711243bbea0da2d6520799595cc8d79aa740927e0855c0b8cb69cf8"
-            type = "archive"
-            unpack_target = ""
-            url = "https://developer.download.nvidia.com/compute/cudss/redist/libcudss/linux-sbsa/libcudss-linux-sbsa-0.7.1.4_cuda12-archive.tar.xz"
-            [["0.7.1+0".artifact_metadata.metadata.sources]]
-            hash = "b27a8af56a66ea4a15dadb6f3d4c3f8ce3acdc987d911f99b56801643b99528a"
-            type = "archive"
-            unpack_target = ""
-            url = "https://developer.download.nvidia.com/compute/cudss/redist/libcudss/windows-x86_64/libcudss-windows-x86_64-0.7.1.4_cuda12-archive.zip"
-            [["0.7.1+0".artifact_metadata.metadata.sources]]
-            hash = "84b34ebe7fad40ec10f2aab2957a63b6070bd8ce16e3ada3e6bcac7317256347"
-            type = "archive"
-            unpack_target = ""
-            url = "https://developer.download.nvidia.com/compute/cudss/redist/libcudss/linux-x86_64/libcudss-linux-x86_64-0.7.1.4_cuda13-archive.tar.xz"
-            [["0.7.1+0".artifact_metadata.metadata.sources]]
-            hash = "de8295cb6773992bd1ca7e2ad93caae1fd18eba39175f0101b85d53abd3e0179"
-            type = "archive"
-            unpack_target = ""
-            url = "https://developer.download.nvidia.com/compute/cudss/redist/libcudss/linux-sbsa/libcudss-linux-sbsa-0.7.1.4_cuda13-archive.tar.xz"
-            [["0.7.1+0".artifact_metadata.metadata.sources]]
-            hash = "545cd15505d7c3b6e3f2af5209ea5be33e764a92194dc9d05fa8d50a1320a86a"
-            type = "archive"
-            unpack_target = ""
-            url = "https://developer.download.nvidia.com/compute/cudss/redist/libcudss/windows-x86_64/libcudss-windows-x86_64-0.7.1.4_cuda13-archive.zip"

@@ -1,0 +1,23 @@
+dependencies = []
+lazy_artifacts = false
+name = "DecFP"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/IntelRDFPMathLib20U2\npatch --binary -p1 < $WORKSPACE/srcdir/patches/decfp.patch\ncd LIBRARY\nif [[ $nbits == 64 ]]; then\n     _HOST_ARCH=x86_64\nelse\n     _HOST_ARCH=x86\nfi\nif [[ $target == *-w64-* ]]; then\n    _HOST_OS=\"Windows_NT\"\n    objext=\"obj\"\nelif [[ $target == *-freebsd* ]]; then\n    _HOST_OS=\"FreeBSD\"\n    objext=\"o\"\nelse\n    # Linux and macOS/Darwin\n    _HOST_OS=\"Linux\"\n    objext=\"o\"\nfi\nCFLAGS_OPT=\"-fPIC -fsigned-char -D__ENABLE_BINARY80__=0\"\nif [[ $target == *\"-musl\"* ]]; then\n    CFLAGS_OPT+=\" -D__QNX__\"\nelif [[ $target == *\"freebsd\"* ]]; then\n    CFLAGS_OPT+=\" -D__linux\"\nfi\nmake CC_NAME=cc CFLAGS_OPT=\"$CFLAGS_OPT\" CFLAGS=\"$CFLAGS_OPT\" _HOST_OS=\"$_HOST_OS\" AR_CMD=\"ar rv\" _HOST_ARCH=$_HOST_ARCH CALL_BY_REF=0 GLOBAL_RND=0 GLOBAL_FLAGS=0 UNCHANGED_BINARY_FLAGS=0\n$CC $LDFLAGS -shared -o libbid.$dlext *.$objext\nmkdir -p ${libdir}\ncp libbid.$dlext ${libdir}\ninstall_license ../eula.txt\n"""
+version = "v2.0.2"
+
+[[products]]
+dir_paths = []
+dont_dlopen = false
+libnames = ["libbid"]
+type = "lib"
+variable_name = "libbid"
+
+[[sources]]
+hash = "93c0c78e0989df88f8540bf38d6743734804cef1e40706fd8fe5c6a03f79e173"
+type = "archive"
+unpack_target = ""
+url = "https://www.netlib.org/misc/intel/IntelRDFPMathLib20U2.tar.gz"
+[[sources]]
+path = "./bundled"
+target = ""
+type = "directory"

@@ -1,0 +1,272 @@
+augment_platform_block = """using Libdl\n\ntry\n    using CUDA_Driver_jll\ncatch err\n    # During package installation, Pkg installs all packages in parallel, so CUDA_Driver may\n    # not be available yet. In that case, postpone the decision until we are able to load\n    # the driver and accurately determine which CUDA Runtime to use.\n    #\n    # XXX: this is not a future-proof solution, as it shouldn't be possible to load any\n    # non-stdlib dependencies from a package hook at any point. A better solution would be\n    # to inline CUDA_Driver_jll here (while possibly renaming this artifact to CUDA_jll), so\n    # that we can use the driver artifact during package installation to determine which\n    # runtime artifacts to use. But that requires changes to BinaryBuilder so that we can\n    # bind multiple artifacts, as well as the guarantee that it should be possible to load\n    # lazy artifacts from package augmentation hooks (see JuliaLang/Pkg.jl#3225).\nend\n\nusing Base.BinaryPlatforms\n\nfunction toolkit_version(cuda_toolkits)\n    if !@isdefined(CUDA_Driver_jll) ||          # see above\n       !isdefined(CUDA_Driver_jll, :libcuda)    # no driver found\n        return nothing\n    end\n\n    cuda_driver = CUDA_Driver_jll.libcuda_version\n    if cuda_driver < v\"11\"\n        @error \"CUDA driver 11+ is required (found $cuda_driver).\"\n        return nothing\n    end\n\n    cuda_version_override = get(ENV, \"JULIA_CUDA_VERSION\", nothing)\n    if cuda_version_override === \"\"\n        return nothing\n    elseif cuda_version_override !== nothing\n        cuda_version_override = VersionNumber(cuda_version_override)\n    end\n    # TODO: support for Preferences.jl-based override?\n\n    # \"[...] applications built against any of the older CUDA Toolkits always continued\n    #  to function on newer drivers due to binary backward compatibility\"\n    filter!(cuda_toolkits) do toolkit\n        if cuda_version_override !== nothing\n            toolkit == cuda_version_override\n        else\n            # \"From CUDA 11 onwards, applications compiled with a CUDA Toolkit release\n            #  from within a CUDA major release family can run, with limited feature-set,\n            #  on systems having at least the minimum required driver version\"\n            toolkit.major <= cuda_driver.major\n        end\n    end\n    if isempty(cuda_toolkits)\n        return nothing\n    end\n\n    last(cuda_toolkits)\nend\n\n# versions will be provided by build_tarballs.jl\nfunction augment_platform!(platform::Platform, cuda_toolkits::Vector{VersionNumber})\n    haskey(platform, \"cuda\") && return platform\n\n    cuda_toolkit = toolkit_version(cuda_toolkits)\n    platform[\"cuda\"] = if cuda_toolkit !== nothing\n        \"$(cuda_toolkit.major).$(cuda_toolkit.minor)\"\n    else\n        # don't use an empty string here, because Pkg will then load *any* artifact\n        \"none\"\n    end\n\n    return platform\nend\n\n\nfunction augment_platform!(platform::Platform)\n    augment_platform!(platform, VersionNumber[v\"11.0.0\", v\"11.1.0\", v\"11.2.0\", v\"11.3.0\", v\"11.4.0\", v\"11.5.0\", v\"11.6.0\", v\"11.7.0\", v\"11.8.0\"])\nend"""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = true
+name = "CUDA_Runtime"
+platforms = ["x86_64-linux-gnu-cuda+11.0", "powerpc64le-linux-gnu-cuda+11.0", "x86_64-w64-mingw32-cuda+11.0", "x86_64-linux-gnu-cuda+11.1", "powerpc64le-linux-gnu-cuda+11.1", "x86_64-w64-mingw32-cuda+11.1", "x86_64-linux-gnu-cuda+11.2", "powerpc64le-linux-gnu-cuda+11.2", "x86_64-w64-mingw32-cuda+11.2", "x86_64-linux-gnu-cuda+11.3", "powerpc64le-linux-gnu-cuda+11.3", "x86_64-w64-mingw32-cuda+11.3", "x86_64-linux-gnu-cuda+11.4", "powerpc64le-linux-gnu-cuda+11.4", "aarch64-linux-gnu-cuda+11.4", "x86_64-w64-mingw32-cuda+11.4", "x86_64-linux-gnu-cuda+11.5", "powerpc64le-linux-gnu-cuda+11.5", "aarch64-linux-gnu-cuda+11.5", "x86_64-w64-mingw32-cuda+11.5", "x86_64-linux-gnu-cuda+11.6", "powerpc64le-linux-gnu-cuda+11.6", "aarch64-linux-gnu-cuda+11.6", "x86_64-w64-mingw32-cuda+11.6", "x86_64-linux-gnu-cuda+11.7", "powerpc64le-linux-gnu-cuda+11.7", "aarch64-linux-gnu-cuda+11.7", "x86_64-w64-mingw32-cuda+11.7", "x86_64-linux-gnu-cuda+11.8", "powerpc64le-linux-gnu-cuda+11.8", "aarch64-linux-gnu-cuda+11.8", "x86_64-w64-mingw32-cuda+11.8"]
+script = ["""# First, find (true) CUDA toolkit directory in ~/.artifacts somewhere\nCUDA_ARTIFACT_DIR=$(dirname $(dirname $(realpath $prefix/cuda/bin/ptxas${exeext})))\ncd ${CUDA_ARTIFACT_DIR}\n\n# Clear out our prefix\nrm -rf ${prefix}/*\n\n# license\ninstall_license EULA.txt\n\n# headers\nmkdir -p ${prefix}/include\nmv include/* ${prefix}/include\nrm -rf ${prefix}/include/thrust\n\n# binaries\nmkdir -p ${bindir} ${libdir} ${prefix}/lib ${prefix}/share\nif [[ ${target} == *-linux-gnu ]]; then\n    # CUDA Runtime\n    mv lib64/libcudart.so* lib64/libcudadevrt.a ${libdir}\n\n    # CUDA FFT Library\n    mv lib64/libcufft.so* lib64/libcufftw.so* ${libdir}\n\n    # CUDA BLAS Library\n    mv lib64/libcublas.so* lib64/libcublasLt.so* ${libdir}\n\n    # CUDA Sparse Matrix Library\n    mv lib64/libcusparse.so* ${libdir}\n\n    # CUDA Linear Solver Library\n    mv lib64/libcusolver.so* ${libdir}\n\n    # CUDA Linear Solver Multi GPU Library\n    mv lib64/libcusolverMg.so* ${libdir}\n\n    # CUDA Random Number Generation Library\n    mv lib64/libcurand.so* ${libdir}\n\n    # NVIDIA Optimizing Compiler Library\n    mv nvvm/lib64/libnvvm.so* ${libdir}\n\n    # NVIDIA Common Device Math Functions Library\n    mkdir ${prefix}/share/libdevice\n    mv nvvm/libdevice/libdevice.10.bc ${prefix}/share/libdevice\n\n    # CUDA Profiling Tools Interface (CUPTI) Library\n    mv extras/CUPTI/lib64/libcupti.so* ${libdir}\n\n    # NVIDIA Tools Extension Library\n    mv lib64/libnvToolsExt.so* ${libdir}\n\n    # Compute Sanitizer\n    rm -r Sanitizer/{docs,include}\n    mv Sanitizer/* ${bindir}\n\n    # Additional binaries\n    mv bin/ptxas ${bindir}\n    mv bin/nvdisasm ${bindir}\n    mv bin/nvlink ${bindir}\nelif [[ ${target} == x86_64-w64-mingw32 ]]; then\n    # CUDA Runtime\n    mv bin/cudart64_*.dll ${bindir}\n    mv lib/x64/cudadevrt.lib ${prefix}/lib\n\n    # CUDA FFT Library\n    mv bin/cufft64_*.dll bin/cufftw64_*.dll ${bindir}\n\n    # CUDA BLAS Library\n    mv bin/cublas64_*.dll bin/cublasLt64_*.dll ${bindir}\n\n    # CUDA Sparse Matrix Library\n    mv bin/cusparse64_*.dll ${bindir}\n\n    # CUDA Linear Solver Library\n    mv bin/cusolver64_*.dll ${bindir}\n\n    # CUDA Linear Solver Multi GPU Library\n    mv bin/cusolverMg64_*.dll ${bindir}\n\n    # CUDA Random Number Generation Library\n    mv bin/curand64_*.dll ${bindir}\n\n    # NVIDIA Optimizing Compiler Library\n    mv nvvm/bin/nvvm64_*.dll ${bindir}\n\n    # NVIDIA Common Device Math Functions Library\n    mkdir ${prefix}/share/libdevice\n    mv nvvm/libdevice/libdevice.10.bc ${prefix}/share/libdevice\n\n    # CUDA Profiling Tools Interface (CUPTI) Library\n    mv extras/CUPTI/lib64/cupti64_*.dll ${bindir}\n\n    # NVIDIA Tools Extension Library\n    mv bin/nvToolsExt64_1.dll ${bindir}\n\n    # Compute Sanitizer\n    rm -r Sanitizer/{docs,include}\n    mv Sanitizer/* ${bindir}\n\n    # Additional binaries\n    mv bin/ptxas.exe ${bindir}\n    mv bin/nvdisasm.exe ${bindir}\n    mv bin/nvlink.exe ${bindir}\n\n    # Fix permissions\n    chmod +x ${bindir}/*.{exe,dll}\nfi\n""", """# First, find (true) CUDA toolkit directory in ~/.artifacts somewhere\nCUDA_ARTIFACT_DIR=$(dirname $(dirname $(realpath $prefix/cuda/bin/ptxas${exeext})))\ncd ${CUDA_ARTIFACT_DIR}\n\n# Clear out our prefix\nrm -rf ${prefix}/*\n\n# license\ninstall_license EULA.txt\n\n# headers\nmkdir -p ${prefix}/include\nmv include/* ${prefix}/include\nrm -rf ${prefix}/include/thrust\n\n# binaries\nmkdir -p ${bindir} ${libdir} ${prefix}/lib ${prefix}/share\nif [[ ${target} == *-linux-gnu ]]; then\n    # CUDA Runtime\n    mv lib64/libcudart.so* lib64/libcudadevrt.a ${libdir}\n\n    # CUDA FFT Library\n    mv lib64/libcufft.so* lib64/libcufftw.so* ${libdir}\n\n    # CUDA BLAS Library\n    mv lib64/libcublas.so* lib64/libcublasLt.so* ${libdir}\n\n    # CUDA Sparse Matrix Library\n    mv lib64/libcusparse.so* ${libdir}\n\n    # CUDA Linear Solver Library\n    mv lib64/libcusolver.so* ${libdir}\n\n    # CUDA Linear Solver Multi GPU Library\n    mv lib64/libcusolverMg.so* ${libdir}\n\n    # CUDA Random Number Generation Library\n    mv lib64/libcurand.so* ${libdir}\n\n    # NVIDIA Optimizing Compiler Library\n    mv nvvm/lib64/libnvvm.so* ${libdir}\n\n    # NVIDIA Common Device Math Functions Library\n    mkdir ${prefix}/share/libdevice\n    mv nvvm/libdevice/libdevice.10.bc ${prefix}/share/libdevice\n\n    # CUDA Profiling Tools Interface (CUPTI) Library\n    mv extras/CUPTI/lib64/libcupti.so* ${libdir}\n\n    # NVIDIA Tools Extension Library\n    mv lib64/libnvToolsExt.so* ${libdir}\n\n    # Compute Sanitizer\n    rm -r compute-sanitizer/{docs,include}\n    mv compute-sanitizer/* ${bindir}\n\n    # Additional binaries\n    mv bin/ptxas ${bindir}\n    mv bin/nvdisasm ${bindir}\n    mv bin/nvlink ${bindir}\nelif [[ ${target} == x86_64-w64-mingw32 ]]; then\n    # CUDA Runtime\n    mv bin/cudart64_*.dll ${bindir}\n    mv lib/x64/cudadevrt.lib ${prefix}/lib\n\n    # CUDA FFT Library\n    mv bin/cufft64_*.dll bin/cufftw64_*.dll ${bindir}\n\n    # CUDA BLAS Library\n    mv bin/cublas64_*.dll bin/cublasLt64_*.dll ${bindir}\n\n    # CUDA Sparse Matrix Library\n    mv bin/cusparse64_*.dll ${bindir}\n\n    # CUDA Linear Solver Library\n    mv bin/cusolver64_*.dll ${bindir}\n\n    # CUDA Linear Solver Multi GPU Library\n    mv bin/cusolverMg64_*.dll ${bindir}\n\n    # CUDA Random Number Generation Library\n    mv bin/curand64_*.dll ${bindir}\n\n    # NVIDIA Optimizing Compiler Library\n    mv nvvm/bin/nvvm64_*.dll ${bindir}\n\n    # NVIDIA Common Device Math Functions Library\n    mkdir ${prefix}/share/libdevice\n    mv nvvm/libdevice/libdevice.10.bc ${prefix}/share/libdevice\n\n    # CUDA Profiling Tools Interface (CUPTI) Library\n    mv extras/CUPTI/lib64/cupti64_*.dll ${bindir}\n\n    # NVIDIA Tools Extension Library\n    mv bin/nvToolsExt64_1.dll ${bindir}\n\n    # Compute Sanitizer\n    rm -r compute-sanitizer/{docs,include}\n    mv compute-sanitizer/* ${bindir}\n\n    # Additional binaries\n    mv bin/ptxas.exe ${bindir}\n    mv bin/nvdisasm.exe ${bindir}\n    mv bin/nvlink.exe ${bindir}\n\n    # Fix permissions\n    chmod +x ${bindir}/*.{exe,dll}\nfi\n"""]
+sources = []
+version = "v0.2.0"
+
+[[dependencies]]
+compat = "0.2"
+name = "CUDA_Driver_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CUDA_full_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 11
+version-minor = 0
+version-patch = 3
+[[dependencies]]
+compat = ""
+name = "CUDA_full_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 11
+version-minor = 1
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_full_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 11
+version-minor = 2
+version-patch = 2
+[[dependencies]]
+compat = ""
+name = "CUDA_full_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 11
+version-minor = 3
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_full_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 11
+version-minor = 4
+version-patch = 2
+[[dependencies]]
+compat = ""
+name = "CUDA_full_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 11
+version-minor = 5
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_full_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 11
+version-minor = 6
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CUDA_full_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 11
+version-minor = 7
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_full_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 11
+version-minor = 8
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcudart", "cudart64_110"]
+type = "lib"
+variable_name = "libcudart"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnvvm", "nvvm64_33_0"]
+type = "lib"
+variable_name = "libnvvm"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcufft", "cufft64_10"]
+type = "lib"
+variable_name = "libcufft"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcublas", "cublas64_11"]
+type = "lib"
+variable_name = "libcublas"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcusparse", "cusparse64_11"]
+type = "lib"
+variable_name = "libcusparse"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcusolver", "cusolver64_10"]
+type = "lib"
+variable_name = "libcusolver"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcusolverMg", "cusolverMg64_10"]
+type = "lib"
+variable_name = "libcusolverMg"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcurand", "curand64_10"]
+type = "lib"
+variable_name = "libcurand"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcupti", "cupti64_2020.1.1"]
+type = "lib"
+variable_name = "libcupti"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnvToolsExt", "nvToolsExt64_1"]
+type = "lib"
+variable_name = "libnvtoolsext"
+[[products]]
+paths = ["lib/libcudadevrt.a", "lib/cudadevrt.lib"]
+type = "file"
+variable_name = "libcudadevrt"
+[[products]]
+paths = ["share/libdevice/libdevice.10.bc"]
+type = "file"
+variable_name = "libdevice"
+[[products]]
+binnames = ["ptxas"]
+type = "exe"
+variable_name = "ptxas"
+[[products]]
+binnames = ["nvdisasm"]
+type = "exe"
+variable_name = "nvdisasm"
+[[products]]
+binnames = ["nvlink"]
+type = "exe"
+variable_name = "nvlink"
+[[products]]
+binnames = ["compute-sanitizer"]
+type = "exe"
+variable_name = "compute_sanitizer"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcusolver", "cusolver64_11"]
+type = "lib"
+variable_name = "libcusolver"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcusolverMg", "cusolverMg64_11"]
+type = "lib"
+variable_name = "libcusolverMg"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcupti", "cupti64_2020.2.1"]
+type = "lib"
+variable_name = "libcupti"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnvvm", "nvvm64_40_0"]
+type = "lib"
+variable_name = "libnvvm"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcupti", "cupti64_2020.3.1"]
+type = "lib"
+variable_name = "libcupti"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcupti", "cupti64_2021.1.1"]
+type = "lib"
+variable_name = "libcupti"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcupti", "cupti64_2021.2.2"]
+type = "lib"
+variable_name = "libcupti"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcupti", "cupti64_2021.3.1"]
+type = "lib"
+variable_name = "libcupti"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcupti", "cupti64_2022.1.0"]
+type = "lib"
+variable_name = "libcupti"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcupti", "cupti64_2022.2.1"]
+type = "lib"
+variable_name = "libcupti"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcupti", "cupti64_2022.3.0"]
+type = "lib"
+variable_name = "libcupti"

@@ -1,0 +1,41 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "GAP_pkg_cvec"
+platforms = ["x86_64-linux-gnu", "aarch64-linux-gnu", "powerpc64le-linux-gnu", "x86_64-linux-musl", "aarch64-linux-musl", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd"]
+script = """# HACK WORKAROUND GAP_jll deficiencies\n# TODO: tweak for mac build\nif [[ \"${target}\" == *darwin* ]]; then\n  cp gac-darwin ${prefix}/share/gap/gac\nelse\n  cp gac ${prefix}/share/gap/gac\nfi\nchmod a+x ${prefix}/share/gap/gac\ncp sysinfo.gap ${prefix}/share/gap/\n\n# ensure #including src/compiled.h or src/profile.h from GAP_jll works\nln -s . ${prefix}/include/gap/src\ncd cvec*\n./configure ${prefix}/share/gap\nmake -j${nproc}\n\n# copy the loadable module\nmkdir -p ${prefix}/lib/gap\ncp bin/*/*.so ${prefix}/lib/gap/\n\ninstall_license LICENSE\nrm -rf ${prefix}/include\nrm -rf ${prefix}/share/gap\n"""
+version = "v200.700.501"
+
+[[dependencies]]
+compat = "~400.1192.0"
+name = "GAP_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "~400.1192.0"
+name = "GAP_lib_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+paths = ["lib/gap/cvec.so"]
+type = "file"
+variable_name = "cvec"
+
+[[sources]]
+follow_symlinks = false
+path = "../bundled"
+target = ""
+type = "directory"
+[[sources]]
+hash = "b9b51356e88f5a4bbdb25edaa41738338567dcdaa0b8a04e4b2807803953e5c5"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/gap-packages/cvec/releases/download/v2.7.5/cvec-2.7.5.tar.bz2"

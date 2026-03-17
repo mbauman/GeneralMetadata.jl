@@ -1,0 +1,30 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Libiconv"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """VERSION=1.18\ncd $WORKSPACE/srcdir/libiconv-*/\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} --enable-static --enable-extra-encodings\nmake -j${nproc}\nmake install\n\n# Add pkg-config file\nmkdir -p \"${prefix}/lib/pkgconfig\"\ncat << EOF > \"${prefix}/lib/pkgconfig/iconv.pc\"\nprefix=\\${pcfiledir}/../..\nexec_prefix=\\${prefix}\nlibdir=\\${exec_prefix}/$(basename ${libdir})\nsharedlibdir=\\${libdir}\nincludedir=\\${includedir}\n\nName: iconv\nDescription: libiconv\nURL: https://www.gnu.org/software/libiconv/\nVersion: ${VERSION}\n\nRequires:\nLibs: -L\\${libdir} -liconv\nCflags: -I\\${includedir}\nEOF\n"""
+version = "v1.18.0"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcharset"]
+type = "lib"
+variable_name = "libcharset"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libiconv"]
+type = "lib"
+variable_name = "libiconv"
+
+[[sources]]
+hash = "3b08f5f4f9b4eb82f151a7040bfd6fe6c6fb922efe4b1659c66ea933276965e8"
+type = "archive"
+unpack_target = ""
+url = "https://ftp.gnu.org/pub/gnu/libiconv/libiconv-1.18.tar.gz"

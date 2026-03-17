@@ -1,0 +1,96 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Notcurses"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd ${WORKSPACE}/srcdir/notcurses*\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/repent.patch\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/0001-also-look-for-shared-libraries-on-Windows.patch\n# Reported as <https://github.com/dankamongmen/notcurses/issues/2739>\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/mbstate.patch\n\nif [[ $target == *mingw* ]]; then\n    export CFLAGS=\"${CFLAGS} -D_WIN32_WINNT=0x0600\"\n    cp ${WORKSPACE}/srcdir/headers/pthread_time.h /opt/${target}/${target}/sys-root/include/pthread_time.h\nfi\n\nmultimedia=ffmpeg\nif [[ ${bb_full_target} == armv6l-* ]]; then\n    # FFMpeg is not available on armv6l\n    multimedia=none\nelif [[ ${target} == *mingw* ]]; then\n    # FFMpeg is not found (why?)\n    # We patch CMakelists.txt for shared libraries in Windows, maybe this goes wrong?\n    multimedia=none\nfi\n\nFLAGS=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN}\n       -DCMAKE_INSTALL_PREFIX=${prefix}\n       -DCMAKE_BUILD_TYPE=Release\n       -DBUILD_EXECUTABLES=ON\n       -DBUILD_SHARED_LIBS=ON\n       -DUSE_CXX=OFF\n       -DUSE_DOCTEST=OFF\n       -DUSE_MULTIMEDIA=${multimedia}\n       -DUSE_PANDOC=OFF\n       -DUSE_POC=OFF\n       -DUSE_QRCODEGEN=OFF\n       -DUSE_STATIC=OFF\n       )\n\nif [[ ${target} == aarch64-apple-* ]]; then\n    # Linking FFMPEG requires the function `__divdc3`, which is implemented in\n    # `libclang_rt.osx.a` from LLVM compiler-rt.\n    FLAGS+=(-DCMAKE_SHARED_LINKER_FLAGS=\"-L${libdir}/darwin -lclang_rt.osx\"\n            -DCMAKE_EXE_LINKER_FLAGS=\"-L${libdir}/darwin -lclang_rt.osx\"\n            )\nfi\n\ncmake -B build \"${FLAGS[@]}\"\ncmake --build build --parallel ${nproc}\ncmake --install build\ninstall_license COPYRIGHT\n"""
+version = "v3.0.9"
+
+[[dependencies]]
+compat = ""
+name = "FFMPEG_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Ncurses_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "libdeflate_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "libunistring_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LLVMCompilerRT_jll"
+platforms = ["aarch64-apple-darwin"]
+top_level = false
+type = "builddependency"
+uuid = "4e17d02c-6bf5-513e-be62-445f41c75a11"
+version-major = 13
+version-minor = 0
+version-patch = 1
+
+[[products]]
+binnames = ["notcurses-demo"]
+type = "exe"
+variable_name = "notcurses_demo"
+[[products]]
+binnames = ["notcurses-info"]
+type = "exe"
+variable_name = "notcurses_info"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnotcurses"]
+type = "lib"
+variable_name = "libnotcurses"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnotcurses-core"]
+type = "lib"
+variable_name = "libnotcurses_core"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnotcurses-ffi"]
+type = "lib"
+variable_name = "libnotcurses_ffi"
+
+[[sources]]
+hash = "040ff99fb7ed6dee113ce303223f75cd8a38976c"
+type = "git"
+unpack_target = ""
+url = "https://github.com/dankamongmen/notcurses"
+[[sources]]
+follow_symlinks = false
+path = "bundled"
+target = ""
+type = "directory"

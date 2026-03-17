@@ -1,0 +1,68 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "FastTree"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd ${WORKSPACE}/srcdir/\n\nhead -42 FastTree*.c > LICENSE\n\nmkdir -p \"${bindir}\"\n\n# install single thread with SSE instructions \ncc -O3 -finline-functions -funroll-loops -Wall -o \"${bindir}/fasttree${exeext}\" FastTree*.c -lm\n\n# install single thread no SSE\ncc -DNO_SSE -O3 -finline-functions -funroll-loops -Wall -o \"${bindir}/fasttree_noSSE${exeext}\" FastTree*.c -lm\n\n# install multithread with SSE\ncc -DOPENMP -fopenmp -O3 -finline-functions -funroll-loops -Wall -o \"${bindir}/fasttreeMP${exeext}\" FastTree*.c -lm\n\n# install multithread no SSE\ncc -DNO_SSE -fopenmp -O3 -finline-functions -funroll-loops -Wall -o \"${bindir}/fasttreeMP_noSSE${exeext}\" FastTree*.c -lm\n\n# install single thread with SSE instructions and double precision\ncc -DUSE_DOUBLE -O3 -finline-functions -funroll-loops -Wall -o \"${bindir}/fasttree_double${exeext}\" FastTree*.c -lm\n\n# install single thread no SSE and double precision\ncc -DUSE_DOUBLE -DNO_SSE -O3 -finline-functions -funroll-loops -Wall -o \"${bindir}/fasttree_double_noSSE${exeext}\" FastTree*.c -lm\n\n# install multithread with SSE and double precision\ncc -DUSE_DOUBLE -DOPENMP -fopenmp -O3 -finline-functions -funroll-loops -Wall -o \"${bindir}/fasttreeMP_double${exeext}\" FastTree*.c -lm\n\n# install multithread no SSE and double precision\ncc -DUSE_DOUBLE -DNO_SSE -fopenmp -O3 -finline-functions -funroll-loops -Wall -o \"${bindir}/fasttreeMP_double_noSSE${exeext}\" FastTree*.c -lm\n\n"""
+version = "v2.1.11"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LLVMOpenMP_jll"
+platforms = ["x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd"]
+top_level = false
+type = "dependency"
+uuid = "1d63c593-3942-5779-bab2-d838dc0a180e"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["fasttree"]
+type = "exe"
+variable_name = "fasttree"
+[[products]]
+binnames = ["fasttree_noSSE"]
+type = "exe"
+variable_name = "fasttree_noSSE"
+[[products]]
+binnames = ["fasttreeMP"]
+type = "exe"
+variable_name = "fasttreeMP"
+[[products]]
+binnames = ["fasttreeMP_noSSE"]
+type = "exe"
+variable_name = "fasttreeMP_noSSE"
+[[products]]
+binnames = ["fasttree_double"]
+type = "exe"
+variable_name = "fasttree_double"
+[[products]]
+binnames = ["fasttree_double_noSSE"]
+type = "exe"
+variable_name = "fasttree_double_noSSE"
+[[products]]
+binnames = ["fasttreeMP_double"]
+type = "exe"
+variable_name = "fasttreeMP_double"
+[[products]]
+binnames = ["fasttreeMP_double_noSSE"]
+type = "exe"
+variable_name = "fasttreeMP_double_noSSE"
+
+[[sources]]
+filename = "FastTree-2.1.11.c"
+hash = "9026ae550307374be92913d3098f8d44187d30bea07902b9dcbfb123eaa2050f"
+type = "file"
+url = "http://www.microbesonline.org/fasttree/FastTree-2.1.11.c"

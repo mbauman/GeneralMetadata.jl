@@ -1,0 +1,54 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "libaom"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "riscv64-linux-gnu-cxx03", "riscv64-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd ${WORKSPACE}/srcdir/libaom-*\n\n# Add missing stdint.h includes\n# Reported upstream as <https://aomedia.issues.chromium.org/u/1/issues/432730317>\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/inttypes.patch\n\nCMAKE_FLAGS=()\nif [[ ${target} = arm-* ]]; then\n    # Not even GCC 13 can compile for 32-bit ARM\n    CMAKE_FLAGS+=(-DAOM_TARGET_CPU=generic)\nelif [[ ${target} = aarch64-*-freebsd* ]]; then\n    # Runtime CPU detection doesn't work\n    CMAKE_FLAGS+=(-DCONFIG_RUNTIME_CPU_DETECT=0)\nfi\n\ncmake -B build-dir -G Ninja \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DBUILD_SHARED_LIBS=ON \\\n    -DENABLE_TESTS=OFF \\\n    ${CMAKE_FLAGS[@]}\ncmake --build build-dir --parallel ${nproc}\ncmake --install build-dir\n"""
+version = "v3.13.1"
+
+[[dependencies]]
+compat = ""
+name = "YASM_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "NASM_jll"
+platforms = ["x86_64-apple-darwin"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["aomenc"]
+type = "exe"
+variable_name = "aomenc"
+[[products]]
+binnames = ["aomdec"]
+type = "exe"
+variable_name = "aomdec"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libaom", "aom"]
+type = "lib"
+variable_name = "libaom"
+
+[[sources]]
+hash = "19e45a5a7192d690565229983dad900e76b513a02306c12053fb9a262cbeca7d"
+type = "archive"
+unpack_target = ""
+url = "https://storage.googleapis.com/aom-releases/libaom-3.13.1.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "bundled"
+target = ""
+type = "directory"

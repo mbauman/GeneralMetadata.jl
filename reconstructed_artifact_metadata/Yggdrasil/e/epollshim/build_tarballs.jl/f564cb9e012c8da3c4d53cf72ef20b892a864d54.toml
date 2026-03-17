@@ -1,0 +1,23 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "EpollShim"
+platforms = ["x86_64-unknown-freebsd", "aarch64-unknown-freebsd"]
+script = """cd $WORKSPACE/srcdir/epoll-shim\nmkdir build && cd build\ncmake -DCMAKE_INSTALL_PREFIX=${prefix} -DCMAKE_PREFIX_PATH=${prefix} -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} .. || true\ncmake -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_PREFIX_PATH=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DBUILD_TESTING=OFF \\\n    -DALLOWS_ONESHOT_TIMERS_WITH_TIMEOUT_ZERO_EXITCODE=0 HAVE_POLLRDHUP_RUN_RESULT=0 \\\n    ..\n\nsed -i 's/PLEASE_FILL_OUT-NOTFOUND/0x2000/' install-include/sys/epoll.h\ncmake --build . -j${nproc} --target install\n"""
+version = "v0.0.20230411"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libepoll-shim"]
+type = "lib"
+variable_name = "libepoll_shim"
+
+[[sources]]
+hash = "538cf422ee062eca456c5455f666ae5c41c3c519"
+type = "git"
+unpack_target = ""
+url = "https://github.com/jiixyj/epoll-shim.git"

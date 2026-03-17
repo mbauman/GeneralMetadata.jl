@@ -1,0 +1,26 @@
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "OpenMPI"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-apple-darwin", "armv6l-linux-musleabihf"]
+script = """# Enter the funzone\ncd ${WORKSPACE}/srcdir/openmpi-*\n\nif [[ \"${target}\" == *-freebsd* ]]; then\n    # Help compiler find `complib/cl_types.h`.\n    export CPPFLAGS=\"-I/opt/${target}/${target}/sys-root/include/infiniband\"\nfi\n\n./configure --prefix=${prefix} \\\n    --build=${MACHTYPE} \\\n    --host=${target} \\\n    --enable-shared=yes \\\n    --enable-static=no \\\n    --disable-mpi-fortran \\\n    --without-cs-fs\n\n# Build the library\nmake -j${nproc}\n\n# Install the library\nmake install\n"""
+version = "v4.1.1"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmpi"]
+type = "lib"
+variable_name = "libmpi"
+[[products]]
+binnames = ["mpiexec"]
+type = "exe"
+variable_name = "mpiexec"
+
+[[sources]]
+hash = "d80b9219e80ea1f8bcfe5ad921bd9014285c4948c5965f4156a3831e60776444"
+type = "archive"
+unpack_target = ""
+url = "https://download.open-mpi.org/release/open-mpi/v4.1/openmpi-4.1.1.tar.gz"

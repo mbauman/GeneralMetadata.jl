@@ -1,0 +1,20 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Btop"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin-cxx03", "x86_64-apple-darwin-cxx11", "aarch64-apple-darwin-cxx11", "x86_64-unknown-freebsd-cxx03", "x86_64-unknown-freebsd-cxx11"]
+script = """cd $WORKSPACE/srcdir/btop*/\n\nFLAGS=(THREADS=${nproc})\nif [[ \"${target}\" == *-darwin* ]] || [[ \"${target}\" == *-freebsd* ]]; then\n    # Can't compile with Clang\n    FLAGS+=(CXX=g++)\nfi\nif [[ \"${target}\" == x86_64-linux-gnu ]] || [[ \"${target}\" == aarch64-linux-gnu ]]; then\n    # Enable GPU also on aarch64, this needs to explicitly link to libdl for `dlerror` symbol.\n    FLAGS+=(GPU_SUPPORT=true ADDFLAGS=\"-ldl\")\nelse\n    FLAGS+=(GPU_SUPPORT=false ADDFLAGS=\"\")\nfi\n\nmake -j${nproc} \"${FLAGS[@]}\"\nmake install PREFIX=${prefix}\n"""
+version = "v1.3.2"
+
+[[products]]
+binnames = ["btop"]
+type = "exe"
+variable_name = "btop"
+
+[[sources]]
+hash = "fd2a2acdad6fbaad76846cb5e802cf2ae022d670"
+type = "git"
+unpack_target = ""
+url = "https://github.com/aristocratos/btop.git"

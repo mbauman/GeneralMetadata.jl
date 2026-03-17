@@ -1,0 +1,44 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Readline"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/readline-*/\n\n# Patch from https://aur.archlinux.org/cgit/aur.git/tree/readline-1-fixes.patch?h=mingw-w64-readline\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/readline-1-fixes.patch\n\nexport CPPFLAGS=\"-I${includedir}\"\nif [[ \"${target}\" == *-mingw* ]]; then\n    # Only on Windows the library name embeds the ABI version\n    export NCURSES_ABI_VER=6\nfi\nif [[ \"${target}\" == *-mingw* ]] || [[ \"${target}\" == *-freebsd* ]]; then\n    export LDFLAGS=\"-L${libdir}\"\nfi\n\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} --target=${target} --with-curses\nmake -j${nproc} SHLIB_LIBS=\"-lncurses${NCURSES_ABI_VER}\"\nmake install\ninstall_license COPYING\n"""
+version = "v8.2.13"
+
+[[dependencies]]
+compat = ""
+name = "Ncurses_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libhistory", "libhistory8"]
+type = "lib"
+variable_name = "libhistory"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libreadline", "libreadline8"]
+type = "lib"
+variable_name = "libreadline"
+
+[[sources]]
+hash = "0e5be4d2937e8bd9b7cd60d46721ce79f88a33415dd68c2d738fb5924638f656"
+type = "archive"
+unpack_target = ""
+url = "https://ftp.gnu.org/gnu/readline/readline-8.2.13.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

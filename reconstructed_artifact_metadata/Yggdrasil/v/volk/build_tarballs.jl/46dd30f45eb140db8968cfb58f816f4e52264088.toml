@@ -1,0 +1,55 @@
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "VOLK"
+platforms = ["i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir/volk-*\n\nif [[ ${target} == *-freebsd* ]]; then\n    #this is not in 0.6.0 release, but has been added on master, can probably remove after next release\n    atomic_patch -p1 \"${WORKSPACE}/srcdir/patches/add-freebsd-macros.patch\"\nelif [[ ${target} == x86_64-w64-mingw* ]]; then\n    #disable avx512 on x86_64-mingw to avoid \"Error: invalid register for .seh_savexmm\". This is not needed on i686-mingw for some reason?\n    #copied from https://github.com/xianyi/OpenBLAS/issues/1801 \n    export CFLAGS=\"${CFLAGS} -fno-asynchronous-unwind-tables\"\nfi\n\nmkdir build\ncd build/\n\npip install mako\n\ncmake .. \\\n-DCMAKE_INSTALL_PREFIX=${prefix} \\\n-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n-DCMAKE_BUILD_TYPE=Release \\\n-DCROSSCOMPILE_MULTILIB=true \\\n-DENABLE_TESTING=OFF \\\n-DENABLE_MODTOOL=OFF\n\n\nmake -j${nproc}\nmake install\n\n"""
+version = "v2.5.0"
+
+[[dependencies]]
+compat = ""
+name = "boost_jll"
+type = "dependency"
+uuid = "28df3c45-c428-5900-9ff8-a3135698ca75"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "ORC_jll"
+type = "hostdependency"
+uuid = "fb41591b-4dee-5dae-bf56-d83afd04fbc0"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvolk"]
+type = "lib"
+variable_name = "libvolk"
+[[products]]
+binnames = ["volk-config-info"]
+type = "exe"
+variable_name = "volk_config_info"
+[[products]]
+binnames = ["volk_profile"]
+type = "exe"
+variable_name = "volk_profile"
+[[products]]
+binnames = ["list_cpu_features"]
+type = "exe"
+variable_name = "list_cpu_features"
+
+[[sources]]
+hash = "d9183b9f86a32cdbb8698cbbeb15de574962c05200ccf445c1058629073521f8"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/gnuradio/volk/releases/download/v2.5.0/volk-2.5.0.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

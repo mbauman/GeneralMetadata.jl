@@ -1,0 +1,37 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "slow5lib"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd"]
+script = """if [[ \"${target}\" == *-apple-darwin* ]]; then\n    export LDFLAGS=\"-lz\"\nfi\ncd $WORKSPACE/srcdir/slow5lib\natomic_patch -p1 ../fix_cmakelists_for_slow5lib.patch\ncmake -B build -DCMAKE_INSTALL_PREFIX=$prefix -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} -DCMAKE_BUILD_TYPE=Release\ncmake --build build --parallel ${nproc}\ninstall -Dvm 755 $WORKSPACE/srcdir/slow5lib/build/libslow5.${dlext} ${libdir}/libslow5.${dlext}\ncp -r $WORKSPACE/srcdir/slow5lib/include/slow5 $WORKSPACE/destdir/include\ninstall_license ${WORKSPACE}/srcdir/slow5lib/LICENSE\n"""
+version = "v1.3.1"
+
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libslow5"]
+type = "lib"
+variable_name = "libslow5"
+
+[[sources]]
+hash = "050c09868696d98735152bf0abb3de766f5ab5cb"
+type = "git"
+unpack_target = ""
+url = "https://github.com/hasindu2008/slow5lib.git"
+[[sources]]
+follow_symlinks = false
+path = "./patches"
+target = ""
+type = "directory"

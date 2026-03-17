@@ -1,0 +1,73 @@
+dependencies = []
+lazy_artifacts = false
+name = "libigc"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11"]
+script = """# don't have opencl-clang generate headers,\n# working around https://github.com/intel/opencl-clang/issues/91\nsed -i '/cl_headers/d' opencl-clang/CMakeLists.txt\n\n# build certain LLVM tools for the host system,\n# working around LLVM and IGC's inability to cross-compile\nmkdir ${WORKSPACE}/bootstrap\npushd ${WORKSPACE}/bootstrap\nCMAKE_FLAGS=()\nCMAKE_FLAGS+=(-DLLVM_TARGETS_TO_BUILD:STRING=host)\nCMAKE_FLAGS+=(-DLLVM_HOST_TRIPLE=${MACHTYPE})\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\nCMAKE_FLAGS+=(-DLLVM_ENABLE_PROJECTS='clang;compiler-rt')\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING=False)\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_HOST_TOOLCHAIN})\ncmake -GNinja ${WORKSPACE}/srcdir/llvm-project-*/llvm ${CMAKE_FLAGS[@]}\nninja -j${nproc} llvm-config llvm-tblgen clang-tblgen clang\npopd\n\n# move everything in places where it will get detected by the IGC build system\nmv llvm-project-* llvm-project\nmv llvm-project/clang llvm-project/llvm/tools/\nmv opencl-clang llvm-project/llvm/projects/opencl-clang\nmv SPIRV-LLVM-Translator llvm-project/llvm/projects/llvm-spirv\nmv llvm-patches llvm_patches\n\ncd intel-graphics-compiler-*\ninstall_license LICENSE.md\n\n# Work around compilation failures\natomic_patch -p1 ../patches/format_macros.patch\n# https://github.com/intel/intel-graphics-compiler/issues/125\natomic_patch -p1 -R ../patches/static_assert.patch\nif [[ \"${target}\" == *86*-linux-musl* ]]; then\n    atomic_patch -p1 ../patches/musl-concat.patch\n    atomic_patch -p1 ../patches/musl-inttypes.patch\n    # https://github.com/JuliaPackaging/Yggdrasil/issues/739\n    sed -i '/-fstack-protector/d' IGC/CMakeLists.txt\n    # https://github.com/JuliaPackaging/BinaryBuilder.jl/issues/387\n    pushd /opt/${target}/lib/gcc/${target}/*/include\n    atomic_patch -p0 $WORKSPACE/srcdir/patches/musl-malloc.patch\n    popd\nfi\n\n# the build system uses git\nexport HOME=$(pwd)\ngit config --global user.name \"Binary Builder\"\ngit config --global user.email \"your@email.com\"\n\nCMAKE_FLAGS=()\n\n# Release build for best performance\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\n\n# Install things into $prefix, and make sure it knows we're cross-compiling\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix})\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING=True)\n\n# Tell LLVM where our pre-built tools are\nCMAKE_FLAGS+=(-DLLVM_CONFIG_PATH=${WORKSPACE}/bootstrap/bin/llvm-config)\nCMAKE_FLAGS+=(-DLLVM_TABLEGEN=${WORKSPACE}/bootstrap/bin/llvm-tblgen)\nCMAKE_FLAGS+=(-DCLANG_TABLEGEN=${WORKSPACE}/bootstrap/bin/clang-tblgen)\nCMAKE_FLAGS+=(-DCLANG_TOOL=${WORKSPACE}/bootstrap/bin/clang)\n\n# Don't have IGC use target Clang\nsed -i 's/add_executable(clang-tool ALIAS clang)/add_executable(clang-tool IMPORTED GLOBAL)\\n  set_property(TARGET clang-tool PROPERTY \"IMPORTED_LOCATION\" \"${CLANG_TOOL}\")/' IGC/BiFModule/CMakeLists.txt\n\n# Explicitly use our cmake toolchain file\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\n\nmkdir build && cd build\ncmake ${CMAKE_FLAGS[@]} ..\nmake -j${nproc}\nmake install\n"""
+version = "v1.0.3586"
+
+[[products]]
+binnames = ["GenX_IR"]
+type = "exe"
+variable_name = "GenX_IR"
+[[products]]
+binnames = ["iga32", "iga64"]
+type = "exe"
+variable_name = "iga"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libiga32", "libiga64"]
+type = "lib"
+variable_name = "libiga"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libigc"]
+type = "lib"
+variable_name = "libigc"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libigdfcl"]
+type = "lib"
+variable_name = "libigdfcl"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libopencl-clang"]
+type = "lib"
+variable_name = "libopencl_clang"
+
+[[sources]]
+hash = "e1b558a53f49deeb5a6e826ecbfd4e4b79bcfebb86316c64020134ca6aabfe8c"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/intel/intel-graphics-compiler/archive/igc-1.0.3586.tar.gz"
+[[sources]]
+hash = "ea241c807e949c24615691a5271e20bcaaa404b28a5f6deb462f9c22b478489b"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/llvm/llvm-project/releases/download/llvmorg-9.0.1/llvm-project-9.0.1.tar.xz"
+[[sources]]
+hash = "6c384160d03b7b8eb9c0a5e5eff265aa2b0084fd"
+type = "git"
+unpack_target = ""
+url = "https://github.com/intel/opencl-clang.git"
+[[sources]]
+hash = "cc7eff18ad99019adb3730437ffd577116fc116b"
+type = "git"
+unpack_target = ""
+url = "https://github.com/KhronosGroup/SPIRV-LLVM-Translator.git"
+[[sources]]
+hash = "1c93162ab33af968c22fe1cbfb12ea87f5a25bfa"
+type = "git"
+unpack_target = ""
+url = "https://github.com/intel/llvm-patches.git"
+[[sources]]
+path = "./bundled"
+target = ""
+type = "directory"

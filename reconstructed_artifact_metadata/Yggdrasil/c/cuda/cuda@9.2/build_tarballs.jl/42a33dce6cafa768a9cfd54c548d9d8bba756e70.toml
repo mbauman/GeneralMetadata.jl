@@ -1,0 +1,196 @@
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "CUDA"
+platforms = ["x86_64-linux-gnu", "x86_64-apple-darwin", "x86_64-w64-mingw32"]
+script = """# First, find (true) CUDA toolkit directory in ~/.artifacts somewhere\nCUDA_ARTIFACT_DIR=$(dirname $(dirname $(realpath $prefix/cuda/bin/ptxas${exeext})))\ncd ${CUDA_ARTIFACT_DIR}\n\n# Clear out our prefix\nrm -rf ${prefix}\n\n# license\ninstall_license EULA.txt\n\n# headers\nmkdir -p ${prefix}/include\nmv include/* ${prefix}/include\nrm -rf ${prefix}/include/thrust\n\n# binaries\nmkdir -p ${bindir} ${libdir} ${prefix}/lib ${prefix}/share\nif [[ ${target} == x86_64-linux-gnu ]]; then\n    # CUDA Runtime\n    mv lib64/libcudart.so* lib64/libcudadevrt.a ${libdir}\n\n    # CUDA FFT Library\n    mv lib64/libcufft.so* lib64/libcufftw.so* ${libdir}\n\n    # CUDA BLAS Library\n    mv lib64/libcublas.so* ${libdir}\n\n    # NVIDIA \"Drop-in\" BLAS Library\n    mv lib64/libnvblas.so* ${libdir}\n\n    # CUDA Sparse Matrix Library\n    mv lib64/libcusparse.so* ${libdir}\n\n    # CUDA Linear Solver Library\n    mv lib64/libcusolver.so* ${libdir}\n\n    # CUDA Random Number Generation Library\n    mv lib64/libcurand.so* ${libdir}\n\n    # CUDA Accelerated Graph Library\n    mv lib64/libnvgraph.so* ${libdir}\n\n    # NVIDIA Performance Primitives Library\n    mv lib64/libnpp*.so* ${libdir}\n\n    # NVIDIA Optimizing Compiler Library\n    mv nvvm/lib64/libnvvm.so* ${libdir}\n\n    # NVIDIA Common Device Math Functions Library\n    mkdir ${prefix}/share/libdevice\n    mv nvvm/libdevice/libdevice.10.bc ${prefix}/share/libdevice\n\n    # CUDA Profiling Tools Interface (CUPTI) Library\n    mv extras/CUPTI/lib64/libcupti.so* ${libdir}\n\n    # NVIDIA Tools Extension Library\n    mv lib64/libnvToolsExt.so* ${libdir}\n\n    # Additional binaries\n    mv bin/nvdisasm ${bindir}\n    mv bin/cuda-memcheck ${bindir}\nelif [[ ${target} == x86_64-apple-darwin* ]]; then\n    # CUDA Runtime\n    mv lib/libcudart.*dylib lib/libcudadevrt.a ${libdir}\n\n    # CUDA FFT Library\n    mv lib/libcufft.*dylib lib/libcufftw.*dylib ${libdir}\n\n    # CUDA BLAS Library\n    mv lib/libcublas.*dylib ${libdir}\n\n    # NVIDIA \"Drop-in\" BLAS Library\n    mv lib/libnvblas.*dylib ${libdir}\n\n    # CUDA Sparse Matrix Library\n    mv lib/libcusparse.*dylib ${libdir}\n\n    # CUDA Linear Solver Library\n    mv lib/libcusolver.*dylib ${libdir}\n\n    # CUDA Random Number Generation Library\n    mv lib/libcurand.*dylib ${libdir}\n\n    # CUDA Accelerated Graph Library\n    mv lib/libnvgraph.*dylib ${libdir}\n\n    # NVIDIA Performance Primitives Library\n    mv lib/libnpp*.*dylib ${libdir}\n\n    # NVIDIA Optimizing Compiler Library\n    mv nvvm/lib/libnvvm.*dylib ${libdir}\n\n    # NVIDIA Common Device Math Functions Library\n    mkdir ${prefix}/share/libdevice\n    mv nvvm/libdevice/libdevice.10.bc ${prefix}/share/libdevice\n\n    # CUDA Profiling Tools Interface (CUPTI) Library\n    mv extras/CUPTI/lib/libcupti.*dylib ${libdir}\n\n    # NVIDIA Tools Extension Library\n    mv lib/libnvToolsExt.*dylib ${libdir}\n\n    # Additional binaries\n    mv bin/nvdisasm ${bindir}\n    mv bin/cuda-memcheck ${bindir}\nelif [[ ${target} == x86_64-w64-mingw32 ]]; then\n    # CUDA Runtime\n    mv bin/cudart64_*.dll ${bindir}\n    mv lib/x64/cudadevrt.lib ${prefix}/lib\n\n    # CUDA FFT Library\n    mv bin/cufft64_*.dll bin/cufftw64_*.dll ${bindir}\n\n    # CUDA BLAS Library\n    mv bin/cublas64_*.dll ${bindir}\n\n    # NVIDIA \"Drop-in\" BLAS Library\n    mv bin/nvblas64_*.dll ${bindir}\n\n    # CUDA Sparse Matrix Library\n    mv bin/cusparse64_*.dll ${bindir}\n\n    # CUDA Linear Solver Library\n    mv bin/cusolver64_*.dll ${bindir}\n\n    # CUDA Random Number Generation Library\n    mv bin/curand64_*.dll ${bindir}\n\n    # CUDA Accelerated Graph Library\n    mv bin/nvgraph64_*.dll ${bindir}\n\n    # NVIDIA Performance Primitives Library\n    mv bin/npp*64_*.dll ${bindir}\n\n    # NVIDIA Optimizing Compiler Library\n    mv nvvm/bin/nvvm64_*.dll ${bindir}\n\n    # NVIDIA Common Device Math Functions Library\n    mkdir ${prefix}/share/libdevice\n    mv nvvm/libdevice/libdevice.10.bc ${prefix}/share/libdevice\n\n    # CUDA Profiling Tools Interface (CUPTI) Library\n    mv extras/CUPTI/libx64/cupti64_*.dll ${bindir}\n\n    # NVIDIA Tools Extension Library\n    mv bin/nvToolsExt64_1.dll ${bindir}\n\n    # Additional binaries\n    mv bin/nvdisasm.exe ${bindir}\n    mv bin/cuda-memcheck.exe ${bindir}\nfi\n"""
+sources = []
+version = "v9.2.148"
+
+[[dependencies]]
+name = "CUDA_full_jll"
+type = "builddependency"
+version-major = 9
+version-minor = 2
+version-patch = 148
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcudart", "cudart64_92"]
+type = "lib"
+variable_name = "libcudart"
+[[products]]
+paths = ["lib/libcudadevrt.a", "lib/cudadevrt.lib"]
+type = "file"
+variable_name = "libcudadevrt"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcufft", "cufft64_92"]
+type = "lib"
+variable_name = "libcufft"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcufftw", "cufftw64_92"]
+type = "lib"
+variable_name = "libcufftw"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcublas", "cublas64_92"]
+type = "lib"
+variable_name = "libcublas"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnvblas", "nvblas64_92"]
+type = "lib"
+variable_name = "libnvblas"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcusparse", "cusparse64_92"]
+type = "lib"
+variable_name = "libcusparse"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcusolver", "cusolver64_92"]
+type = "lib"
+variable_name = "libcusolver"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcurand", "curand64_92"]
+type = "lib"
+variable_name = "libcurand"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnvgraph", "nvgraph64_92"]
+type = "lib"
+variable_name = "libnvgraph"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnppc", "nppc64_92"]
+type = "lib"
+variable_name = "libnppc"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnppial", "nppial64_92"]
+type = "lib"
+variable_name = "libnppial"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnppicc", "nppicc64_92"]
+type = "lib"
+variable_name = "libnppicc"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnppicom", "nppicom64_92"]
+type = "lib"
+variable_name = "libnppicom"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnppidei", "nppidei64_92"]
+type = "lib"
+variable_name = "libnppidei"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnppif", "nppif64_92"]
+type = "lib"
+variable_name = "libnppif"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnppig", "nppig64_92"]
+type = "lib"
+variable_name = "libnppig"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnppim", "nppim64_92"]
+type = "lib"
+variable_name = "libnppim"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnppist", "nppist64_92"]
+type = "lib"
+variable_name = "libnppist"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnppisu", "nppisu64_92"]
+type = "lib"
+variable_name = "libnppisu"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnppitc", "nppitc64_92"]
+type = "lib"
+variable_name = "libnppitc"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnpps", "npps64_92"]
+type = "lib"
+variable_name = "libnpps"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnvvm", "nvvm64_32_0"]
+type = "lib"
+variable_name = "libnvvm"
+[[products]]
+paths = ["share/libdevice/libdevice.10.bc"]
+type = "file"
+variable_name = "libdevice"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcupti", "cupti64_92"]
+type = "lib"
+variable_name = "libcupti"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnvToolsExt", "nvToolsExt64_1"]
+type = "lib"
+variable_name = "libnvtoolsext"
+[[products]]
+binnames = ["nvdisasm"]
+type = "exe"
+variable_name = "nvdisasm"

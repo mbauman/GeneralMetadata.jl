@@ -1,0 +1,17 @@
+dependencies = ["Expat_jll", "Bzip2_jll", "Libffi_jll", "Zlib_jll", "XZ_jll"]
+name = "Python"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "arm-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "arm-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1"]
+script = """# Having a global `python3` screws things up a bit, so get rid of that\nrm -f $(which python3)\n\n# We need these for the host python build\napk add zlib-dev libffi-dev\n\n# Create fake `arch` command:\necho '#!/bin/bash' >> /usr/bin/arch\necho 'echo i386'   >> /usr/bin/arch\nchmod +x /usr/bin/arch\n\n# Patch out cross compile limitations\ncd ${WORKSPACE}/srcdir/Python-*/\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/cross_compile_configure_ac.patch\nautoreconf -i\n\n# Next, build host version\nmkdir build_host && cd build_host\n\n# Override `bb_target`, `CC`, etc... to give this `./configure` the impression\n# that we are actually targeting `${MACHTYPE}` and not `${target}`\nbb_target=${MACHTYPE} CC=${HOSTCC} CPPFLAGS=-I/usr/include LDFLAGS=\"-L/lib -L/usr/lib\" ../configure --host=\"${MACHTYPE}\" --build=\"${MACHTYPE}\"\nmake -j${nproc} python sharedmods\n\n# Next, build target version\ncd ${WORKSPACE}/srcdir/Python-*/\nmkdir build_target && cd build_target\nexport CPPFLAGS=\"${CPPFLAGS} -I${prefix}/include\"\nexport LDFLAGS=\"${LDFLAGS} -L${prefix}/lib -L${prefix}/lib64\"\nexport PATH=$(echo ${WORKSPACE}/srcdir/Python-*/build_host):$PATH\n../configure --prefix=\"${prefix}\" --host=\"${target}\" --build=\"${MACHTYPE}\" \\\n    --enable-shared \\\n    --disable-ipv6 \\\n    --with-ensurepip=no \\\n    ac_cv_file__dev_ptmx=no \\\n    ac_cv_file__dev_ptc=no \\\n    ac_cv_have_chflags=no\nmake -j${nproc}\nmake install\n"""
+sources = [{"https://www.python.org/ftp/python/3.8.1/Python-3.8.1.tar.xz" = "75894117f6db7051c1b34f37410168844bbb357c139a8a10a352e9bf8be594e8"}, "./bundled"]
+version = "v3.8.1"
+
+[[products]]
+binnames = ["python", "python3"]
+type = "exe"
+variable_name = "python"
+[[products]]
+dir_paths = []
+dont_dlopen = false
+libnames = ["libpython3", "libpython3.8"]
+type = "lib"
+variable_name = "libpython"

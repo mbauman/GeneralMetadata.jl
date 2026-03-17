@@ -1,0 +1,60 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Gdbm"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/gdbm-*/\n\nargs=()\nif [[ \"${target}\" == *-mingw* ]]; then\n    atomic_patch -p1 ../patches/gdbm-1.26-win32.patch\nfi\n\nif [[ \"${target}\" == powerpc64le-* ]] || [[ \"${target}\" == *-mingw* ]]; then\n    # Install `autopoint` and other tools needed by `autoreconf`\n    apk add gettext-dev\n    # Rebuild the configure script to convince it to build the shared library\n    autoreconf -vi\nfi\n\n# `LDFLAGS` needed to let the linker find our readline on macOS\nexport LDFLAGS=\"-L${libdir}\"\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} --disable-static --with-libiconv-prefix=${prefix} \"${args[@]}\"\nmake -j${nproc}\nmake install\n"""
+version = "v1.26.0"
+
+[[dependencies]]
+compat = ""
+name = "Libiconv_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "94ce4f54-9a6c-5748-9c1c-f9c7231a4531"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Readline_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "05236dd9-4125-5232-aa7c-9ec0c9b2c25a"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgdbm"]
+type = "lib"
+variable_name = "libgdbm"
+[[products]]
+binnames = ["gdbm_load"]
+type = "exe"
+variable_name = "gdbm_load"
+[[products]]
+binnames = ["gdbmtool"]
+type = "exe"
+variable_name = "gdbmtool"
+[[products]]
+binnames = ["gdbm_dump"]
+type = "exe"
+variable_name = "gdbm_dump"
+
+[[sources]]
+hash = "6a24504a14de4a744103dcb936be976df6fbe88ccff26065e54c1c47946f4a5e"
+type = "archive"
+unpack_target = ""
+url = "https://ftpmirror.gnu.org/gnu/gdbm/gdbm-1.26.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

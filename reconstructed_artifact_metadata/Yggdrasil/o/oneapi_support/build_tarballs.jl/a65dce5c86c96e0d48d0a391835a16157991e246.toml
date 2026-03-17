@@ -1,0 +1,97 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "oneAPI_Support"
+platforms = ["x86_64-linux-gnu"]
+script = """install_license \"info/licenses/license.txt\"\n\n# install dependencies in the prefix\n# NOTE: these dependencies _should_ be packaged as JLLs we can depend on,\n#       but that's just a lot of work and not worth it for this single build.\nmkdir -p ${libdir} ${includedir}\nmv lib/clang/*/include/CL ${includedir}\nrm -rf lib/clang\ncp -r include/* ${includedir}\nfor lib in mkl_sycl mkl_intel_ilp64 mkl_sequential mkl_core sycl \\\n           pi_level_zero pi_opencl OpenCL svml irng imf intlc; do\n    cp -a lib/lib${lib}*.so* ${libdir}\ndone\n\ncd oneAPI.jl/deps\n\nCMAKE_FLAGS=()\n# Release build for best performance\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=RelWithDebInfo)\n# Install things into $prefix\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix})\n# Explicitly use our cmake toolchain file and tell CMake we're cross-compiling\n# XXX: use the Clang version to work around an issue with the SYCL headers\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN%.*}_clang.cmake)\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING:BOOL=ON)\ncmake -B build -S . -GNinja ${CMAKE_FLAGS[@]}\n\nninja -C build -j ${nproc} install\n\n# remove build-time dependencies we don't need\nrm -rf ${includedir}\n"""
+version = "v0.1.0"
+
+[[dependencies]]
+compat = ""
+name = "oneAPI_Level_Zero_Headers_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["liboneapi_support"]
+type = "lib"
+variable_name = "liboneapi_support"
+
+[[sources]]
+hash = "c9f21108139d0b186e83f183aacc4df9a65b895a"
+type = "git"
+unpack_target = ""
+url = "https://github.com/JuliaGPU/oneAPI.jl"
+[[sources]]
+hash = "1472da83f109dbead10835e49d204035272b9727eb71863e5a64688e13e6bacf"
+type = "archive"
+unpack_target = ""
+url = "https://conda.anaconda.org/intel/linux-64/dpcpp-cpp-rt-2022.1.0-intel_3768.tar.bz2"
+[[sources]]
+hash = "4ff8f0a0c482aa6ffeb419fe9d0d38a697d2db8d86e65ca499f47d5d68747436"
+type = "archive"
+unpack_target = ""
+url = "https://conda.anaconda.org/intel/linux-64/dpcpp_impl_linux-64-2022.1.0-intel_3768.tar.bz2"
+[[sources]]
+hash = "96a13c1fb673bcb0b6b0ddb6c436312113292d7ea21a55395a7efa34e70af0b1"
+type = "archive"
+unpack_target = ""
+url = "https://conda.anaconda.org/intel/linux-64/dpcpp_linux-64-2022.1.0-intel_3768.tar.bz2"
+[[sources]]
+hash = "b81f4838a930d08edec2aab4d3eebd89ce3b321ca602792bcc9433926836da07"
+type = "archive"
+unpack_target = ""
+url = "https://conda.anaconda.org/intel/linux-64/icc_rt-2022.1.0-intel_3768.tar.bz2"
+[[sources]]
+hash = "8c86ea88d46cb13b3b537203e15fc6e6ec2d803b7bd0bde8561d347b18ba426e"
+type = "archive"
+unpack_target = ""
+url = "https://conda.anaconda.org/intel/linux-64/intel-cmplr-lib-rt-2022.1.0-intel_3768.tar.bz2"
+[[sources]]
+hash = "fd3b6a0e75f06b1bf22b070a7b61b09d2a3e9d9e01a64b60b746b35f45681acb"
+type = "archive"
+unpack_target = ""
+url = "https://conda.anaconda.org/intel/linux-64/intel-cmplr-lic-rt-2022.1.0-intel_3768.tar.bz2"
+[[sources]]
+hash = "f4086002b4d5699dea78659777e412ef6c6ea2fa1d3984d135848f0b75144b81"
+type = "archive"
+unpack_target = ""
+url = "https://conda.anaconda.org/intel/linux-64/intel-opencl-rt-2022.1.0-intel_3768.tar.bz2"
+[[sources]]
+hash = "498dc37ce1bd513f591b633565151c4de8f11a12914814f2bf85afebbd35ee23"
+type = "archive"
+unpack_target = ""
+url = "https://conda.anaconda.org/intel/linux-64/intel-openmp-2022.1.0-intel_3768.tar.bz2"
+[[sources]]
+hash = "31c225ce08d3dc129f0881e5d36a1ef0ba8dc9fdc0e168397c2ac144d5f0bf54"
+type = "archive"
+unpack_target = ""
+url = "https://conda.anaconda.org/intel/linux-64/mkl-2022.1.0-intel_223.tar.bz2"
+[[sources]]
+hash = "4e014e6ac31e8961f09c937b66f53d2c0d75f074f39abfa9f378f4659ed2ecbb"
+type = "archive"
+unpack_target = ""
+url = "https://conda.anaconda.org/intel/linux-64/mkl-devel-2022.1.0-intel_223.tar.bz2"
+[[sources]]
+hash = "25e38a5466245ce289c77a4bb1c38d26d3a4ec762b0207f6f03af361a3529322"
+type = "archive"
+unpack_target = ""
+url = "https://conda.anaconda.org/intel/linux-64/mkl-devel-dpcpp-2022.1.0-intel_223.tar.bz2"
+[[sources]]
+hash = "79af3aa775168128054d8e2cb04717fea55b1779885d3472286106e1f24d0fc4"
+type = "archive"
+unpack_target = ""
+url = "https://conda.anaconda.org/intel/linux-64/mkl-dpcpp-2022.1.0-intel_223.tar.bz2"
+[[sources]]
+hash = "704e658a9b25a200f8035f3d0a8f2e094736496a2169f87609f1cfed2e2eb0a9"
+type = "archive"
+unpack_target = ""
+url = "https://conda.anaconda.org/intel/linux-64/mkl-include-2022.1.0-intel_223.tar.bz2"

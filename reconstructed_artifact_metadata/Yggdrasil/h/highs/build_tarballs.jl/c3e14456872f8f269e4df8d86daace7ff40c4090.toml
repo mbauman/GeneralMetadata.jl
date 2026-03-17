@@ -1,0 +1,39 @@
+init_block = ""
+lazy_artifacts = false
+name = "HiGHS"
+platforms = ["i686-linux-gnu-libgfortran3-cxx03", "i686-linux-gnu-libgfortran4-cxx03", "i686-linux-gnu-libgfortran5-cxx03", "i686-linux-gnu-libgfortran3-cxx11", "i686-linux-gnu-libgfortran4-cxx11", "i686-linux-gnu-libgfortran5-cxx11", "x86_64-linux-gnu-libgfortran3-cxx03", "x86_64-linux-gnu-libgfortran4-cxx03", "x86_64-linux-gnu-libgfortran5-cxx03", "x86_64-linux-gnu-libgfortran3-cxx11", "x86_64-linux-gnu-libgfortran4-cxx11", "x86_64-linux-gnu-libgfortran5-cxx11", "aarch64-linux-gnu-libgfortran3-cxx03", "aarch64-linux-gnu-libgfortran4-cxx03", "aarch64-linux-gnu-libgfortran5-cxx03", "aarch64-linux-gnu-libgfortran3-cxx11", "aarch64-linux-gnu-libgfortran4-cxx11", "aarch64-linux-gnu-libgfortran5-cxx11", "armv7l-linux-gnueabihf-libgfortran3-cxx03", "armv7l-linux-gnueabihf-libgfortran4-cxx03", "armv7l-linux-gnueabihf-libgfortran5-cxx03", "armv7l-linux-gnueabihf-libgfortran3-cxx11", "armv7l-linux-gnueabihf-libgfortran4-cxx11", "armv7l-linux-gnueabihf-libgfortran5-cxx11", "powerpc64le-linux-gnu-libgfortran3-cxx03", "powerpc64le-linux-gnu-libgfortran4-cxx03", "powerpc64le-linux-gnu-libgfortran5-cxx03", "powerpc64le-linux-gnu-libgfortran3-cxx11", "powerpc64le-linux-gnu-libgfortran4-cxx11", "powerpc64le-linux-gnu-libgfortran5-cxx11", "i686-linux-musl-libgfortran3-cxx03", "i686-linux-musl-libgfortran4-cxx03", "i686-linux-musl-libgfortran5-cxx03", "i686-linux-musl-libgfortran3-cxx11", "i686-linux-musl-libgfortran4-cxx11", "i686-linux-musl-libgfortran5-cxx11", "x86_64-linux-musl-libgfortran3-cxx03", "x86_64-linux-musl-libgfortran4-cxx03", "x86_64-linux-musl-libgfortran5-cxx03", "x86_64-linux-musl-libgfortran3-cxx11", "x86_64-linux-musl-libgfortran4-cxx11", "x86_64-linux-musl-libgfortran5-cxx11", "aarch64-linux-musl-libgfortran3-cxx03", "aarch64-linux-musl-libgfortran4-cxx03", "aarch64-linux-musl-libgfortran5-cxx03", "aarch64-linux-musl-libgfortran3-cxx11", "aarch64-linux-musl-libgfortran4-cxx11", "aarch64-linux-musl-libgfortran5-cxx11", "armv7l-linux-musleabihf-libgfortran3-cxx03", "armv7l-linux-musleabihf-libgfortran4-cxx03", "armv7l-linux-musleabihf-libgfortran5-cxx03", "armv7l-linux-musleabihf-libgfortran3-cxx11", "armv7l-linux-musleabihf-libgfortran4-cxx11", "armv7l-linux-musleabihf-libgfortran5-cxx11", "x86_64-apple-darwin14-libgfortran3-cxx03", "x86_64-apple-darwin14-libgfortran4-cxx03", "x86_64-apple-darwin14-libgfortran5-cxx03", "x86_64-apple-darwin14-libgfortran3-cxx11", "x86_64-apple-darwin14-libgfortran4-cxx11", "x86_64-apple-darwin14-libgfortran5-cxx11", "x86_64-unknown-freebsd11.1-libgfortran3-cxx03", "x86_64-unknown-freebsd11.1-libgfortran4-cxx03", "x86_64-unknown-freebsd11.1-libgfortran5-cxx03", "x86_64-unknown-freebsd11.1-libgfortran3-cxx11", "x86_64-unknown-freebsd11.1-libgfortran4-cxx11", "x86_64-unknown-freebsd11.1-libgfortran5-cxx11"]
+script = """cd $WORKSPACE/srcdir\nif [[ \"${target}\" == *86*-linux-musl* ]]; then\n    pushd /opt/${target}/lib/gcc/${target}/*/include\n    # Fix bug in Musl C library, see\n    # https://github.com/JuliaPackaging/BinaryBuilder.jl/issues/387\n    atomic_patch -p0 $WORKSPACE/srcdir/patches/mm_malloc.patch\n    popd\nfi\nmkdir -p HiGHS/build\ncd HiGHS/build\napk add --upgrade cmake --repository=http://dl-cdn.alpinelinux.org/alpine/edge/main\ncmake -DCMAKE_INSTALL_PREFIX=$prefix -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF ..\nmake -j${nproc} highs\nmake install highs\n"""
+version = "v0.1.4"
+
+[[dependencies]]
+name = "CompilerSupportLibraries_jll"
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libhighs"]
+type = "lib"
+variable_name = "libhighs"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libipx"]
+type = "lib"
+variable_name = "libipx"
+
+[[sources]]
+hash = "0b4cb7f882a6c5d208fbb2edb4d8c416291ed4f5"
+type = "git"
+unpack_target = ""
+url = "https://github.com/ERGO-Code/HiGHS.git"
+[[sources]]
+path = "./bundled"
+target = ""
+type = "directory"

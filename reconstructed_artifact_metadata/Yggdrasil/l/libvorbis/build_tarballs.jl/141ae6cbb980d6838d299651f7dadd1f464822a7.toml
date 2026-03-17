@@ -1,0 +1,51 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "libvorbis"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/libvorbis-*\n\n# Patch in explicit dependency on `stdint.h` to fix libogg\n# This will be fixed in a future libogg release:\n# https://github.com/xiph/ogg/commit/c8fca6b4a02d695b1ceea39b330d4406001c03ed\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/stdint.patch\"\n\n# Force `./configure` to repent from using `-ffast-math`\nsed -ie 's/-ffast-math//g' ./configure\n\n./configure --prefix=$prefix --host=$target --build=${MACHTYPE} --disable-static\nmake -j${nproc}\nmake install\n# Remove large docs directory\nrm -r \"${prefix}/share/doc\"\n"""
+version = "v1.3.7"
+
+[[dependencies]]
+compat = ""
+name = "Ogg_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvorbis"]
+type = "lib"
+variable_name = "libvorbis"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvorbisenc"]
+type = "lib"
+variable_name = "libvorbisenc"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvorbisfile"]
+type = "lib"
+variable_name = "libvorbisfile"
+
+[[sources]]
+hash = "b33cc4934322bcbf6efcbacf49e3ca01aadbea4114ec9589d1b1e9d20f72954b"
+type = "archive"
+unpack_target = ""
+url = "https://ftp.osuosl.org/pub/xiph/releases/vorbis/libvorbis-1.3.7.tar.xz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

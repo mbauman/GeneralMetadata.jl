@@ -1,0 +1,29 @@
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "pigz"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd ${WORKSPACE}/srcdir/pigz-*\n\nexport CPPFLAGS=\"-I${includedir}\"\nif [[ \"${target}\" == *-freebsd* ]]; then\n    # Without this, `__XSI_VISIBLE`, `S_IFMT`, `S_IFREG`, `S_IFMT`,\n    # `S_IFREG`, `S_IFIFO`, and `S_IFDIR` are all undefined\n    CPPFLAGS=\"${CPPFLAGS} -D_XOPEN_SOURCE=700\"\nfi\nmake -j${nproc} CC=${CC}\n\n# Install\nmkdir -p ${bindir}\nfor bin in pigz unpigz; do\n    cp \"${bin}\" \"${bindir}/${bin}${exeext}\"\ndone\n\n# License is embedded at the end of the README\ninstall_license README\n"""
+version = "v2.5.0"
+
+[[dependencies]]
+name = "Zlib_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["pigz"]
+type = "exe"
+variable_name = "pigz"
+[[products]]
+binnames = ["unpigz"]
+type = "exe"
+variable_name = "unpigz"
+
+[[sources]]
+hash = "a006645702caaecace633a89eb5c371482b44a48d04f34e0058e2b85d75d4c36"
+type = "archive"
+unpack_target = ""
+url = "https://zlib.net/pigz/pigz-2.5.tar.gz"

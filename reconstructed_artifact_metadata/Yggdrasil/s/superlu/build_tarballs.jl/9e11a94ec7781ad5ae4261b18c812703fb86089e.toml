@@ -1,0 +1,29 @@
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "SuperLU"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/superlu*\nmkdir build && cd build\ncmake -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DBUILD_SHARED_LIBS=ON \\\n    -Denable_internal_blaslib=OFF \\\n    -Denable_matlabmex=OFF \\\n    -Denable_tests=OFF \\\n    -Denable_doc=OFF \\\n    -Denable_single=ON \\\n    -Denable_double=ON \\\n    -Denable_complex=ON \\\n    -Denable_complex16=ON \\\n    -DTPL_BLAS_LIBRARIES=\"${libdir}/libopenblas.${dlext}\" \\\n    ..\nmake -j${nproc}\nmake install\nif [[ \"${target}\" == *-mingw* ]]; then\n    # Manually install the library\n    cp \"SRC/libsuperlu.${dlext}\" \"${libdir}/libsuperlu.${dlext}\"\nfi\n"""
+version = "v5.2.2"
+
+[[dependencies]]
+name = "OpenBLAS32_jll"
+type = "dependency"
+uuid = "656ef2d0-ae68-5445-9ca0-591084a874a2"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsuperlu"]
+type = "lib"
+variable_name = "libsuperlu"
+
+[[sources]]
+hash = "470334a72ba637578e34057f46948495e601a5988a602604f5576367e606a28c"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/xiaoyeli/superlu/archive/v5.2.2.tar.gz"

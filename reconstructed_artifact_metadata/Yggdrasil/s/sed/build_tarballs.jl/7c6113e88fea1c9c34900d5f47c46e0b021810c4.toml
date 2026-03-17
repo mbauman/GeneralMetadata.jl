@@ -1,0 +1,27 @@
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "sed"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "aarch64-apple-darwin", "armv6l-linux-gnueabihf", "armv6l-linux-musleabihf"]
+script = """cd $WORKSPACE/srcdir/sed-*\nif [[ \"${target}\" == *-mingw* ]]; then\n    # Fix error\n    #    sed/sed-compile.o: In function `sprintf':\n    #    /opt/x86_64-w64-mingw32/x86_64-w64-mingw32/sys-root/include/stdio.h:366: undefined reference to `__chk_fail'\n    # See https://github.com/msys2/MINGW-packages/issues/5868#issuecomment-544107564\n    export LIBS=\"-lssp\"\nfi\n\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target}\nmake -j${nproc} SUBDIRS=\"po .\"\nmake install SUBDIRS=\"po .\"\n"""
+version = "v4.8.1"
+
+[[dependencies]]
+compat = ""
+name = "Libiconv_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["sed"]
+type = "exe"
+variable_name = "sed"
+
+[[sources]]
+hash = "f79b0cfea71b37a8eeec8490db6c5f7ae7719c35587f21edb0617f370eeff633"
+type = "archive"
+unpack_target = ""
+url = "https://ftp.gnu.org/gnu/sed/sed-4.8.tar.xz"

@@ -1,0 +1,46 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "ssht"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """# below needed to use CMake_jll\napk del cmake\n\ncd ${WORKSPACE}/srcdir/ssht\n\n# Add missing declarations for certain complex long double functions.\n# These declarations seem to be missing from our system header files\n# on aarch64-unknown-freebsd.\n# They should be in `<complex.h>` but they aren't.\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/complex_long_double.patch\n\n# Build using the regular instructions\nmkdir build\ncd build\ncmake \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DCMAKE_C_FLAGS_INIT='-fPIC' \\\n    -DCMAKE_FIND_ROOT_PATH=${prefix} \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DBUILD_TESTING=OFF \\\n    ..\ncmake --build . --parallel ${nproc}\ncmake --install .\n\n# Convert the static into a shared library\nwhole_archive=$(flagon --whole-archive)\nif [ -n \"${whole_archive}\" ]; then\n    whole_archive=\"-Wl,${whole_archive}\"\nfi\nno_whole_archive=$(flagon --no-whole-archive)\nif [ -n \"${no_whole_archive}\" ]; then\n    no_whole_archive=\"-Wl,${no_whole_archive}\"\nfi\n${CC} -g -fPIC -shared -o ${libdir}/libssht.${dlext} \\\n    ${whole_archive} ${prefix}/lib/libssht.a ${no_whole_archive} \\\n    -L${libdir} -lfftw3\nrm ${prefix}/lib/libssht.a\n"""
+version = "v1.5.3"
+
+[[dependencies]]
+compat = "3.3.11"
+name = "FFTW_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CMake_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libssht"]
+type = "lib"
+variable_name = "libssht"
+
+[[sources]]
+hash = "7e9c1f91995ebb02687be5a8d498774ab02dfc1e"
+type = "git"
+unpack_target = ""
+url = "https://github.com/astro-informatics/ssht.git"
+[[sources]]
+follow_symlinks = false
+path = "bundled"
+target = ""
+type = "directory"

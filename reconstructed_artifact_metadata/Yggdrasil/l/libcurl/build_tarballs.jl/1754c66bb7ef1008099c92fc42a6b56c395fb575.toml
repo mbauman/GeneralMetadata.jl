@@ -1,0 +1,58 @@
+init_block = ""
+julia_compat = "1.8"
+lazy_artifacts = false
+name = "LibCURL"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/curl-*\n\n# Holy crow we really configure the bitlets out of this thing\nFLAGS=(\n    # Disable....almost everything\n    --without-ssl --without-gnutls --without-gssapi\n    --without-libidn --without-libidn2 --without-librtmp\n    --without-nss --without-polarssl\n    --without-spnego --without-libpsl --disable-ares --disable-manual\n    --disable-ldap --disable-ldaps --without-zsh-functions-dir\n    --disable-static --without-libgsasl\n\n    # A few things we actually enable\n    --with-libssh2=${prefix} --with-zlib=${prefix} --with-nghttp2=${prefix}\n    --enable-versioned-symbols\n)\n\n\nif [[ ${target} == *mingw* ]]; then\n    # We need to tell it where to find libssh2 on windows\n    FLAGS+=(LDFLAGS=\"${LDFLAGS} -L${prefix}/bin\")\n\n    # We also need to tell it to link against schannel (native TLS library)\n    FLAGS+=(--with-schannel)\nelif [[ ${target} == *darwin* ]]; then\n    # On Darwin, we need to use SecureTransport (native TLS library)\n    FLAGS+=(--with-secure-transport)\n\n    # We need to explicitly request a higher `-mmacosx-version-min` here, so that it doesn't\n    # complain about: `Symbol not found: ___isOSVersionAtLeast`\n    if [[ \"${target}\" == aarch64* ]]; then\n        export CFLAGS=-mmacosx-version-min=11.0\n    else\n        export CFLAGS=-mmacosx-version-min=10.11\n    fi\nelse\n    # On all other systems, we use MbedTLS\n    FLAGS+=(--with-mbedtls=${prefix})\nfi\n\n./configure --prefix=$prefix --host=$target --build=${MACHTYPE} \"${FLAGS[@]}\"\nmake -j${nproc}\nmake install\ninstall_license COPYING\n"""
+version = "v7.81.0"
+
+[[dependencies]]
+compat = ""
+name = "LibSSH2_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "nghttp2_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "~2.28.0"
+name = "MbedTLS_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcurl"]
+type = "lib"
+variable_name = "libcurl"
+[[products]]
+binnames = ["curl"]
+type = "exe"
+variable_name = "curl"
+
+[[sources]]
+hash = "ac8e1087711084548d788ef18b9b732c8de887457b81f616fc681d1044b32f98"
+type = "archive"
+unpack_target = ""
+url = "https://curl.se/download/curl-7.81.0.tar.gz"

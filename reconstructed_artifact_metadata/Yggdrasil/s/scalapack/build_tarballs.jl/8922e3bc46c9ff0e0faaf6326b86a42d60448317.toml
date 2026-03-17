@@ -1,0 +1,41 @@
+lazy_artifacts = false
+name = "SCALAPACK"
+platforms = ["i686-linux-gnu-libgfortran3", "i686-linux-gnu-libgfortran4", "i686-linux-gnu-libgfortran5", "x86_64-linux-gnu-libgfortran3", "x86_64-linux-gnu-libgfortran4", "x86_64-linux-gnu-libgfortran5", "aarch64-linux-gnu-libgfortran3", "aarch64-linux-gnu-libgfortran4", "aarch64-linux-gnu-libgfortran5", "armv7l-linux-gnueabihf-libgfortran3", "armv7l-linux-gnueabihf-libgfortran4", "armv7l-linux-gnueabihf-libgfortran5", "i686-linux-musl-libgfortran3", "i686-linux-musl-libgfortran4", "i686-linux-musl-libgfortran5", "x86_64-linux-musl-libgfortran3", "x86_64-linux-musl-libgfortran4", "x86_64-linux-musl-libgfortran5", "aarch64-linux-musl-libgfortran3", "aarch64-linux-musl-libgfortran4", "aarch64-linux-musl-libgfortran5", "armv7l-linux-musleabihf-libgfortran3", "armv7l-linux-musleabihf-libgfortran4", "armv7l-linux-musleabihf-libgfortran5", "x86_64-apple-darwin14-libgfortran3", "x86_64-apple-darwin14-libgfortran4", "x86_64-apple-darwin14-libgfortran5", "x86_64-unknown-freebsd11.1-libgfortran3", "x86_64-unknown-freebsd11.1-libgfortran4", "x86_64-unknown-freebsd11.1-libgfortran5"]
+script = """mkdir -p ${libdir}\ncd $WORKSPACE/srcdir/scalapack-2.1.0\n\n# the patch prevents running foreign executables, which fails on most platforms\n# we instead set CDEFS manually below\nfor f in ${WORKSPACE}/srcdir/patches/*.patch; do\n  atomic_patch -p1 ${f}\ndone\n\nCMAKE_FLAGS=(-DCMAKE_INSTALL_PREFIX=${prefix}\n             -DCMAKE_TOOLCHAIN_FILE=\"${CMAKE_TARGET_TOOLCHAIN}\"\n             -DCMAKE_BUILD_TYPE=Release\n             -DBUILD_SHARED_LIBS=ON)\n\nif [[ \"${target}\" == i686-*  ]] || [[ \"${target}\" == x86_64-*  ]]; then\n  CMAKE_FLAGS+=(-DCMAKE_EXE_LINKER_FLAGS=\"-lgfortran -lquadmath\")\nelse\n  if [[ \"${target}\" == powerpc64le-linux-gnu ]]; then\n    # special case for CMake to discover MPI_Fortran\n    CMAKE_FLAGS+=(-DCMAKE_EXE_LINKER_FLAGS=\"-lgfortran -L/opt/${target}/${target}/sys-root/usr/lib64 -lpthread -lrt\" \\\n                  -DCMAKE_SHARED_LINKER_FLAGS=\"-lgfortran -L/opt/${target}/${target}/sys-root/usr/lib64 -lpthread -lrt\" \\\n                  -DMPI_Fortran_LINK_FLAGS=\"-Wl,-rpath -Wl,/workspace/destdir/lib -Wl,--enable-new-dtags -L/workspace/destdir/lib -Wl,-L/opt/${target}/${target}/sys-root/usr/lib64 -Wl,-lpthread -Wl,-lrt\")\n  else\n    CMAKE_FLAGS+=(-DCMAKE_EXE_LINKER_FLAGS=\"-lgfortran\")\n  fi\nfi\n\nOPENBLAS=(-lopenblas)\nFFLAGS=(-cpp -ffixed-line-length-none)\n\nif [[ ${nbits} == 64 ]] && [[ ${target} != aarch64* ]]; then\n  OPENBLAS=(-lopenblas64_)\n  if [[ \"${target}\" == powerpc64le-linux-gnu ]]; then\n    OPENBLAS+=(-lgomp)\n  fi\n  syms=(caxpy cbdsqr ccopy cdotc cdotu cgbmv cgbtrf cgemm cgemv cgerc cgeru cgetrf cgetrs chbmv chemm chemv cher cher2 cher2k cherk chetrd clacgv clacpy cladiv clanhs clarfg clartg claset clasr classq claswp cpbtrf cpotrf cpttrf crot csbmv cscal csscal cswap csymm csyr2k csyrk ctbtrs ctrmm ctrmv ctrsm ctrsv ctrtrs dasum daxpy dsbmv dbdsqr dcopy ddot dgbmv dgbtrf dgemm dgemv dger dgetrf dgetrs dhbmv disnan dlabad dlacpy dlae2 dlaebz dlaed4 dlaev2 dlagtf dlagts dlahqr dlamc3 dlamch dlange dlanst dlanv2 dlapy2 dlapy3 dlaqr0 dlaqr1 dlaqr3 dlaqr4 dlarfg dlarfx dlarnv dlarra dlarrb dlarrc dlarrd dlarrk dlarrv dlartg dlaruv dlascl dlaset dlasq2 dlasr dlasrt dlassq dlaswp dlasy2 dnrm2 dpbtrf dpotrf dpttrf drot dscal dstedc dsteqr dsterf dswap dsymm dsymv dsyr dsyr2 dsyr2k dsyrk dsytrd dtbtrs dtrmm dtrmv dtrsm dtrsv dtrtrs dzasum dznrm2 dzsum1 icamax icmax1 idamax ieeeck ilaenv isamax izamax izmax1 lsame lsamen sasum saxpy sbdsqr scasum scnrm2 scopy scsum1 sdot sgbmv sgbtrf sgemm sgemv sger sgetrf sgetrs shbmv sisnan slabad slacpy slae2 slaebz slaed4 slaev2 slagtf slagts slahqr slamc3 slamch slange slanst slanv2 slapy2 slapy3 slaqr0 slaqr1 slaqr3 slaqr4 slarfg slarfx slarnv slarra slarrb slarrc slarrd slarrk slarrv slartg slaruv slascl slaset slasq2 slasr slasrt slassq slaswp slasy2 snrm2 spbtrf spotrf spttrf srot ssbmv sscal sstedc ssteqr ssterf sswap ssymm ssymv ssyr ssyr2 ssyr2k ssyrk ssytrd stbtrs strmm strmv strsm strsv strtrs xerbla zaxpy zbdsqr zcopy zdotc zdotu zdscal zgbmv zgbtrf zgemm zgemv zgerc zgeru zgetrf zgetrs zhbmv zhemm zhemv zher zher2 zher2k zherk zhetrd zlacgv zlacpy zladiv zlanhs zlarfg zlartg zlaset zlasr zlassq zlaswp zpbtrf zpotrf zpttrf zrot zdbmv zscal zswap zsymm zsyr2k zsyrk ztbtrs ztrmm ztrmv ztrsm ztrsv ztrtrs)\n  for sym in ${syms[@]}\n  do\n    FFLAGS+=(\"-D${sym}=${sym}_64\")\n    FFLAGS+=(\"-D${sym}_=${sym}_64_\")  # due to some evil #defines in SCALAPACK\n    FFLAGS+=(\"-D${sym^^}=${sym}_64\")\n  done\n\n  CMAKE_FLAGS+=(-DCMAKE_Fortran_FLAGS=\"${FFLAGS[*]}\" \\\n                -DCMAKE_C_FLAGS=\"${FFLAGS[*]}\")\nfi\n\nCMAKE_FLAGS+=(-DBLAS_LIBRARIES=\"${OPENBLAS[*]}\" \\\n              -DLAPACK_LIBRARIES=\"${OPENBLAS[*]}\")\n\nexport CDEFS=\"Add_\"\n\nmkdir build && cd build\ncmake .. \"${CMAKE_FLAGS[@]}\"\n\nmake -j${nproc} all\nmake install\n"""
+version = "v2.1.0"
+
+[[dependencies]]
+name = "MPICH_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "OpenBLAS_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "CompilerSupportLibraries_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dont_dlopen = false
+libnames = ["libscalapack"]
+type = "lib"
+variable_name = "libscalapack"
+
+[[sources]]
+hash = "61d9216cf81d246944720cfce96255878a3f85dec13b9351f1fa0fd6768220a6"
+type = "archive"
+unpack_target = ""
+url = "http://www.netlib.org/scalapack/scalapack-2.1.0.tgz"
+[[sources]]
+path = "./bundled"
+target = ""
+type = "directory"

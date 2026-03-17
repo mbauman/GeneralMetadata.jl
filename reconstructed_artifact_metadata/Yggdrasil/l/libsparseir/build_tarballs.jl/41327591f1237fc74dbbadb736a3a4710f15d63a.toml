@@ -1,0 +1,33 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.10"
+lazy_artifacts = false
+name = "libsparseir"
+platforms = ["x86_64-linux-gnu", "aarch64-linux-gnu", "powerpc64le-linux-gnu", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "x86_64-w64-mingw32"]
+script = """cd ${WORKSPACE}/srcdir/sparse-ir-rs/\ninstall_license LICENSE\n\nif [[ \"${target}\" == *mingw* ]]; then\n    export RUSTFLAGS=\"-C link-arg=-L${libdir} -C link-arg=-lblastrampoline-5\"\n    cargo build --release --features system-blas\n    install -D -m 755 \"target/${rust_target}/release/sparse_ir_capi.${dlext}\" \\\n        \"${libdir}/libsparse_ir_capi.${dlext}\"\nelse\n    export RUSTFLAGS=\"-C link-arg=-lblastrampoline\"\n    cargo build --release --features system-blas\n    install -D -m 755 \"target/${rust_target}/release/libsparse_ir_capi.${dlext}\" \\\n        \"${libdir}/libsparse_ir_capi.${dlext}\"\nfi\n\ncp sparse-ir-capi/include/sparseir/sparseir.h ${includedir}\n"""
+version = "v0.8.0"
+
+[[dependencies]]
+compat = "5.4.0"
+name = "libblastrampoline_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "8e850b90-86db-534c-a0d3-1478176c7d93"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsparse_ir_capi"]
+type = "lib"
+variable_name = "libsparseir"
+
+[[sources]]
+hash = "993365de9ec4cfb8fe187cf719e28d3f6eb9d59d"
+type = "git"
+unpack_target = ""
+url = "https://github.com/SpM-lab/sparse-ir-rs.git"

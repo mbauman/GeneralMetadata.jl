@@ -1,0 +1,43 @@
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "CFITSIO"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/cfitsio*\natomic_patch -p1 ../patches/configure_in.patch\natomic_patch -p1 ../patches/Makefile_in.patch\nautoreconf\nif [[ \"${target}\" == *-mingw* ]]; then\n    # This is ridiculous: when CURL is enabled, CFITSIO defines a macro,\n    # `TBYTE`, that has the same name as a mingw macro.  Let's rename all\n    # `TBYTE` to `_TBYTE`.\n    sed -i 's/\\<TBYTE\\>/_TBYTE/g' $(grep -lr '\\<TBYTE\\>')\nfi\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} --enable-reentrant\nmake -j${nproc} shared\nmake install\n# Delete the static library\nrm ${prefix}/lib/libcfitsio.a\n# On Windows platforms, we need to move our .dll files to bin\nif [[ \"${target}\" == *-mingw* ]]; then\n    mkdir -p ${libdir}\n    mv ${prefix}/lib/*.dll ${libdir}/.\nfi\n"""
+version = "v4.0.0"
+
+[[dependencies]]
+compat = ""
+name = "LibCURL_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcfitsio"]
+type = "lib"
+variable_name = "libcfitsio"
+
+[[sources]]
+hash = "b2a8efba0b9f86d3e1bd619f662a476ec18112b4f27cc441cc680a4e3777425e"
+type = "archive"
+unpack_target = ""
+url = "http://heasarc.gsfc.nasa.gov/FTP/software/fitsio/c/cfitsio-4.0.0.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

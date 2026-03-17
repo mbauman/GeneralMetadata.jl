@@ -1,0 +1,37 @@
+lazy_artifacts = false
+name = "libcgal_julia"
+platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11", "x86_64-apple-darwin14-cxx03", "x86_64-apple-darwin14-cxx11"]
+script = """## pre-build setup\n# exit on error\nset -eu\n\n# HACK: download julia..\ncurl -Lo julia.tar.gz https://github.com/JuliaPackaging/JuliaBuilder/releases/download/v1.0.0-2/julia-1.0.0-$target.tar.gz\nmkdir julia && tar xf julia.tar.gz -C julia\nJulia_PREFIX=\"$PWD/julia\"\n\n## configure build\nmkdir -p build && cd build\n\ncmake ../libcgal-julia*/ \\\n  `# cmake specific` \\\n  -DCMAKE_TOOLCHAIN_FILE=\"$CMAKE_TARGET_TOOLCHAIN\" \\\n  -DCMAKE_BUILD_TYPE=Release \\\n  -DCMAKE_CXX_FLAGS=\"-march=x86-64\" \\\n  -DCMAKE_FIND_ROOT_PATH=\"$prefix\" \\\n  -DCMAKE_INSTALL_PREFIX=\"$prefix\" \\\n  `# tell libcxxwrap-julia where julia is` \\\n  -DJulia_PREFIX=\"$Julia_PREFIX\"\n\n## and away we go..\nVERBOSE=ON cmake --build . --config Release --target install -- -j$nproc\n\ninstall_license ../libcgal-julia*/LICENSE\n\n# HACK: Apparently, this isn't a simple build system anymore..\ncase $target in\n  *mingw32*) mv \"$prefix/lib/\"*.dll \"$prefix/bin\" ;;\nesac\n"""
+version = "v0.6.0"
+
+[[dependencies]]
+name = "CGAL_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "libcxxwrap_julia_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dont_dlopen = false
+libnames = ["libcgal_julia_exact"]
+type = "lib"
+variable_name = "libcgal_julia_exact"
+[[products]]
+dir_paths = []
+dont_dlopen = false
+libnames = ["libcgal_julia_inexact"]
+type = "lib"
+variable_name = "libcgal_julia_inexact"
+
+[[sources]]
+hash = "a3e634e6d0df0d6046daa4de531f91ca0f5673ff"
+type = "git"
+unpack_target = ""
+url = "https://github.com/rgcv/libcgal-julia.git"

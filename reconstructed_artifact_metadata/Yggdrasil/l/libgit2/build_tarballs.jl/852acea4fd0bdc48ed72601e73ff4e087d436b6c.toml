@@ -1,0 +1,50 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.9"
+lazy_artifacts = false
+name = "LibGit2"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "x86_64-linux-gnu-sanitize+memory"]
+script = """cd $WORKSPACE/srcdir/libgit2*/\n\nBUILD_FLAGS=(\n    -DCMAKE_BUILD_TYPE=Release\n    -DUSE_THREADS=ON\n    -DUSE_BUNDLED_ZLIB=ON\n    -DUSE_SSH=ON\n    -DBUILD_CLI=OFF\n    \"-DCMAKE_INSTALL_PREFIX=${prefix}\"\n    \"-DCMAKE_TOOLCHAIN_FILE=\"${CMAKE_TARGET_TOOLCHAIN}\"\"\n)\n\nif [[ ${bb_full_target} == *-sanitize+memory* ]]; then\n    # Install msan runtime (for clang)\n    cp -rL ${libdir}/linux/* /opt/x86_64-linux-musl/lib/clang/*/lib/linux/\nfi\n\n# Special windows flags\nif [[ ${target} == *-mingw* ]]; then\n    BUILD_FLAGS+=(-DWIN32=ON -DMINGW=ON -DBUILD_CLAR=OFF)\n    if [[ ${target} == i686-* ]]; then\n        BUILD_FLAGS+=(-DCMAKE_C_FLAGS=\"-mincoming-stack-boundary=2\")\n    fi\n\n    # For some reason, CMake fails to find libssh2 using pkg-config.\n    BUILD_FLAGS+=(-Dssh2_RESOLVED=${bindir}/libssh2.dll)\nelif [[ ${target} == *linux* ]] || [[ ${target} == *freebsd* ]]; then\n    # If we're on Linux or FreeBSD, explicitly ask for mbedTLS instead of OpenSSL\n    BUILD_FLAGS+=(-DUSE_HTTPS=mbedTLS -DUSE_SHA1=CollisionDetection -DCMAKE_INSTALL_RPATH=\"\\$ORIGIN\")\nfi\n\nmkdir build && cd build\n\ncmake .. \"${BUILD_FLAGS[@]}\"\nmake -j${nproc}\nmake install\n"""
+version = "v1.6.0"
+
+[[dependencies]]
+compat = "~2.28.0"
+name = "MbedTLS_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.10.1"
+name = "LibSSH2_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LLVMCompilerRT_jll"
+platforms = ["x86_64-linux-gnu-sanitize+memory"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgit2"]
+type = "lib"
+variable_name = "libgit2"
+
+[[sources]]
+hash = "f7325c448053bfcd1a32ec319ed392f525480634"
+type = "git"
+unpack_target = ""
+url = "https://github.com/libgit2/libgit2.git"

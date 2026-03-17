@@ -1,0 +1,21 @@
+dependencies = []
+init_block = ""
+lazy_artifacts = false
+name = "Musl"
+platforms = ["i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf"]
+script = """mkdir ${WORKSPACE}/srcdir/musl_build\ncd ${WORKSPACE}/srcdir/musl_build\nmusl_arch()\n{\n    case \"${target}\" in\n        i686*)\n            echo i386 ;;\n        arm*)\n            echo armhf ;;\n        *)\n            echo ${target%%-*} ;;\n    esac\n}\n\nexport LDFLAGS=\"${LDFLAGS} -Wl,-soname,libc.musl-$(musl_target).so.1\"\n${WORKSPACE}/srcdir/musl-*/configure --prefix=/usr \\\n    --host=${target} \\\n    --disable-multilib \\\n    --disable-werror \\\n    --enable-optimize \\\n    --enable-debug\n\nmake -j${nproc}\n\n# Install to fake directory\nmake install DESTDIR=${WORKSPACE}/srcdir/musl_deploy\n\n# In reality, all we want is what we need to run Musl programs, so\n# we just copy the dynamic loader directly over.\nmkdir -p ${prefix}/lib\nloader=$(echo ${WORKSPACE}/srcdir/musl_deploy/lib/*.so*)\nmv ${WORKSPACE}/srcdir/musl_deploy/usr/lib/libc.so ${prefix}/lib/$(basename \"${loader}\")\n"""
+version = "v1.1.24"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["ld-musl-x86_64", "ld-musl-i386", "ld-musl-armhf", "ld-musl-aarch64"]
+type = "lib"
+variable_name = "libc"
+
+[[sources]]
+hash = "1370c9a812b2cf2a7d92802510cca0058cc37e66a7bedd70051f0a34015022a3"
+type = "archive"
+unpack_target = ""
+url = "https://www.musl-libc.org/releases/musl-1.1.24.tar.gz"

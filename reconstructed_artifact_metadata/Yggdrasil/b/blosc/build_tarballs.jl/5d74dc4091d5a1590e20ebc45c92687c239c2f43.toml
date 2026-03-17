@@ -1,0 +1,55 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Blosc"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/c-blosc\nif [[ \"${target}\" == *mingw* ]]; then\n  atomic_patch -p1 ../patches/mingw.patch\nfi\nmkdir build\ncd build\nCMAKE_FLAGS=(-DCMAKE_INSTALL_PREFIX=$prefix -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} -DCMAKE_BUILD_TYPE=Release)\nCMAKE_FLAGS+=(-DCMAKE_C_FLAGS=\"-std=gnu99\")\nCMAKE_FLAGS+=(-DBUILD_TESTS=OFF -DBUILD_BENCHMARKS=OFF)\nCMAKE_FLAGS+=(-DBUILD_STATIC=OFF)\nCMAKE_FLAGS+=(-DCMAKE_SHARED_LIBRARY_LINK_C_FLAGS=\"\")\nCMAKE_FLAGS+=(-DCMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS=\"\")\nCMAKE_FLAGS+=(-DPREFER_EXTERNAL_ZLIB=ON)\nCMAKE_FLAGS+=(-DPREFER_EXTERNAL_ZSTD=ON)\nCMAKE_FLAGS+=(-DPREFER_EXTERNAL_LZ4=ON)\ncmake ${CMAKE_FLAGS[@]} ..\nmake -j${nproc}\nmake install\n\ninstall_license ../LICENSES/*.txt\n"""
+version = "v1.21.4"
+
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zstd_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Lz4_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libblosc"]
+type = "lib"
+variable_name = "libblosc"
+
+[[sources]]
+hash = "2c2f9bd936b1340ad92a6da6c2a52adf4254c241"
+type = "git"
+unpack_target = ""
+url = "https://github.com/Blosc/c-blosc.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

@@ -1,0 +1,34 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "sed"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/sed-*\nif [[ \"${target}\" == *-mingw* ]]; then\n    # Fix error\n    #    sed/sed-compile.o: In function `sprintf':\n    #    /opt/x86_64-w64-mingw32/x86_64-w64-mingw32/sys-root/include/stdio.h:366: undefined reference to `__chk_fail'\n    # See https://github.com/msys2/MINGW-packages/issues/5868#issuecomment-544107564\n    export LIBS=\"-lssp\"\n\n    # install `autopoint`, needed by `autoreconf`\n    apk update && apk add gettext-dev\n    # Fix error\n    #     lib/libsed.a(libsed_a-getrandom.o): In function `getrandom':\n    #     /workspace/srcdir/sed-4.9/lib/getrandom.c:128: undefined reference to `BCryptGenRandom@16'\n    # with https://github.com/msys2/MINGW-packages/blob/b400fdecc8e7234ddb1fd45604595d181664b15e/mingw-w64-sed/001-link-to-bcrypt.patch\n    atomic_patch -p1 ../patches/001-link-to-bcrypt.patch\n    autoreconf -fiv\nfi\n\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target}\nmake -j${nproc} SUBDIRS=\"po .\"\nmake install SUBDIRS=\"po .\"\n"""
+version = "v4.9.0"
+
+[[dependencies]]
+compat = ""
+name = "Libiconv_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["sed"]
+type = "exe"
+variable_name = "sed"
+
+[[sources]]
+hash = "6e226b732e1cd739464ad6862bd1a1aba42d7982922da7a53519631d24975181"
+type = "archive"
+unpack_target = ""
+url = "https://ftp.gnu.org/gnu/sed/sed-4.9.tar.xz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

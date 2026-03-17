@@ -1,0 +1,34 @@
+lazy_artifacts = false
+name = "MPICH"
+platforms = ["i686-linux-gnu-libgfortran3", "i686-linux-gnu-libgfortran4", "i686-linux-gnu-libgfortran5", "x86_64-linux-gnu-libgfortran3", "x86_64-linux-gnu-libgfortran4", "x86_64-linux-gnu-libgfortran5", "aarch64-linux-gnu-libgfortran3", "aarch64-linux-gnu-libgfortran4", "aarch64-linux-gnu-libgfortran5", "armv7l-linux-gnueabihf-libgfortran3", "armv7l-linux-gnueabihf-libgfortran4", "armv7l-linux-gnueabihf-libgfortran5", "powerpc64le-linux-gnu-libgfortran3", "powerpc64le-linux-gnu-libgfortran4", "powerpc64le-linux-gnu-libgfortran5", "i686-linux-musl-libgfortran3", "i686-linux-musl-libgfortran4", "i686-linux-musl-libgfortran5", "x86_64-linux-musl-libgfortran3", "x86_64-linux-musl-libgfortran4", "x86_64-linux-musl-libgfortran5", "aarch64-linux-musl-libgfortran3", "aarch64-linux-musl-libgfortran4", "aarch64-linux-musl-libgfortran5", "armv7l-linux-musleabihf-libgfortran3", "armv7l-linux-musleabihf-libgfortran4", "armv7l-linux-musleabihf-libgfortran5", "x86_64-apple-darwin14-libgfortran3", "x86_64-apple-darwin14-libgfortran4", "x86_64-apple-darwin14-libgfortran5", "x86_64-unknown-freebsd11.1-libgfortran3", "x86_64-unknown-freebsd11.1-libgfortran4", "x86_64-unknown-freebsd11.1-libgfortran5"]
+script = """# Enter the funzone\ncd ${WORKSPACE}/srcdir/mpich-*\n\n# Remove wrong libtool files\nrm -f /opt/${target}/${target}/lib64/*.la\nrm -f /opt/${target}/${target}/lib/*.la\n\natomic_patch -p1 ../patches/0001-romio-Use-tr-for-replacing-to-space-in-list-of-file-.patch\npushd src/mpi/romio\nautoreconf -vi\npopd\n\nEXTRA_FLAGS=()\nif [[ \"${target}\" != i686-linux-gnu ]] || [[ \"${target}\" != x86_64-linux-* ]]; then\n    # Define some obscure undocumented variables needed for cross compilation of\n    # the Fortran bindings.  See for example\n    # * https://stackoverflow.com/q/56759636/2442087\n    # * https://github.com/pmodels/mpich/blob/d10400d7a8238dc3c8464184238202ecacfb53c7/doc/installguide/cfile\n    export CROSS_F77_SIZEOF_INTEGER=4\n    export CROSS_F77_TRUE_VALUE=1\n    export CROSS_F77_FALSE_VALUE=0\n\n    export CROSS_F90_ADDRESS_KIND=8\n    export CROSS_F90_OFFSET_KIND=8\n    export CROSS_F90_INTEGER_KIND=4\n    export CROSS_F90_DOUBLE_MODEL=15,307\n    export CROSS_F90_REAL_MODEL=6,37\n\n    if [[ \"${target}\" == i686-linux-musl ]]; then\n        # Our `i686-linux-musl` platform is a bit rotten: it can run C programs,\n        # but not C++ or Fortran.  `configure` runs a C program to determine\n        # whether it's cross-compiling or not, but when it comes to running\n        # Fortran programs, it fails.  In addition, `configure` ignores the\n        # above exported variables if it believes it's doing a native build.\n        # Small hack: edit `configure` script to force `cross_compiling` to be\n        # always \"yes\".\n        sed -i 's/cross_compiling=no/cross_compiling=yes/g' configure\n        EXTRA_FLAGS+=(ac_cv_sizeof_bool=\"1\")\n    fi\nfi\n\n./configure --prefix=$prefix --host=$target \\\n    --enable-shared=yes \\\n    --enable-static=no \\\n    --disable-dependency-tracking \\\n    --docdir=/tmp \\\n    \"${EXTRA_FLAGS[@]}\"\n\n# Build the library\nmake -j${nproc}\n\n# Install the library\nmake install\n"""
+version = "v3.3.2"
+
+[[dependencies]]
+name = "CompilerSupportLibraries_jll"
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dont_dlopen = false
+libnames = ["libmpi"]
+type = "lib"
+variable_name = "libmpi"
+[[products]]
+binnames = ["mpiexec"]
+type = "exe"
+variable_name = "mpiexec"
+
+[[sources]]
+hash = "4bfaf8837a54771d3e4922c84071ef80ffebddbb6971a006038d91ee7ef959b9"
+type = "archive"
+unpack_target = ""
+url = "https://www.mpich.org/static/downloads/3.3.2/mpich-3.3.2.tar.gz"
+[[sources]]
+path = "./bundled"
+target = ""
+type = "directory"

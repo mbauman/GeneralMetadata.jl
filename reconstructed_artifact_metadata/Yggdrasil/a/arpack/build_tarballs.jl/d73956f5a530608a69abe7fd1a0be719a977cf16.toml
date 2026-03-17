@@ -1,0 +1,38 @@
+init_block = ""
+julia_compat = "1.7"
+lazy_artifacts = false
+name = "Arpack"
+platforms = ["i686-linux-gnu-libgfortran3", "i686-linux-gnu-libgfortran4", "i686-linux-gnu-libgfortran5", "x86_64-linux-gnu-libgfortran3", "x86_64-linux-gnu-libgfortran4", "x86_64-linux-gnu-libgfortran5", "aarch64-linux-gnu-libgfortran3", "aarch64-linux-gnu-libgfortran4", "aarch64-linux-gnu-libgfortran5", "armv6l-linux-gnueabihf-libgfortran3", "armv6l-linux-gnueabihf-libgfortran4", "armv6l-linux-gnueabihf-libgfortran5", "armv7l-linux-gnueabihf-libgfortran3", "armv7l-linux-gnueabihf-libgfortran4", "armv7l-linux-gnueabihf-libgfortran5", "powerpc64le-linux-gnu-libgfortran3", "powerpc64le-linux-gnu-libgfortran4", "powerpc64le-linux-gnu-libgfortran5", "i686-linux-musl-libgfortran3", "i686-linux-musl-libgfortran4", "i686-linux-musl-libgfortran5", "x86_64-linux-musl-libgfortran3", "x86_64-linux-musl-libgfortran4", "x86_64-linux-musl-libgfortran5", "aarch64-linux-musl-libgfortran3", "aarch64-linux-musl-libgfortran4", "aarch64-linux-musl-libgfortran5", "armv6l-linux-musleabihf-libgfortran3", "armv6l-linux-musleabihf-libgfortran4", "armv6l-linux-musleabihf-libgfortran5", "armv7l-linux-musleabihf-libgfortran3", "armv7l-linux-musleabihf-libgfortran4", "armv7l-linux-musleabihf-libgfortran5", "x86_64-apple-darwin-libgfortran3", "x86_64-apple-darwin-libgfortran4", "x86_64-apple-darwin-libgfortran5", "aarch64-apple-darwin-libgfortran5", "x86_64-unknown-freebsd-libgfortran3", "x86_64-unknown-freebsd-libgfortran4", "x86_64-unknown-freebsd-libgfortran5", "i686-w64-mingw32-libgfortran3", "i686-w64-mingw32-libgfortran4", "i686-w64-mingw32-libgfortran5", "x86_64-w64-mingw32-libgfortran3", "x86_64-w64-mingw32-libgfortran4", "x86_64-w64-mingw32-libgfortran5"]
+script = """cd ${WORKSPACE}/srcdir/arpack-ng*\n\n# arpack tests require finding libgfortran when linking with C linkers,\n# and gcc doesn't automatically add that search path.  So we do it for it with `rpath-link`.\nEXE_LINK_FLAGS=()\nif [[ ${target} != *darwin* ]]; then\n    EXE_LINK_FLAGS+=(\"-Wl,-rpath-link,/opt/${target}/${target}/lib\")\n    EXE_LINK_FLAGS+=(\"-Wl,-rpath-link,/opt/${target}/${target}/lib64\")\nfi\n\n# Symbols that have float32, float64, complexf32, and complexf64 support\nSDCZ_SYMBOLS=(\n    axpy copy gemv geqr2 lacpy lahqr lanhs larnv lartg\n    lascl laset scal trevc trmm trsen gbmv gbtrf gbtrs\n    gttrf gttrs pttrf pttrs\n)\n\n# All symbols that have float32/float64 support (including the SDCZ_SYMBOLS above)\nSD_SYMBOLS=(\n    ${SDCZ_SYMBOLS[@]}\n    dot ger labad laev2 lamch lanst lanv2\n    lapy2 larf larfg lasr nrm2 orm2r rot steqr swap\n)\n\n# All symbols that have complexf32/complexf64 support (including the SDCZ_SYMBOLS above)\nCZ_SYMBOLS=(${SDCZ_SYMBOLS[@]} dotc geru unm2r)\n\n# Add in (s|d)*_64 symbol remappings:\nSYMBOL_DEFS=()\nfor sym in ${SD_SYMBOLS[@]}; do\n    SYMBOL_DEFS+=(\"-Ds${sym}=s${sym}_64\" \"-Dd${sym}=d${sym}_64\")\ndone\n\n# Add in (c|z)*_64 symbol remappings:\nfor sym in ${CZ_SYMBOLS[@]}; do\n    SYMBOL_DEFS+=(\"-Dc${sym}=c${sym}_64\" \"-Dz${sym}=z${sym}_64\")\ndone\n\n# Add one-off symbol mappings; things that don't fit into any other bucket:\nfor sym in scnrm2 dznrm2 csscal zdscal dgetrf dgetrs; do\n    SYMBOL_DEFS+=(\"-D${sym}=${sym}_64\")\ndone\n\n# Set up not only lowercase symbol remappings, but uppercase as well:\nSYMBOL_DEFS+=(${SYMBOL_DEFS[@]^^})\n\nFFLAGS=\"${FFLAGS} -O3 -fPIE -ffixed-line-length-none -fno-optimize-sibling-calls -cpp\"\nLIBOPENBLAS=openblas\nif [[ ${nbits} == 64 ]]; then\n    LIBOPENBLAS=openblas64_\n    FFLAGS=\"${FFLAGS} -fdefault-integer-8 ${SYMBOL_DEFS[@]}\"\nfi\n\n# Work around error\n#\n#     Error: Rank mismatch between actual argument at (1) and actual argument at (2) (scalar and rank-1)\n#\n# Properly fixed upstream in v3.8.0 with https://github.com/opencollab/arpack-ng/pull/245.\n# TODO: Remove this line when we upgrade to that version.\nif [[ \"${target}\" == aarch64-apple-* ]]; then\n    FFLAGS=\"${FFLAGS} -fallow-argument-mismatch\"\nfi\n\nmkdir build\ncd build\nexport LDFLAGS=\"${EXE_LINK_FLAGS[@]} -L$prefix/lib -lpthread\"\ncmake .. -DCMAKE_INSTALL_PREFIX=\"$prefix\" \\\n    -DCMAKE_TOOLCHAIN_FILE=\"${CMAKE_TARGET_TOOLCHAIN}\" -DCMAKE_BUILD_TYPE=Release \\\n    -DEXAMPLES=OFF \\\n    -DBUILD_SHARED_LIBS=ON \\\n    -DBLAS_LIBRARIES=\"-l${LIBOPENBLAS}\" \\\n    -DLAPACK_LIBRARIES=\"-l${LIBOPENBLAS}\" \\\n    -DCMAKE_Fortran_FLAGS=\"${FFLAGS}\"\n\nmake -j${nproc} VERBOSE=1\nmake install VERBOSE=1\n\n# Arpack links against a _very_ specific version of OpenBLAS on macOS by default:\nif [[ ${target} == *apple* ]]; then\n    # Figure out what version it probably latched on to:\n    OPENBLAS_LINK=$(otool -L ${prefix}/lib/libarpack.dylib | grep libopenblas64_ | awk '{ print $1 }')\n    install_name_tool -change ${OPENBLAS_LINK} @rpath/libopenblas64_.dylib ${prefix}/lib/libarpack.dylib\nfi\n"""
+version = "v3.5.1"
+
+[[dependencies]]
+compat = ""
+name = "OpenBLAS_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libarpack"]
+type = "lib"
+variable_name = "libarpack"
+
+[[sources]]
+hash = "9233f7f86f063ca6ca3793cb54dec590eb146e10"
+type = "git"
+unpack_target = ""
+url = "https://github.com/opencollab/arpack-ng.git"

@@ -1,0 +1,44 @@
+lazy_artifacts = false
+name = "FastTransforms"
+platforms = ["i686-linux-gnu-libgfortran3", "i686-linux-gnu-libgfortran4", "i686-linux-gnu-libgfortran5", "x86_64-linux-gnu-libgfortran3", "x86_64-linux-gnu-libgfortran4", "x86_64-linux-gnu-libgfortran5", "i686-linux-musl-libgfortran3", "i686-linux-musl-libgfortran4", "i686-linux-musl-libgfortran5", "x86_64-linux-musl-libgfortran3", "x86_64-linux-musl-libgfortran4", "x86_64-linux-musl-libgfortran5", "x86_64-apple-darwin14-libgfortran3", "x86_64-apple-darwin14-libgfortran4", "x86_64-apple-darwin14-libgfortran5", "x86_64-unknown-freebsd11.1-libgfortran3", "x86_64-unknown-freebsd11.1-libgfortran4", "x86_64-unknown-freebsd11.1-libgfortran5", "i686-w64-mingw32-libgfortran3", "i686-w64-mingw32-libgfortran4", "i686-w64-mingw32-libgfortran5", "x86_64-w64-mingw32-libgfortran3", "x86_64-w64-mingw32-libgfortran4", "x86_64-w64-mingw32-libgfortran5"]
+script = """cd $WORKSPACE/srcdir/FastTransforms-*\nif [[ ${target} == x86_64-w64-mingw32 ]]; then\n    export CFLAGS=\"-O3 -mavx -fno-asynchronous-unwind-tables \"\nelse\n    export CFLAGS=\"-O3 -mavx \"\nfi\nif [[ ${nbits} == 64 ]]; then\n    SYMBOL_DEFS=()\n    SYMBOLS=(dgemm dtrmm dtrmv dtrsm sgemm strmm strsm ztrmm)\n    for sym in ${SYMBOLS[@]}; do\n        SYMBOL_DEFS+=(\"-Dcblas_${sym}=cblas_${sym}64_\")\n    done\n    CFLAGS+=${SYMBOL_DEFS[@]}\n    BLAS=openblas64_\nelse\n    BLAS=openblas\nfi\nmake assembly CC=gcc\nmake lib CC=gcc FT_PREFIX=${prefix} FT_BLAS=${BLAS} FT_FFTW_WITH_COMBINED_THREADS=1\nmv -f libfasttransforms.${dlext} ${libdir}\n"""
+version = "v0.3.1"
+
+[[dependencies]]
+name = "CompilerSupportLibraries_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "FFTW_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "MPFR_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "OpenBLAS_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libfasttransforms"]
+type = "lib"
+variable_name = "libfasttransforms"
+
+[[sources]]
+hash = "2b41f69b176cf1fc0a69f8d4b5ec62f5e20426eeb13ddf85a0b406d9e581758f"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/MikaelSlevinsky/FastTransforms/archive/v0.3.1.tar.gz"

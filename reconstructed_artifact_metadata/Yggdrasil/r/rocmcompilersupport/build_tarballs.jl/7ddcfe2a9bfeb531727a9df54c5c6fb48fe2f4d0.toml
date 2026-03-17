@@ -1,0 +1,48 @@
+init_block = ""
+julia_compat = "1.7"
+lazy_artifacts = false
+name = "ROCmCompilerSupport"
+platforms = ["x86_64-linux-gnu-cxx11", "x86_64-linux-musl-cxx11"]
+script = """ln -s ${bindir}/../tools/* ${bindir}/\n\ncd ${WORKSPACE}/srcdir/ROCm-CompilerSupport*/lib/comgr\n\n# first manually build bc2h utility\ncd cmake && mkdir bc2h && cd bc2h\ncp ../bc2h.cmake CMakeLists.txt\nCC=$HOSTCC cmake -DCMAKE_C_COMPILER=$HOSTCC .\nmake\ncd ../..\n\n# then build everything else\natomic_patch -p1 $WORKSPACE/srcdir/patches/disable-bc2h.patch\natomic_patch -p1 $WORKSPACE/srcdir/patches/fix-objdump-clopt.patch\nmkdir build && cd build\ncp ../cmake/bc2h/bc2h .\n# TODO: -DROCM_DIR=${prefix}\ncmake -DCMAKE_PREFIX_PATH=${prefix} \\\n      -DCMAKE_INSTALL_PREFIX=${prefix} \\\n      -DCMAKE_BUILD_TYPE=Release \\\n      -DLLVM_DIR=\"${prefix}/lib/cmake/llvm\" \\\n      -DClang_DIR=\"${prefix}/lib/cmake/clang\" \\\n      -DLLD_DIR=\"${prefix}/lib/cmake/ldd\" \\\n      -DBUILD_TESTING:BOOL=OFF \\\n      ..\nPATH=../cmake/bc2h:$PATH make -j${nproc}\nmake install\n\nfind $WORKSPACE/destdir/bin -type l -delete\n"""
+version = "v4.2.0"
+
+[[dependencies]]
+compat = ""
+name = "hsa_rocr_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "ROCmDeviceLibs_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "ROCmLLVM_jll"
+type = "builddependency"
+version-major = 4
+version-minor = 2
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libamd_comgr"]
+type = "lib"
+variable_name = "libamd_comgr"
+
+[[sources]]
+hash = "40a1ea50d2aea0cf75c4d17cdd6a7fe44ae999bf0147d24a756ca4675ce24e36"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/RadeonOpenCompute/ROCm-CompilerSupport/archive/rocm-4.2.0.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

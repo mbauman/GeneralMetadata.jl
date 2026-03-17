@@ -1,0 +1,36 @@
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "blis"
+platforms = ["x86_64-linux-musl", "armv7l-linux-gnueabihf", "x86_64-w64-mingw32", "x86_64-apple-darwin", "x86_64-linux-gnu", "aarch64-linux-gnu", "aarch64-apple-darwin", "x86_64-unknown-freebsd"]
+script = """cd $WORKSPACE/srcdir\ncd blis/\n\nfor i in ./config/*/*.mk; do\n\n    # Building in container forbids -march options <<< Settings overrided.\n    # sed -i \"s/-march[^ ]*//g\" $i\n\n    # Building in container forbids unsafe optimization.\n    sed -i \"s/-ffast-math//g\" $i\n    sed -i \"s/-funsafe-math-optimizations//g\" $i\n\ndone\n\ncase ${target} in\n\n    *\"x86_64\"*\"linux\"*) \n        export BLI_CONFIG=x86_64\n        export BLI_THREAD=openmp\n        ;;\n    *\"x86_64\"*\"w64\"*) \n        # MinGW doesn't support savexmm instructions\n        # Build only for AMD processors.\n        export BLI_CONFIG=amd64\n        export BLI_THREAD=openmp\n        ;;\n    *\"x86_64\"*\"apple\"*) \n        export BLI_CONFIG=x86_64\n        export BLI_THREAD=openmp\n        export CC=gcc\n        export CXX=g++\n        ;;\n    *\"x86_64\"*\"freebsd\"*) \n        export BLI_CONFIG=x86_64\n        export BLI_THREAD=openmp\n        export CC=gcc\n        export CXX=g++\n        ;;\n    *\"aarch64\"*\"apple\"*)\n        # Metaconfig arm64 is not needed here.\n        # All Mac processors should have equal or higher specs then firestorm\n        export BLI_CONFIG=firestorm\n        export BLI_THREAD=openmp\n        export CC=gcc\n        export CXX=g++\n        ;;\n    *\"aarch64\"*\"linux\"*) \n        export BLI_CONFIG=arm64\n        export BLI_THREAD=openmp\n        ;;\n    *\"arm\"*\"linux\"*) \n        export BLI_CONFIG=arm32\n        export BLI_THREAD=none\n        ;;\n    *)\n        # Default (Generic) configuration without optimized kernel.\n        export BLI_CONFIG=generic\n        export BLI_THREAD=none\n        ;; \n\nesac\n\n# For 64-bit builds, add _64 suffix to exported BLAS routines.\n# This corresponds to ILP64 handling of OpenBLAS thus Julia.\nif [ ${nbits} = 64 ]; then\n    patch frame/include/bli_macro_defs.h < ${WORKSPACE}/srcdir/patches/bli_macro_defs.h.f77suffix64.patch\nfi\n\n# Include SVE support in this metaconfig.\nif [ ${BLI_CONFIG} = arm64 ]; then\n    # Add SVE configs to the registry.\n    patch config_registry < ${WORKSPACE}/srcdir/patches/config_registry.metaconfig+armsve.patch\n\n    # Unscreen Arm SVE code for metaconfig.\n    patch kernels/armsve/bli_kernels_armsve.h \\\n        < ${WORKSPACE}/srcdir/patches/armsve_kernels_unscreen_arm_sve_h.patch\n    patch kernels/armsve/1m/old/bli_dpackm_armsve512_int_12xk.c \\\n        < ${WORKSPACE}/srcdir/patches/armsve_kernels_unscreen_arm_sve_h.patch\n    patch kernels/armsve/1m/bli_dpackm_armsve256_int_8xk.c \\\n        < ${WORKSPACE}/srcdir/patches/armsve_kernels_unscreen_arm_sve_h.patch\n\n    # Config armsve depends on some family header defines.\n    cp config/armsve/bli_family_armsve.h config/arm64/bli_family_arm64.h\n\n    # Screen out SVE instructions in config-stage.\n    patch config/a64fx/bli_cntx_init_a64fx.c \\\n        < ${WORKSPACE}/srcdir/patches/a64fx_config_screen_sector_cache.patch\n    patch config/armsve/bli_cntx_init_armsve.c \\\n        < ${WORKSPACE}/srcdir/patches/armsve_config_screen_non_sve.patch\nfi\n\nexport BLI_F77BITS=${nbits}\n./configure -p ${prefix} -t ${BLI_THREAD} -b ${BLI_F77BITS} ${BLI_CONFIG}\nmake -j${nproc}\nmake install\n\n# Static library is not needed.\nrm ${prefix}/lib/libblis.a\n\n# Rename .dll for Windows targets.\nif [[ \"${target}\" == *\"x86_64\"*\"w64\"* ]]; then\n    mkdir -p ${libdir}\n    mv ${prefix}/lib/libblis.4.dll ${libdir}/libblis.dll\nfi\n"""
+version = "v0.8.1"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libblis"]
+type = "lib"
+variable_name = "blis"
+
+[[sources]]
+hash = "c9700f369aa84fc00f36c4b817ffb7dab72b865d"
+type = "git"
+unpack_target = ""
+url = "https://github.com/flame/blis.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

@@ -1,0 +1,104 @@
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Glib"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "aarch64-apple-darwin", "armv6l-linux-gnueabihf", "armv6l-linux-musleabihf"]
+script = """cd $WORKSPACE/srcdir/glib-*/\n\nif [[ \"${target}\" == *-freebsd* ]]; then\n    # Our FreeBSD libc has `environ` as undefined symbol, so the linker will\n    # complain if this symbol is used in the built library, even if this won't\n    # be a problem at runtim.  This flag allows having undefined symbols.\n    MESON_FLAGS=(-Db_lundef=false)\n\n    # Adapt patch relative to `xattr` from\n    # http://cvsweb.netbsd.org/bsdweb.cgi/pkgsrc/devel/glib2/patches/patch-meson.build?rev=1.2&content-type=text/x-cvsweb-markup.\n    # Quoting the comment:\n    #     Don't fail if getxattr is not available. The code is already ready\n    #     for this case with some small configure changes.\n    atomic_patch -p1 ../patches/freebsd-have_xattr.patch\nfi\n\nmkdir build_glib && cd build_glib\nmeson --cross-file=\"${MESON_TARGET_TOOLCHAIN}\" \\\n    --buildtype=release \\\n    -Dman=false \\\n    -Diconv=external \\\n    \"${MESON_FLAGS[@]}\" \\\n    ..\nninja -j${nproc}\nninja install\n"""
+version = "v2.68.3"
+
+[[dependencies]]
+compat = ""
+name = "Gettext_jll"
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Libiconv_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "~3.2.2"
+name = "Libffi_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "=0.21.0"
+name = "Gettext_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "PCRE_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Libmount_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgio-2", "libgio-2.0"]
+type = "lib"
+variable_name = "libgio"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libglib-2", "libglib-2.0"]
+type = "lib"
+variable_name = "libglib"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgmodule-2", "libgmodule-2.0"]
+type = "lib"
+variable_name = "libgmodule"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgobject-2", "libgobject-2.0"]
+type = "lib"
+variable_name = "libgobject"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgthread-2", "libgthread-2.0"]
+type = "lib"
+variable_name = "libgthread"
+
+[[sources]]
+hash = "e7e1a3c20c026109c45c9ec4a31d8dcebc22e86c69486993e565817d64be3138"
+type = "archive"
+unpack_target = ""
+url = "https://ftp.gnome.org/pub/gnome/sources/glib/2.68/glib-2.68.3.tar.xz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

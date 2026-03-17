@@ -1,0 +1,92 @@
+augment_platform_block = """using Base.BinaryPlatforms\n\n# Can't use Preferences since we might be running this very early with a non-existing Manifest\nlibigc_jll_uuid = Base.UUID(\"94295238-5935-5bd7-bb0f-b00942e9bdd5\")\nconst preferences = Base.get_preferences(libigc_jll_uuid)\nBase.record_compiletime_preference(libigc_jll_uuid, \"debug\")\nconst debug_preference = if haskey(preferences, \"debug\")\n    if isa(preferences[\"debug\"], Bool)\n        preferences[\"debug\"]\n    elseif isa(preferences[\"debug\"], String)\n        parsed = tryparse(Bool, preferences[\"debug\"])\n        if parsed === nothing\n            @error \"Debug preference is not valid; expected a boolean, but got '$(preferences[\"debug\"])'\"\n            nothing\n        else\n            parsed\n        end\n    else\n        @error \"Debug preference is not valid; expected a boolean, but got '$(preferences[\"debug\"])'\"\n        nothing\n    end\nelse\n    nothing\nend\n\nfunction augment_platform!(platform::Platform)\n    platform[\"debug\"] = string(something(debug_preference, false))\n    return platform\nend"""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = true
+name = "libigc"
+platforms = ["x86_64-linux-gnu-cxx03-debug+false", "x86_64-linux-gnu-cxx03-debug+true", "x86_64-linux-gnu-cxx11-debug+false", "x86_64-linux-gnu-cxx11-debug+true"]
+script = ["""apk add py3-mako py3-yaml binutils\n# Need newer CMake (>3.22.1), so use the JLL packaged one\napk del cmake\n\n# Build the IGC\n\n# the build system uses git\nexport HOME=$(pwd)\ngit config --global user.name \"Binary Builder\"\ngit config --global user.email \"your@email.com\"\n\n# move everything in places where it will get detected by the IGC build system\nmv opencl-clang llvm-project/llvm/projects/opencl-clang\nmv SPIRV-LLVM-Translator llvm-project/llvm/projects/llvm-spirv\n\n# Work around compilation failures\n# https://gcc.gnu.org/bugzilla/show_bug.cgi?id=86678\natomic_patch -p0 patches/gcc-constexpr_assert_bug.patch\n# https://reviews.llvm.org/D64388\nsed -i '/add_subdirectory/i add_definitions(-D__STDC_FORMAT_MACROS)' intel-graphics-compiler/external/llvm/llvm.cmake\n\ncd intel-graphics-compiler\ninstall_license LICENSE.md\n\n# Need these device IDs\ngit cherry-pick 4185ee4c7eb49d09119884c63e88241a6715eb48\ngit cherry-pick 09046b0c259e46dfbdbfb1d548f18abc116ae512\n\n\nCMAKE_FLAGS=()\n\n# Select a build type\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\n\n# Install things into $prefix\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix})\n\n# NOTE: igc currently can't cross compile due to a variety of issues:\n# - https://github.com/intel/intel-graphics-compiler/issues/131\n# - https://github.com/intel/opencl-clang/issues/91\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING:BOOL=OFF)\n\n# Explicitly use our cmake toolchain file\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\n\n# Silence developer warnings\nCMAKE_FLAGS+=(-Wno-dev)\n\ncmake -B build -S . -GNinja ${CMAKE_FLAGS[@]}\nninja -C build -j ${nproc} install\n\n# IGC's build system is stupid and always generates debug symbols,\n# assuming you run `strip` afterwards\nif true; then\n    find ${libdir} ${bindir} -type f -exec strip -s {} \\;\nelse\n    # to reduce the JLL size, always remove debug symbols of uninteresting files\n    strip -s ${libdir}/libigdfcl.so*\n    strip -s ${libdir}/libopencl-clang.so*\n    strip -s ${bindir}/lld\nfi\n""", """apk add py3-mako py3-yaml binutils\n# Need newer CMake (>3.22.1), so use the JLL packaged one\napk del cmake\n\n# Build the IGC\n\n# the build system uses git\nexport HOME=$(pwd)\ngit config --global user.name \"Binary Builder\"\ngit config --global user.email \"your@email.com\"\n\n# move everything in places where it will get detected by the IGC build system\nmv opencl-clang llvm-project/llvm/projects/opencl-clang\nmv SPIRV-LLVM-Translator llvm-project/llvm/projects/llvm-spirv\n\n# Work around compilation failures\n# https://gcc.gnu.org/bugzilla/show_bug.cgi?id=86678\natomic_patch -p0 patches/gcc-constexpr_assert_bug.patch\n# https://reviews.llvm.org/D64388\nsed -i '/add_subdirectory/i add_definitions(-D__STDC_FORMAT_MACROS)' intel-graphics-compiler/external/llvm/llvm.cmake\n\ncd intel-graphics-compiler\ninstall_license LICENSE.md\n\n# Need these device IDs\ngit cherry-pick 4185ee4c7eb49d09119884c63e88241a6715eb48\ngit cherry-pick 09046b0c259e46dfbdbfb1d548f18abc116ae512\n\n\nCMAKE_FLAGS=()\n\n# Select a build type\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Debug)\n\n# Install things into $prefix\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix})\n\n# NOTE: igc currently can't cross compile due to a variety of issues:\n# - https://github.com/intel/intel-graphics-compiler/issues/131\n# - https://github.com/intel/opencl-clang/issues/91\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING:BOOL=OFF)\n\n# Explicitly use our cmake toolchain file\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\n\n# Silence developer warnings\nCMAKE_FLAGS+=(-Wno-dev)\n\ncmake -B build -S . -GNinja ${CMAKE_FLAGS[@]}\nninja -C build -j ${nproc} install\n\n# IGC's build system is stupid and always generates debug symbols,\n# assuming you run `strip` afterwards\nif false; then\n    find ${libdir} ${bindir} -type f -exec strip -s {} \\;\nelse\n    # to reduce the JLL size, always remove debug symbols of uninteresting files\n    strip -s ${libdir}/libigdfcl.so*\n    strip -s ${libdir}/libopencl-clang.so*\n    strip -s ${bindir}/lld\nfi\n"""]
+version = "v2.14.1"
+
+[[dependencies]]
+compat = ""
+name = "CMake_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["iga32", "iga64"]
+type = "exe"
+variable_name = "iga"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libiga32", "libiga64"]
+type = "lib"
+variable_name = "libiga"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libigc"]
+type = "lib"
+variable_name = "libigc"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libigdfcl"]
+type = "lib"
+variable_name = "libigdfcl"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libopencl-clang"]
+type = "lib"
+variable_name = "libopencl_clang"
+
+[[sources]]
+hash = "8044f62975eafe840d09ed00560385dab0bf9854"
+type = "git"
+unpack_target = ""
+url = "https://github.com/intel/intel-graphics-compiler.git"
+[[sources]]
+hash = "7eef46576eca117685ae431735c2725ddb889260"
+type = "git"
+unpack_target = ""
+url = "https://github.com/intel/opencl-clang.git"
+[[sources]]
+hash = "b3d425c0b265ee9f583894892ae0b0a192a2137c"
+type = "git"
+unpack_target = ""
+url = "https://github.com/KhronosGroup/SPIRV-LLVM-Translator.git"
+[[sources]]
+hash = "f289d047f49fb60488301ec62bafab85573668cc"
+type = "git"
+unpack_target = ""
+url = "https://github.com/KhronosGroup/SPIRV-Tools.git"
+[[sources]]
+hash = "0e710677989b4326ac974fd80c5308191ed80965"
+type = "git"
+unpack_target = ""
+url = "https://github.com/KhronosGroup/SPIRV-Headers.git"
+[[sources]]
+hash = "46286b96fb9eee9fa4fcf8b8ecf74a8c01af4c1a"
+type = "git"
+unpack_target = ""
+url = "https://github.com/intel/vc-intrinsics.git"
+[[sources]]
+hash = "8dfdcc7b7bf66834a761bd8de445840ef68e4d1a"
+type = "git"
+unpack_target = ""
+url = "https://github.com/llvm/llvm-project.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

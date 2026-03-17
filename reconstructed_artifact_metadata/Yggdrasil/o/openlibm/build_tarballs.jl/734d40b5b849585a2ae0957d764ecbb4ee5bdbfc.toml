@@ -1,0 +1,22 @@
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "OpenLibm"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "aarch64-apple-darwin", "armv6l-linux-gnueabihf", "armv6l-linux-musleabihf"]
+script = """# Enter the funzone\ncd ${WORKSPACE}/srcdir/openlibm*\n\n# Install into output\nflags=(\"prefix=${prefix}\")\n\n# Build ARCH from ${target}\nflags+=(\"ARCH=${target%-*-*}\")\n\n# OpenLibm build system doesn't recognize our windows cross compilers properly\nif [[ ${target} == *mingw* ]]; then\n    flags+=(\"OS=WINNT\")\nfi\n\n# Add `CC` override, since OpenLibm seems to think it knows best:\nflags+=(\"CC=$CC\")\n\n# Build the library\nmake \"${flags[@]}\" -j${nproc}\n\n# Install the library\nmake \"${flags[@]}\" install\n\ninstall_license ./LICENSE.md\n"""
+version = "v0.7.5"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libopenlibm"]
+type = "lib"
+variable_name = "libopenlibm"
+
+[[sources]]
+hash = "be983b9e1e40e696e8bbb7eb8f6376d3ca0ae675ae6d82936540385b0eeec15b"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/JuliaMath/openlibm/archive/v0.7.5.tar.gz"

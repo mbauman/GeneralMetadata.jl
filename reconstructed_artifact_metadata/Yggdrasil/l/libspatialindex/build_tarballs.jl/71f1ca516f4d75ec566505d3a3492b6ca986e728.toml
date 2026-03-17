@@ -1,0 +1,35 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "LibSpatialIndex"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir\n\ncd spatialindex-src-*\n\nif [ $target = \"x86_64-w64-mingw32\" ] || [ $target = \"i686-w64-mingw32\" ]; then\n    # apply https://github.com/libspatialindex/libspatialindex/pull/185 for mingw builds\n    # to succeed\n    atomic_patch -p1 ${WORKSPACE}/srcdir/0001-fix-mingw-build-185.patch\n    # fix for https://github.com/JuliaPackaging/Yggdrasil/pull/7520#issuecomment-1760495334\n    atomic_patch -p1 ${WORKSPACE}/srcdir/0002-set-win-bin-dir.patch\nfi\n\n\nmkdir build\ncd build\ncmake -DCMAKE_INSTALL_PREFIX=${prefix} -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} -DCMAKE_BUILD_TYPE=Release ..\ncmake --build . -j${nproc}\ncmake --build . --target install\ninstall_license ../COPYING\n"""
+version = "v1.9.3"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libspatialindex_c"]
+type = "lib"
+variable_name = "libspatialindex_c"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libspatialindex"]
+type = "lib"
+variable_name = "libspatialindex"
+
+[[sources]]
+hash = "4a529431cfa80443ab4dcd45a4b25aebbabe1c0ce2fa1665039c80e999dcc50a"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/libspatialindex/libspatialindex/releases/download/1.9.3/spatialindex-src-1.9.3.tar.bz2"
+[[sources]]
+follow_symlinks = false
+path = "./patches"
+target = ""
+type = "directory"

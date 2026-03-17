@@ -1,0 +1,32 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.10"
+lazy_artifacts = false
+name = "GAP_pkg_guava"
+platforms = ["x86_64-linux-gnu", "aarch64-linux-gnu", "powerpc64le-linux-gnu", "x86_64-linux-musl", "aarch64-linux-musl", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "riscv64-linux-gnu"]
+script = """cd guava*\n\n# HACK to workaround need to pass --with-gaproot\nmkdir -p $prefix/lib/gap/ # HACK\necho \"GAParch=dummy\" > $prefix/lib/gap/sysinfo.gap # HACK\necho \"GAP_CPPFLAGS=dummy\" >> $prefix/lib/gap/sysinfo.gap # HACK\n\n# HACK to get the 'inner' configure to see the host config\nsed -i -e \"s|./configure;|./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target};|\" Makefile.in\n\n./configure ${prefix}/lib/gap\nmake -j${nproc}\n\n# copy just the executable\nmkdir -p ${prefix}/bin/\ncp bin/*/* ${prefix}/bin/\n\ninstall_license COPYING\n\nrm $prefix/lib/gap/sysinfo.gap\n"""
+version = "v300.1900.1"
+
+[[products]]
+binnames = ["desauto"]
+type = "exe"
+variable_name = "desauto"
+[[products]]
+binnames = ["leonconv"]
+type = "exe"
+variable_name = "leonconv"
+[[products]]
+binnames = ["minimum-weight"]
+type = "exe"
+variable_name = "minimum_weight"
+[[products]]
+binnames = ["wtdist"]
+type = "exe"
+variable_name = "wtdist"
+
+[[sources]]
+hash = "653fa83dfb97702eab0936c2e8db6d293a4d55fd73f8e5e6f3847ee19da3fe3d"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/gap-packages/guava/releases/download/v3.19/guava-3.19.tar.gz"

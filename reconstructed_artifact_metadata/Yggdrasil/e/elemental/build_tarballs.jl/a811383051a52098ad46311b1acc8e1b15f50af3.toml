@@ -1,0 +1,45 @@
+lazy_artifacts = false
+name = "Elemental"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin14-cxx03", "x86_64-apple-darwin14-cxx11", "x86_64-unknown-freebsd11.1-cxx03", "x86_64-unknown-freebsd11.1-cxx11"]
+script = """if [[ \"$nbits\" == \"64\" ]]; then\n  INT64=\"ON\"\nelse\n  INT64=\"OFF\"\nfi\n\nif [[ \"$nbits\" == \"64\" ]] && [[ \"$target\" != aarch64-* ]]; then\n  BLAS_LAPACK_LIB=\"$libdir/libopenblas64_.$dlext\"\n  BLAS_LAPACK_SUFFIX=\"_64_\"\n  BLAS_INT64=\"ON\"\nelse\n  BLAS_LAPACK_LIB=\"$libdir/libopenblas.$dlext\"\n  BLAS_LAPACK_SUFFIX=\"\"\n  BLAS_INT64=\"OFF\"\nfi\n\nmkdir \"$WORKSPACE/srcdir/$SRC_NAME/build\"\ncd \"$WORKSPACE/srcdir/$SRC_NAME/build\"\n\ncmake \\\n  -DCMAKE_INSTALL_PREFIX=\"$prefix\" \\\n  -DCMAKE_TOOLCHAIN_FILE=\"$CMAKE_TARGET_TOOLCHAIN\" \\\n  -DCMAKE_BUILD_TYPE=\"Release\" \\\n  -DEL_USE_64BIT_INTS=\"$INT64\" \\\n  -DEL_USE_64BIT_BLAS_INTS=\"$BLAS_INT64\" \\\n  -DEL_DISABLE_PARMETIS=\"ON\" \\\n  -DMETIS_TEST_RUNS_EXITCODE=\"0\" \\\n  -DMETIS_TEST_RUNS_EXITCODE__TRYRUN_OUTPUT=\"\" \\\n  -DMATH_LIBS=\"$BLAS_LAPACK_LIB\" \\\n  -DBLAS_LIBRARIES=\"$BLAS_LAPACK_LIB\" \\\n  -DLAPACK_LIBRARIES=\"$BLAS_LAPACK_LIB\" \\\n  -DEL_BLAS_SUFFIX=\"$BLAS_LAPACK_SUFFIX\" \\\n  -DEL_LAPACK_SUFFIX=\"$BLAS_LAPACK_SUFFIX\" \\\n  \"$WORKSPACE/srcdir/$SRC_NAME\"\n\nmake \"-j$nproc\"\nmake install\n"""
+version = "v0.87.7"
+
+[[dependencies]]
+name = "METIS_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "MPICH_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "OpenBLAS_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libEl"]
+type = "lib"
+variable_name = "libEl"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libElSuiteSparse"]
+type = "lib"
+variable_name = "libElSuiteSparse"
+
+[[sources]]
+hash = "477e503a7a840cc1a75173552711b980505a0b06"
+type = "git"
+unpack_target = ""
+url = "https://github.com/elemental/Elemental.git"

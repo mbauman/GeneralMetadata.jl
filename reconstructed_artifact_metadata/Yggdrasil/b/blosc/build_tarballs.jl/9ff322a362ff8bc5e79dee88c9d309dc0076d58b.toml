@@ -1,0 +1,48 @@
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "Blosc"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir/c-blosc-*\nif [[ \"${target}\" == *mingw* ]]; then\n  atomic_patch -p1 ../patches/mingw.patch\nfi\nmkdir build\ncd build\nCMAKE_FLAGS=(-DCMAKE_INSTALL_PREFIX=$prefix -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} -DCMAKE_BUILD_TYPE=Release)\nCMAKE_FLAGS+=(-DCMAKE_C_FLAGS=\"-std=gnu99\")\nCMAKE_FLAGS+=(-DBUILD_TESTS=OFF -DBUILD_BENCHMARKS=OFF)\nCMAKE_FLAGS+=(-DBUILD_STATIC=OFF)\nCMAKE_FLAGS+=(-DCMAKE_SHARED_LIBRARY_LINK_C_FLAGS=\"\")\nCMAKE_FLAGS+=(-DCMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS=\"\")\nCMAKE_FLAGS+=(-DPREFER_EXTERNAL_ZLIB=ON)\nCMAKE_FLAGS+=(-DPREFER_EXTERNAL_ZSTD=ON)\nCMAKE_FLAGS+=(-DPREFER_EXTERNAL_LZ4=ON)\n#CMAKE_FLAGS+=(-DPREFER_EXTERNAL_SNAPPY=ON)\ncmake ${CMAKE_FLAGS[@]} ..\nmake -j${nproc}\nmake install\n\ninstall_license ../LICENSES/*.txt\n"""
+version = "v1.21.0"
+
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zstd_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Lz4_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libblosc"]
+type = "lib"
+variable_name = "libblosc"
+
+[[sources]]
+hash = "b0ef4fda82a1d9cbd11e0f4b9685abf14372db51703c595ecd4d76001a8b342d"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/Blosc/c-blosc/archive/v1.21.0.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

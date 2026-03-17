@@ -1,0 +1,32 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "SHTns"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/shtns/\nexport CFLAGS=\"-fPIC\"\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target}\nif [[ \"${target}\" == *-apple-* ]]; then\n    # For some reasons, `configure` insists on setting CC2=gcc, also on macOS\n    sed -i -e 's/gcc/cc/' -e 's/ -fno-tree-loop-distribute-patterns//' Makefile\nfi\nmake -j${nproc}\nmake install\nmkdir -p ${libdir}\ncc -shared -o \"${libdir}/libshtns.${dlext}\" *.o -lfftw3\nrm \"${prefix}/lib/libshtns.a\"\ninstall_license LICENSE\n"""
+version = "v3.5.1"
+
+[[dependencies]]
+compat = ""
+name = "FFTW_jll"
+platforms = ["any"]
+type = "dependency"
+uuid = "f5851436-0d7a-5f13-b9de-f02708fd171a"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libshtns"]
+type = "lib"
+variable_name = "LibSHTns"
+
+[[sources]]
+hash = "77f8a33b94df8786d2ce9b95cbfbe548f00443625b310b8c64012b22c8a7394f"
+type = "archive"
+unpack_target = ""
+url = "https://bitbucket.org/nschaeff/shtns/downloads/shtns-3.5.1.tar.gz"

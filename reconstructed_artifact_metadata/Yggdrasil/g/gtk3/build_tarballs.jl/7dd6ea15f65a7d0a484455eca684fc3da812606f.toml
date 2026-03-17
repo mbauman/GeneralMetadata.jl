@@ -1,0 +1,216 @@
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "GTK3"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/gtk+-*/\n\n# We need to run some commands with a native Glib\napk add glib-dev gtk+3.0\n\nif [[ \"${target}\" == *-linux-* ]]; then\n    # We need to run `wayland-scanner` on the build system only when Wayland is\n    # available, i.e. only on Linux\n    apk add wayland-dev\nfi\n\n# This is awful, I know\nln -sf /usr/bin/glib-compile-resources ${prefix}/bin/glib-compile-resources\nln -sf /usr/bin/glib-compile-schemas ${prefix}/bin/glib-compile-schemas\nln -sf /usr/bin/gdk-pixbuf-pixdata ${prefix}/bin/gdk-pixbuf-pixdata\n# Remove wayland-scanner when present, so that we can call the native one\nrm -f ${prefix}/bin/wayland-scanner\n\n# Patch upstreamed: https://gitlab.gnome.org/GNOME/gtk/-/merge_requests/3526\natomic_patch -p1 $WORKSPACE/srcdir/patches/gdkwindow-quartz_c.patch\natomic_patch -p1 $WORKSPACE/srcdir/patches/meson_build.patch\n# Patch upstreamed: https://gitlab.gnome.org/GNOME/gtk/-/merge_requests/3527\natomic_patch -p1 $WORKSPACE/srcdir/patches/c_standard_c99.patch\n\nFLAGS=()\nif [[ \"${target}\" == *-apple-* ]]; then\n    FLAGS+=(-Dx11_backend=false -Dwayland_backend=false)\nelif [[ \"${target}\" == *-freebsd* ]]; then\n    FLAGS+=(-Dwayland_backend=false)\nfi\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    # Despite what's declared in their meson.build, they require Meson 0.54:\n    # https://gitlab.gnome.org/GNOME/gtk/-/issues/3927\n    apk add meson --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing\nfi\n\nmkdir build-gtk && cd build-gtk\nmeson .. \\\n    -Dintrospection=false \\\n    -Ddemos=false \\\n    -Dexamples=false \\\n    -Dtests=false \\\n    \"${FLAGS[@]}\" \\\n    --cross-file=\"${MESON_TARGET_TOOLCHAIN}\"\nninja -j${nproc}\nninja install\n\n# Remove temporary links\nrm ${prefix}/bin/gdk-pixbuf-pixdata ${prefix}/bin/glib-compile-{resources,schemas}\n"""
+version = "v3.24.29"
+
+[[dependencies]]
+compat = ""
+name = "Xorg_xorgproto_jll"
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Glib_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Cairo_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Pango_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "FriBidi_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "FreeType2_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "gdk_pixbuf_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Libepoxy_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "2.35.1"
+name = "ATK_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "HarfBuzz_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "xkbcommon_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "iso_codes_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Wayland_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_libXrandr_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_libX11_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_libXrender_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_libXi_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_libXext_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_libXcursor_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_libXdamage_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_libXfixes_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_libXcomposite_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_libXinerama_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Fontconfig_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "at_spi2_atk_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgailutil-3"]
+type = "lib"
+variable_name = "libgailutil3"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgdk-3"]
+type = "lib"
+variable_name = "libgdk3"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgtk-3"]
+type = "lib"
+variable_name = "libgtk3"
+
+[[sources]]
+hash = "f57ec4ade8f15cab0c23a80dcaee85b876e70a8823d9105f067ce335a8268caa"
+type = "archive"
+unpack_target = ""
+url = "http://ftp.gnome.org/pub/gnome/sources/gtk+/3.24/gtk+-3.24.29.tar.xz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

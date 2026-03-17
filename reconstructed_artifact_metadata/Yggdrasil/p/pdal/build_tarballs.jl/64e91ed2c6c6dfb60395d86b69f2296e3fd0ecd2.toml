@@ -1,0 +1,69 @@
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "PDAL"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """\ncd $WORKSPACE/srcdir/PDAL-*/\n\nif [[ \"${target}\" == x86_64-linux-musl ]]; then\n    # Delete libexpat to prevent it from being picked up by mistake\n    rm /usr/lib/libexpat.so*\n    # Convince to link `pdal` to libcurl.  Honestly I don't understand why this\n    # doesn't work out-of-the-box, like it does for other platforms, this is a\n    # quick patch to make it work.\n    atomic_patch -p1 ../patches/x86_64-linux-musl-pdal-curl.patch\nfi\n\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/relative_path_dimbuilder.patch\n# We'll build `dimbuilder` separately.\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/cmake-disable-dimbuilder.patch\nif [[ \"${target}\" == *-mingw* ]]; then\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/mingw-arbiter.patch\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/mingw-charbuf.patch\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/mingw-cmake-macros.patch\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/mingw-cmake-patches.patch\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/mingw-delete-japanese-unicode-test.patch\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/mingw-dynamiclibrary.patch\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/mingw-fileutils.patch\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/mingw-greedyprojection.patch\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/mingw-optech.patch\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/mingw-pointlayout.patch\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/mingw-portableendian.patch\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/mingw-sbetwriter.patch\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/mingw-sparsematrix.patch\n    if [[ \"${nbits}\" -eq 32 ]]; then\n        atomic_patch -p1 ../patches/mingw-trapoline-stdcall.patch\n    fi\nfi\n\nmkdir -p build/dimbuilder && cd build/dimbuilder\n\n# Build dimbuilder with the host compiler.\n(\n    # For some reason, CMake seems to ignore the toolchain file, let's force the\n    # compiler with the CXX environment variable\n    export CXX=${HOST_CXX}\n    cmake ../../dimbuilder -G Ninja \\\n        -DCMAKE_TOOLCHAIN_FILE=${CMAKE_HOST_TOOLCHAIN} \\\n        -DNLOHMANN_INCLUDE_DIR=\"$(realpath ../../vendor/nlohmann)\" \\\n        -DCMAKE_BUILD_TYPE=Release\n    ninja -j${nproc}\n    mkdir -p ../bin\n    mv dimbuilder ../bin/.\n)\n\ncd ..\ncmake .. -G Ninja \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_LIBRARY_PATH:FILEPATH=\"${libdir}\" \\\n    -DCMAKE_INCLUDE_PATH:FILEPATH=\"${includedir}\" \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DBUILD_PLUGIN_I3S=OFF \\\n    -DBUILD_PLUGIN_NITF=OFF \\\n    -DBUILD_PLUGIN_TILEDB=OFF \\\n    -DBUILD_PLUGIN_ICEBRIDGE=OFF \\\n    -DBUILD_PLUGIN_HDF=OFF \\\n    -DBUILD_PLUGIN_PGPOINTCLOUD=OFF \\\n    -DBUILD_PLUGIN_E57=OFF \\\n    -DBUILD_PGPOINTCLOUD_TESTS=OFF \\\n    -DWITH_LAZPERF=OFF \\\n    -DBUILD_PGPOINTCLOUD_TESTS=OFF \\\n    -DWITH_LASZIP=ON \\\n    -DWITH_ZSTD=ON \\\n    -DWITH_ZLIB=ON \\\n    -DWITH_TESTS=OFF\n\nninja -j${nproc}\nninja install\n"""
+version = "v2.3.0"
+
+[[dependencies]]
+compat = ""
+name = "GDAL_jll"
+type = "dependency"
+uuid = "a7073274-a066-55f0-b90d-d619367d196c"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "libgeotiff_jll"
+type = "dependency"
+uuid = "06c338fa-64ff-565b-ac2f-249532af990e"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LASzip_jll"
+type = "dependency"
+uuid = "8372b9c3-1e34-5cc3-bfab-1a98e101de11"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libpdal_util"]
+type = "lib"
+variable_name = "libpdal_util"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libpdal_base", "libpdalcpp"]
+type = "lib"
+variable_name = "libpdal_base"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libpdal_plugin_kernel_fauxplugin"]
+type = "lib"
+variable_name = "libpdal_plugin_kernel_fauxplugin"
+[[products]]
+binnames = ["pdal"]
+type = "exe"
+variable_name = "pdal"
+
+[[sources]]
+hash = "5b0b92258874ef722b5027054d64c8b318b524e7a9b2b250d0330d76e19b8618"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/PDAL/PDAL/releases/download/2.3.0/PDAL-2.3.0-src.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

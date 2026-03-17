@@ -1,0 +1,27 @@
+lazy_artifacts = false
+name = "Darknet"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin14-cxx03", "x86_64-apple-darwin14-cxx11", "x86_64-unknown-freebsd11.1-cxx03", "x86_64-unknown-freebsd11.1-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir/darknet-*\n\n## Required for OPENMP=1\nif [[ \"${target}\" == *-freebsd* ]] || [[ \"${target}\" == *-apple-* ]]; then\n    CC=gcc\n    CXX=g++\nfi\n\n## Note for the future: Supporting AVX will make more sense with microarchitecture support\n# if [[ \"${target}\" = powerpc64le-* ]] || [[ \"${target}\" = arm* ]] || [[ \"${target}\" == aarch* ]] || [[ \"${target}\" == *-mingw* ]] then\n#     # Disable AVX on powerpc, arm, aarch, windows, apple\n#     export AVXENABLE=0\n# else\n#     # Enable everywhere else (linux)\n#     export AVXENABLE=1\n# fi\nexport AVXENABLE=0\n\n# Make sure to have the directories, before building\n# make obj backup results setchmod\nmake OPTS=\"\" -j${nproc} libdarknet.${dlext} \\\n    LIBNAMESO=\"libdarknet.${dlext}\" \\\n    LIBSO=1 \\\n    GPU=0 \\\n    CUDNN=0 \\\n    CUDNN_HALF=0 \\\n    OPENCV=0 \\\n    DEBUG=0 \\\n    OPENMP=1 \\\n    ZED_CAMERA=0 \\\n    AVX=${AVXENABLE}\n\nmkdir -p \"${libdir}\"\ncp libdarknet.${dlext} \"${libdir}\"\n"""
+version = "v2020.6.5"
+
+[[dependencies]]
+name = "CompilerSupportLibraries_jll"
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libdarknet"]
+type = "lib"
+variable_name = "libdarknet"
+
+[[sources]]
+hash = "e18a6374822fe3c9b95f2b6a4086decbdfbd1c589f2481ce5704a4384044ea6f"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/AlexeyAB/darknet/archive/3708b2e47d355ba0a206fd7a06bbc5a6e38af4ff.zip"

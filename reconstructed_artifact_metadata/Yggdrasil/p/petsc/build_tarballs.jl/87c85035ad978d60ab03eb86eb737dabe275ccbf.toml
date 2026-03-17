@@ -1,0 +1,202 @@
+augment_platform_block = """    using Base.BinaryPlatforms\n    # Can't use Preferences since we might be running this very early with a non-existing Manifest\nMPIPreferences_UUID = Base.UUID(\"3da0fdf6-3ccc-4f1b-acd9-58baa6c99267\")\nconst preferences = Base.get_preferences(MPIPreferences_UUID)\n\n# Keep logic in sync with MPIPreferences.jl\nfunction augment_mpi!(platform)\n    # Doesn't need to be `const` since we depend on MPIPreferences so we\n    # invalidate the cache when it changes.\n    # Note: MPIPreferences uses `Sys.iswindows()` without the `platform` argument.\n    binary = get(preferences, \"binary\", Sys.iswindows(platform) ? \"MicrosoftMPI_jll\" : \"MPICH_jll\")\n\n    abi = if binary == \"system\"\n        let abi = get(preferences, \"abi\", nothing)\n            if abi === nothing\n                error(\"MPIPreferences: Inconsistent state detected, binary set to system, but no ABI set.\")\n            else\n                abi\n            end\n        end\n    elseif binary == \"MicrosoftMPI_jll\"\n        \"MicrosoftMPI\"\n    elseif binary == \"MPICH_jll\"\n        \"MPICH\"\n    elseif binary == \"OpenMPI_jll\"\n        \"OpenMPI\"\n    elseif binary == \"MPItrampoline_jll\"\n        \"MPItrampoline\"\n    else\n        error(\"Unknown binary: $binary\")\n    end\n\n    if !haskey(platform, \"mpi\")\n        platform[\"mpi\"] = abi\n    end\n    return platform\nend\n\n    augment_platform!(platform::Platform) = augment_mpi!(platform)\n"""
+init_block = ""
+julia_compat = "1.9"
+lazy_artifacts = false
+name = "PETSc"
+platforms = ["i686-linux-gnu-libgfortran3-mpi+mpich", "i686-linux-gnu-libgfortran4-mpi+mpich", "i686-linux-gnu-libgfortran5-mpi+mpich", "x86_64-linux-gnu-libgfortran3-mpi+mpich", "x86_64-linux-gnu-libgfortran4-mpi+mpich", "x86_64-linux-gnu-libgfortran5-mpi+mpich", "aarch64-linux-gnu-libgfortran4-mpi+mpich", "aarch64-linux-gnu-libgfortran5-mpi+mpich", "armv6l-linux-gnueabihf-libgfortran3-mpi+mpich", "armv6l-linux-gnueabihf-libgfortran4-mpi+mpich", "armv6l-linux-gnueabihf-libgfortran5-mpi+mpich", "armv7l-linux-gnueabihf-libgfortran3-mpi+mpich", "armv7l-linux-gnueabihf-libgfortran4-mpi+mpich", "armv7l-linux-gnueabihf-libgfortran5-mpi+mpich", "powerpc64le-linux-gnu-libgfortran3-mpi+mpich", "powerpc64le-linux-gnu-libgfortran4-mpi+mpich", "powerpc64le-linux-gnu-libgfortran5-mpi+mpich", "x86_64-linux-musl-libgfortran3-mpi+mpich", "x86_64-linux-musl-libgfortran4-mpi+mpich", "x86_64-linux-musl-libgfortran5-mpi+mpich", "x86_64-apple-darwin-libgfortran3-mpi+mpich", "x86_64-apple-darwin-libgfortran4-mpi+mpich", "x86_64-apple-darwin-libgfortran5-mpi+mpich", "aarch64-apple-darwin-libgfortran5-mpi+mpich", "x86_64-linux-gnu-libgfortran3-mpi+openmpi", "x86_64-linux-gnu-libgfortran4-mpi+openmpi", "x86_64-linux-gnu-libgfortran5-mpi+openmpi", "aarch64-linux-gnu-libgfortran3-mpi+openmpi", "aarch64-linux-gnu-libgfortran4-mpi+openmpi", "aarch64-linux-gnu-libgfortran5-mpi+openmpi", "powerpc64le-linux-gnu-libgfortran3-mpi+openmpi", "powerpc64le-linux-gnu-libgfortran4-mpi+openmpi", "powerpc64le-linux-gnu-libgfortran5-mpi+openmpi", "x86_64-apple-darwin-libgfortran3-mpi+openmpi", "x86_64-apple-darwin-libgfortran4-mpi+openmpi", "x86_64-apple-darwin-libgfortran5-mpi+openmpi", "aarch64-apple-darwin-libgfortran5-mpi+openmpi", "x86_64-w64-mingw32-libgfortran3-mpi+microsoftmpi", "x86_64-w64-mingw32-libgfortran4-mpi+microsoftmpi", "x86_64-w64-mingw32-libgfortran5-mpi+microsoftmpi", "i686-linux-gnu-libgfortran4-mpi+mpitrampoline", "i686-linux-gnu-libgfortran5-mpi+mpitrampoline", "x86_64-linux-gnu-libgfortran4-mpi+mpitrampoline", "x86_64-linux-gnu-libgfortran5-mpi+mpitrampoline", "aarch64-linux-gnu-libgfortran5-mpi+mpitrampoline", "armv6l-linux-gnueabihf-libgfortran4-mpi+mpitrampoline", "armv6l-linux-gnueabihf-libgfortran5-mpi+mpitrampoline", "armv7l-linux-gnueabihf-libgfortran4-mpi+mpitrampoline", "armv7l-linux-gnueabihf-libgfortran5-mpi+mpitrampoline", "powerpc64le-linux-gnu-libgfortran4-mpi+mpitrampoline", "powerpc64le-linux-gnu-libgfortran5-mpi+mpitrampoline", "x86_64-apple-darwin-libgfortran4-mpi+mpitrampoline", "x86_64-apple-darwin-libgfortran5-mpi+mpitrampoline", "aarch64-apple-darwin-libgfortran5-mpi+mpitrampoline"]
+script = """\n# so we can use a newer version of cmake\napk del cmake\n\ncd $WORKSPACE/srcdir/petsc*\natomic_patch -p1 $WORKSPACE/srcdir/patches/petsc_name_mangle.patch\n\n# TODO: MPITrampoline embeds the wrong CC. https://github.com/JuliaPackaging/Yggdrasil/issues/7420\nexport MPITRAMPOLINE_CC=\"$(which $CC)\"\nexport MPITRAMPOLINE_CXX=\"$(which $CXX)\"\nexport MPITRAMPOLINE_FC=\"$(which $FC)\"\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    # On windows, it compiles fine but we obtain a following runtime error:\n    # \n    # Mingw-w64 runtime failure:\n    # 32 bit pseudo relocation at 00000000093934AA out of range, targeting 00007FF8B7756530, yielding the value 00007FF8AE3C3082.\n    #\n    # (see https://github.com/boriskaus/test_PETSc_jll/actions/runs/7444842322/job/20251986258#step:7:236)\n    #\n    # Interestingly, this error does NOT occur if we use the originally compiled PETSc_jll version 3.18.6 from May 2023.\n    # (e.g., https://github.com/boriskaus/test_PETSc_jll/actions/runs/7444942534/job/20252261704#step:6:49). \n    #\n    # If we recompile it using the same versions of all packages (while fixing llvm to version 13, as was used in May 2023 for compilation), we have the runtime error above\n    #\n    # The same issue occured in HDF5_jll (https://github.com/eschnett/Yggdrasil/pull/6)\n    #\n    # Interestingly, SuperLU_Dist_jll does not have this issue and runs fine in serial & parallel on windows \n    # (see e.g. https://github.com/boriskaus/test_SuperLU_DIST_jll/actions/runs/7595261750/job/20687625690#step:7:181)\n    #\n    # Despite a significant time-effort from my side, I have been unable to fix the issue, so I deactivate MPI on windows as a workaround.\n    #MPI_LIBS=--with-mpi-lib=\"${libdir}/msmpi.${dlext}\"\n    #MPI_INC=--with-mpi-include=${includedir}\n\n    MPI_FFLAGS=\"\"\n    MPI_LIBS=\"\"\n    MPI_INC=\"\"\n    USE_MPI=0\n\nelse\n    if grep -q MPICH_NAME $prefix/include/mpi.h; then\n        USE_MPI=1\n        MPI_FFLAGS=\"\"\n        MPI_LIBS=--with-mpi-lib=\"[${libdir}/libmpifort.${dlext},${libdir}/libmpi.${dlext}]\"\n        MPI_INC=--with-mpi-include=${includedir}\n    elif grep -q MPItrampoline $prefix/include/mpi.h; then\n        USE_MPI=1\n        MPI_FFLAGS=\"-fcray-pointer\"\n        MPI_LIBS=--with-mpi-lib=\"[${libdir}/libmpitrampoline.${dlext}]\"\n        MPI_INC=--with-mpi-include=${includedir}\n    elif grep -q OMPI_MAJOR_VERSION $prefix/include/mpi.h; then\n        USE_MPI=1\n        MPI_FFLAGS=\"\"\n        MPI_LIBS=--with-mpi-lib=\"[${libdir}/libmpi_usempif08.${dlext},${libdir}/libmpi_usempi_ignore_tkr.${dlext},${libdir}/libmpi_mpifh.${dlext},${libdir}/libmpi.${dlext}]\"\n        MPI_INC=--with-mpi-include=${includedir}\n    else\n        USE_MPI=0\n        MPI_FFLAGS=\"\"\n        MPI_LIBS=\"\"\n        MPI_INC=\"\"\n    fi\n\nfi\n\natomic_patch -p1 $WORKSPACE/srcdir/patches/mingw-version.patch\natomic_patch -p1 $WORKSPACE/srcdir/patches/mpi-constants.patch\natomic_patch -p1 $WORKSPACE/srcdir/patches/sosuffix.patch\n\nmkdir $libdir/petsc\nbuild_petsc()\n{\n    # so we can use a newer version of cmake\n    apk del cmake\n\n    # Compile a debug version?\n    DEBUG_FLAG=0\n    PETSC_CONFIG=\"${1}_${2}_${3}\"\n    if [[ \"${4}\" == \"deb\" ]]; then\n        PETSC_CONFIG=\"${1}_${2}_${3}_deb\"\n        DEBUG_FLAG=1\n    fi\n\n    if [[ \"${3}\" == \"Int64\" ]]; then\n        USE_INT64=1\n    else\n        USE_INT64=0\n    fi\n\n    # A SuperLU_DIST build is (now) available on most systems, but only works for double precision\n    USE_SUPERLU_DIST=0    \n    if [ \"${1}\" == \"double\" ]; then\n        USE_SUPERLU_DIST=1    \n    fi\n    if [[ \"${target}\" == *-mingw* ]]; then\n        USE_SUPERLU_DIST=0\n    fi\n\n    # install suitesparse if available - note that this shipped with julia and therefore linked to specific julia versions\n    USE_SUITESPARSE=0\n    if [ \"${1}\" == \"double\" ]; then\n        USE_SUITESPARSE=1    \n    fi\n    if [[ \"${target}\" == *-mingw* ]]; then\n        USE_SUITESPARSE=0\n    fi\n\n    # See if we can install MUMPS\n    USE_MUMPS=0  \n    if [[ \"${target}\" == *-mingw* ]]; then\n        # try static\n        USE_MUMPS=0\n    elif [ \"${1}\" == \"double\" ] && [ \"${2}\" == \"real\" ]; then \n        USE_MUMPS=1      \n    else\n        USE_MUMPS=0      \n    fi\n    if [[ \"${target}\" == powerpc64le-linux-* ]] || [[ \"${target}\" == aarch64-linux-* ]] || [[ \"${target}\" == arm-linux-* ]]; then        \n        USE_MUMPS=0\n    fi\n\n    LIBFLAGS=\"-L${libdir}\" \n    if [[ \"${target}\" == *-mingw* ]]; then\n        LIBFLAGS=\"-L${libdir} -lssp -lmsmpi\" \n    fi\n\n    # use LBT - to be activated @ a later stage\n    #if [[ \"${target}\" == aarch64-apple-* ]]; then    \n    #    LIBFLAGS=\"-L${libdir}\" \n    #    # Linking requires the function `__divdc3`, which is implemented in\n    #    # `libclang_rt.osx.a` from LLVM compiler-rt.\n    #    BLAS_LAPACK_LIB=\"${libdir}/libblastrampoline.${dlext}\"\n    #    CLINK_FLAGS=\"-L${libdir}/darwin -lclang_rt.osx\"\n    #elif [[ \"${target}\" == *-mingw* ]]; then\n    #    # BLAS_LAPACK_LIB=\"${libdir}/libblastrampoline-5.${dlext}\"\n    #    BLAS_LAPACK_LIB=\"${libdir}/libopenblas.${dlext}\"            # LBT doesn't seem to work on windows\n    #    CLINK_FLAGS=\"\"\n    \n    #else\n    #    BLAS_LAPACK_LIB=\"${libdir}/libblastrampoline.${dlext}\"\n    #    CLINK_FLAGS=\"\"\n    #fi\n\n    BLAS_LAPACK_LIB=\"${libdir}/libopenblas.${dlext}\"\n\n    if  [ ${DEBUG_FLAG} == 1 ]; then\n        _COPTFLAGS='-O0 -g'\n        _CXXOPTFLAGS='-O0 -g'\n        _FOPTFLAGS='-O0' \n    else\n        _COPTFLAGS='-O3 -g'\n        _CXXOPTFLAGS='-O3 -g'\n        _FOPTFLAGS='-O3' \n    fi\n\n    # hypre\n    USE_HYPRE=0\n    if [ \"${1}\" == \"double\" ] && [ \"${2}\" == \"real\" ]; then\n        USE_HYPRE=1\n    fi\n\n    MPI_CC=mpicc\n    MPI_FC=mpif90\n    MPI_CXX=mpicxx\n    if [ -f \"${libdir}/libmpitrampoline.${dlext}\" ]; then\n        # required for mpitrampoline\n        MPI_FC=mpifc\n    elif [ -d \"${libdir}/openmpi\" ]; then\n        # SuperLU_DIST and MUMPS cannot be compiled statically with OpenMPI, it seems. As this appears to be a less common platform,\n        # and we should in principle be able to use ith thorugh MPItrampoline, the external packages are commented out\n        MPI_CC=${CC}\n        MPI_FC=${FC}\n        MPI_CXX=${CXX}\n        USE_SUPERLU_DIST=0\n        USE_MUMPS=1\n    elif [[ \"${target}\" == *-mingw* ]]; then\n        # since we don't use MPI on windows\n        MPI_CC=${CC}\n        MPI_FC=${FC}\n        MPI_CXX=${CXX}\n        USE_SUPERLU_DIST=0\n        USE_SUITESPARSE=0\n        USE_HYPRE=0\n    fi\n    if [[ \"${target}\" == powerpc64le-linux-* ]] || [[ \"${target}\" == aarch64-linux-* ]] || [[ \"${target}\" == arm-linux-* ]]; then        \n        USE_MUMPS=0\n    fi\n\n    # triangle, tetgen\n    USE_TRIANGLE=0\n    USE_TETGEN=0\n    if [ \"${1}\" == \"double\" ] ; then\n         USE_TRIANGLE=1\n         USE_TETGEN=1\n    fi\n\n    echo \"USE_SUPERLU_DIST=\"$USE_SUPERLU_DIST\n    echo \"USE_SUITESPARSE=\"$USE_SUITESPARSE\n    echo \"USE_MUMPS=\"$USE_MUMPS\n    echo \"USE_HYPRE=\"$USE_HYPRE\n    echo \"USE_TETGEN=\"$USE_TETGEN\n    echo \"USE_TRIANGLE=\"$USE_TRIANGLE\n    echo \"1=\"${1}\n    echo \"2=\"${2}\n    echo \"3=\"${3}\n    echo \"4=\"${4}\n    echo \"USE_INT64\"=$USE_INT64\n    echo \"Machine_name=\"$Machine_name\n    echo \"LIBFLAGS=\"$LIBFLAGS\n    echo \"target=\"$target\n    echo \"DEBUG=\"${DEBUG_FLAG}\n    echo \"COPTFLAGS=\"${_COPTFLAGS}\n    echo \"BLAS_LAPACK_LIB=\"$BLAS_LAPACK_LIB\n    echo \"prefix=\"${libdir}/petsc/${PETSC_CONFIG}\n    echo \"MPI_CC=\"$MPI_CC\n    echo \"MPI_FC=\"$MPI_FC\n    echo \"MPI_CXX=\"$MPI_CXX\n    \n    mkdir $libdir/petsc/${PETSC_CONFIG}\n        \n   \n    # Step 1: build static libraries of external packages (happens during configure)    \n    # Note that mpicc etc. should be indicated rather than ${CC} to compile external packages \n    ./configure --prefix=${libdir}/petsc/${PETSC_CONFIG} \\\n        --CC=${MPI_CC} \\\n        --FC=${MPI_FC} \\\n        --CXX=${MPI_CXX} \\\n        --COPTFLAGS=${_COPTFLAGS} \\\n        --CXXOPTFLAGS=${_CXXOPTFLAGS} \\\n        --FOPTFLAGS=${_FOPTFLAGS}  \\\n        --with-blaslapack-lib=${BLAS_LAPACK_LIB}  \\\n        --with-blaslapack-suffix=\"\" \\\n        --CFLAGS='-fno-stack-protector'  \\\n        --FFLAGS=\"${MPI_FFLAGS} ${FFLAGS[*]}\"  \\\n        --LDFLAGS=\"${LIBFLAGS}\"  \\\n        --CC_LINKER_FLAGS=\"${CLINK_FLAGS}\" \\\n        --with-64-bit-indices=${USE_INT64}  \\\n        --with-debugging=${DEBUG_FLAG}  \\\n        --with-batch \\\n        --with-mpi=${USE_MPI} \\\n        ${MPI_LIBS} \\\n        ${MPI_INC} \\\n        --with-sowing=0 \\\n        --with-precision=${1}  \\\n        --with-scalar-type=${2} \\\n        --with-pthread=0 \\\n        --PETSC_ARCH=${target}_${PETSC_CONFIG} \\\n        --with-scalapack-lib=${libdir}/libscalapack32.${dlext} \\\n        --with-scalapack-include=${includedir} \\\n        --download-suitesparse=${USE_SUITESPARSE} \\\n        --download-suitesparse-shared=0 \\\n        --download-superlu_dist=${USE_SUPERLU_DIST} \\\n        --download-superlu_dist-shared=0 \\\n        --download-hypre=${USE_HYPRE} \\\n        --download-hypre-shared=0 \\\n        --download-hypre-configure-arguments='--host --build' \\\n        --download-mumps=${USE_MUMPS} \\\n        --download-mumps-shared=0 \\\n        --download-tetgen=${USE_TETGEN} \\\n        --download-triangle=${USE_TRIANGLE} \\\n        --SOSUFFIX=${PETSC_CONFIG} \\\n        --with-shared-libraries=1 \\\n        --with-clean=1\n\n    if [[ \"${target}\" == *-mingw* ]]; then\n        export CPPFLAGS=\"-Dpetsc_EXPORTS\"\n    elif [[ \"${target}\" == powerpc64le-* ]]; then\n        export CFLAGS=\"-fPIC\"\n        export FFLAGS=\"-fPIC\"\n    fi\n\n    make -j${nproc} \\\n        CPPFLAGS=\"${CPPFLAGS}\" \\\n        CFLAGS=\"${CFLAGS}\" \\\n        FFLAGS=\"${FFLAGS}\"\n    make install\n\n    # Remove PETSc.pc because petsc.pc also exists, causing conflicts on case-insensitive file-systems.\n    rm ${libdir}/petsc/${PETSC_CONFIG}/lib/pkgconfig/PETSc.pc\n    if  [ \"${1}\" == \"double\" ] &&  [ \"${2}\" == \"real\" ] &&  [ \"${3}\" == \"Int64\" ] &&  [ \"${4}\" == \"opt\" ]; then\n        \n        # Compile examples (to allow testing the installation). \n        # This can later be run with:\n        # julia> run(`$(PETSc_jll.ex42()) -stokes_ksp_monitor -log_view` )\n        workdir=${libdir}/petsc/${PETSC_CONFIG}/share/petsc/examples/src/ksp/ksp/tutorials/\n        make --directory=${workdir} PETSC_DIR=${libdir}/petsc/${PETSC_CONFIG} PETSC_ARCH=${target}_${PETSC_CONFIG} ex42\n        file=${workdir}/ex42\n        if [[ \"${target}\" == *-mingw* ]]; then\n            if [[ -f \"$file\" ]]; then\n                mv $file ${file}${exeext}\n            fi\n        fi\n        install -Dvm 755 ${workdir}/ex42${exeext} \"${bindir}/ex42${exeext}\"\n\n        # This is a staggered grid Stokes example, as discussed in https://joss.theoj.org/papers/10.21105/joss.04531 \n        # This can later be run with:\n        # julia> run(`$(PETSc_jll.ex4()) -ksp_monitor -log_view` )\n        workdir=${libdir}/petsc/${PETSC_CONFIG}/share/petsc/examples/src/dm/impls/stag/tutorials/\n        make --directory=$workdir PETSC_DIR=${libdir}/petsc/${PETSC_CONFIG} PETSC_ARCH=${target}_${PETSC_CONFIG} ex4\n        file=${workdir}/ex4\n        if [[ \"${target}\" == *-mingw* ]]; then\n            if [[ -f \"$file\" ]]; then\n                mv $file ${file}${exeext}\n            fi\n        fi\n        install -Dvm 755 ${workdir}/ex4${exeext} \"${bindir}/ex4${exeext}\"\n\n        # this is the example that PETSc uses to test the correct installation        \n        workdir=${libdir}/petsc/${PETSC_CONFIG}/share/petsc/examples/src/snes/tutorials/\n        make --directory=$workdir PETSC_DIR=${libdir}/petsc/${PETSC_CONFIG} PETSC_ARCH=${target}_${PETSC_CONFIG} ex19\n        file=${workdir}/ex19\n        if [[ \"${target}\" == *-mingw* ]]; then\n            if [[ -f \"$file\" ]]; then\n                mv $file ${file}${exeext}\n            fi\n        fi\n        install -Dvm 755 ${workdir}/ex19${exeext} \"${bindir}/ex19${exeext}\"\n\n    fi\n\n    if  [ \"${1}\" == \"double\" ] &&  [ \"${2}\" == \"real\" ] &&  [ \"${3}\" == \"Int64\" ] &&  [ \"${4}\" == \"deb\" ]; then\n        \n        # this is the example that PETSc uses to test the correct installation        \n        # We compile it with debug flags (helpful to catch issues)\n        workdir=${libdir}/petsc/${PETSC_CONFIG}/share/petsc/examples/src/snes/tutorials/\n        make --directory=$workdir PETSC_DIR=${libdir}/petsc/${PETSC_CONFIG} PETSC_ARCH=${target}_${PETSC_CONFIG} ex19\n        file=${workdir}/ex19\n        if [[ \"${target}\" == *-mingw* ]]; then\n            if [[ -f \"$file\" ]]; then\n                mv $file ${file}${exeext}\n            fi\n        fi\n        mv ${file}${exeext} ${file}_int64_deb${exeext}\n        install -Dvm 755 ${workdir}/ex19_int64_deb${exeext} \"${bindir}/ex19_int64_deb${exeext}\"\n\n    fi\n\n    if  [ \"${1}\" == \"double\" ] &&  [ \"${2}\" == \"real\" ] &&  [ \"${3}\" == \"Int32\" ] &&  [ \"${4}\" == \"opt\" ]; then\n        \n        # this is the example that PETSc uses to test the correct installation        \n        # We compile it with debug flags (helpful to catch issues)\n        workdir=${libdir}/petsc/${PETSC_CONFIG}/share/petsc/examples/src/snes/tutorials/\n        make --directory=$workdir PETSC_DIR=${libdir}/petsc/${PETSC_CONFIG} PETSC_ARCH=${target}_${PETSC_CONFIG} ex19\n        file=${workdir}/ex19\n        if [[ \"${target}\" == *-mingw* ]]; then\n            if [[ -f \"$file\" ]]; then\n                mv $file ${file}${exeext}\n            fi\n        fi\n        mv ${file}${exeext} ${file}_int32${exeext}\n        install -Dvm 755 ${workdir}/ex19_int32${exeext} \"${bindir}/ex19_int32${exeext}\"\n\n    fi\n\n    # we don't particularly care about the other examples\n    rm -r ${libdir}/petsc/${PETSC_CONFIG}/share/petsc/examples\n}\n\nbuild_petsc double real Int64 opt\nbuild_petsc double real Int64 deb       # compile at least one debug version\nbuild_petsc double real Int32 opt\nbuild_petsc single real Int32 opt\nbuild_petsc double complex Int32 opt\nbuild_petsc single complex Int32 opt\nbuild_petsc single real Int64 opt\nbuild_petsc double complex Int64 opt\nbuild_petsc single complex Int64 opt\n"""
+version = "v3.22.0"
+
+[[dependencies]]
+compat = ""
+name = "OpenBLAS32_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "SCALAPACK32_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LLVMCompilerRT_jll"
+platforms = ["aarch64-apple-darwin"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CMake_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "4.2.3"
+name = "MPICH_jll"
+platforms = ["i686-linux-gnu-libgfortran3-mpi+mpich", "i686-linux-gnu-libgfortran4-mpi+mpich", "i686-linux-gnu-libgfortran5-mpi+mpich", "x86_64-linux-gnu-libgfortran3-mpi+mpich", "x86_64-linux-gnu-libgfortran4-mpi+mpich", "x86_64-linux-gnu-libgfortran5-mpi+mpich", "aarch64-linux-gnu-libgfortran3-mpi+mpich", "aarch64-linux-gnu-libgfortran4-mpi+mpich", "aarch64-linux-gnu-libgfortran5-mpi+mpich", "armv6l-linux-gnueabihf-libgfortran3-mpi+mpich", "armv6l-linux-gnueabihf-libgfortran4-mpi+mpich", "armv6l-linux-gnueabihf-libgfortran5-mpi+mpich", "armv7l-linux-gnueabihf-libgfortran3-mpi+mpich", "armv7l-linux-gnueabihf-libgfortran4-mpi+mpich", "armv7l-linux-gnueabihf-libgfortran5-mpi+mpich", "powerpc64le-linux-gnu-libgfortran3-mpi+mpich", "powerpc64le-linux-gnu-libgfortran4-mpi+mpich", "powerpc64le-linux-gnu-libgfortran5-mpi+mpich", "x86_64-linux-musl-libgfortran3-mpi+mpich", "x86_64-linux-musl-libgfortran4-mpi+mpich", "x86_64-linux-musl-libgfortran5-mpi+mpich", "x86_64-apple-darwin-libgfortran3-mpi+mpich", "x86_64-apple-darwin-libgfortran4-mpi+mpich", "x86_64-apple-darwin-libgfortran5-mpi+mpich", "aarch64-apple-darwin-libgfortran5-mpi+mpich", "aarch64-unknown-freebsd-libgfortran4-mpi+mpich", "aarch64-unknown-freebsd-libgfortran5-mpi+mpich"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenMPI_jll"
+platforms = ["i686-linux-gnu-libgfortran3-mpi+openmpi", "i686-linux-gnu-libgfortran4-mpi+openmpi", "i686-linux-gnu-libgfortran5-mpi+openmpi", "x86_64-linux-gnu-libgfortran3-mpi+openmpi", "x86_64-linux-gnu-libgfortran4-mpi+openmpi", "x86_64-linux-gnu-libgfortran5-mpi+openmpi", "aarch64-linux-gnu-libgfortran3-mpi+openmpi", "aarch64-linux-gnu-libgfortran4-mpi+openmpi", "aarch64-linux-gnu-libgfortran5-mpi+openmpi", "armv7l-linux-gnueabihf-libgfortran3-mpi+openmpi", "armv7l-linux-gnueabihf-libgfortran4-mpi+openmpi", "armv7l-linux-gnueabihf-libgfortran5-mpi+openmpi", "powerpc64le-linux-gnu-libgfortran3-mpi+openmpi", "powerpc64le-linux-gnu-libgfortran4-mpi+openmpi", "powerpc64le-linux-gnu-libgfortran5-mpi+openmpi", "x86_64-linux-musl-libgfortran3-mpi+openmpi", "x86_64-linux-musl-libgfortran4-mpi+openmpi", "x86_64-linux-musl-libgfortran5-mpi+openmpi", "x86_64-apple-darwin-libgfortran3-mpi+openmpi", "x86_64-apple-darwin-libgfortran4-mpi+openmpi", "x86_64-apple-darwin-libgfortran5-mpi+openmpi", "aarch64-apple-darwin-libgfortran5-mpi+openmpi", "aarch64-unknown-freebsd-libgfortran4-mpi+openmpi", "aarch64-unknown-freebsd-libgfortran5-mpi+openmpi"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "10.1.4"
+name = "MicrosoftMPI_jll"
+platforms = ["x86_64-w64-mingw32-libgfortran3-mpi+microsoftmpi", "x86_64-w64-mingw32-libgfortran4-mpi+microsoftmpi", "x86_64-w64-mingw32-libgfortran5-mpi+microsoftmpi"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "5.5.0"
+name = "MPItrampoline_jll"
+platforms = ["i686-linux-gnu-libgfortran3-mpi+mpitrampoline", "i686-linux-gnu-libgfortran4-mpi+mpitrampoline", "i686-linux-gnu-libgfortran5-mpi+mpitrampoline", "x86_64-linux-gnu-libgfortran3-mpi+mpitrampoline", "x86_64-linux-gnu-libgfortran4-mpi+mpitrampoline", "x86_64-linux-gnu-libgfortran5-mpi+mpitrampoline", "aarch64-linux-gnu-libgfortran3-mpi+mpitrampoline", "aarch64-linux-gnu-libgfortran4-mpi+mpitrampoline", "aarch64-linux-gnu-libgfortran5-mpi+mpitrampoline", "armv6l-linux-gnueabihf-libgfortran3-mpi+mpitrampoline", "armv6l-linux-gnueabihf-libgfortran4-mpi+mpitrampoline", "armv6l-linux-gnueabihf-libgfortran5-mpi+mpitrampoline", "armv7l-linux-gnueabihf-libgfortran3-mpi+mpitrampoline", "armv7l-linux-gnueabihf-libgfortran4-mpi+mpitrampoline", "armv7l-linux-gnueabihf-libgfortran5-mpi+mpitrampoline", "powerpc64le-linux-gnu-libgfortran3-mpi+mpitrampoline", "powerpc64le-linux-gnu-libgfortran4-mpi+mpitrampoline", "powerpc64le-linux-gnu-libgfortran5-mpi+mpitrampoline", "x86_64-apple-darwin-libgfortran3-mpi+mpitrampoline", "x86_64-apple-darwin-libgfortran4-mpi+mpitrampoline", "x86_64-apple-darwin-libgfortran5-mpi+mpitrampoline", "aarch64-apple-darwin-libgfortran5-mpi+mpitrampoline"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "0.1"
+name = "MPIPreferences"
+platforms = ["any"]
+top_level = true
+type = "dependency"
+uuid = "3da0fdf6-3ccc-4f1b-acd9-58baa6c99267"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["ex4"]
+type = "exe"
+variable_name = "ex4"
+[[products]]
+binnames = ["ex42"]
+type = "exe"
+variable_name = "ex42"
+[[products]]
+binnames = ["ex19"]
+type = "exe"
+variable_name = "ex19"
+[[products]]
+binnames = ["ex19_int64_deb"]
+type = "exe"
+variable_name = "ex19_int64_deb"
+[[products]]
+binnames = ["ex19_int32"]
+type = "exe"
+variable_name = "ex19_int32"
+[[products]]
+dir_paths = ["$libdir/petsc/double_real_Int64/lib"]
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libpetsc_double_real_Int64"]
+type = "lib"
+variable_name = "libpetsc"
+[[products]]
+dir_paths = ["$libdir/petsc/double_real_Int64/lib"]
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libpetsc_double_real_Int64"]
+type = "lib"
+variable_name = "libpetsc_Float64_Real_Int64"
+[[products]]
+dir_paths = ["$libdir/petsc/double_real_Int64_deb/lib"]
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libpetsc_double_real_Int64_deb"]
+type = "lib"
+variable_name = "libpetsc_Float64_Real_Int64_deb"
+[[products]]
+dir_paths = ["$libdir/petsc/double_real_Int32/lib"]
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libpetsc_double_real_Int32"]
+type = "lib"
+variable_name = "libpetsc_Float64_Real_Int32"
+[[products]]
+dir_paths = ["$libdir/petsc/single_real_Int32/lib"]
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libpetsc_single_real_Int32"]
+type = "lib"
+variable_name = "libpetsc_Float32_Real_Int32"
+[[products]]
+dir_paths = ["$libdir/petsc/double_complex_Int32/lib"]
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libpetsc_double_complex_Int32"]
+type = "lib"
+variable_name = "libpetsc_Float64_Complex_Int32"
+[[products]]
+dir_paths = ["$libdir/petsc/single_complex_Int32/lib"]
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libpetsc_single_complex_Int32"]
+type = "lib"
+variable_name = "libpetsc_Float32_Complex_Int32"
+[[products]]
+dir_paths = ["$libdir/petsc/single_real_Int64/lib"]
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libpetsc_single_real_Int64"]
+type = "lib"
+variable_name = "libpetsc_Float32_Real_Int64"
+[[products]]
+dir_paths = ["$libdir/petsc/double_complex_Int64/lib"]
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libpetsc_double_complex_Int64"]
+type = "lib"
+variable_name = "libpetsc_Float64_Complex_Int64"
+[[products]]
+dir_paths = ["$libdir/petsc/single_complex_Int64/lib"]
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libpetsc_single_complex_Int64"]
+type = "lib"
+variable_name = "libpetsc_Float32_Complex_Int64"
+
+[[sources]]
+hash = "2c03f7c0f7ad2649240d4989355cf7fb7f211b75156cd7d424e1d9dd7dfb290b"
+type = "archive"
+unpack_target = ""
+url = "https://web.cels.anl.gov/projects/petsc/download/release-snapshots/petsc-3.22.0.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

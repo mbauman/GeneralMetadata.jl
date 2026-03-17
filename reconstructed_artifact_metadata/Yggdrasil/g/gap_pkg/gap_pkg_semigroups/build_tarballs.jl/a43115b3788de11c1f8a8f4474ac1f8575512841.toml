@@ -1,0 +1,29 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.10"
+lazy_artifacts = false
+name = "GAP_pkg_semigroups"
+platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd"]
+script = """cd semigroups*\n\nEXTRA_FLAGS=()\nif [[ \"${target}\" == *apple-darwin* ]]; then\n    # lld does support the single_module flag\n    # but the detection is broken due to a warning\n    # see https://savannah.gnu.org/support/?110937\n    EXTRA_FLAGS+=(lt_cv_apple_cc_single_mod=yes)\nelif [[ \"${target}\" == *-freebsd* ]]; then\n    # backward-cpp doesn't support freebsd\n    EXTRA_FLAGS+=(--disable-backward)\nfi\n\n./configure \\\n    --build=${MACHTYPE} \\\n    --host=${target} \\\n    --with-gaproot=${prefix}/lib/gap \\\n    --disable-hpcombi \\\n    \"${EXTRA_FLAGS[@]}\"\nmake -j${nproc}\n\n# copy the loadable module\nmkdir -p ${prefix}/lib/gap\ncp bin/*/*.so ${prefix}/lib/gap/\ncp bin/lib/*.* ${prefix}/lib/gap/\n\ninstall_license LICENSE\n"""
+version = "v500.400.3"
+
+[[dependencies]]
+compat = "~400.1401.5"
+name = "GAP_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+paths = ["lib/gap/semigroups.so"]
+type = "file"
+variable_name = "semigroups"
+
+[[sources]]
+hash = "9a22d6c6cd2a99392e286b6a4636258cdf50a308655dc11f444696aa4880d98e"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/semigroups/Semigroups/releases/download/v5.4.0/semigroups-5.4.0.tar.gz"

@@ -1,0 +1,55 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.8"
+lazy_artifacts = false
+name = "LibCURL"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """THIS_IS_CURL=false\n    cd $WORKSPACE/srcdir/curl-*\n\n    # Holy crow we really configure the bitlets out of this thing\n    FLAGS=(\n        # Disable....almost everything\n        --without-ssl --without-gnutls\n        --without-libidn2 --without-librtmp\n        --without-nss --without-libpsl\n\t--disable-ares --disable-manual\n        --disable-ldap --disable-ldaps --without-zsh-functions-dir\n        --disable-static --without-libgsasl\n\n        # A few things we actually enable\n        --with-libssh2=${prefix} --with-zlib=${prefix} --with-nghttp2=${prefix}\n        --enable-versioned-symbols\n    )\n\n    if [[ ${target} == *mingw* ]]; then\n        # We need to tell it where to find libssh2 on windows\n        FLAGS+=(LDFLAGS=\"${LDFLAGS} -L${prefix}/bin\")\n\n        # We also need to tell it to link against schannel (native TLS library)\n        FLAGS+=(--with-schannel)\n    elif [[ ${target} == *darwin* ]]; then\n        # On Darwin, we need to use SecureTransport (native TLS library)\n        FLAGS+=(--with-secure-transport)\n\n        # We need to explicitly request a higher `-mmacosx-version-min` here, so that it doesn't\n        # complain about: `Symbol not found: ___isOSVersionAtLeast`\n        if [[ \"${target}\" == *x86_64* ]]; then\n            export CFLAGS=-mmacosx-version-min=10.11\n        fi\n    else\n        # On all other systems, we use MbedTLS\n        FLAGS+=(--with-mbedtls=${prefix})\n    fi\n\n    if false; then\n        # Use gssapi on Linux and FreeBSD\n        FLAGS+=(--with-gssapi=${prefix})\n        if [[ \"${target}\" == *-freebsd* ]]; then\n            # Only for FreeBSD we need to hint that we need to link to libkrb5 and\n            # libcom_err to resolve some undefined symbols.\n            export LIBS=\"-lkrb5 -lcom_err\"\n        fi\n    else\n        FLAGS+=(--without-gssapi)\n    fi\n\n    ./configure --prefix=$prefix --host=$target --build=${MACHTYPE} \"${FLAGS[@]}\"\n    make -j${nproc}\n    if [[ \"${THIS_IS_CURL}\" == true ]]; then\n        # Manually install only `curl`\n        install -Dm 755 \"src/.libs/curl${exeext}\" \"${bindir}/curl${exeext}\"\n    else\n        # Install everything...\n        make install\n        # ...but remove `curl`\n        rm \"${bindir}/curl${exeext}\"\n    fi\n    install_license COPYING\n    """
+version = "v7.84.0"
+
+[[dependencies]]
+compat = ""
+name = "LibSSH2_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "nghttp2_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "~2.28.0"
+name = "MbedTLS_jll"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-unknown-freebsd"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcurl"]
+type = "lib"
+variable_name = "libcurl"
+
+[[sources]]
+hash = "3c6893d38d054d4e378267166858698899e9d87258e8ff1419d020c395384535"
+type = "archive"
+unpack_target = ""
+url = "https://curl.se/download/curl-7.84.0.tar.gz"

@@ -1,0 +1,44 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "LinearElasticity"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd ${WORKSPACE}/srcdir/Commons\nif [[ \"${target}\" == *mingw* ]]; then\n    atomic_patch -p1 \"${WORKSPACE}/srcdir/patches/Commons.mingw.patch\"\nelif [[ \"${target}\" == *freebsd* ]]; then\n    atomic_patch -p1 \"${WORKSPACE}/srcdir/patches/Commons.freebsd.patch\"\nelse\n    atomic_patch -p1 \"${WORKSPACE}/srcdir/patches/Commons.patch\"\nfi\nmkdir build\ncd build\ncmake .. \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DBUILD_SHARED_LIBS=ON\nmake -j${nproc}\nmake install\n\ncd ${WORKSPACE}/srcdir/LinearElasticity\nif [[ \"${target}\" == *mingw* ]]; then\n    atomic_patch -p1 \"${WORKSPACE}/srcdir/patches/LinearElasticity.mingw.patch\"\nelse\n    atomic_patch -p1 \"${WORKSPACE}/srcdir/patches/LinearElasticity.patch\"\nfi\nmkdir build\ncd build\ncmake .. \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DCMAKE_C_STANDARD_LIBRARIES=\"${LDFLAGS}\" \\\n    -DBUILD_SHARED_LIBS=ON\nmake -j${nproc}\nmake install\ninstall_license ../LICENSE.md\n"""
+version = "v5.0.0"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libCommons"]
+type = "lib"
+variable_name = "libCommons"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libElas"]
+type = "lib"
+variable_name = "libElas"
+[[products]]
+binnames = ["elastic"]
+type = "exe"
+variable_name = "elastic"
+
+[[sources]]
+hash = "58ace131fd1af9293ded9f84f2a6447147a8ecdc"
+type = "git"
+unpack_target = ""
+url = "https://github.com/ISCDtoolbox/LinearElasticity.git"
+[[sources]]
+hash = "57f0b0ed46d45a12fa60c42bce2c6fa73c84bc30"
+type = "git"
+unpack_target = ""
+url = "https://github.com/ISCDtoolbox/Commons.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

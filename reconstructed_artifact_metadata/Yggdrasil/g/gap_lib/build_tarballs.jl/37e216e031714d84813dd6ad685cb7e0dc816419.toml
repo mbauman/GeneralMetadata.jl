@@ -1,0 +1,31 @@
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "GAP_lib"
+products = []
+script = """cd ${WORKSPACE}/srcdir/gap*\n\nmv ../pkg .\nfind pkg -name '._*' -exec rm \\{\\} \\; # unwanted files\n\n# run autogen.sh if compiling from it source and/or if configure was patched\n./autogen.sh\n\n# compile a native version of GAP so we can use it to generate the manual\n# (the manual is only in FULL gap release tarballs, not in the -core tarball\n# nor in git snapshots)\nmkdir native-build\ncd native-build\n#apk add gmp-dev zlib-dev\n../configure --build=${MACHTYPE} --host=${MACHTYPE} CC=${CC_BUILD} CXX=${CXX_BUILD} --with-zlib=${prefix} --with-gmp=${prefix}\nmake -j${nproc}\nmake html   # build the manual (only HTML and txt; for PDF we'd need LaTeX)\ncd ..\n\n# remove the native build, it has done its job\nrm -rf native-build\n\n# the license\ninstall_license LICENSE\n\n# \"install\" most of the files\nrm -rf autom4te.cache dev etc extern hpcgap/extern pkg\nmkdir -p ${prefix}/share/gap/\nmv * ${prefix}/share/gap/\n"""
+version = "v400.1100.0"
+
+[[dependencies]]
+name = "Zlib_jll"
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "GMP_jll"
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[sources]]
+hash = "7a2dfbec79d3d20a4ac4d5f174eaf35aa34387d7"
+type = "git"
+unpack_target = ""
+url = "https://github.com/gap-system/gap.git"
+[[sources]]
+hash = "29ab6e2752f39d22e3f0a19e5bcbfec1710993b4cfd52337a0ca10fda6a76537"
+type = "archive"
+unpack_target = "pkg"
+url = "https://github.com/gap-system/gap/releases/download/v4.11.0/packages-required-v4.11.0.tar.gz"

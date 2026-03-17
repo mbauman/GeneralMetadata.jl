@@ -1,0 +1,64 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "MDAL"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """\ncd $WORKSPACE/srcdir/MDAL-*\n\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/rename-findsqlite-library.patch\n\nCMAKE_FLAGS=(-DCMAKE_INSTALL_PREFIX=$prefix\n-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN}\n-DCMAKE_BUILD_TYPE=Release\n-DENABLE_TESTS=OFF\n-DENABLE_COVERAGE=OFF\n-DWITH_HDF5=OFF\n-DWITH_GDAL=ON\n-DWITH_XML=ON\n-DWITH_SQLITE3=ON\n-DBUILD_STATIC=OFF\n-DBUILD_SHARED=ON\n-DBUILD_TOOLS=OFF\n-DBUILD_EXTERNAL_DRIVERS=OFF)\n\n#NetCDF is the most restrictive dependency as far as platform availability, so we'll use it where applicable but disable it otherwise\nif ! find ${libdir} -name \"libnetcdf*.${dlext}\" -exec false '{}' +; then\n    CMAKE_FLAGS+=(-DWITH_NETCDF=ON)\nelse\n    CMAKE_FLAGS+=(-DWITH_NETCDF=OFF)\nfi\n\ncmake . ${CMAKE_FLAGS[@]}\nmake -j${nproc}\nmake install\n\n"""
+version = "v0.9.4"
+
+[[dependencies]]
+compat = ""
+name = "GDAL_jll"
+platforms = ["any"]
+type = "dependency"
+uuid = "a7073274-a066-55f0-b90d-d619367d196c"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "XML2_jll"
+platforms = ["any"]
+type = "dependency"
+uuid = "02c8fc9c-b97f-50b9-bbe4-9be30ff0a78a"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "SQLite_jll"
+platforms = ["any"]
+type = "dependency"
+uuid = "76ed43ae-9a5d-5a62-8c75-30186b810ce8"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "400.802.102 - 400.902"
+name = "NetCDF_jll"
+platforms = ["any"]
+type = "dependency"
+uuid = "7243133f-43d8-5620-bbf4-c2c921802cf3"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmdal"]
+type = "lib"
+variable_name = "libmdal"
+
+[[sources]]
+hash = "a8a17c73a5868745fe7ce4ffe01b0ea20745e27438e0851eec68688d875e895c"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/lutraconsulting/MDAL/archive/refs/tags/release-0.9.4.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

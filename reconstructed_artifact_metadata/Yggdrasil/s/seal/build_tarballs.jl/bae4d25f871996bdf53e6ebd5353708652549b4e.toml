@@ -1,0 +1,31 @@
+dependencies = []
+lazy_artifacts = false
+name = "SEAL"
+platforms = ["x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "x86_64-apple-darwin14-cxx03", "x86_64-apple-darwin14-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "x86_64-unknown-freebsd11.1-cxx03", "x86_64-unknown-freebsd11.1-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11"]
+script = """cd $WORKSPACE/srcdir\n\n# Apply patches that fix some cross-compilation issues\nfor f in ${WORKSPACE}/srcdir/patches/*.patch; do\n    atomic_patch -p1 ${f}\ndone\n\ncd SEAL-*\n\n# The last three '-DSEAL_USE__*' flags are required to circumvent\n# cross-compilation issues\nif [[ \"${target}\" == *-darwin* ]]; then\n  # C++17 is disabled on MacOS due to the environment being too old.\n  cmake . \\\n    -DCMAKE_INSTALL_PREFIX=$prefix \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN%.*}_clang.cmake \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DCMAKE_POSITION_INDEPENDENT_CODE=ON \\\n    -DBUILD_SHARED_LIBS=ON \\\n    -DSEAL_BUILD_SEAL_C=ON \\\n    -DSEAL_USE___BUILTIN_CLZLL=OFF \\\n    -DSEAL_USE__ADDCARRY_U64=OFF \\\n    -DSEAL_USE__SUBBORROW_U64=OFF \\\n    -DSEAL_USE_CXX17=OFF\nelse\n  cmake . \\\n    -DCMAKE_INSTALL_PREFIX=$prefix \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN%.*}_clang.cmake \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DCMAKE_POSITION_INDEPENDENT_CODE=ON \\\n    -DBUILD_SHARED_LIBS=ON \\\n    -DSEAL_BUILD_SEAL_C=ON \\\n    -DSEAL_USE___BUILTIN_CLZLL=OFF \\\n    -DSEAL_USE__ADDCARRY_U64=OFF \\\n    -DSEAL_USE__SUBBORROW_U64=OFF\nfi\nmake -j${nproc}\nmake install\n"""
+version = "v3.5.4"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsealc"]
+type = "lib"
+variable_name = "libsealc"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libseal"]
+type = "lib"
+variable_name = "libseal"
+
+[[sources]]
+hash = "0c325c3e3d9b77be63ef866a7c73de861be46b99b61a22be60518d34865a1f37"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/microsoft/SEAL/archive/v3.5.4.tar.gz"
+[[sources]]
+path = "./bundled"
+target = ""
+type = "directory"

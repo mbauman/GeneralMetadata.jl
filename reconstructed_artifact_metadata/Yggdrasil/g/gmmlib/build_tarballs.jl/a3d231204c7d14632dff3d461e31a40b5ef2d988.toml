@@ -1,0 +1,23 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "gmmlib"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl"]
+script = """cd gmmlib\ninstall_license LICENSE.md\n\nCMAKE_FLAGS=()\n\nif [[ ${target} == *musl* ]]; then\n    # https://www.openwall.com/lists/musl/2018/09/11/2\n    sed -i '/-fstack-protector/d' Source/GmmLib/Linux.cmake\nfi\n\n# Release build for best performance\n# https://github.com/intel/gmmlib/issues/70\nCMAKE_FLAGS+=(-DBUILD_TYPE=Release)\n\n# Install things into $prefix\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix})\n\n# Explicitly use our cmake toolchain file and tell CMake we're cross-compiling\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING:BOOL=ON)\n\n# Don't run tests\nCMAKE_FLAGS+=(-DRUN_TEST_SUITE:Bool=OFF)\n\ncmake -B build -S . -GNinja ${CMAKE_FLAGS[@]}\nninja -C build -j ${nproc} install\n"""
+version = "v22.1.2"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libigdgmm"]
+type = "lib"
+variable_name = "libigdgmm"
+
+[[sources]]
+hash = "29152fc6d39f87983b176664f225d42af039f716"
+type = "git"
+unpack_target = ""
+url = "https://github.com/intel/gmmlib.git"

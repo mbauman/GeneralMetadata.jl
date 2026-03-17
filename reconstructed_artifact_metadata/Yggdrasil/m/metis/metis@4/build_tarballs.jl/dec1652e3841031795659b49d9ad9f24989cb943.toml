@@ -1,0 +1,21 @@
+dependencies = []
+lazy_artifacts = false
+name = "METIS"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """if [[ \"${target}\" == *-mingw* ]]; then\n  COPTIONS=\"${COPTIONS} -D__VC__\"  # to resolve missing srand48/drand48 symbols\nfi\n\n# build libmetis.a\ncd $WORKSPACE/srcdir/metis-*\nfor f in ${WORKSPACE}/srcdir/patches/*.patch; do\n  atomic_patch -p1 ${f}\ndone\ncd Lib\nmake -j${nproc} COPTIONS=\"${COPTIONS} -fPIC\"\ncd ..\n\n# We copy the .a files into ${prefix}/lib since the main purpose is to link them in other builds.\n# Specifically this is in a separate location than the typical location for libraries on Windows.\nmkdir -p ${prefix}/lib\nmv libmetis.a ${prefix}/lib\nmkdir -p ${prefix}/include\ncp Lib/metis.h ${prefix}/include\n"""
+version = "v4.0.3"
+
+[[products]]
+paths = ["lib/libmetis.a"]
+type = "file"
+variable_name = "libmetis_a"
+
+[[sources]]
+hash = "5efa35de80703c1b2c4d0de080fafbcf4e0d363a21149a1ad2f96e0144841a55"
+type = "archive"
+unpack_target = ""
+url = "http://glaros.dtc.umn.edu/gkhome/fetch/sw/metis/OLD/metis-4.0.3.tar.gz"
+[[sources]]
+path = "./bundled"
+target = ""
+type = "directory"

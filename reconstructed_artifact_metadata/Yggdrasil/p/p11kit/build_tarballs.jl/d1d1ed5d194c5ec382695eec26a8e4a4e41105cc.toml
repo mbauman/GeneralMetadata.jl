@@ -1,0 +1,27 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "P11Kit"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir\nmeson --cross-file=${MESON_TARGET_TOOLCHAIN} --buildtype=release p11-kit-*\n\n# Meson beautifully forces thin archives, without checking whether the dynamic linker\n# actually supports them: <https://github.com/mesonbuild/meson/issues/10823>.  Let's remove\n# the (deprecated...) `T` option to `ar`\nsed -i.bak 's/csrDT/csrD/' build.ninja\n\nninja -j${nproc}\nninja install\ninstall_license p11-kit-*/COPYING\n"""
+version = "v0.24.1"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libp11-kit"]
+type = "lib"
+variable_name = "libp11kit"
+[[products]]
+binnames = ["p11-kit"]
+type = "exe"
+variable_name = "p11kit"
+
+[[sources]]
+hash = "d8be783efd5cd4ae534cee4132338e3f40f182c3205d23b200094ec85faaaef8"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/p11-glue/p11-kit/releases/download/0.24.1/p11-kit-0.24.1.tar.xz"

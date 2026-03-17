@@ -1,0 +1,434 @@
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "GRASS"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """\ncd $WORKSPACE/srcdir/grass-*/\n\nexport LDFLAGS=\"-L${libdir}\"\n\n#patch remove g.proj from general/Makefile for right now, throws a segmentation fault\nfor f in ${WORKSPACE}/srcdir/patches/*.patch; do\n    atomic_patch -p1 ${f}\ndone\n\nif [[ \"${target}\" == \"${MACHTYPE}\" ]]; then\n    # Remove system libexpat to avoid confusion\n    rm /usr/lib/libexpat.so*\nfi\n\n# Force linking to libiconv with `-liconv`\nsed -i 's/ICONVLIB=.*/ICONVLIB=-liconv/' configure\n\n# Need a posix regex for Windows\nif [[ \"${target}\" == *-mingw* ]]; then\n    cp \"${includedir}/pcreposix.h\" \"${includedir}/regex.h\"\n    # Force linking to libregex with `-lpcreposix-0`\n    sed -i 's/-lregex/-lpcreposix-0/' configure\nfi\n\n./configure \\\n    --prefix=${prefix} --build=${MACHTYPE} --host=${target} \\\n    --enable-shared \\\n    --with-python=no \\\n    --with-cxx \\\n    --with-lapack --with-lapack-includes=${includedir} \\\n    --with-tiff --with-tiff-includes=${includedir} \\\n    --with-png --with-png-includes=${includedir} \\\n    --with-sqlite --with-sqlite-includes=${includedir} \\\n    --with-opengl=no \\\n    --with-fftw --with-fftw-includes=${includedir} \\\n    --with-cairo --with-cairo-includes=${includedir}/cairo --with-cairo-ldflags=-lfontconfig \\\n    --with-freetype --with-freetype-includes=${includedir}/freetype2 \\\n    --with-regex \\\n    --with-zstd --with-zstd-includes=${includedir} \\\n    --with-geos=${bindir}/geos-config \\\n    --with-gdal \\\n    --with-proj --with-proj-share=${prefix}/share/proj --with-proj-includes=${includedir}\n\n# Build only the libraries\nDIRS=(\n    include\n    tools\n    lib/external/shapelib\n    lib/datetime\n    lib/gis\n    lib/linkm\n    lib/db\n    lib/btree2\n    lib/vector\n    db/drivers\n    lib\n    imagery/i.ortho.photo/lib\n    vector/v.lrs/lib\n    raster/r.li/r.li.daemon\n    raster/r.sim/simlib\n)\n\nfor dir in \"${DIRS[@]}\"; do\n    make -j${nproc} -C \"${dir}\"\ndone\n\n# Manually install libraries and header files\ncp dist.*/lib/*.${dlext}* ${libdir}/.\ncp -r dist.*/include/grass ${includedir}/.\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    # Cover up the traces of the hack\n    rm \"${includedir}/regex.h\"\nfi\n\ninstall_license COPYING GPL.TXT\n"""
+version = "v7.8.5"
+
+[[dependencies]]
+compat = ""
+name = "GDAL_jll"
+type = "dependency"
+uuid = "a7073274-a066-55f0-b90d-d619367d196c"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "PROJ_jll"
+type = "dependency"
+uuid = "58948b4f-47e0-5654-a9ad-f609743f8632"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Cairo_jll"
+type = "dependency"
+uuid = "83423d85-b0ee-5818-9007-b63ccbeb887a"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "FreeType2_jll"
+type = "dependency"
+uuid = "d7e528f0-a631-5988-bf34-fe36492bcfd7"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LAPACK_jll"
+type = "dependency"
+uuid = "51474c39-65e3-53ba-86ba-03b1b862ec14"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "FFTW_jll"
+type = "dependency"
+uuid = "f5851436-0d7a-5f13-b9de-f02708fd171a"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Libiconv_jll"
+type = "dependency"
+uuid = "94ce4f54-9a6c-5748-9c1c-f9c7231a4531"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_xorgproto_jll"
+type = "builddependency"
+uuid = "c4d99508-4286-5418-9131-c86396af500b"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgrass_lidar", "libgrass_lidar.7.8"]
+type = "lib"
+variable_name = "libgrass_lidar"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgrass_neta", "libgrass_neta.7.8"]
+type = "lib"
+variable_name = "libgrass_neta"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgrass_htmldriver", "libgrass_htmldriver.7.8"]
+type = "lib"
+variable_name = "libgrass_htmldriver"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgrass_cluster", "libgrass_cluster.7.8"]
+type = "lib"
+variable_name = "libgrass_cluster"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgrass_gmath", "libgrass_gmath.7.8"]
+type = "lib"
+variable_name = "libgrass_gmath"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgrass_interpdata", "libgrass_interpdata.7.8"]
+type = "lib"
+variable_name = "libgrass_interpdata"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgrass_psdriver", "libgrass_psdriver.7.8"]
+type = "lib"
+variable_name = "libgrass_psdriver"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgrass_pngdriver", "libgrass_pngdriver.7.8"]
+type = "lib"
+variable_name = "libgrass_pngdriver"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgrass_dspf", "libgrass_dspf.7.8"]
+type = "lib"
+variable_name = "libgrass_dspf"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgrass_bitmap", "libgrass_bitmap.7.8"]
+type = "lib"
+variable_name = "libgrass_bitmap"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgrass_shape", "libgrass_shape.7.8"]
+type = "lib"
+variable_name = "libgrass_shape"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgrass_rtree", "libgrass_rtree.7.8"]
+type = "lib"
+variable_name = "libgrass_rtree"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgrass_cairodriver", "libgrass_cairodriver.7.8"]
+type = "lib"
+variable_name = "libgrass_cairodriver"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgrass_rowio", "libgrass_rowio.7.8"]
+type = "lib"
+variable_name = "libgrass_rowio"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgrass_lrs", "libgrass_lrs.7.8"]
+type = "lib"
+variable_name = "libgrass_lrs"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgrass_qtree", "libgrass_qtree.7.8"]
+type = "lib"
+variable_name = "libgrass_qtree"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgrass_gis", "libgrass_gis.7.8"]
+type = "lib"
+variable_name = "libgrass_gis"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgrass_gpde", "libgrass_gpde.7.8"]
+type = "lib"
+variable_name = "libgrass_gpde"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgrass_vector", "libgrass_vector.7.8"]
+type = "lib"
+variable_name = "libgrass_vector"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgrass_segment", "libgrass_segment.7.8"]
+type = "lib"
+variable_name = "libgrass_segment"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgrass_g3d", "libgrass_g3d.7.8"]
+type = "lib"
+variable_name = "libgrass_g3d"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgrass_display", "libgrass_display.7.8"]
+type = "lib"
+variable_name = "libgrass_display"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgrass_iortho", "libgrass_iortho.7.8"]
+type = "lib"
+variable_name = "libgrass_iortho"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgrass_btree2", "libgrass_btree2.7.8"]
+type = "lib"
+variable_name = "libgrass_btree2"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgrass_imagery", "libgrass_imagery.7.8"]
+type = "lib"
+variable_name = "libgrass_imagery"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgrass_datetime", "libgrass_datetime.7.8"]
+type = "lib"
+variable_name = "libgrass_datetime"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgrass_linkm", "libgrass_linkm.7.8"]
+type = "lib"
+variable_name = "libgrass_linkm"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgrass_ccmath", "libgrass_ccmath.7.8"]
+type = "lib"
+variable_name = "libgrass_ccmath"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgrass_driver", "libgrass_driver.7.8"]
+type = "lib"
+variable_name = "libgrass_driver"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgrass_gproj", "libgrass_gproj.7.8"]
+type = "lib"
+variable_name = "libgrass_gproj"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgrass_dgl", "libgrass_dgl.7.8"]
+type = "lib"
+variable_name = "libgrass_dgl"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgrass_dbmibase", "libgrass_dbmibase.7.8"]
+type = "lib"
+variable_name = "libgrass_dbmibase"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgrass_stats", "libgrass_stats.7.8"]
+type = "lib"
+variable_name = "libgrass_stats"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgrass_temporal", "libgrass_temporal.7.8"]
+type = "lib"
+variable_name = "libgrass_temporal"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgrass_sim", "libgrass_sim.7.8"]
+type = "lib"
+variable_name = "libgrass_sim"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgrass_btree", "libgrass_btree.7.8"]
+type = "lib"
+variable_name = "libgrass_btree"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgrass_dbstubs", "libgrass_dbstubs.7.8"]
+type = "lib"
+variable_name = "libgrass_dbstubs"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgrass_vedit", "libgrass_vedit.7.8"]
+type = "lib"
+variable_name = "libgrass_vedit"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgrass_calc", "libgrass_calc.7.8"]
+type = "lib"
+variable_name = "libgrass_calc"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgrass_raster", "libgrass_raster.7.8"]
+type = "lib"
+variable_name = "libgrass_raster"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgrass_cdhc", "libgrass_cdhc.7.8"]
+type = "lib"
+variable_name = "libgrass_cdhc"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgrass_interpfl", "libgrass_interpfl.7.8"]
+type = "lib"
+variable_name = "libgrass_interpfl"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgrass_dbmidriver", "libgrass_dbmidriver.7.8"]
+type = "lib"
+variable_name = "libgrass_dbmidriver"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgrass_rli", "libgrass_rli.7.8"]
+type = "lib"
+variable_name = "libgrass_rli"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgrass_arraystats", "libgrass_arraystats.7.8"]
+type = "lib"
+variable_name = "libgrass_arraystats"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgrass_sqlp", "libgrass_sqlp.7.8"]
+type = "lib"
+variable_name = "libgrass_sqlp"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgrass_dig2", "libgrass_dig2.7.8"]
+type = "lib"
+variable_name = "libgrass_dig2"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgrass_symb", "libgrass_symb.7.8"]
+type = "lib"
+variable_name = "libgrass_symb"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgrass_dbmiclient", "libgrass_dbmiclient.7.8"]
+type = "lib"
+variable_name = "libgrass_dbmiclient"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgrass_manage", "libgrass_manage.7.8"]
+type = "lib"
+variable_name = "libgrass_manage"
+
+[[sources]]
+hash = "a359bb665524ecccb643335d70f5436b1c84ffb6a0e428b78dffebacd983ff37"
+type = "archive"
+unpack_target = ""
+url = "https://grass.osgeo.org/grass78/source/grass-7.8.5.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

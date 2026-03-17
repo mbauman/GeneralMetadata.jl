@@ -1,0 +1,69 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "aws_c_io"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "x86_64-w64-mingw32"]
+script = """if [[ \"${target}\" == x86_64-apple-darwin* ]]; then\n    pushd ${WORKSPACE}/srcdir/MacOSX10.*.sdk\n    rm -rf /opt/${target}/${target}/sys-root/System\n    cp -ra usr/* \"/opt/${target}/${target}/sys-root/usr/.\"\n    cp -ra System \"/opt/${target}/${target}/sys-root/.\"\n    export MACOSX_DEPLOYMENT_TARGET=10.14\n    popd\nfi\n\ncd $WORKSPACE/srcdir/aws-c-io\n\n# Patch for MinGW toolchain\nfind . -type f -exec sed -i -e 's/Windows.h/windows.h/g' \\\n     -e 's/WS2tcpip.h/ws2tcpip.h/g' \\\n     -e 's/WinSock2.h/winsock2.h/g' \\\n     -e 's/MSWSock.h/mswsock.h/g' \\\n     -e 's/Mstcpip.h/mstcpip.h/g' \\\n     '{}' \\;\n# Lowercase names for MinGW\nsed -i -e 's/Secur32/secur32/g' -e 's/Crypt32/crypt32/g' CMakeLists.txt\n# MinGW is missing some macros in sspi.h\natomic_patch -p1 ../patches/win32_sspi_h_missing_macros.patch\n\nmkdir build && cd build\ncmake -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_PREFIX_PATH=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DBUILD_TESTING=OFF \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DBUILD_SHARED_LIBS=ON \\\n    ..\ncmake --build . -j${nproc} --target install\n"""
+version = "v0.19.1"
+
+[[dependencies]]
+compat = "1.5.18"
+name = "s2n_tls_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "0.9.1"
+name = "aws_c_cal_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "0.12.3"
+name = "aws_c_common_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "aws_lc_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libaws-c-io"]
+type = "lib"
+variable_name = "libaws_c_io"
+
+[[sources]]
+hash = "8286c781b95b426ca2f0783b6c1fe49ff519c4e7"
+type = "git"
+unpack_target = ""
+url = "https://github.com/awslabs/aws-c-io.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"
+[[sources]]
+hash = "2408d07df7f324d3beea818585a6d990ba99587c218a3969f924dfcc4de93b62"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.15.sdk.tar.xz"

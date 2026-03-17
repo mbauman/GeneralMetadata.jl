@@ -1,0 +1,36 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "x265"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/*x265*/\n# Remove `-march` and `-mcpu` flags\nSED_SCRIPTS=(-e  -e -- 's/-mcpu=native //g')\nfor CMAKE_FILE in source/CMakeLists.txt source/dynamicHDR10/CMakeLists.txt; do\n    sed -i 's/add_definitions(-march=i686)//g' \"${CMAKE_FILE}\"\n    sed -i 's/-mcpu=native //g' \"${CMAKE_FILE}\"\ndone\nFLAGS=()\ncmake -S source -B build \\\n    -DCMAKE_INSTALL_PREFIX=\"${prefix}\" \\\n    -DCMAKE_TOOLCHAIN_FILE=\"${CMAKE_TARGET_TOOLCHAIN}\" \\\n    -DENABLE_PIC=ON \\\n    -DENABLE_SHARED=ON \\\n    ${FLAGS[@]}\ncmake --build build --parallel ${nproc}\ncmake --install build\n# Remove the large static archive\nrm -v ${prefix}/lib/libx265.a\n"""
+version = "v4.0.0"
+
+[[dependencies]]
+compat = ""
+name = "NASM_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["x265"]
+type = "exe"
+variable_name = "x265"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libx265"]
+type = "lib"
+variable_name = "libx265"
+
+[[sources]]
+hash = "4ecee600df03bc5c7679d2caf702be9169f41aec"
+type = "git"
+unpack_target = ""
+url = "https://bitbucket.org/multicoreware/x265_git.git"

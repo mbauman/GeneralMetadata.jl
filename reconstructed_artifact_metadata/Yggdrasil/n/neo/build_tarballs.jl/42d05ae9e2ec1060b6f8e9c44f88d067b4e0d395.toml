@@ -1,0 +1,61 @@
+augment_platform_block = """using Base.BinaryPlatforms\n\n# Can't use Preferences since we might be running this very early with a non-existing Manifest\nNEO_jll_uuid = Base.UUID(\"700fe977-ac61-5f37-bbc8-c6c4b2b6a9fd\")\nconst preferences = Base.get_preferences(NEO_jll_uuid)\nBase.record_compiletime_preference(NEO_jll_uuid, \"debug\")\nconst debug_preference = if haskey(preferences, \"debug\")\n    if isa(preferences[\"debug\"], Bool)\n        preferences[\"debug\"]\n    elseif isa(preferences[\"debug\"], String)\n        parsed = tryparse(Bool, preferences[\"debug\"])\n        if parsed === nothing\n            @error \"Debug preference is not valid; expected a boolean, but got '$(preferences[\"debug\"])'\"\n            missing\n        else\n            parsed\n        end\n    else\n        @error \"Debug preference is not valid; expected a boolean, but got '$(preferences[\"debug\"])'\"\n        missing\n    end\nelse\n    missing\nend\n\nfunction augment_platform!(platform::Platform)\n    if debug_preference !== missing\n        platform[\"debug\"] = string(debug_preference)\n    end\n    return platform\nend"""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = true
+name = "NEO"
+platforms = ["x86_64-linux-gnu-cxx03-debug+false", "x86_64-linux-gnu-cxx03-debug+true", "x86_64-linux-gnu-cxx11-debug+false", "x86_64-linux-gnu-cxx11-debug+true"]
+script = ["""cd compute-runtime\ninstall_license LICENSE.md\n\n# work around compilation failures\n## already defined in gmmlib\nsed -i '/__stdcall/d' shared/source/gmm_helper/gmm_lib.h\n## extend LD_LIBRARY_PATH, don't overwrite it\nfind . \\( -name CMakeLists.txt -or -name '*.cmake' \\) -exec \\\n    sed -i 's/LD_LIBRARY_PATH=/LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:/g' '{}' \\;\n## NO\nsed -i '/-Werror/d' CMakeLists.txt\n\nCMAKE_FLAGS=()\n\n# Release build for best performance\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\n\n# Install things into $prefix\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix})\n\n# NOTE: NEO currently can't cross compile because of its IGC dependency\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING:BOOL=OFF)\n\n# Explicitly use our cmake toolchain file\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\n\n# Don't run tests\nCMAKE_FLAGS+=(-DSKIP_UNIT_TESTS:Bool=true)\n\n# we don't care about cl_intel_va_api_media_sharing\nCMAKE_FLAGS+=(-DDISABLE_LIBVA:Bool=true)\n\n# additional hardware support\nCMAKE_FLAGS+=(-DNEO_ENABLE_i915_PRELIM_DETECTION=TRUE)\n\n# libigc installs libraries and pkgconfig rules in lib64, so look for them there.\n# FIXME: shouldn't BinaryBuilder do this?\nexport PKG_CONFIG_PATH=${prefix}/lib64/pkgconfig:${prefix}/lib/pkgconfig\n\ncmake -B build -S . -GNinja ${CMAKE_FLAGS[@]}\nninja -C build -j ${nproc} install""", """cd compute-runtime\ninstall_license LICENSE.md\n\n# work around compilation failures\n## already defined in gmmlib\nsed -i '/__stdcall/d' shared/source/gmm_helper/gmm_lib.h\n## extend LD_LIBRARY_PATH, don't overwrite it\nfind . \\( -name CMakeLists.txt -or -name '*.cmake' \\) -exec \\\n    sed -i 's/LD_LIBRARY_PATH=/LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:/g' '{}' \\;\n## NO\nsed -i '/-Werror/d' CMakeLists.txt\n\nCMAKE_FLAGS=()\n\n# Release build for best performance\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Debug)\n\n# Install things into $prefix\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix})\n\n# NOTE: NEO currently can't cross compile because of its IGC dependency\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING:BOOL=OFF)\n\n# Explicitly use our cmake toolchain file\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\n\n# Don't run tests\nCMAKE_FLAGS+=(-DSKIP_UNIT_TESTS:Bool=true)\n\n# we don't care about cl_intel_va_api_media_sharing\nCMAKE_FLAGS+=(-DDISABLE_LIBVA:Bool=true)\n\n# additional hardware support\nCMAKE_FLAGS+=(-DNEO_ENABLE_i915_PRELIM_DETECTION=TRUE)\n\n# libigc installs libraries and pkgconfig rules in lib64, so look for them there.\n# FIXME: shouldn't BinaryBuilder do this?\nexport PKG_CONFIG_PATH=${prefix}/lib64/pkgconfig:${prefix}/lib/pkgconfig\n\ncmake -B build -S . -GNinja ${CMAKE_FLAGS[@]}\nninja -C build -j ${nproc} install"""]
+version = "v23.17.26241"
+
+[[dependencies]]
+compat = "=22.3.0"
+name = "gmmlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "=1.0.13822"
+name = "libigc_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.5.8"
+name = "oneAPI_Level_Zero_Headers_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["ocloc"]
+type = "exe"
+variable_name = "ocloc"
+[[products]]
+dir_paths = ["lib/intel-opencl", "lib64/intel-opencl"]
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libigdrcl"]
+type = "lib"
+variable_name = "libigdrcl"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libze_intel_gpu"]
+type = "lib"
+variable_name = "libze_intel_gpu"
+
+[[sources]]
+hash = "0bb5b3408e6cb61b477e7cad296fd278b11e73be"
+type = "git"
+unpack_target = ""
+url = "https://github.com/intel/compute-runtime.git"

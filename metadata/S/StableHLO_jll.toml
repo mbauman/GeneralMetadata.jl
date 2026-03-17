@@ -5,70 +5,7 @@ registered = 2024-02-06T17:37:52.000Z
     [["0.14.6+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/StableHLO_jll.jl/releases/download/StableHLO-v0.14.6+0/StableHLO.v0.14.6.aarch64-apple-darwin-llvm_version+17.tar.gz", "https://github.com/JuliaBinaryWrappers/StableHLO_jll.jl/releases/download/StableHLO-v0.14.6+0/StableHLO.v0.14.6.aarch64-linux-gnu-cxx03-llvm_version+17.tar.gz", "https://github.com/JuliaBinaryWrappers/StableHLO_jll.jl/releases/download/StableHLO-v0.14.6+0/StableHLO.v0.14.6.aarch64-linux-gnu-cxx11-llvm_version+17.tar.gz", "https://github.com/JuliaBinaryWrappers/StableHLO_jll.jl/releases/download/StableHLO-v0.14.6+0/StableHLO.v0.14.6.aarch64-linux-musl-cxx03-llvm_version+17.tar.gz", "https://github.com/JuliaBinaryWrappers/StableHLO_jll.jl/releases/download/StableHLO-v0.14.6+0/StableHLO.v0.14.6.aarch64-linux-musl-cxx11-llvm_version+17.tar.gz", "https://github.com/JuliaBinaryWrappers/StableHLO_jll.jl/releases/download/StableHLO-v0.14.6+0/StableHLO.v0.14.6.x86_64-apple-darwin-llvm_version+17.tar.gz", "https://github.com/JuliaBinaryWrappers/StableHLO_jll.jl/releases/download/StableHLO-v0.14.6+0/StableHLO.v0.14.6.x86_64-linux-gnu-cxx03-llvm_version+17.tar.gz", "https://github.com/JuliaBinaryWrappers/StableHLO_jll.jl/releases/download/StableHLO-v0.14.6+0/StableHLO.v0.14.6.x86_64-linux-gnu-cxx11-llvm_version+17.tar.gz", "https://github.com/JuliaBinaryWrappers/StableHLO_jll.jl/releases/download/StableHLO-v0.14.6+0/StableHLO.v0.14.6.x86_64-linux-musl-cxx03-llvm_version+17.tar.gz", "https://github.com/JuliaBinaryWrappers/StableHLO_jll.jl/releases/download/StableHLO-v0.14.6+0/StableHLO.v0.14.6.x86_64-linux-musl-cxx11-llvm_version+17.tar.gz", "https://github.com/JuliaBinaryWrappers/StableHLO_jll.jl/releases/download/StableHLO-v0.14.6+0/StableHLO.v0.14.6.x86_64-unknown-freebsd-llvm_version+17.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/49c5b2afb9ad1938b0bc5ddaae17cf1f8a834faa/S/StableHLO/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/s/stablehlo/build_tarballs.jl/49c5b2afb9ad1938b0bc5ddaae17cf1f8a834faa.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.5.7"
-
-        ["0.14.6+0".artifact_metadata.metadata]
-        augment_platform_block = """using Base.BinaryPlatforms\nfunction augment_llvm!(platform::Platform)\n    haskey(platform, \"llvm_version\") && return platform\n\n    llvm_version = Base.libllvm_version\n    # does our LLVM build use assertions?\n    llvm_assertions = try\n        cglobal((:_ZN4llvm24DisableABIBreakingChecksE, Base.libllvm_path()), Cvoid)\n        false\n    catch\n        true\n    end\n    platform[\"llvm_version\"] = if llvm_assertions\n        \"$(llvm_version.major).asserts\"\n    else\n        \"$(llvm_version.major)\"\n    end\n    return platform\nend\n\nfunction augment_platform!(platform::Platform)\n    augment_llvm!(platform)\nend"""
-        init_block = ""
-        julia_compat = "1.10"
-        lazy_artifacts = true
-        name = "StableHLO"
-        platforms = ["x86_64-linux-gnu-cxx03-llvm_version+17", "x86_64-linux-gnu-cxx11-llvm_version+17", "aarch64-linux-gnu-cxx03-llvm_version+17", "aarch64-linux-gnu-cxx11-llvm_version+17", "x86_64-linux-musl-cxx03-llvm_version+17", "x86_64-linux-musl-cxx11-llvm_version+17", "aarch64-linux-musl-cxx03-llvm_version+17", "aarch64-linux-musl-cxx11-llvm_version+17", "x86_64-apple-darwin-llvm_version+17", "aarch64-apple-darwin-llvm_version+17", "x86_64-unknown-freebsd-llvm_version+17"]
-        script = """cd $WORKSPACE/srcdir/stablehlo\n\n# need to run mlir-tblgen and mlir-pdll on the host\nrm ${bindir}/mlir-tblgen ${bindir}/mlir-pdll\nln -s ${host_prefix}/bin/mlir-tblgen ${bindir}/mlir-tblgen\nln -s ${host_prefix}/bin/mlir-pdll ${bindir}/mlir-pdll\n\nCMAKE_FLAGS=()\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix})\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING:BOOL=ON)\n\nCMAKE_FLAGS+=(-DLLVM_DIR=${prefix}/lib/cmake/llvm)\nCMAKE_FLAGS+=(-DLLVM_ENABLE_ASSERTIONS=OFF)\nCMAKE_FLAGS+=(-DLLVM_LINK_LLVM_DYLIB=ON)\nCMAKE_FLAGS+=(-DLLVM_ENABLE_LLD=\"OFF\")\n\nCMAKE_FLAGS+=(-DMLIR_DIR=${prefix}/lib/cmake/mlir)\n\n# building shared libraries crashes on linking, so build static libraries and link them manually\nCMAKE_FLAGS+=(-DBUILD_SHARED_LIBS=OFF)\n\ncmake -B build -S . -GNinja ${CMAKE_FLAGS[@]}\nninja -C build -j 1 all\n\n# NOTE no idea why they are not installed by default\ninstall -v build/bin/stablehlo-opt build/bin/stablehlo-translate build/bin/stablehlo-lsp-server ${bindir}\n\n# build shared library from static libraries\ncd build/lib\nfor i in *.a; do\n    echo $i\n    ar x $i\ndone\nc++ -shared -o libStablehlo.${dlext} -lLLVM -lMLIR *.cpp.o\ninstall -v libStablehlo.${dlext} ${libdir}\n"""
-        version = "v0.14.6"
-
-            [["0.14.6+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "MLIR_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["0.14.6+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVM_full_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "builddependency"
-            version-major = 17
-            version-minor = 0
-            version-patch = 6
-            [["0.14.6+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "MLIR_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "hostdependency"
-            version-major = 17
-            version-minor = 0
-            version-patch = 6
-
-            [["0.14.6+0".artifact_metadata.metadata.products]]
-            binnames = ["stablehlo-opt"]
-            type = "exe"
-            variable_name = "stablehlo_opt"
-            [["0.14.6+0".artifact_metadata.metadata.products]]
-            binnames = ["stablehlo-translate"]
-            type = "exe"
-            variable_name = "stablehlo_translate"
-            [["0.14.6+0".artifact_metadata.metadata.products]]
-            binnames = ["stablehlo-lsp-server"]
-            type = "exe"
-            variable_name = "stablehlo_lsp_server"
-            [["0.14.6+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libStablehlo"]
-            type = "lib"
-            variable_name = "libStablehlo"
-
-            [["0.14.6+0".artifact_metadata.metadata.sources]]
-            hash = "8816d0581d9a5fb7d212affef858e991a349ad6b"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/openxla/stablehlo.git"

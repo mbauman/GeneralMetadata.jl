@@ -1,0 +1,578 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.9"
+lazy_artifacts = false
+name = "GALAHAD"
+platforms = ["x86_64-linux-gnu-libgfortran5", "aarch64-linux-gnu-libgfortran5", "powerpc64le-linux-gnu-libgfortran5", "riscv64-linux-gnu-libgfortran5", "x86_64-apple-darwin-libgfortran5", "aarch64-apple-darwin-libgfortran5", "x86_64-unknown-freebsd-libgfortran5", "aarch64-unknown-freebsd-libgfortran5", "x86_64-w64-mingw32-libgfortran5"]
+script = """# Update Ninja\ncp ${host_prefix}/bin/ninja /usr/bin/ninja\n\ncd ${WORKSPACE}/srcdir/GALAHAD\n\nif [[ \"${target}\" == *mingw* ]]; then\n  LBT=\"blastrampoline-5\"\n  HWLOC=\"hwloc-15\"\nelse\n  LBT=\"blastrampoline\"\n  HWLOC=\"hwloc\"\nfi\n\nQUADRUPLE=\"true\"\nif [[ \"${target}\" == *arm* ]] || [[ \"${target}\" == *aarch64-linux* ]] || [[ \"${target}\" == *aarch64-unknown-freebsd* ]] || [[ \"${target}\" == *powerpc64le-linux-gnu* ]] || [[ \"${target}\" == *riscv64* ]]; then\n    QUADRUPLE=\"false\"\nfi\n\nmeson setup builddir_int32 --cross-file=${MESON_TARGET_TOOLCHAIN%.*}_gcc.meson \\\n                           --prefix=$prefix \\\n                           -Dint64=false \\\n                           -Dlibhwloc=$HWLOC \\\n                           -Dlibblas=$LBT \\\n                           -Dliblapack=$LBT \\\n                           -Dlibsmumps=smumps \\\n                           -Dlibdmumps=dmumps \\\n                           -Dlibcutest_single=cutest_single \\\n                           -Dlibcutest_double=cutest_double \\\n                           -Dlibcutest_quadruple= \\\n                           -Dlibcutest_modules=$prefix/modules \\\n                           -Dsingle=true \\\n                           -Ddouble=true \\\n                           -Dquadruple=false \\\n                           -Dbinaries=true \\\n                           -Dtests=false \\\n                           -Dlibhsl=hsl_subset \\\n                           -Dlibhsl_modules=$prefix/modules\n\nmeson compile -C builddir_int32\n\nmeson setup builddir_int64 --cross-file=${MESON_TARGET_TOOLCHAIN%.*}_gcc.meson \\\n                           --prefix=$prefix \\\n                           -Dint64=true \\\n                           -Dlibhwloc=$HWLOC \\\n                           -Dlibblas=$LBT \\\n                           -Dliblapack=$LBT \\\n                           -Dlibsmumps= \\\n                           -Dlibdmumps= \\\n                           -Dlibcutest_single= \\\n                           -Dlibcutest_double= \\\n                           -Dlibcutest_quadruple= \\\n                           -Dlibcutest_modules=$prefix/modules \\\n                           -Dsingle=true \\\n                           -Ddouble=true \\\n                           -Dquadruple=false \\\n                           -Dbinaries=false \\\n                           -Dtests=false \\\n                           -Dlibhsl=hsl_subset_64 \\\n                           -Dlibhsl_modules=$prefix/modules\n\nmeson compile -C builddir_int64\n\nif [[ \"$QUADRUPLE\" == \"true\" ]]; then\n    meson setup builddir_quad_int32 --cross-file=${MESON_TARGET_TOOLCHAIN%.*}_gcc.meson \\\n                                    --prefix=$prefix \\\n                                    -Dint64=false \\\n                                    -Dlibhwloc=$HWLOC \\\n                                    -Dlibblas= \\\n                                    -Dliblapack= \\\n                                    -Dlibsmumps= \\\n                                    -Dlibdmumps= \\\n                                    -Dlibcutest_single=cutest_single \\\n                                    -Dlibcutest_double=cutest_double \\\n                                    -Dlibcutest_quadruple= \\\n                                    -Dlibcutest_modules=$prefix/modules \\\n                                    -Dsingle=false \\\n                                    -Ddouble=false \\\n                                    -Dquadruple=true \\\n                                    -Dbinaries=false \\\n                                    -Dtests=false \\\n                                    -Dlibhsl=hsl_subset \\\n                                    -Dlibhsl_modules=$prefix/modules\n\n    meson compile -C builddir_quad_int32\n\n    meson setup builddir_quad_int64 --cross-file=${MESON_TARGET_TOOLCHAIN%.*}_gcc.meson \\\n                                    --prefix=$prefix \\\n                                    -Dint64=true \\\n                                    -Dlibhwloc=$HWLOC \\\n                                    -Dlibblas= \\\n                                    -Dliblapack= \\\n                                    -Dlibsmumps= \\\n                                    -Dlibdmumps= \\\n                                    -Dlibcutest_single= \\\n                                    -Dlibcutest_double= \\\n                                    -Dlibcutest_quadruple= \\\n                                    -Dlibcutest_modules=$prefix/modules \\\n                                    -Dsingle=false \\\n                                    -Ddouble=false \\\n                                    -Dquadruple=true \\\n                                    -Dbinaries=false \\\n                                    -Dtests=false \\\n                                    -Dlibhsl=hsl_subset_64 \\\n                                    -Dlibhsl_modules=$prefix/modules\n\n    meson compile -C builddir_quad_int64\nfi\n\nmeson install -C builddir_int32\nmeson install -C builddir_int64\nif [[ \"$QUADRUPLE\" == \"true\" ]]; then\n    meson install -C builddir_quad_int32\n    meson install -C builddir_quad_int64\nfi\n"""
+version = "v5.4.0"
+
+[[dependencies]]
+compat = ""
+name = "Ninja_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+uuid = "76642167-d241-5cee-8c94-7a494e8cb7b7"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "5.4.0"
+name = "libblastrampoline_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "8e850b90-86db-534c-a0d3-1478176c7d93"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Hwloc_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "e33a78d0-f292-5ffc-b300-72abe9b543c8"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MUMPS_seq_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "d7ed1dd3-d0ae-5e8e-bfb4-87a502085b8d"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "HSL_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "017b0a0e-03f4-516a-9b91-836bbd1904dd"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "2.5.6"
+name = "CUTEst_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "bb5f6f25-f23d-57fd-8f90-3ef7bad1d825"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgalahad_single"]
+type = "lib"
+variable_name = "libgalahad_single"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgalahad_double"]
+type = "lib"
+variable_name = "libgalahad_double"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgalahad_single_64"]
+type = "lib"
+variable_name = "libgalahad_single_64"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgalahad_double_64"]
+type = "lib"
+variable_name = "libgalahad_double_64"
+[[products]]
+binnames = ["buildspec"]
+type = "exe"
+variable_name = "buildspec"
+[[products]]
+binnames = ["galahad_error"]
+type = "exe"
+variable_name = "galahad_error"
+[[products]]
+binnames = ["runarc_sif_single"]
+type = "exe"
+variable_name = "runarc_sif_single"
+[[products]]
+binnames = ["runarc_sif_double"]
+type = "exe"
+variable_name = "runarc_sif_double"
+[[products]]
+binnames = ["runbgo_sif_single"]
+type = "exe"
+variable_name = "runbgo_sif_single"
+[[products]]
+binnames = ["runbgo_sif_double"]
+type = "exe"
+variable_name = "runbgo_sif_double"
+[[products]]
+binnames = ["runblls_sif_single"]
+type = "exe"
+variable_name = "runblls_sif_single"
+[[products]]
+binnames = ["runblls_sif_double"]
+type = "exe"
+variable_name = "runblls_sif_double"
+[[products]]
+binnames = ["runbllsb_sif_single"]
+type = "exe"
+variable_name = "runbllsb_sif_single"
+[[products]]
+binnames = ["runbllsb_sif_double"]
+type = "exe"
+variable_name = "runbllsb_sif_double"
+[[products]]
+binnames = ["runbqp_qplib_single"]
+type = "exe"
+variable_name = "runbqp_qplib_single"
+[[products]]
+binnames = ["runbqp_qplib_double"]
+type = "exe"
+variable_name = "runbqp_qplib_double"
+[[products]]
+binnames = ["runbqp_sif_single"]
+type = "exe"
+variable_name = "runbqp_sif_single"
+[[products]]
+binnames = ["runbqp_sif_double"]
+type = "exe"
+variable_name = "runbqp_sif_double"
+[[products]]
+binnames = ["runbqpb_qplib_single"]
+type = "exe"
+variable_name = "runbqpb_qplib_single"
+[[products]]
+binnames = ["runbqpb_qplib_double"]
+type = "exe"
+variable_name = "runbqpb_qplib_double"
+[[products]]
+binnames = ["runbqpb_sif_single"]
+type = "exe"
+variable_name = "runbqpb_sif_single"
+[[products]]
+binnames = ["runbqpb_sif_double"]
+type = "exe"
+variable_name = "runbqpb_sif_double"
+[[products]]
+binnames = ["runccqp_qplib_single"]
+type = "exe"
+variable_name = "runccqp_qplib_single"
+[[products]]
+binnames = ["runccqp_qplib_double"]
+type = "exe"
+variable_name = "runccqp_qplib_double"
+[[products]]
+binnames = ["runccqp_sif_single"]
+type = "exe"
+variable_name = "runccqp_sif_single"
+[[products]]
+binnames = ["runccqp_sif_double"]
+type = "exe"
+variable_name = "runccqp_sif_double"
+[[products]]
+binnames = ["runclls_sif_single"]
+type = "exe"
+variable_name = "runclls_sif_single"
+[[products]]
+binnames = ["runclls_sif_double"]
+type = "exe"
+variable_name = "runclls_sif_double"
+[[products]]
+binnames = ["runcdqp_qplib_single"]
+type = "exe"
+variable_name = "runcdqp_qplib_single"
+[[products]]
+binnames = ["runcdqp_qplib_double"]
+type = "exe"
+variable_name = "runcdqp_qplib_double"
+[[products]]
+binnames = ["runcdqp_sif_single"]
+type = "exe"
+variable_name = "runcdqp_sif_single"
+[[products]]
+binnames = ["runcdqp_sif_double"]
+type = "exe"
+variable_name = "runcdqp_sif_double"
+[[products]]
+binnames = ["runcqp_qplib_single"]
+type = "exe"
+variable_name = "runcqp_qplib_single"
+[[products]]
+binnames = ["runcqp_qplib_double"]
+type = "exe"
+variable_name = "runcqp_qplib_double"
+[[products]]
+binnames = ["runcqp_sif_single"]
+type = "exe"
+variable_name = "runcqp_sif_single"
+[[products]]
+binnames = ["runcqp_sif_double"]
+type = "exe"
+variable_name = "runcqp_sif_double"
+[[products]]
+binnames = ["rundemo_sif_single"]
+type = "exe"
+variable_name = "rundemo_sif_single"
+[[products]]
+binnames = ["rundemo_sif_double"]
+type = "exe"
+variable_name = "rundemo_sif_double"
+[[products]]
+binnames = ["rundgo_sif_single"]
+type = "exe"
+variable_name = "rundgo_sif_single"
+[[products]]
+binnames = ["rundgo_sif_double"]
+type = "exe"
+variable_name = "rundgo_sif_double"
+[[products]]
+binnames = ["rundlp_qplib_single"]
+type = "exe"
+variable_name = "rundlp_qplib_single"
+[[products]]
+binnames = ["rundlp_qplib_double"]
+type = "exe"
+variable_name = "rundlp_qplib_double"
+[[products]]
+binnames = ["rundlp_sif_single"]
+type = "exe"
+variable_name = "rundlp_sif_single"
+[[products]]
+binnames = ["rundlp_sif_double"]
+type = "exe"
+variable_name = "rundlp_sif_double"
+[[products]]
+binnames = ["rundps_sif_single"]
+type = "exe"
+variable_name = "rundps_sif_single"
+[[products]]
+binnames = ["rundps_sif_double"]
+type = "exe"
+variable_name = "rundps_sif_double"
+[[products]]
+binnames = ["rundqp_qplib_single"]
+type = "exe"
+variable_name = "rundqp_qplib_single"
+[[products]]
+binnames = ["rundqp_qplib_double"]
+type = "exe"
+variable_name = "rundqp_qplib_double"
+[[products]]
+binnames = ["rundqp_sif_single"]
+type = "exe"
+variable_name = "rundqp_sif_single"
+[[products]]
+binnames = ["rundqp_sif_double"]
+type = "exe"
+variable_name = "rundqp_sif_double"
+[[products]]
+binnames = ["runeqp_sif_single"]
+type = "exe"
+variable_name = "runeqp_sif_single"
+[[products]]
+binnames = ["runeqp_sif_double"]
+type = "exe"
+variable_name = "runeqp_sif_double"
+[[products]]
+binnames = ["runexpo_sif_single"]
+type = "exe"
+variable_name = "runexpo_sif_single"
+[[products]]
+binnames = ["runexpo_sif_double"]
+type = "exe"
+variable_name = "runexpo_sif_double"
+[[products]]
+binnames = ["runfdh_sif_single"]
+type = "exe"
+variable_name = "runfdh_sif_single"
+[[products]]
+binnames = ["runfdh_sif_double"]
+type = "exe"
+variable_name = "runfdh_sif_double"
+[[products]]
+binnames = ["runfiltrane_sif_single"]
+type = "exe"
+variable_name = "runfiltrane_sif_single"
+[[products]]
+binnames = ["runfiltrane_sif_double"]
+type = "exe"
+variable_name = "runfiltrane_sif_double"
+[[products]]
+binnames = ["rungltr_sif_single"]
+type = "exe"
+variable_name = "rungltr_sif_single"
+[[products]]
+binnames = ["rungltr_sif_double"]
+type = "exe"
+variable_name = "rungltr_sif_double"
+[[products]]
+binnames = ["runglrt_sif_single"]
+type = "exe"
+variable_name = "runglrt_sif_single"
+[[products]]
+binnames = ["runglrt_sif_double"]
+type = "exe"
+variable_name = "runglrt_sif_double"
+[[products]]
+binnames = ["runl1qp_sif_single"]
+type = "exe"
+variable_name = "runl1qp_sif_single"
+[[products]]
+binnames = ["runl1qp_sif_double"]
+type = "exe"
+variable_name = "runl1qp_sif_double"
+[[products]]
+binnames = ["runl2rt_sif_single"]
+type = "exe"
+variable_name = "runl2rt_sif_single"
+[[products]]
+binnames = ["runl2rt_sif_double"]
+type = "exe"
+variable_name = "runl2rt_sif_double"
+[[products]]
+binnames = ["runlancelot_sif_single"]
+type = "exe"
+variable_name = "runlancelot_sif_single"
+[[products]]
+binnames = ["runlancelot_sif_double"]
+type = "exe"
+variable_name = "runlancelot_sif_double"
+[[products]]
+binnames = ["run_lancelot_simple_single"]
+type = "exe"
+variable_name = "run_lancelot_simple_single"
+[[products]]
+binnames = ["run_lancelot_simple_double"]
+type = "exe"
+variable_name = "run_lancelot_simple_double"
+[[products]]
+binnames = ["runlancelot_steering_sif_single"]
+type = "exe"
+variable_name = "runlancelot_steering_sif_single"
+[[products]]
+binnames = ["runlancelot_steering_sif_double"]
+type = "exe"
+variable_name = "runlancelot_steering_sif_double"
+[[products]]
+binnames = ["runlls_sif_single"]
+type = "exe"
+variable_name = "runlls_sif_single"
+[[products]]
+binnames = ["runlls_sif_double"]
+type = "exe"
+variable_name = "runlls_sif_double"
+[[products]]
+binnames = ["runlpb_qplib_single"]
+type = "exe"
+variable_name = "runlpb_qplib_single"
+[[products]]
+binnames = ["runlpb_qplib_double"]
+type = "exe"
+variable_name = "runlpb_qplib_double"
+[[products]]
+binnames = ["runlpb_sif_single"]
+type = "exe"
+variable_name = "runlpb_sif_single"
+[[products]]
+binnames = ["runlpb_sif_double"]
+type = "exe"
+variable_name = "runlpb_sif_double"
+[[products]]
+binnames = ["runlpa_qplib_single"]
+type = "exe"
+variable_name = "runlpa_qplib_single"
+[[products]]
+binnames = ["runlpa_qplib_double"]
+type = "exe"
+variable_name = "runlpa_qplib_double"
+[[products]]
+binnames = ["runlpa_sif_single"]
+type = "exe"
+variable_name = "runlpa_sif_single"
+[[products]]
+binnames = ["runlpa_sif_double"]
+type = "exe"
+variable_name = "runlpa_sif_double"
+[[products]]
+binnames = ["runlpqp_sif_single"]
+type = "exe"
+variable_name = "runlpqp_sif_single"
+[[products]]
+binnames = ["runlpqp_sif_double"]
+type = "exe"
+variable_name = "runlpqp_sif_double"
+[[products]]
+binnames = ["runlqr_sif_single"]
+type = "exe"
+variable_name = "runlqr_sif_single"
+[[products]]
+binnames = ["runlqr_sif_double"]
+type = "exe"
+variable_name = "runlqr_sif_double"
+[[products]]
+binnames = ["runlqt_sif_single"]
+type = "exe"
+variable_name = "runlqt_sif_single"
+[[products]]
+binnames = ["runlqt_sif_double"]
+type = "exe"
+variable_name = "runlqt_sif_double"
+[[products]]
+binnames = ["runlsrt_sif_single"]
+type = "exe"
+variable_name = "runlsrt_sif_single"
+[[products]]
+binnames = ["runlsrt_sif_double"]
+type = "exe"
+variable_name = "runlsrt_sif_double"
+[[products]]
+binnames = ["runlstr_sif_single"]
+type = "exe"
+variable_name = "runlstr_sif_single"
+[[products]]
+binnames = ["runlstr_sif_double"]
+type = "exe"
+variable_name = "runlstr_sif_double"
+[[products]]
+binnames = ["runmiqr_sif_single"]
+type = "exe"
+variable_name = "runmiqr_sif_single"
+[[products]]
+binnames = ["runmiqr_sif_double"]
+type = "exe"
+variable_name = "runmiqr_sif_double"
+[[products]]
+binnames = ["runnls_sif_single"]
+type = "exe"
+variable_name = "runnls_sif_single"
+[[products]]
+binnames = ["runnls_sif_double"]
+type = "exe"
+variable_name = "runnls_sif_double"
+[[products]]
+binnames = ["runnodend_sif_single"]
+type = "exe"
+variable_name = "runnodend_sif_single"
+[[products]]
+binnames = ["runnodend_sif_double"]
+type = "exe"
+variable_name = "runnodend_sif_double"
+[[products]]
+binnames = ["runnrek_sif_single"]
+type = "exe"
+variable_name = "runnrek_sif_single"
+[[products]]
+binnames = ["runnrek_sif_double"]
+type = "exe"
+variable_name = "runnrek_sif_double"
+[[products]]
+binnames = ["runpresolve_sif_single"]
+type = "exe"
+variable_name = "runpresolve_sif_single"
+[[products]]
+binnames = ["runpresolve_sif_double"]
+type = "exe"
+variable_name = "runpresolve_sif_double"
+[[products]]
+binnames = ["runqp_qplib_single"]
+type = "exe"
+variable_name = "runqp_qplib_single"
+[[products]]
+binnames = ["runqp_qplib_double"]
+type = "exe"
+variable_name = "runqp_qplib_double"
+[[products]]
+binnames = ["runqp_sif_single"]
+type = "exe"
+variable_name = "runqp_sif_single"
+[[products]]
+binnames = ["runqp_sif_double"]
+type = "exe"
+variable_name = "runqp_sif_double"
+[[products]]
+binnames = ["runqpa_qplib_single"]
+type = "exe"
+variable_name = "runqpa_qplib_single"
+[[products]]
+binnames = ["runqpa_qplib_double"]
+type = "exe"
+variable_name = "runqpa_qplib_double"
+[[products]]
+binnames = ["runqpa_sif_single"]
+type = "exe"
+variable_name = "runqpa_sif_single"
+[[products]]
+binnames = ["runqpa_sif_double"]
+type = "exe"
+variable_name = "runqpa_sif_double"
+[[products]]
+binnames = ["runqpb_qplib_single"]
+type = "exe"
+variable_name = "runqpb_qplib_single"
+[[products]]
+binnames = ["runqpb_qplib_double"]
+type = "exe"
+variable_name = "runqpb_qplib_double"
+[[products]]
+binnames = ["runqpb_sif_single"]
+type = "exe"
+variable_name = "runqpb_sif_single"
+[[products]]
+binnames = ["runqpb_sif_double"]
+type = "exe"
+variable_name = "runqpb_sif_double"
+[[products]]
+binnames = ["runqpc_qplib_single"]
+type = "exe"
+variable_name = "runqpc_qplib_single"
+[[products]]
+binnames = ["runqpc_qplib_double"]
+type = "exe"
+variable_name = "runqpc_qplib_double"
+[[products]]
+binnames = ["runqpc_sif_single"]
+type = "exe"
+variable_name = "runqpc_sif_single"
+[[products]]
+binnames = ["runqpc_sif_double"]
+type = "exe"
+variable_name = "runqpc_sif_double"
+[[products]]
+binnames = ["runtrek_sif_single"]
+type = "exe"
+variable_name = "runtrek_sif_single"
+[[products]]
+binnames = ["runtrek_sif_double"]
+type = "exe"
+variable_name = "runtrek_sif_double"
+
+[[sources]]
+hash = "1b18769eb152d36fe360b277b3a7fa0920789ca7"
+type = "git"
+unpack_target = ""
+url = "https://github.com/ralna/GALAHAD.git"

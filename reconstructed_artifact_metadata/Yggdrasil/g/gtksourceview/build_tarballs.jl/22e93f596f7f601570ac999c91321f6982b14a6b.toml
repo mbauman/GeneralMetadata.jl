@@ -1,0 +1,13 @@
+dependencies = ["Glib_jll", "GTK3_jll", "FriBidi_jll"]
+name = "GtkSourceView"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "arm-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "arm-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/gtksourceview-*/\n\n# We need to run native `xmllint` and `glib-compile-resources`\napk add libxml2-utils glib-dev\n\n# Don't build broken tests\natomic_patch -p1 ../patches/meson_build_no_tests.patch\n\nmkdir build && cd build\nmeson .. \\\n    -Dgir=false \\\n    --cross-file=\"${MESON_TARGET_TOOLCHAIN}\"\nninja -j${nproc}\nninja install\n"""
+sources = [{"https://download.gnome.org/sources/gtksourceview/4.4/gtksourceview-4.4.0.tar.xz" = "9ddb914aef70a29a66acd93b4f762d5681202e44094d2d6370e51c9e389e689a"}, "./bundled"]
+version = "v4.4.0"
+
+[[products]]
+dir_paths = []
+dont_dlopen = false
+libnames = ["libgtksourceview-4"]
+type = "lib"
+variable_name = "libgtksourceview"

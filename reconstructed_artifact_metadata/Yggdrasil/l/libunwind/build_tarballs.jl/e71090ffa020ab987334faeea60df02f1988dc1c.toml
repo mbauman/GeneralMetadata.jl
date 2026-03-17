@@ -1,0 +1,13 @@
+dependencies = ["XZ_jll"]
+name = "LibUnwind"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "arm-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "arm-linux-musleabihf", "x86_64-unknown-freebsd11.1"]
+script = """cd $WORKSPACE/srcdir/libunwind*/\n\n# We need to massage configure script to convince it to build the shared library\n# for PowerPC.\nif [[ \"${target}\" == powerpc64le-* ]]; then\n    autoreconf -vi\nfi\n\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/libunwind-prefer-extbl.patch\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/libunwind-static-arm.patch\natomic_patch -p0 ${WORKSPACE}/srcdir/patches/libunwind-configure-ppc64le.patch\natomic_patch -p0 ${WORKSPACE}/srcdir/patches/libunwind-configure-static-lzma.patch\n\n./configure --prefix=$prefix --host=$target CFLAGS=\"${CFLAGS} -DPI -fPIC -I${prefix}/include\" --libdir=${prefix}/lib --enable-minidebuginfo --disable-tests\nmake -j${nproc}\nmake install\n\n# Shoe-horn liblzma.a into libunwind.a\nmkdir -p unpacked/{liblzma,libunwind}\n(cd unpacked/liblzma; ar -x ${prefix}/lib/liblzma.a)\n(cd unpacked/libunwind; ar -x ${prefix}/lib/libunwind.a)\nrm -f ${prefix}/lib/libunwind.a\nar -qc ${prefix}/lib/libunwind.a unpacked/**/*\n"""
+sources = [{"https://github.com/libunwind/libunwind/releases/download/v1.3.1/libunwind-1.3.1.tar.gz" = "43997a3939b6ccdf2f669b50fdb8a4d3205374728c2923ddc2354c65260214f8"}, "./bundled"]
+version = "v1.3.1"
+
+[[products]]
+dir_paths = []
+dont_dlopen = false
+libnames = ["libunwind"]
+type = "lib"
+variable_name = "libunwind"

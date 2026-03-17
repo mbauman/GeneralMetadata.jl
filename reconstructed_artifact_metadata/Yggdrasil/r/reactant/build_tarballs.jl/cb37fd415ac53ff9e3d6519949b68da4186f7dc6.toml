@@ -1,0 +1,187 @@
+augment_platform_block = """using Base.BinaryPlatforms\nusing Libdl\nconst Reactant_UUID = Base.UUID(\"0192cb87-2b54-54ad-80e0-3be72ad8a3c0\")\nconst preferences = Base.get_preferences(Reactant_UUID)\nBase.record_compiletime_preference(Reactant_UUID, \"mode\")\nBase.record_compiletime_preference(Reactant_UUID, \"gpu\")\n\nconst mode_preference = if haskey(preferences, \"mode\")\n    if isa(preferences[\"mode\"], String) && preferences[\"mode\"] in [\"opt\", \"dbg\"]\n        preferences[\"mode\"]\n    else\n        @error \"Mode preference is not valid; expected 'opt' or 'dbg', but got '$(preferences[\"debug\"])'\"\n        nothing\n    end\nelse\n    nothing\nend\n\nconst gpu_preference = if haskey(preferences, \"gpu\")\nif isa(preferences[\"gpu\"], String) && preferences[\"gpu\"] in [\"none\", \"cuda\", \"rocm\"]\n        preferences[\"gpu\"]\n    else\n        @error \"GPU preference is not valid; expected 'none', 'cuda' or 'rocm', but got '$(preferences[\"debug\"])'\"\n        nothing\n    end\nelse\n    nothing\nend\n\n# adapted from `cudaRuntimeGetVersion` in CUDA_Runtime_jll\nfunction cuDriverGetVersion(library_handle)\n    function_handle = Libdl.dlsym(library_handle, \"cuDriverGetVersion\"; throw_error=false)\n    if function_handle === nothing\n        @debug \"CUDA Driver library seems invalid (does not contain 'cuDriverGetVersion')\"\n        return nothing\n    end\n    version_ref = Ref{Cint}()\n    status = ccall(function_handle, Cint, (Ptr{Cint},), version_ref)\n    if status != 0\n        @debug \"Call to 'cuDriverGetVersion' failed with status $(status)\"\n        return nothing\n    end\n    major, ver = divrem(version_ref[], 1000)\n    minor, patch = divrem(ver, 10)\n    version = VersionNumber(major, minor, patch)\n    @debug \"Detected CUDA Driver version $(version)\"\n    return version\nend\n\nfunction augment_platform!(platform::Platform)\n\n    mode = get(ENV, \"REACTANT_MODE\", something(mode_preference, \"opt\"))\n    if !haskey(platform, \"mode\")\n        platform[\"mode\"] = mode\n    end\n\n    # \"none\" is for no gpu, but use \"nothing\" here to distinguish the case where the\n    # user explicitly asked for no GPU in the preferences.\n    gpu = something(gpu_preference, \"undecided\")\n\n    # Don't do GPU discovery on platforms for which we don't have GPU builds.\n    # Keep this in sync with list of platforms for which we actually build with GPU support.\n    if !(Sys.isapple(platform) || (Sys.islinux(platform) && arch(platform) == \"aarch64\"))\n\n        cuname = if Sys.iswindows()\n            Libdl.find_library(\"nvcuda\")\n        else\n            Libdl.find_library([\"libcuda.so.1\", \"libcuda.so\"])\n        end\n\n        # if we've found a system driver, put a dependency on it,\n        # so that we get recompiled if the driver changes.\n        if cuname != \"\" && gpu == \"undecided\"\n            handle = Libdl.dlopen(cuname)\n            cuda_version = cuDriverGetVersion(handle)\n            path = Libdl.dlpath(handle)\n            Libdl.dlclose(handle)\n\n            if cuda_version isa VersionNumber\n                min_cuda_version = v\"12.3\"\n                if cuda_version >= min_cuda_version\n                    @debug \"Adding include dependency on $path\"\n                    Base.include_dependency(path)\n                    gpu = \"cuda\"\n                else\n                    @debug \"CUDA version $(cuda_version) in $(path) not supported with this version of Reactant (min: $(min_cuda_version))\"\n                end\n            end\n        end\n\n        roname = \"\"\n        # if we've found a system driver, put a dependency on it,\n        # so that we get recompiled if the driver changes.\n        if roname != \"\" && gpu == \"undecided\"\n            handle = Libdl.dlopen(roname)\n            path = Libdl.dlpath(handle)\n            Libdl.dlclose(handle)\n\n            @debug \"Adding include dependency on $path\"\n            Base.include_dependency(path)\n            gpu = \"rocm\"\n        end\n\n    end\n\n    # If gpu option is still \"undecided\" (no preference expressed) at this point, then\n    # make it \"none\" (no GPU support).\n    if gpu == \"undecided\"\n        gpu = \"none\"\n    end\n\n    gpu = get(ENV, \"REACTANT_GPU\", gpu)\n    if !haskey(platform, \"gpu\")\n        platform[\"gpu\"] = gpu\n    end\n\n    return platform\nend\n"""
+init_block = ""
+julia_compat = "1.10"
+lazy_artifacts = true
+name = "Reactant"
+platforms = ["x86_64-linux-gnu-cxx03-gpu+none-mode+opt", "x86_64-linux-gnu-cxx11-gpu+none-mode+opt", "aarch64-linux-gnu-cxx03-gpu+none-mode+opt", "aarch64-linux-gnu-cxx11-gpu+none-mode+opt", "x86_64-apple-darwin-gpu+none-mode+opt", "aarch64-apple-darwin-gpu+none-mode+opt", "x86_64-apple-darwin-gpu+none-mode+dbg", "aarch64-apple-darwin-gpu+none-mode+dbg", "x86_64-linux-gnu-cxx03-gpu+cuda-mode+opt", "x86_64-linux-gnu-cxx11-gpu+cuda-mode+opt"]
+script = ["""export MODE=opt\n\ncd Reactant.jl/deps/ReactantExtra\n\necho Clang version: $(clang --version)\necho GCC version: $(gcc --version)\n\nif [[ \"${bb_full_target}\" == x86_64-apple-darwin* ]]; then\n    # LLVM requires macOS SDK 10.14.\n    pushd $WORKSPACE/srcdir/MacOSX10.*.sdk\n    rm -rf /opt/${target}/${target}/sys-root/System\n    cp -ra usr/* \"/opt/${target}/${target}/sys-root/usr/.\"\n    cp -ra System \"/opt/${target}/${target}/sys-root/.\"\n    popd\nfi\n\napk add openjdk11-jdk\nexport JAVA_HOME=$(readlink -f /usr/bin/java | sed \"s:bin/java::\")\n\nmkdir -p .local/bin\nexport LOCAL=\"`pwd`/.local/bin\"\nexport PATH=\"$LOCAL:$PATH\"\n\nexport BAZEL=$WORKSPACE/srcdir/bazel-dev\nchmod +x $BAZEL\n\nenv\n\nln -s `which ar` /usr/bin/ar\n\nmkdir .bazhome\nexport HOME=`pwd`/.bazhome\n\nmkdir .tmp\nexport TMPDIR=`pwd`/.tmp\nexport TMP=$TMPDIR\nexport TEMP=$TMPDIR\nexport BAZEL_CXXOPTS=\"-std=c++17\"\nBAZEL_FLAGS=()\nBAZEL_BUILD_FLAGS=(-c $MODE)\n\n# don't run out of temporary space\nBAZEL_FLAGS+=(--output_user_root=$WORKSPACE/bazel_root)\nBAZEL_FLAGS+=(--server_javabase=$JAVA_HOME)\n# BAZEL_FLAGS+=(--extra_toolchains=@local_jdk//:all)\n\nBAZEL_BUILD_FLAGS+=(--jobs ${nproc})\n\nBAZEL_BUILD_FLAGS+=(--verbose_failures)\nBAZEL_BUILD_FLAGS+=(--cxxopt=-std=c++17 --host_cxxopt=-std=c++17)\nBAZEL_BUILD_FLAGS+=(--cxxopt=-DTCP_USER_TIMEOUT=0)\nBAZEL_BUILD_FLAGS+=(--check_visibility=false)\nBAZEL_BUILD_FLAGS+=(--build_tag_filters=-jlrule)\nBAZEL_BUILD_FLAGS+=(--experimental_cc_shared_library)\n\n# Disable enabled-by-default TensorFlow features that we don't care about.\nBAZEL_BUILD_FLAGS+=(--define=no_aws_support=true)\nBAZEL_BUILD_FLAGS+=(--define=no_gcp_support=true)\nBAZEL_BUILD_FLAGS+=(--define=no_hdfs_support=true)\nBAZEL_BUILD_FLAGS+=(--define=no_kafka_support=true)\nBAZEL_BUILD_FLAGS+=(--define=no_ignite_support=true)\nBAZEL_BUILD_FLAGS+=(--define=grpc_no_ares=true)\n\nBAZEL_BUILD_FLAGS+=(--define=llvm_enable_zlib=false)\nBAZEL_BUILD_FLAGS+=(--verbose_failures)\n\nBAZEL_BUILD_FLAGS+=(--action_env=TMP=$TMPDIR --action_env=TEMP=$TMPDIR --action_env=TMPDIR=$TMPDIR --sandbox_tmpfs_path=$TMPDIR)\nBAZEL_BUILD_FLAGS+=(--host_cpu=k8)\nBAZEL_BUILD_FLAGS+=(--host_crosstool_top=@//:ygg_cross_compile_toolchain_suite)\n# BAZEL_BUILD_FLAGS+=(--extra_execution_platforms=@xla//tools/toolchains/cross_compile/config:linux_x86_64)\n\nif [[ \"${bb_full_target}\" == *darwin* ]]; then\n    BAZEL_BUILD_FLAGS+=(--define=gcc_linux_x86_32_1=false)\n    BAZEL_BUILD_FLAGS+=(--define=gcc_linux_x86_64_1=false)\n    BAZEL_BUILD_FLAGS+=(--define=gcc_linux_x86_64_2=false)\n    BAZEL_BUILD_FLAGS+=(--define=gcc_linux_aarch64=false)\n    BAZEL_BUILD_FLAGS+=(--define=gcc_linux_ppc64=false)\n    BAZEL_BUILD_FLAGS+=(--define=gcc_linux_s390x=false)\n    BAZEL_BUILD_FLAGS+=(--apple_platform_type=macos)\n    BAZEL_BUILD_FLAGS+=(--define=no_nccl_support=true)\n    BAZEL_BUILD_FLAGS+=(--define=build_with_mkl=false --define=enable_mkl=false --define=build_with_mkl_aarch64=false)\n    BAZEL_BUILD_FLAGS+=(--@xla//xla/tsl/framework/contraction:disable_onednn_contraction_kernel=True)\n\n    pushd $WORKSPACE/srcdir/llvm*\n\tmkdir build\n\tcd build\n\tcmake ../llvm -DLLVM_ENABLE_PROJECTS=\"lld\" -DCMAKE_BUILD_TYPE=Release -DCMAKE_CROSSCOMPILING=False -DLLVM_TARGETS_TO_BUILD=\"X86;AArch64\" -DCMAKE_TOOLCHAIN_FILE=${CMAKE_HOST_TOOLCHAIN} -GNinja -DCMAKE_EXE_LINKER_FLAGS=\"-static\"\n\tninja lld\n\texport LLD2=`pwd`/bin/ld64.lld\n\tpopd\n\n    if [[ \"${bb_full_target}\" == *86* ]]; then\n        BAZEL_BUILD_FLAGS+=(--platforms=@//:darwin_x86_64)\n        BAZEL_BUILD_FLAGS+=(--cpu=darwin)\n    else\n        BAZEL_BUILD_FLAGS+=(--platforms=@//:darwin_arm64)\n        sed -i '/gcc-install-dir/d'  \"/opt/bin/x86_64-linux-musl-cxx11/x86_64-linux-musl-clang\"\n        sed -i '/gcc-install-dir/d'  \"/opt/bin/x86_64-linux-musl-cxx11/x86_64-linux-musl-clang++\"\n        BAZEL_BUILD_FLAGS+=(--cpu=darwin_arm64)\n    fi\n    BAZEL_BUILD_FLAGS+=(--linkopt=-fuse-ld=lld)\n    BAZEL_BUILD_FLAGS+=(--linkopt=-twolevel_namespace)\n    # BAZEL_BUILD_FLAGS+=(--crosstool_top=@xla//tools/toolchains/cross_compile/cc:cross_compile_toolchain_suite)\n    BAZEL_BUILD_FLAGS+=(--define=clang_macos_x86_64=true)\n    BAZEL_BUILD_FLAGS+=(--define HAVE_LINK_H=0)\n    BAZEL_BUILD_FLAGS+=(--macos_minimum_os=10.14)\n    export MACOSX_DEPLOYMENT_TARGET=10.14\n    BAZEL_BUILD_FLAGS+=(--action_env=MACOSX_DEPLOYMENT_TARGET=10.14)\n    BAZEL_BUILD_FLAGS+=(--host_action_env=MACOSX_DEPLOYMENT_TARGET=10.14)\n    BAZEL_BUILD_FLAGS+=(--repo_env=MACOSX_DEPLOYMENT_TARGET=10.14)\n    BAZEL_BUILD_FLAGS+=(--test_env=MACOSX_DEPLOYMENT_TARGET=10.14)\n    BAZEL_BUILD_FLAGS+=(--incompatible_remove_legacy_whole_archive)\n    BAZEL_BUILD_FLAGS+=(--nolegacy_whole_archive)\nfi\n\n\nif [[ \"${bb_full_target}\" == *linux* ]]; then\n    sed -i \"s/getopts \\\"/getopts \\\"p/g\" /sbin/ldconfig\n    mkdir -p .local/bin\n    echo \"#!/bin/sh\" > .local/bin/ldconfig\n    echo \"\" >> .local/bin/ldconfig\n    chmod +x .local/bin/ldconfig\n    export PATH=\"`pwd`/.local/bin:$PATH\"\n    BAZEL_BUILD_FLAGS+=(--copt=-Wno-error=cpp)\n\n    if [[ \"${bb_full_target}\" == *86* ]]; then\n        BAZEL_BUILD_FLAGS+=(--platforms=@//:linux_x86_64)\n    else\n        BAZEL_BUILD_FLAGS+=(--crosstool_top=@//:ygg_cross_compile_toolchain_suite)\n        BAZEL_BUILD_FLAGS+=(--platforms=@//:linux_aarch64)\n        BAZEL_BUILD_FLAGS+=(--cpu=aarch64)\n        BAZEL_BUILD_FLAGS+=(--@xla//xla/tsl/framework/contraction:disable_onednn_contraction_kernel=True)\n    fi\nfi\n\nif [[ \"${bb_full_target}\" == *aarch64* ]]; then\n    BAZEL_BUILD_FLAGS+=(--copt=-D__ARM_FEATURE_AES=1)\n    BAZEL_BUILD_FLAGS+=(--copt=-D__ARM_NEON=1)\n    BAZEL_BUILD_FLAGS+=(--copt=-D__ARM_FEATURE_SHA2=1)\n    BAZEL_BUILD_FLAGS+=(--copt=-DDNNL_ARCH_GENERIC=1)\n    BAZEL_BUILD_FLAGS+=(--define=@xla//build_with_mkl_aarch64=true)\nfi\n\nif [[ \"${bb_full_target}\" == *cuda* ]]; then\n    BAZEL_BUILD_FLAGS+=(--config=cuda)\nfi\n\nif [[ \"${bb_full_target}\" == *rocm* ]]; then\n    BAZEL_BUILD_FLAGS+=(--config=rocm)\nfi\n\nif [[ \"${bb_full_target}\" == *freebsd* ]]; then\n    BAZEL_BUILD_FLAGS+=(--define=gcc_linux_x86_32_1=false)\n    BAZEL_BUILD_FLAGS+=(--define=gcc_linux_x86_64_1=false)\n    BAZEL_BUILD_FLAGS+=(--define=gcc_linux_x86_64_2=false)\n    BAZEL_BUILD_FLAGS+=(--define=gcc_linux_aarch64=false)\n    BAZEL_BUILD_FLAGS+=(--define=gcc_linux_ppc64=false)\n    BAZEL_BUILD_FLAGS+=(--define=gcc_linux_s390x=false)\n    BAZEL_BUILD_FLAGS+=(--define=freebsd=true)\n    BAZEL_BUILD_FLAGS+=(--cpu=freebsd)\nfi\n\nif [[ \"${bb_full_target}\" == *i686* ]]; then\n    BAZEL_BUILD_FLAGS+=(--define=build_with_mkl=false --define=enable_mkl=false)\nfi\n\nsed -i \"s/BB_TARGET/${bb_target}/g\" BUILD\nsed -i \"s/BB_FULL_TARGET/${bb_full_target}/g\" BUILD\n\nexport HERMETIC_PYTHON_VERSION=3.12\n\n$BAZEL ${BAZEL_FLAGS[@]} build ${BAZEL_BUILD_FLAGS[@]}\nsed -i \"s/^cc_library(/cc_library(linkstatic=True,/g\" /workspace/bazel_root/*/external/llvm-raw/utils/bazel/llvm-project-overlay/mlir/BUILD.bazel\nsed -i \"s/name = \\\"protoc\\\"/name = \\\"protoc\\\", features=[\\\"fully_static_link\\\"]/g\" /workspace/bazel_root/*/external/com_google_protobuf/BUILD.bazel\nif [[ \"${bb_full_target}\" == *darwin* ]]; then\n    $BAZEL ${BAZEL_FLAGS[@]} build ${BAZEL_BUILD_FLAGS[@]} :libReactantExtra.so || echo stage1\n    if [[ \"${bb_full_target}\" == *86* ]]; then\n        echo \"x86\"\n\n        sed -i.bak1 \"s/\\\"k8|/\\\"darwin\\\": \\\":cc-compiler-k8\\\", \\\"k8|/g\" /workspace/bazel_root/*/external/local_config_cc/BUILD\n        sed -i.bak1 \"s/cpu = \\\"k8\\\"/cpu = \\\"darwin\\\"/g\" /workspace/bazel_root/*/external/local_config_cc/BUILD\n        cat /workspace/bazel_root/*/external/local_config_cc/BUILD\n        $BAZEL ${BAZEL_FLAGS[@]} build ${BAZEL_BUILD_FLAGS[@]} :libReactantExtra.so || echo stage2\n\n    else\n        sed -i.bak1 \"s/\\\"k8|/\\\"darwin_arm64\\\": \\\":cc-compiler-k8\\\", \\\"k8|/g\" /workspace/bazel_root/*/external/local_config_cc/BUILD\n        sed -i.bak1 \"s/cpu = \\\"k8\\\"/cpu = \\\"darwin_arm64\\\"/g\" /workspace/bazel_root/*/external/local_config_cc/BUILD\n        cat /workspace/bazel_root/*/external/local_config_cc/BUILD\n        $BAZEL ${BAZEL_FLAGS[@]} build ${BAZEL_BUILD_FLAGS[@]} :libReactantExtra.so || echo stage2\n    fi\n\tsed -i.bak1 \"/whole-archive/d\" bazel-bin/libReactantExtra.so-2.params\n\tsed -i.bak1 \"/lrt/d\" bazel-bin/libReactantExtra.so-2.params\n    sed -i.bak0 \"/lld/d\" bazel-bin/libReactantExtra.so-2.params\n\techo \"-fuse-ld=lld\" >> bazel-bin/libReactantExtra.so-2.params\n\techo \"--ld-path=$LLD2\" >> bazel-bin/libReactantExtra.so-2.params\n\tcat bazel-bin/libReactantExtra.so-2.params\n    cc @bazel-bin/libReactantExtra.so-2.params\nelse\n    $BAZEL ${BAZEL_FLAGS[@]} build --repo_env=CC ${BAZEL_BUILD_FLAGS[@]} :libReactantExtra.so\nfi\nrm -f bazel-bin/libReactantExtraLib*\nrm -f bazel-bin/libReactant*params\nmkdir -p ${libdir}\n\nif [[ \"${bb_full_target}\" == *cuda* ]]; then\n    rm -rf bazel-bin/_solib_local/*stub*/*so*\n    cp -v bazel-bin/_solib_local/*/*so* ${libdir}\n    mkdir -p ${libdir}/cuda/nvvm/libdevice\n    mkdir -p ${libdir}/cuda/bin\n    cp -v bazel-bin/libReactantExtra.so.runfiles/cuda_nvcc/nvvm/libdevice/libdevice.10.bc ${libdir}/cuda/nvvm/libdevice\n    cp -v bazel-bin/libReactantExtra.so.runfiles/cuda_nvcc/bin/ptxas ${libdir}/cuda/bin\n    cp -v bazel-bin/libReactantExtra.so.runfiles/cuda_nvcc/bin/fatbinary ${libdir}/cuda/bin\nfi\n\ncp -v bazel-bin/libReactantExtra.so ${libdir}\nif [[ \"${bb_full_target}\" == *darwin* ]]; then\n    mv ${libdir}/libReactantExtra.so ${libdir}/libReactantExtra.dylib\nfi\nif [[ \"${bb_full_target}\" == *mingw* ]]; then\n    mv ${libdir}/libReactantExtra.so ${libdir}/libReactantExtra.dll\nfi\ncd ../..\ninstall_license LICENSE\n""", """export MODE=dbg\n\ncd Reactant.jl/deps/ReactantExtra\n\necho Clang version: $(clang --version)\necho GCC version: $(gcc --version)\n\nif [[ \"${bb_full_target}\" == x86_64-apple-darwin* ]]; then\n    # LLVM requires macOS SDK 10.14.\n    pushd $WORKSPACE/srcdir/MacOSX10.*.sdk\n    rm -rf /opt/${target}/${target}/sys-root/System\n    cp -ra usr/* \"/opt/${target}/${target}/sys-root/usr/.\"\n    cp -ra System \"/opt/${target}/${target}/sys-root/.\"\n    popd\nfi\n\napk add openjdk11-jdk\nexport JAVA_HOME=$(readlink -f /usr/bin/java | sed \"s:bin/java::\")\n\nmkdir -p .local/bin\nexport LOCAL=\"`pwd`/.local/bin\"\nexport PATH=\"$LOCAL:$PATH\"\n\nexport BAZEL=$WORKSPACE/srcdir/bazel-dev\nchmod +x $BAZEL\n\nenv\n\nln -s `which ar` /usr/bin/ar\n\nmkdir .bazhome\nexport HOME=`pwd`/.bazhome\n\nmkdir .tmp\nexport TMPDIR=`pwd`/.tmp\nexport TMP=$TMPDIR\nexport TEMP=$TMPDIR\nexport BAZEL_CXXOPTS=\"-std=c++17\"\nBAZEL_FLAGS=()\nBAZEL_BUILD_FLAGS=(-c $MODE)\n\n# don't run out of temporary space\nBAZEL_FLAGS+=(--output_user_root=$WORKSPACE/bazel_root)\nBAZEL_FLAGS+=(--server_javabase=$JAVA_HOME)\n# BAZEL_FLAGS+=(--extra_toolchains=@local_jdk//:all)\n\nBAZEL_BUILD_FLAGS+=(--jobs ${nproc})\n\nBAZEL_BUILD_FLAGS+=(--verbose_failures)\nBAZEL_BUILD_FLAGS+=(--cxxopt=-std=c++17 --host_cxxopt=-std=c++17)\nBAZEL_BUILD_FLAGS+=(--cxxopt=-DTCP_USER_TIMEOUT=0)\nBAZEL_BUILD_FLAGS+=(--check_visibility=false)\nBAZEL_BUILD_FLAGS+=(--build_tag_filters=-jlrule)\nBAZEL_BUILD_FLAGS+=(--experimental_cc_shared_library)\n\n# Disable enabled-by-default TensorFlow features that we don't care about.\nBAZEL_BUILD_FLAGS+=(--define=no_aws_support=true)\nBAZEL_BUILD_FLAGS+=(--define=no_gcp_support=true)\nBAZEL_BUILD_FLAGS+=(--define=no_hdfs_support=true)\nBAZEL_BUILD_FLAGS+=(--define=no_kafka_support=true)\nBAZEL_BUILD_FLAGS+=(--define=no_ignite_support=true)\nBAZEL_BUILD_FLAGS+=(--define=grpc_no_ares=true)\n\nBAZEL_BUILD_FLAGS+=(--define=llvm_enable_zlib=false)\nBAZEL_BUILD_FLAGS+=(--verbose_failures)\n\nBAZEL_BUILD_FLAGS+=(--action_env=TMP=$TMPDIR --action_env=TEMP=$TMPDIR --action_env=TMPDIR=$TMPDIR --sandbox_tmpfs_path=$TMPDIR)\nBAZEL_BUILD_FLAGS+=(--host_cpu=k8)\nBAZEL_BUILD_FLAGS+=(--host_crosstool_top=@//:ygg_cross_compile_toolchain_suite)\n# BAZEL_BUILD_FLAGS+=(--extra_execution_platforms=@xla//tools/toolchains/cross_compile/config:linux_x86_64)\n\nif [[ \"${bb_full_target}\" == *darwin* ]]; then\n    BAZEL_BUILD_FLAGS+=(--define=gcc_linux_x86_32_1=false)\n    BAZEL_BUILD_FLAGS+=(--define=gcc_linux_x86_64_1=false)\n    BAZEL_BUILD_FLAGS+=(--define=gcc_linux_x86_64_2=false)\n    BAZEL_BUILD_FLAGS+=(--define=gcc_linux_aarch64=false)\n    BAZEL_BUILD_FLAGS+=(--define=gcc_linux_ppc64=false)\n    BAZEL_BUILD_FLAGS+=(--define=gcc_linux_s390x=false)\n    BAZEL_BUILD_FLAGS+=(--apple_platform_type=macos)\n    BAZEL_BUILD_FLAGS+=(--define=no_nccl_support=true)\n    BAZEL_BUILD_FLAGS+=(--define=build_with_mkl=false --define=enable_mkl=false --define=build_with_mkl_aarch64=false)\n    BAZEL_BUILD_FLAGS+=(--@xla//xla/tsl/framework/contraction:disable_onednn_contraction_kernel=True)\n\n    pushd $WORKSPACE/srcdir/llvm*\n\tmkdir build\n\tcd build\n\tcmake ../llvm -DLLVM_ENABLE_PROJECTS=\"lld\" -DCMAKE_BUILD_TYPE=Release -DCMAKE_CROSSCOMPILING=False -DLLVM_TARGETS_TO_BUILD=\"X86;AArch64\" -DCMAKE_TOOLCHAIN_FILE=${CMAKE_HOST_TOOLCHAIN} -GNinja -DCMAKE_EXE_LINKER_FLAGS=\"-static\"\n\tninja lld\n\texport LLD2=`pwd`/bin/ld64.lld\n\tpopd\n\n    if [[ \"${bb_full_target}\" == *86* ]]; then\n        BAZEL_BUILD_FLAGS+=(--platforms=@//:darwin_x86_64)\n        BAZEL_BUILD_FLAGS+=(--cpu=darwin)\n    else\n        BAZEL_BUILD_FLAGS+=(--platforms=@//:darwin_arm64)\n        sed -i '/gcc-install-dir/d'  \"/opt/bin/x86_64-linux-musl-cxx11/x86_64-linux-musl-clang\"\n        sed -i '/gcc-install-dir/d'  \"/opt/bin/x86_64-linux-musl-cxx11/x86_64-linux-musl-clang++\"\n        BAZEL_BUILD_FLAGS+=(--cpu=darwin_arm64)\n    fi\n    BAZEL_BUILD_FLAGS+=(--linkopt=-fuse-ld=lld)\n    BAZEL_BUILD_FLAGS+=(--linkopt=-twolevel_namespace)\n    # BAZEL_BUILD_FLAGS+=(--crosstool_top=@xla//tools/toolchains/cross_compile/cc:cross_compile_toolchain_suite)\n    BAZEL_BUILD_FLAGS+=(--define=clang_macos_x86_64=true)\n    BAZEL_BUILD_FLAGS+=(--define HAVE_LINK_H=0)\n    BAZEL_BUILD_FLAGS+=(--macos_minimum_os=10.14)\n    export MACOSX_DEPLOYMENT_TARGET=10.14\n    BAZEL_BUILD_FLAGS+=(--action_env=MACOSX_DEPLOYMENT_TARGET=10.14)\n    BAZEL_BUILD_FLAGS+=(--host_action_env=MACOSX_DEPLOYMENT_TARGET=10.14)\n    BAZEL_BUILD_FLAGS+=(--repo_env=MACOSX_DEPLOYMENT_TARGET=10.14)\n    BAZEL_BUILD_FLAGS+=(--test_env=MACOSX_DEPLOYMENT_TARGET=10.14)\n    BAZEL_BUILD_FLAGS+=(--incompatible_remove_legacy_whole_archive)\n    BAZEL_BUILD_FLAGS+=(--nolegacy_whole_archive)\nfi\n\n\nif [[ \"${bb_full_target}\" == *linux* ]]; then\n    sed -i \"s/getopts \\\"/getopts \\\"p/g\" /sbin/ldconfig\n    mkdir -p .local/bin\n    echo \"#!/bin/sh\" > .local/bin/ldconfig\n    echo \"\" >> .local/bin/ldconfig\n    chmod +x .local/bin/ldconfig\n    export PATH=\"`pwd`/.local/bin:$PATH\"\n    BAZEL_BUILD_FLAGS+=(--copt=-Wno-error=cpp)\n\n    if [[ \"${bb_full_target}\" == *86* ]]; then\n        BAZEL_BUILD_FLAGS+=(--platforms=@//:linux_x86_64)\n    else\n        BAZEL_BUILD_FLAGS+=(--crosstool_top=@//:ygg_cross_compile_toolchain_suite)\n        BAZEL_BUILD_FLAGS+=(--platforms=@//:linux_aarch64)\n        BAZEL_BUILD_FLAGS+=(--cpu=aarch64)\n        BAZEL_BUILD_FLAGS+=(--@xla//xla/tsl/framework/contraction:disable_onednn_contraction_kernel=True)\n    fi\nfi\n\nif [[ \"${bb_full_target}\" == *aarch64* ]]; then\n    BAZEL_BUILD_FLAGS+=(--copt=-D__ARM_FEATURE_AES=1)\n    BAZEL_BUILD_FLAGS+=(--copt=-D__ARM_NEON=1)\n    BAZEL_BUILD_FLAGS+=(--copt=-D__ARM_FEATURE_SHA2=1)\n    BAZEL_BUILD_FLAGS+=(--copt=-DDNNL_ARCH_GENERIC=1)\n    BAZEL_BUILD_FLAGS+=(--define=@xla//build_with_mkl_aarch64=true)\nfi\n\nif [[ \"${bb_full_target}\" == *cuda* ]]; then\n    BAZEL_BUILD_FLAGS+=(--config=cuda)\nfi\n\nif [[ \"${bb_full_target}\" == *rocm* ]]; then\n    BAZEL_BUILD_FLAGS+=(--config=rocm)\nfi\n\nif [[ \"${bb_full_target}\" == *freebsd* ]]; then\n    BAZEL_BUILD_FLAGS+=(--define=gcc_linux_x86_32_1=false)\n    BAZEL_BUILD_FLAGS+=(--define=gcc_linux_x86_64_1=false)\n    BAZEL_BUILD_FLAGS+=(--define=gcc_linux_x86_64_2=false)\n    BAZEL_BUILD_FLAGS+=(--define=gcc_linux_aarch64=false)\n    BAZEL_BUILD_FLAGS+=(--define=gcc_linux_ppc64=false)\n    BAZEL_BUILD_FLAGS+=(--define=gcc_linux_s390x=false)\n    BAZEL_BUILD_FLAGS+=(--define=freebsd=true)\n    BAZEL_BUILD_FLAGS+=(--cpu=freebsd)\nfi\n\nif [[ \"${bb_full_target}\" == *i686* ]]; then\n    BAZEL_BUILD_FLAGS+=(--define=build_with_mkl=false --define=enable_mkl=false)\nfi\n\nsed -i \"s/BB_TARGET/${bb_target}/g\" BUILD\nsed -i \"s/BB_FULL_TARGET/${bb_full_target}/g\" BUILD\n\nexport HERMETIC_PYTHON_VERSION=3.12\n\n$BAZEL ${BAZEL_FLAGS[@]} build ${BAZEL_BUILD_FLAGS[@]}\nsed -i \"s/^cc_library(/cc_library(linkstatic=True,/g\" /workspace/bazel_root/*/external/llvm-raw/utils/bazel/llvm-project-overlay/mlir/BUILD.bazel\nsed -i \"s/name = \\\"protoc\\\"/name = \\\"protoc\\\", features=[\\\"fully_static_link\\\"]/g\" /workspace/bazel_root/*/external/com_google_protobuf/BUILD.bazel\nif [[ \"${bb_full_target}\" == *darwin* ]]; then\n    $BAZEL ${BAZEL_FLAGS[@]} build ${BAZEL_BUILD_FLAGS[@]} :libReactantExtra.so || echo stage1\n    if [[ \"${bb_full_target}\" == *86* ]]; then\n        echo \"x86\"\n\n        sed -i.bak1 \"s/\\\"k8|/\\\"darwin\\\": \\\":cc-compiler-k8\\\", \\\"k8|/g\" /workspace/bazel_root/*/external/local_config_cc/BUILD\n        sed -i.bak1 \"s/cpu = \\\"k8\\\"/cpu = \\\"darwin\\\"/g\" /workspace/bazel_root/*/external/local_config_cc/BUILD\n        cat /workspace/bazel_root/*/external/local_config_cc/BUILD\n        $BAZEL ${BAZEL_FLAGS[@]} build ${BAZEL_BUILD_FLAGS[@]} :libReactantExtra.so || echo stage2\n\n    else\n        sed -i.bak1 \"s/\\\"k8|/\\\"darwin_arm64\\\": \\\":cc-compiler-k8\\\", \\\"k8|/g\" /workspace/bazel_root/*/external/local_config_cc/BUILD\n        sed -i.bak1 \"s/cpu = \\\"k8\\\"/cpu = \\\"darwin_arm64\\\"/g\" /workspace/bazel_root/*/external/local_config_cc/BUILD\n        cat /workspace/bazel_root/*/external/local_config_cc/BUILD\n        $BAZEL ${BAZEL_FLAGS[@]} build ${BAZEL_BUILD_FLAGS[@]} :libReactantExtra.so || echo stage2\n    fi\n\tsed -i.bak1 \"/whole-archive/d\" bazel-bin/libReactantExtra.so-2.params\n\tsed -i.bak1 \"/lrt/d\" bazel-bin/libReactantExtra.so-2.params\n    sed -i.bak0 \"/lld/d\" bazel-bin/libReactantExtra.so-2.params\n\techo \"-fuse-ld=lld\" >> bazel-bin/libReactantExtra.so-2.params\n\techo \"--ld-path=$LLD2\" >> bazel-bin/libReactantExtra.so-2.params\n\tcat bazel-bin/libReactantExtra.so-2.params\n    cc @bazel-bin/libReactantExtra.so-2.params\nelse\n    $BAZEL ${BAZEL_FLAGS[@]} build --repo_env=CC ${BAZEL_BUILD_FLAGS[@]} :libReactantExtra.so\nfi\nrm -f bazel-bin/libReactantExtraLib*\nrm -f bazel-bin/libReactant*params\nmkdir -p ${libdir}\n\nif [[ \"${bb_full_target}\" == *cuda* ]]; then\n    rm -rf bazel-bin/_solib_local/*stub*/*so*\n    cp -v bazel-bin/_solib_local/*/*so* ${libdir}\n    mkdir -p ${libdir}/cuda/nvvm/libdevice\n    mkdir -p ${libdir}/cuda/bin\n    cp -v bazel-bin/libReactantExtra.so.runfiles/cuda_nvcc/nvvm/libdevice/libdevice.10.bc ${libdir}/cuda/nvvm/libdevice\n    cp -v bazel-bin/libReactantExtra.so.runfiles/cuda_nvcc/bin/ptxas ${libdir}/cuda/bin\n    cp -v bazel-bin/libReactantExtra.so.runfiles/cuda_nvcc/bin/fatbinary ${libdir}/cuda/bin\nfi\n\ncp -v bazel-bin/libReactantExtra.so ${libdir}\nif [[ \"${bb_full_target}\" == *darwin* ]]; then\n    mv ${libdir}/libReactantExtra.so ${libdir}/libReactantExtra.dylib\nfi\nif [[ \"${bb_full_target}\" == *mingw* ]]; then\n    mv ${libdir}/libReactantExtra.so ${libdir}/libReactantExtra.dll\nfi\ncd ../..\ninstall_license LICENSE\n"""]
+version = "v0.0.43"
+
+[[dependencies]]
+compat = ""
+name = "CUDA_Driver_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libReactantExtra", "libReactantExtra"]
+type = "lib"
+variable_name = "libReactantExtra"
+[[products]]
+dir_paths = []
+dlopen_flags = ["RTLD_LOCAL"]
+dont_dlopen = true
+libnames = ["libnccl", "libnccl"]
+type = "lib"
+variable_name = "libnccl"
+[[products]]
+dir_paths = []
+dlopen_flags = ["RTLD_LOCAL"]
+dont_dlopen = true
+libnames = ["libcufft", "libcufft"]
+type = "lib"
+variable_name = "libcufft"
+[[products]]
+dir_paths = []
+dlopen_flags = ["RTLD_LOCAL"]
+dont_dlopen = true
+libnames = ["libcudnn_engines_precompiled", "libcudnn_engines_precompiled"]
+type = "lib"
+variable_name = "libcudnn_engines_precompiled"
+[[products]]
+dir_paths = []
+dlopen_flags = ["RTLD_LOCAL"]
+dont_dlopen = true
+libnames = ["libcudart", "libcudart"]
+type = "lib"
+variable_name = "libcudart"
+[[products]]
+dir_paths = []
+dlopen_flags = ["RTLD_LOCAL"]
+dont_dlopen = true
+libnames = ["libcublasLt", "libcublasLt"]
+type = "lib"
+variable_name = "libcublasLt"
+[[products]]
+dir_paths = []
+dlopen_flags = ["RTLD_LOCAL"]
+dont_dlopen = true
+libnames = ["libcudnn_heuristic", "libcudnn_heuristic"]
+type = "lib"
+variable_name = "libcudnn_heuristic"
+[[products]]
+dir_paths = []
+dlopen_flags = ["RTLD_LOCAL"]
+dont_dlopen = true
+libnames = ["libcudnn_cnn", "libcudnn_cnn"]
+type = "lib"
+variable_name = "libcudnn_cnn"
+[[products]]
+dir_paths = []
+dlopen_flags = ["RTLD_LOCAL"]
+dont_dlopen = true
+libnames = ["libnvrtc", "libnvrtc"]
+type = "lib"
+variable_name = "libnvrtc"
+[[products]]
+dir_paths = []
+dlopen_flags = ["RTLD_LOCAL"]
+dont_dlopen = true
+libnames = ["libcudnn_adv", "libcudnn_adv"]
+type = "lib"
+variable_name = "libcudnn_adv"
+[[products]]
+dir_paths = []
+dlopen_flags = ["RTLD_LOCAL"]
+dont_dlopen = true
+libnames = ["libcudnn", "libcudnn"]
+type = "lib"
+variable_name = "libcudnn"
+[[products]]
+dir_paths = []
+dlopen_flags = ["RTLD_LOCAL"]
+dont_dlopen = true
+libnames = ["libnvJitLink", "libnvJitLink"]
+type = "lib"
+variable_name = "libnvJitLink"
+[[products]]
+dir_paths = []
+dlopen_flags = ["RTLD_LOCAL"]
+dont_dlopen = true
+libnames = ["libcublas", "libcublas"]
+type = "lib"
+variable_name = "libcublas"
+[[products]]
+dir_paths = []
+dlopen_flags = ["RTLD_LOCAL"]
+dont_dlopen = true
+libnames = ["libcudnn_ops", "libcudnn_ops"]
+type = "lib"
+variable_name = "libcudnn_ops"
+[[products]]
+dir_paths = []
+dlopen_flags = ["RTLD_LOCAL"]
+dont_dlopen = true
+libnames = ["libnvrtc-builtins", "libnvrtc-builtins"]
+type = "lib"
+variable_name = "libnvrtc_builtins"
+[[products]]
+dir_paths = []
+dlopen_flags = ["RTLD_LOCAL"]
+dont_dlopen = true
+libnames = ["libcudnn_graph", "libcudnn_graph"]
+type = "lib"
+variable_name = "libcudnn_graph"
+[[products]]
+dir_paths = []
+dlopen_flags = ["RTLD_LOCAL"]
+dont_dlopen = true
+libnames = ["libcusolver", "libcusolver"]
+type = "lib"
+variable_name = "libcusolver"
+[[products]]
+dir_paths = []
+dlopen_flags = ["RTLD_LOCAL"]
+dont_dlopen = true
+libnames = ["libcudnn_engines_runtime_compiled", "libcudnn_engines_runtime_compiled"]
+type = "lib"
+variable_name = "libcudnn_engines_runtime_compiled"
+[[products]]
+dir_paths = []
+dlopen_flags = ["RTLD_LOCAL"]
+dont_dlopen = true
+libnames = ["libcusparse", "libcusparse"]
+type = "lib"
+variable_name = "libcusparse"
+[[products]]
+binnames = ["ptxas"]
+dir_path = "lib/cuda/bin"
+type = "exe"
+variable_name = "ptxas"
+[[products]]
+binnames = ["fatbinary"]
+dir_path = "lib/cuda/bin"
+type = "exe"
+variable_name = "fatbinary"
+[[products]]
+paths = ["lib/cuda/nvvm/libdevice/libdevice.10.bc"]
+type = "file"
+variable_name = "libdevice"
+
+[[sources]]
+hash = "036cb752b47976018d3ed87a142b136ec3e6836e"
+type = "git"
+unpack_target = ""
+url = "https://github.com/EnzymeAD/Reactant.jl.git"
+[[sources]]
+filename = "bazel-dev"
+hash = "8b43ffdf519848d89d1c0574d38339dcb326b0a1f4015fceaa43d25107c3aade"
+type = "file"
+url = "https://github.com/wsmoses/binaries/releases/download/v0.0.1/bazel-dev"
+[[sources]]
+hash = "0f03869f72df8705b832910517b47dd5b79eb4e160512602f593ed243b28715f"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.14.sdk.tar.xz"
+[[sources]]
+hash = "2c01b2fbb06819a12a92056a7fd4edcdc385837942b5e5260b9c2c0baff5116b"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/llvm/llvm-project/releases/download/llvmorg-18.1.4/llvm-project-18.1.4.src.tar.xz"

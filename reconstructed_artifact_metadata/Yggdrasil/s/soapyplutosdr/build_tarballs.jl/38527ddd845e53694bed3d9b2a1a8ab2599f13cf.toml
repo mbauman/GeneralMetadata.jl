@@ -1,0 +1,43 @@
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "SoapyPlutoSDR"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11", "aarch64-apple-darwin", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11"]
+script = """cd SoapyPlutoSDR\n\nmkdir build && cd build\nif [[ \"${target}\" != *-apple-* ]]; then\n    cmake -DCMAKE_INSTALL_PREFIX=${prefix} \\\n        -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n        -DCMAKE_BUILD_TYPE=Release \\\n        ..\n    make -j${nproc}\n    make install\nfi\nif [[ \"${target}\" == *-apple-* ]]; then\n    cmake -DCMAKE_INSTALL_PREFIX=${prefix} \\\n        -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n        -DCMAKE_BUILD_TYPE=Release \\\n        -DLibIIO_INCLUDE_DIR=${libdir}/iio.framework/Versions/0.23/Headers/ \\\n        -DLibIIO_LIBRARY=${libdir}/iio.framework/Versions/0.23/iio \\\n        -DLibAD9361_INCLUDE_DIR=${libdir}/ad9361.framework/Versions/0.2/Headers/ \\\n        -DLibAD9361_LIBRARY=${libdir}/ad9361.framework/Versions/0.2/ad9361 \\\n        ..\n    make -j${nproc}\n    make install\n    mv ${libdir}/SoapySDR/modules0.8/libPlutoSDRSupport.so  ${libdir}/SoapySDR/modules0.8/libPlutoSDRSupport.dylib\nfi\n"""
+version = "v0.2.1"
+
+[[dependencies]]
+compat = "~0.23.0"
+name = "libiio_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "~0.8.0"
+name = "soapysdr_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "~0.2.0"
+name = "libad9361_iio_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = ["lib/SoapySDR/modules0.8/"]
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libPlutoSDRSupport"]
+type = "lib"
+variable_name = "libPlutoSDRSupport"
+
+[[sources]]
+hash = "ac9a9da5c14c73e752796618d56e259ca1ac6b11"
+type = "git"
+unpack_target = ""
+url = "https://github.com/pothosware/SoapyPlutoSDR.git"

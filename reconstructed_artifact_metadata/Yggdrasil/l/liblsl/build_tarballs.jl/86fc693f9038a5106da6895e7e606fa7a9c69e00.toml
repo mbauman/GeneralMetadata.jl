@@ -1,0 +1,28 @@
+dependencies = []
+lazy_artifacts = false
+name = "liblsl"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin14-cxx03", "x86_64-apple-darwin14-cxx11", "x86_64-unknown-freebsd11.1-cxx03", "x86_64-unknown-freebsd11.1-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir\ncd liblsl-1.13.0\n\n# Add license file\ninstall_license LICENSE\n\n# Link against real time and correct C->C++ library paths on linux\nif [[ ${target} == x86_64-linux-* || ${target} == aarch64-linux-* || ${target} == powerpc64le-linux-* ]]; then\n    export CXXFLAGS=\"-lrt\"\n    export CFLAGS=\"-lrt -Wl,-rpath-link,/opt/${target}/${target}/lib64\"\nfi\n\nif [[ ${target} == i686-linux-* || ${target} == arm-linux-* ]]; then\n    export CXXFLAGS=\"-lrt\"\n    export CFLAGS=\"-lrt -Wl,-rpath-link,/opt/${target}/${target}/lib\"\nfi\n\n# Enable C++ 2011 support and patch for MinGW\nif [[ ${target} == *-w64-* ]]; then\n    atomic_patch -p1 $WORKSPACE/srcdir/liblsl_mingw.diff\n    # Line endings are confused on the test internal CMakeLists, fix them before patch\n    dos2unix testing/CMakeLists.txt\n    atomic_patch -p1 $WORKSPACE/srcdir/lsl_test_internal_mingw.diff\n    export CXXFLAGS=\"-std=c++11\"\nfi\n\nmkdir build\ncd build\n\ncmake -DCMAKE_INSTALL_PREFIX=$prefix -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} -DCMAKE_BUILD_TYPE=Release -DLSL_UNIXFOLDERS=1 -DLSL_NO_FANCY_LIBNAME=1 -DLSL_UNITTESTS=1 ../\nmake -j${nproc}\n\n# We can't run unit-tests as we are cross-compiling\n#./lslver\n#./testing/lsl_test_internal \n#./testing/lsl_test_exported \n\nmake install\n"""
+version = "v1.13.0"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["liblsl"]
+type = "lib"
+variable_name = "liblsl"
+[[products]]
+binnames = ["lslver"]
+type = "exe"
+variable_name = "lslver"
+
+[[sources]]
+hash = "5b304a5365eba33852da96badfbd9d66556caf4a00c87947a59df2942680a617"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/sccn/liblsl/archive/1.13.0.tar.gz"
+[[sources]]
+path = "./bundled/patches"
+target = ""
+type = "directory"

@@ -1,0 +1,31 @@
+dependencies = []
+lazy_artifacts = false
+name = "QD"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin14-cxx03", "x86_64-apple-darwin14-cxx11", "x86_64-unknown-freebsd11.1-cxx03", "x86_64-unknown-freebsd11.1-cxx11"]
+script = """cd $WORKSPACE/srcdir/qd-2.3.22\nupdate_configure_scripts\n\nif [[ \"${target}\" == *-freebsd* ]] || [[ \"${target}\" == powerpc64le-* ]]; then\n    # Regenerate the configure to be able to build the shared libraries\n    autoreconf -vi\nfi\n\n./configure --enable-shared --enable-fast-install=no --disable-fma --prefix=$prefix --host=$target --build=${MACHTYPE}\nmake -j${nproc} module_ext=mod\nmake install module_ext=mod\n\ninstall_license BSD-LBNL-License.doc\n\nif [[ \"${target}\" == *-ming* ]]; then\n    # We have to manually build all shared libraries for Windows one by one\n    cd \"${prefix}/lib\"\n    ar x libqd.a\n    c++ -shared -o \"${libdir}/libqd.${dlext}\" *.o\n    rm *.o\n    ar x libqdmod.a\n    c++ -shared -o \"${libdir}/libqdmod.${dlext}\" *.o \"${libdir}/libqd.${dlext}\" -lgfortran\n    rm *.o\nfi\n"""
+version = "v2.3.22"
+
+[[products]]
+dir_paths = []
+dont_dlopen = false
+libnames = ["libqd_f_main"]
+type = "lib"
+variable_name = "libqd_f_main"
+[[products]]
+dir_paths = []
+dont_dlopen = true
+libnames = ["libqdmod"]
+type = "lib"
+variable_name = "libqdmod"
+[[products]]
+dir_paths = []
+dont_dlopen = false
+libnames = ["libqd"]
+type = "lib"
+variable_name = "libqd"
+
+[[sources]]
+hash = "30c1ffe46b95a0e9fa91085949ee5fca85f97ff7b41cd5fe79f79bab730206d3"
+type = "archive"
+unpack_target = ""
+url = "https://www.davidhbailey.com/dhbsoftware/qd-2.3.22.tar.gz"

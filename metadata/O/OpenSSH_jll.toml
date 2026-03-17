@@ -5,74 +5,10 @@ registered = 2020-06-01T22:10:51.000Z
     [["8.1.0+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.1.0+0/OpenSSH.v8.1.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.1.0+0/OpenSSH.v8.1.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.1.0+0/OpenSSH.v8.1.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.1.0+0/OpenSSH.v8.1.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.1.0+0/OpenSSH.v8.1.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.1.0+0/OpenSSH.v8.1.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.1.0+0/OpenSSH.v8.1.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.1.0+0/OpenSSH.v8.1.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.1.0+0/OpenSSH.v8.1.0.x86_64-apple-darwin14.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.1.0+0/OpenSSH.v8.1.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.1.0+0/OpenSSH.v8.1.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.1.0+0/OpenSSH.v8.1.0.x86_64-unknown-freebsd11.1.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.1.0+0/OpenSSH.v8.1.0.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/385f1510739d06bff85f5713ba5a48f0a9a1beeb/O/OpenSSH/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/o/openssh/build_tarballs.jl/385f1510739d06bff85f5713ba5a48f0a9a1beeb.toml"
     metadata_source = "retrospective (by timestamp)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.2.4"
-
-        ["8.1.0+0".artifact_metadata.metadata]
-        lazy_artifacts = false
-        name = "OpenSSH"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd $WORKSPACE/srcdir\n\ninstall_license openssh-portable/LICENCE\nPRODUCTS=(ssh${exeext} ssh-add${exeext} ssh-keygen${exeext} ssh-keyscan${exeext} ssh-agent${exeext} scp${exeext})\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    cd \"${target}/OpenSSH-Win${nbits}\"\nelse\n    cd openssh-portable/\n\n    # Remove OpenSSL from the sysroot to avoid confusion\n    rm -f /opt/${target}/${target}/sys-root/usr/lib/libcrypto.*\n    rm -f /opt/${target}/${target}/sys-root/usr/lib/libssl.*\n    rm -f /lib/libcrypto.so*\n    rm -f /usr/lib/libcrypto.so*\n\n    atomic_patch -p1 ../patches/makefile-rm-duplicate-object.patch\n\n    export CPPFLAGS=\"-I${includedir}\"\n    autoreconf -vi\n    ./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target}\n    make -j${nproc} \"${PRODUCTS[@]}\"\nfi\n\nmkdir -p ${bindir}\nfor binary in \"${PRODUCTS[@]}\"; do\n    install -c -m 0755 $binary ${bindir}/$binary;\ndone\n"""
-        version = "v8.1.0"
-
-            [["8.1.0+0".artifact_metadata.metadata.dependencies]]
-            name = "Zlib_jll"
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["8.1.0+0".artifact_metadata.metadata.dependencies]]
-            name = "OpenSSL_jll"
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["8.1.0+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh"]
-            type = "exe"
-            variable_name = "ssh"
-            [["8.1.0+0".artifact_metadata.metadata.products]]
-            binnames = ["scp"]
-            type = "exe"
-            variable_name = "scp"
-            [["8.1.0+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh-agent"]
-            type = "exe"
-            variable_name = "ssh_agent"
-            [["8.1.0+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh-add"]
-            type = "exe"
-            variable_name = "ssh_add"
-            [["8.1.0+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh-keygen"]
-            type = "exe"
-            variable_name = "ssh_keygen"
-            [["8.1.0+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh-keyscan"]
-            type = "exe"
-            variable_name = "ssh_keyscan"
-
-            [["8.1.0+0".artifact_metadata.metadata.sources]]
-            hash = "cdf1d0a9f5d18535e0a18ff34860e81a6d83aa5c"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/openssh/openssh-portable.git"
-            [["8.1.0+0".artifact_metadata.metadata.sources]]
-            hash = "88aaf9eafc64a11d2ba0894a1c24608f1b6d69408b19bb7b15287338fea76dd0"
-            type = "archive"
-            unpack_target = "i686-w64-mingw32"
-            url = "https://github.com/PowerShell/Win32-OpenSSH/releases/download/v8.1.0.0p1-Beta/OpenSSH-Win32.zip"
-            [["8.1.0+0".artifact_metadata.metadata.sources]]
-            hash = "c99240af89452610f66b7ce54c4fa3180b66aae2bc326afc2aac8fc1dd48f488"
-            type = "archive"
-            unpack_target = "x86_64-w64-mingw32"
-            url = "https://github.com/PowerShell/Win32-OpenSSH/releases/download/v8.1.0.0p1-Beta/OpenSSH-Win64.zip"
-            [["8.1.0+0".artifact_metadata.metadata.sources]]
-            path = "./bundled"
-            target = ""
-            type = "directory"
 
 ["8.9.0+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+0/OpenSSH.v8.9.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+0/OpenSSH.v8.9.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+0/OpenSSH.v8.9.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+0/OpenSSH.v8.9.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+0/OpenSSH.v8.9.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+0/OpenSSH.v8.9.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+0/OpenSSH.v8.9.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+0/OpenSSH.v8.9.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+0/OpenSSH.v8.9.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+0/OpenSSH.v8.9.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+0/OpenSSH.v8.9.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+0/OpenSSH.v8.9.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+0/OpenSSH.v8.9.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+0/OpenSSH.v8.9.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+0/OpenSSH.v8.9.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+0/OpenSSH.v8.9.0.x86_64-w64-mingw32.tar.gz"]
@@ -81,77 +17,10 @@ registered = 2022-03-16T19:19:08.000Z
     [["8.9.0+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+0/OpenSSH.v8.9.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+0/OpenSSH.v8.9.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+0/OpenSSH.v8.9.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+0/OpenSSH.v8.9.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+0/OpenSSH.v8.9.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+0/OpenSSH.v8.9.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+0/OpenSSH.v8.9.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+0/OpenSSH.v8.9.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+0/OpenSSH.v8.9.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+0/OpenSSH.v8.9.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+0/OpenSSH.v8.9.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+0/OpenSSH.v8.9.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+0/OpenSSH.v8.9.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+0/OpenSSH.v8.9.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+0/OpenSSH.v8.9.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+0/OpenSSH.v8.9.0.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/4510cf1be257f569b5b6ed1286d6567ae36b9bb0/O/OpenSSH/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/o/openssh/build_tarballs.jl/4510cf1be257f569b5b6ed1286d6567ae36b9bb0.toml"
     metadata_source = "retrospective (by timestamp)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.5.2"
-
-        ["8.9.0+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "OpenSSH"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd $WORKSPACE/srcdir\n\ninstall_license openssh-portable/LICENCE\nPRODUCTS=(ssh${exeext} ssh-add${exeext} ssh-keygen${exeext} ssh-keyscan${exeext} ssh-agent${exeext} scp${exeext})\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    cd \"${target}/OpenSSH-Win${nbits}\"\nelse\n    cd openssh-portable\n\n    # Remove OpenSSL from the sysroot to avoid confusion\n    rm -f /opt/${target}/${target}/sys-root/usr/lib/libcrypto.*\n    rm -f /opt/${target}/${target}/sys-root/usr/lib/libssl.*\n    rm -f /lib/libcrypto.so*\n    rm -f /usr/lib/libcrypto.so*\n\n    export CPPFLAGS=\"-I${includedir}\"\n    autoreconf -vi\n    ./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target}\n    make -j${nproc} \"${PRODUCTS[@]}\"\nfi\n\nmkdir -p ${bindir}\nfor binary in \"${PRODUCTS[@]}\"; do\n    install -c -m 0755 $binary ${bindir}/$binary\ndone\n"""
-        version = "v8.9.0"
-
-            [["8.9.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Zlib_jll"
-            platforms = ["any"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["8.9.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "OpenSSL_jll"
-            platforms = ["any"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["8.9.0+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh"]
-            type = "exe"
-            variable_name = "ssh"
-            [["8.9.0+0".artifact_metadata.metadata.products]]
-            binnames = ["scp"]
-            type = "exe"
-            variable_name = "scp"
-            [["8.9.0+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh-agent"]
-            type = "exe"
-            variable_name = "ssh_agent"
-            [["8.9.0+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh-add"]
-            type = "exe"
-            variable_name = "ssh_add"
-            [["8.9.0+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh-keygen"]
-            type = "exe"
-            variable_name = "ssh_keygen"
-            [["8.9.0+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh-keyscan"]
-            type = "exe"
-            variable_name = "ssh_keyscan"
-
-            [["8.9.0+0".artifact_metadata.metadata.sources]]
-            hash = "5880200867e440f8ab5fd893c93db86555990443"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/openssh/openssh-portable.git"
-            [["8.9.0+0".artifact_metadata.metadata.sources]]
-            hash = "0221324212413a6caf260f95e308d22f8c141fc37727b622a6ad50998c46d226"
-            type = "archive"
-            unpack_target = "i686-w64-mingw32"
-            url = "https://github.com/PowerShell/Win32-OpenSSH/releases/download/V8.6.0.0p1-Beta/OpenSSH-Win32.zip"
-            [["8.9.0+0".artifact_metadata.metadata.sources]]
-            hash = "9f9215dc0b823264d52603f4767d8531880ddfa9aedf16404923814c0ab086b7"
-            type = "archive"
-            unpack_target = "x86_64-w64-mingw32"
-            url = "https://github.com/PowerShell/Win32-OpenSSH/releases/download/V8.6.0.0p1-Beta/OpenSSH-Win64.zip"
 
 ["8.9.0+1"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+1/OpenSSH.v8.9.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+1/OpenSSH.v8.9.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+1/OpenSSH.v8.9.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+1/OpenSSH.v8.9.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+1/OpenSSH.v8.9.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+1/OpenSSH.v8.9.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+1/OpenSSH.v8.9.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+1/OpenSSH.v8.9.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+1/OpenSSH.v8.9.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+1/OpenSSH.v8.9.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+1/OpenSSH.v8.9.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+1/OpenSSH.v8.9.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+1/OpenSSH.v8.9.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+1/OpenSSH.v8.9.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+1/OpenSSH.v8.9.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+1/OpenSSH.v8.9.0.x86_64-w64-mingw32.tar.gz"]
@@ -160,77 +29,10 @@ registered = 2022-05-06T20:01:21.000Z
     [["8.9.0+1".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+1/OpenSSH.v8.9.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+1/OpenSSH.v8.9.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+1/OpenSSH.v8.9.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+1/OpenSSH.v8.9.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+1/OpenSSH.v8.9.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+1/OpenSSH.v8.9.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+1/OpenSSH.v8.9.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+1/OpenSSH.v8.9.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+1/OpenSSH.v8.9.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+1/OpenSSH.v8.9.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+1/OpenSSH.v8.9.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+1/OpenSSH.v8.9.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+1/OpenSSH.v8.9.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+1/OpenSSH.v8.9.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+1/OpenSSH.v8.9.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v8.9.0+1/OpenSSH.v8.9.0.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/b4b6061c1e767a41136cef227fa8b8d1dc5f0952/O/OpenSSH/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/o/openssh/build_tarballs.jl/b4b6061c1e767a41136cef227fa8b8d1dc5f0952.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.5.3"
-
-        ["8.9.0+1".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "OpenSSH"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd $WORKSPACE/srcdir\n\ninstall_license openssh-portable/LICENCE\nPRODUCTS=(ssh${exeext} ssh-add${exeext} ssh-keygen${exeext} ssh-keyscan${exeext} ssh-agent${exeext} scp${exeext})\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    cd \"${target}/OpenSSH-Win${nbits}\"\nelse\n    cd openssh-portable\n\n    # Remove OpenSSL from the sysroot to avoid confusion\n    rm -f /opt/${target}/${target}/sys-root/usr/lib/libcrypto.*\n    rm -f /opt/${target}/${target}/sys-root/usr/lib/libssl.*\n    rm -f /lib/libcrypto.so*\n    rm -f /usr/lib/libcrypto.so*\n\n    conf_args=()\n    if [[ \"${target}\" == *-linux-gnu* ]]; then\n        # We use very old versions of glibc which used to have `libcrypt.so.1`, but modern\n        # glibcs have `libcrypt.so.2`, so if we link to `libcrypt.so.1` most users would\n        # have troubles running the programs at runtime.\n        conf_args+=(ac_cv_lib_crypt_crypt=no)\n    fi\n\n    export CPPFLAGS=\"-I${includedir}\"\n    autoreconf -vi\n    ./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \"${conf_args[@]}\"\n    make -j${nproc} \"${PRODUCTS[@]}\"\nfi\n\nmkdir -p ${bindir}\nfor binary in \"${PRODUCTS[@]}\"; do\n    install -c -m 0755 $binary ${bindir}/$binary\ndone\n"""
-        version = "v8.9.0"
-
-            [["8.9.0+1".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Zlib_jll"
-            platforms = ["any"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["8.9.0+1".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "OpenSSL_jll"
-            platforms = ["any"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["8.9.0+1".artifact_metadata.metadata.products]]
-            binnames = ["ssh"]
-            type = "exe"
-            variable_name = "ssh"
-            [["8.9.0+1".artifact_metadata.metadata.products]]
-            binnames = ["scp"]
-            type = "exe"
-            variable_name = "scp"
-            [["8.9.0+1".artifact_metadata.metadata.products]]
-            binnames = ["ssh-agent"]
-            type = "exe"
-            variable_name = "ssh_agent"
-            [["8.9.0+1".artifact_metadata.metadata.products]]
-            binnames = ["ssh-add"]
-            type = "exe"
-            variable_name = "ssh_add"
-            [["8.9.0+1".artifact_metadata.metadata.products]]
-            binnames = ["ssh-keygen"]
-            type = "exe"
-            variable_name = "ssh_keygen"
-            [["8.9.0+1".artifact_metadata.metadata.products]]
-            binnames = ["ssh-keyscan"]
-            type = "exe"
-            variable_name = "ssh_keyscan"
-
-            [["8.9.0+1".artifact_metadata.metadata.sources]]
-            hash = "5880200867e440f8ab5fd893c93db86555990443"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/openssh/openssh-portable.git"
-            [["8.9.0+1".artifact_metadata.metadata.sources]]
-            hash = "0221324212413a6caf260f95e308d22f8c141fc37727b622a6ad50998c46d226"
-            type = "archive"
-            unpack_target = "i686-w64-mingw32"
-            url = "https://github.com/PowerShell/Win32-OpenSSH/releases/download/V8.6.0.0p1-Beta/OpenSSH-Win32.zip"
-            [["8.9.0+1".artifact_metadata.metadata.sources]]
-            hash = "9f9215dc0b823264d52603f4767d8531880ddfa9aedf16404923814c0ab086b7"
-            type = "archive"
-            unpack_target = "x86_64-w64-mingw32"
-            url = "https://github.com/PowerShell/Win32-OpenSSH/releases/download/V8.6.0.0p1-Beta/OpenSSH-Win64.zip"
 
 ["9.1.0+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.1.0+0/OpenSSH.v9.1.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.1.0+0/OpenSSH.v9.1.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.1.0+0/OpenSSH.v9.1.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.1.0+0/OpenSSH.v9.1.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.1.0+0/OpenSSH.v9.1.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.1.0+0/OpenSSH.v9.1.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.1.0+0/OpenSSH.v9.1.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.1.0+0/OpenSSH.v9.1.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.1.0+0/OpenSSH.v9.1.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.1.0+0/OpenSSH.v9.1.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.1.0+0/OpenSSH.v9.1.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.1.0+0/OpenSSH.v9.1.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.1.0+0/OpenSSH.v9.1.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.1.0+0/OpenSSH.v9.1.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.1.0+0/OpenSSH.v9.1.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.1.0+0/OpenSSH.v9.1.0.x86_64-w64-mingw32.tar.gz"]
@@ -239,79 +41,10 @@ registered = 2022-11-02T16:46:44.000Z
     [["9.1.0+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.1.0+0/OpenSSH.v9.1.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.1.0+0/OpenSSH.v9.1.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.1.0+0/OpenSSH.v9.1.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.1.0+0/OpenSSH.v9.1.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.1.0+0/OpenSSH.v9.1.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.1.0+0/OpenSSH.v9.1.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.1.0+0/OpenSSH.v9.1.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.1.0+0/OpenSSH.v9.1.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.1.0+0/OpenSSH.v9.1.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.1.0+0/OpenSSH.v9.1.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.1.0+0/OpenSSH.v9.1.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.1.0+0/OpenSSH.v9.1.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.1.0+0/OpenSSH.v9.1.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.1.0+0/OpenSSH.v9.1.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.1.0+0/OpenSSH.v9.1.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.1.0+0/OpenSSH.v9.1.0.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/fbc486d202b4327f56facdebe6ddb28d7569a811/O/OpenSSH/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/o/openssh/build_tarballs.jl/fbc486d202b4327f56facdebe6ddb28d7569a811.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.5.6"
-
-        ["9.1.0+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "OpenSSH"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd $WORKSPACE/srcdir\n\ninstall_license openssh-portable-*/LICENCE\nPRODUCTS=(ssh${exeext} ssh-add${exeext} ssh-keygen${exeext} ssh-keyscan${exeext} ssh-agent${exeext} scp${exeext})\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    cd \"${target}/OpenSSH-Win${nbits}\"\nelse\n    cd openssh-portable-*\n\n    # Remove OpenSSL from the sysroot to avoid confusion\n    rm -f /opt/${target}/${target}/sys-root/usr/lib/libcrypto.*\n    rm -f /opt/${target}/${target}/sys-root/usr/lib/libssl.*\n    rm -f /lib/libcrypto.so*\n    rm -f /usr/lib/libcrypto.so*\n\n    conf_args=()\n    if [[ \"${target}\" == *-linux-gnu* ]]; then\n        # We use very old versions of glibc which used to have `libcrypt.so.1`, but modern\n        # glibcs have `libcrypt.so.2`, so if we link to `libcrypt.so.1` most users would\n        # have troubles running the programs at runtime.\n        conf_args+=(ac_cv_lib_crypt_crypt=no)\n    fi\n\n    export CPPFLAGS=\"-I${includedir}\"\n    autoreconf -vi\n    ./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \"${conf_args[@]}\"\n    make -j${nproc} \"${PRODUCTS[@]}\"\nfi\n\nmkdir -p ${bindir}\nfor binary in \"${PRODUCTS[@]}\"; do\n    install -c -m 0755 $binary ${bindir}/$binary\ndone\n"""
-        version = "v9.1.0"
-
-            [["9.1.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Zlib_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["9.1.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "OpenSSL_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["9.1.0+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh"]
-            type = "exe"
-            variable_name = "ssh"
-            [["9.1.0+0".artifact_metadata.metadata.products]]
-            binnames = ["scp"]
-            type = "exe"
-            variable_name = "scp"
-            [["9.1.0+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh-agent"]
-            type = "exe"
-            variable_name = "ssh_agent"
-            [["9.1.0+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh-add"]
-            type = "exe"
-            variable_name = "ssh_add"
-            [["9.1.0+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh-keygen"]
-            type = "exe"
-            variable_name = "ssh_keygen"
-            [["9.1.0+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh-keyscan"]
-            type = "exe"
-            variable_name = "ssh_keyscan"
-
-            [["9.1.0+0".artifact_metadata.metadata.sources]]
-            hash = "8ae811262318653bbad319710b5055af5ac911d28f71ade5fb5ef604ac26821e"
-            type = "archive"
-            unpack_target = ""
-            url = "https://github.com/openssh/openssh-portable/archive/refs/tags/V_9_1_P1.tar.gz"
-            [["9.1.0+0".artifact_metadata.metadata.sources]]
-            hash = "b99c384811f9ef8cab7589460d607fd4d4faccd6ec08a7405a2df0a37340fdeb"
-            type = "archive"
-            unpack_target = "i686-w64-mingw32"
-            url = "https://github.com/PowerShell/Win32-OpenSSH/releases/download/v8.9.1.0p1-Beta/OpenSSH-Win32.zip"
-            [["9.1.0+0".artifact_metadata.metadata.sources]]
-            hash = "b3d31939acb93c34236f420a6f1396e7cf2eead7069ef67742857a5a0befb9fc"
-            type = "archive"
-            unpack_target = "x86_64-w64-mingw32"
-            url = "https://github.com/PowerShell/Win32-OpenSSH/releases/download/v8.9.1.0p1-Beta/OpenSSH-Win64.zip"
 
 ["9.2.0+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.2.0+0/OpenSSH.v9.2.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.2.0+0/OpenSSH.v9.2.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.2.0+0/OpenSSH.v9.2.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.2.0+0/OpenSSH.v9.2.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.2.0+0/OpenSSH.v9.2.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.2.0+0/OpenSSH.v9.2.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.2.0+0/OpenSSH.v9.2.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.2.0+0/OpenSSH.v9.2.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.2.0+0/OpenSSH.v9.2.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.2.0+0/OpenSSH.v9.2.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.2.0+0/OpenSSH.v9.2.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.2.0+0/OpenSSH.v9.2.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.2.0+0/OpenSSH.v9.2.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.2.0+0/OpenSSH.v9.2.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.2.0+0/OpenSSH.v9.2.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.2.0+0/OpenSSH.v9.2.0.x86_64-w64-mingw32.tar.gz"]
@@ -320,79 +53,10 @@ registered = 2023-04-03T23:50:54.000Z
     [["9.2.0+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.2.0+0/OpenSSH.v9.2.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.2.0+0/OpenSSH.v9.2.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.2.0+0/OpenSSH.v9.2.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.2.0+0/OpenSSH.v9.2.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.2.0+0/OpenSSH.v9.2.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.2.0+0/OpenSSH.v9.2.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.2.0+0/OpenSSH.v9.2.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.2.0+0/OpenSSH.v9.2.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.2.0+0/OpenSSH.v9.2.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.2.0+0/OpenSSH.v9.2.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.2.0+0/OpenSSH.v9.2.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.2.0+0/OpenSSH.v9.2.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.2.0+0/OpenSSH.v9.2.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.2.0+0/OpenSSH.v9.2.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.2.0+0/OpenSSH.v9.2.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.2.0+0/OpenSSH.v9.2.0.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/204348b936728cea44c85ea86c4b3edfa8656344/O/OpenSSH/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/o/openssh/build_tarballs.jl/204348b936728cea44c85ea86c4b3edfa8656344.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.5.6"
-
-        ["9.2.0+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "OpenSSH"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd $WORKSPACE/srcdir\n\ninstall_license openssh-portable/LICENCE\nPRODUCTS=(ssh${exeext} ssh-add${exeext} ssh-keygen${exeext} ssh-keyscan${exeext} ssh-agent${exeext} scp${exeext})\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    cd \"${target}/OpenSSH-Win${nbits}\"\nelse\n    cd openssh-portable\n\n    # Remove OpenSSL from the sysroot to avoid confusion\n    rm -f /opt/${target}/${target}/sys-root/usr/lib/libcrypto.*\n    rm -f /opt/${target}/${target}/sys-root/usr/lib/libssl.*\n    rm -f /lib/libcrypto.so*\n    rm -f /usr/lib/libcrypto.so*\n\n    conf_args=()\n    if [[ \"${target}\" == *-linux-gnu* ]]; then\n        # We use very old versions of glibc which used to have `libcrypt.so.1`, but modern\n        # glibcs have `libcrypt.so.2`, so if we link to `libcrypt.so.1` most users would\n        # have troubles running the programs at runtime.\n        conf_args+=(ac_cv_lib_crypt_crypt=no)\n    fi\n\n    export CPPFLAGS=\"-I${includedir}\"\n    autoreconf -vi\n    ./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \"${conf_args[@]}\"\n    make -j${nproc} \"${PRODUCTS[@]}\"\nfi\n\nfor binary in \"${PRODUCTS[@]}\"; do\n    install -Dvm 0755 $binary ${bindir}/$binary\ndone\n"""
-        version = "v9.2.0"
-
-            [["9.2.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Zlib_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["9.2.0+0".artifact_metadata.metadata.dependencies]]
-            compat = "1.1.10"
-            name = "OpenSSL_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["9.2.0+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh"]
-            type = "exe"
-            variable_name = "ssh"
-            [["9.2.0+0".artifact_metadata.metadata.products]]
-            binnames = ["scp"]
-            type = "exe"
-            variable_name = "scp"
-            [["9.2.0+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh-agent"]
-            type = "exe"
-            variable_name = "ssh_agent"
-            [["9.2.0+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh-add"]
-            type = "exe"
-            variable_name = "ssh_add"
-            [["9.2.0+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh-keygen"]
-            type = "exe"
-            variable_name = "ssh_keygen"
-            [["9.2.0+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh-keyscan"]
-            type = "exe"
-            variable_name = "ssh_keyscan"
-
-            [["9.2.0+0".artifact_metadata.metadata.sources]]
-            hash = "6dfb65de949cdd0a5d198edee9a118f265924f33"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/openssh/openssh-portable.git"
-            [["9.2.0+0".artifact_metadata.metadata.sources]]
-            hash = "d6a381b6b1c0d17433ca0b81cf65d139d55a0f8c249f07ec9e2cf02f3effeff0"
-            type = "archive"
-            unpack_target = "i686-w64-mingw32"
-            url = "https://github.com/PowerShell/Win32-OpenSSH/releases/download/v9.2.0.0p1-Beta/OpenSSH-Win32.zip"
-            [["9.2.0+0".artifact_metadata.metadata.sources]]
-            hash = "d0c272360163ef2e99cab1c0941834605abf2e792377979ff21cbb09b55f3348"
-            type = "archive"
-            unpack_target = "x86_64-w64-mingw32"
-            url = "https://github.com/PowerShell/Win32-OpenSSH/releases/download/v9.2.0.0p1-Beta/OpenSSH-Win64.zip"
 
 ["9.3.2+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.3.2+0/OpenSSH.v9.3.2.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.3.2+0/OpenSSH.v9.3.2.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.3.2+0/OpenSSH.v9.3.2.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.3.2+0/OpenSSH.v9.3.2.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.3.2+0/OpenSSH.v9.3.2.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.3.2+0/OpenSSH.v9.3.2.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.3.2+0/OpenSSH.v9.3.2.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.3.2+0/OpenSSH.v9.3.2.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.3.2+0/OpenSSH.v9.3.2.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.3.2+0/OpenSSH.v9.3.2.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.3.2+0/OpenSSH.v9.3.2.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.3.2+0/OpenSSH.v9.3.2.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.3.2+0/OpenSSH.v9.3.2.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.3.2+0/OpenSSH.v9.3.2.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.3.2+0/OpenSSH.v9.3.2.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.3.2+0/OpenSSH.v9.3.2.x86_64-w64-mingw32.tar.gz"]
@@ -401,79 +65,10 @@ registered = 2023-07-21T11:11:00.000Z
     [["9.3.2+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.3.2+0/OpenSSH.v9.3.2.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.3.2+0/OpenSSH.v9.3.2.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.3.2+0/OpenSSH.v9.3.2.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.3.2+0/OpenSSH.v9.3.2.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.3.2+0/OpenSSH.v9.3.2.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.3.2+0/OpenSSH.v9.3.2.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.3.2+0/OpenSSH.v9.3.2.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.3.2+0/OpenSSH.v9.3.2.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.3.2+0/OpenSSH.v9.3.2.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.3.2+0/OpenSSH.v9.3.2.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.3.2+0/OpenSSH.v9.3.2.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.3.2+0/OpenSSH.v9.3.2.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.3.2+0/OpenSSH.v9.3.2.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.3.2+0/OpenSSH.v9.3.2.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.3.2+0/OpenSSH.v9.3.2.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.3.2+0/OpenSSH.v9.3.2.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/091431c6cc03a09ff821c0cbeec88d2a90adcd78/O/OpenSSH/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/o/openssh/build_tarballs.jl/091431c6cc03a09ff821c0cbeec88d2a90adcd78.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.5.6"
-
-        ["9.3.2+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "OpenSSH"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd $WORKSPACE/srcdir\n\ninstall_license openssh-*/LICENCE\nPRODUCTS=(ssh${exeext} ssh-add${exeext} ssh-keygen${exeext} ssh-keyscan${exeext} ssh-agent${exeext} scp${exeext})\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    cd \"${target}/OpenSSH-Win${nbits}\"\nelse\n    cd openssh-*\n\n    # Remove OpenSSL from the sysroot to avoid confusion\n    rm -f /opt/${target}/${target}/sys-root/usr/lib/libcrypto.*\n    rm -f /opt/${target}/${target}/sys-root/usr/lib/libssl.*\n    rm -f /lib/libcrypto.so*\n    rm -f /usr/lib/libcrypto.so*\n\n    conf_args=()\n    if [[ \"${target}\" == *-linux-gnu* ]]; then\n        # We use very old versions of glibc which used to have `libcrypt.so.1`, but modern\n        # glibcs have `libcrypt.so.2`, so if we link to `libcrypt.so.1` most users would\n        # have troubles running the programs at runtime.\n        conf_args+=(ac_cv_lib_crypt_crypt=no)\n    fi\n\n    export CPPFLAGS=\"-I${includedir}\"\n    autoreconf -vi\n    ./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \"${conf_args[@]}\"\n    make -j${nproc} \"${PRODUCTS[@]}\"\nfi\n\nfor binary in \"${PRODUCTS[@]}\"; do\n    install -Dvm 0755 $binary ${bindir}/$binary\ndone\n"""
-        version = "v9.3.2"
-
-            [["9.3.2+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Zlib_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["9.3.2+0".artifact_metadata.metadata.dependencies]]
-            compat = "3.0.8"
-            name = "OpenSSL_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["9.3.2+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh"]
-            type = "exe"
-            variable_name = "ssh"
-            [["9.3.2+0".artifact_metadata.metadata.products]]
-            binnames = ["scp"]
-            type = "exe"
-            variable_name = "scp"
-            [["9.3.2+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh-agent"]
-            type = "exe"
-            variable_name = "ssh_agent"
-            [["9.3.2+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh-add"]
-            type = "exe"
-            variable_name = "ssh_add"
-            [["9.3.2+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh-keygen"]
-            type = "exe"
-            variable_name = "ssh_keygen"
-            [["9.3.2+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh-keyscan"]
-            type = "exe"
-            variable_name = "ssh_keyscan"
-
-            [["9.3.2+0".artifact_metadata.metadata.sources]]
-            hash = "200ebe147f6cb3f101fd0cdf9e02442af7ddca298dffd9f456878e7ccac676e8"
-            type = "archive"
-            unpack_target = ""
-            url = "https://cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-9.3p2.tar.gz"
-            [["9.3.2+0".artifact_metadata.metadata.sources]]
-            hash = "7b132aad088eae3ac67d85751e88d884e80631607cab9b1da52c838655bb5ae6"
-            type = "archive"
-            unpack_target = "i686-w64-mingw32"
-            url = "https://github.com/PowerShell/Win32-OpenSSH/releases/download/v9.2.2.0p1-Beta/OpenSSH-Win32.zip"
-            [["9.3.2+0".artifact_metadata.metadata.sources]]
-            hash = "ec8144a107014740ec3ce16ec51710398fc390fca5344931c1506e7cc2e181f3"
-            type = "archive"
-            unpack_target = "x86_64-w64-mingw32"
-            url = "https://github.com/PowerShell/Win32-OpenSSH/releases/download/v9.2.2.0p1-Beta/OpenSSH-Win64.zip"
 
 ["9.9.1+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+0/OpenSSH.v9.9.1.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+0/OpenSSH.v9.9.1.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+0/OpenSSH.v9.9.1.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+0/OpenSSH.v9.9.1.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+0/OpenSSH.v9.9.1.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+0/OpenSSH.v9.9.1.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+0/OpenSSH.v9.9.1.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+0/OpenSSH.v9.9.1.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+0/OpenSSH.v9.9.1.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+0/OpenSSH.v9.9.1.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+0/OpenSSH.v9.9.1.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+0/OpenSSH.v9.9.1.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+0/OpenSSH.v9.9.1.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+0/OpenSSH.v9.9.1.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+0/OpenSSH.v9.9.1.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+0/OpenSSH.v9.9.1.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+0/OpenSSH.v9.9.1.x86_64-w64-mingw32.tar.gz"]
@@ -482,83 +77,10 @@ registered = 2024-09-23T21:41:10.000Z
     [["9.9.1+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+0/OpenSSH.v9.9.1.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+0/OpenSSH.v9.9.1.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+0/OpenSSH.v9.9.1.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+0/OpenSSH.v9.9.1.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+0/OpenSSH.v9.9.1.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+0/OpenSSH.v9.9.1.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+0/OpenSSH.v9.9.1.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+0/OpenSSH.v9.9.1.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+0/OpenSSH.v9.9.1.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+0/OpenSSH.v9.9.1.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+0/OpenSSH.v9.9.1.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+0/OpenSSH.v9.9.1.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+0/OpenSSH.v9.9.1.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+0/OpenSSH.v9.9.1.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+0/OpenSSH.v9.9.1.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+0/OpenSSH.v9.9.1.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+0/OpenSSH.v9.9.1.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/0c09b29fee783ab7744e2aaf46a98684a3be582c/O/OpenSSH/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/o/openssh/build_tarballs.jl/0c09b29fee783ab7744e2aaf46a98684a3be582c.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.6.0"
-
-        ["9.9.1+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "OpenSSH"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd $WORKSPACE/srcdir\n\ninstall_license openssh-*/LICENCE\nPRODUCTS=(ssh${exeext} ssh-add${exeext} ssh-keygen${exeext} ssh-keyscan${exeext} ssh-agent${exeext} scp${exeext} sftp${exeext})\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    cd \"${target}/OpenSSH-Win${nbits}\"\nelse\n    cd openssh-*\n\n    # Remove OpenSSL from the sysroot to avoid confusion\n    rm -f /opt/${target}/${target}/sys-root/usr/lib/libcrypto.*\n    rm -f /opt/${target}/${target}/sys-root/usr/lib/libssl.*\n    rm -f /lib/libcrypto.so*\n    rm -f /usr/lib/libcrypto.so*\n\n    conf_args=()\n    if [[ \"${target}\" == *-linux-gnu* ]]; then\n        # We use very old versions of glibc which used to have `libcrypt.so.1`, but modern\n        # glibcs have `libcrypt.so.2`, so if we link to `libcrypt.so.1` most users would\n        # have troubles running the programs at runtime.\n        conf_args+=(ac_cv_lib_crypt_crypt=no)\n    fi\n\n    export CPPFLAGS=\"-I${includedir}\"\n    autoreconf -vi\n    ./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \"${conf_args[@]}\"\n    make -j${nproc} \"${PRODUCTS[@]}\"\nfi\n\nfor binary in \"${PRODUCTS[@]}\"; do\n    install -Dvm 0755 $binary ${bindir}/$binary\ndone\n"""
-        version = "v9.9.1"
-
-            [["9.9.1+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Zlib_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["9.9.1+0".artifact_metadata.metadata.dependencies]]
-            compat = "3.0.15"
-            name = "OpenSSL_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["9.9.1+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh"]
-            type = "exe"
-            variable_name = "ssh"
-            [["9.9.1+0".artifact_metadata.metadata.products]]
-            binnames = ["scp"]
-            type = "exe"
-            variable_name = "scp"
-            [["9.9.1+0".artifact_metadata.metadata.products]]
-            binnames = ["sftp"]
-            type = "exe"
-            variable_name = "sftp"
-            [["9.9.1+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh-agent"]
-            type = "exe"
-            variable_name = "ssh_agent"
-            [["9.9.1+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh-add"]
-            type = "exe"
-            variable_name = "ssh_add"
-            [["9.9.1+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh-keygen"]
-            type = "exe"
-            variable_name = "ssh_keygen"
-            [["9.9.1+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh-keyscan"]
-            type = "exe"
-            variable_name = "ssh_keyscan"
-
-            [["9.9.1+0".artifact_metadata.metadata.sources]]
-            hash = "b343fbcdbff87f15b1986e6e15d6d4fc9a7d36066be6b7fb507087ba8f966c02"
-            type = "archive"
-            unpack_target = ""
-            url = "https://cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-9.9p1.tar.gz"
-            [["9.9.1+0".artifact_metadata.metadata.sources]]
-            hash = "9245c9ff62d6d11708cb3125097f8cd5627e995c225d0469cf2c3c6be4014952"
-            type = "archive"
-            unpack_target = "i686-w64-mingw32"
-            url = "https://github.com/PowerShell/Win32-OpenSSH/releases/download/v9.5.0.0p1-Beta/OpenSSH-Win32.zip"
-            [["9.9.1+0".artifact_metadata.metadata.sources]]
-            hash = "bd48fe985d400402c278c485db20e6a82bc4c7f7d8e0ef5a81128f523096530c"
-            type = "archive"
-            unpack_target = "x86_64-w64-mingw32"
-            url = "https://github.com/PowerShell/Win32-OpenSSH/releases/download/v9.5.0.0p1-Beta/OpenSSH-Win64.zip"
 
 ["9.9.1+1"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+1/OpenSSH.v9.9.1.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+1/OpenSSH.v9.9.1.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+1/OpenSSH.v9.9.1.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+1/OpenSSH.v9.9.1.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+1/OpenSSH.v9.9.1.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+1/OpenSSH.v9.9.1.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+1/OpenSSH.v9.9.1.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+1/OpenSSH.v9.9.1.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+1/OpenSSH.v9.9.1.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+1/OpenSSH.v9.9.1.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+1/OpenSSH.v9.9.1.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+1/OpenSSH.v9.9.1.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+1/OpenSSH.v9.9.1.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+1/OpenSSH.v9.9.1.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+1/OpenSSH.v9.9.1.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+1/OpenSSH.v9.9.1.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+1/OpenSSH.v9.9.1.x86_64-w64-mingw32.tar.gz"]
@@ -567,83 +89,10 @@ registered = 2024-09-23T22:34:55.000Z
     [["9.9.1+1".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+1/OpenSSH.v9.9.1.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+1/OpenSSH.v9.9.1.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+1/OpenSSH.v9.9.1.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+1/OpenSSH.v9.9.1.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+1/OpenSSH.v9.9.1.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+1/OpenSSH.v9.9.1.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+1/OpenSSH.v9.9.1.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+1/OpenSSH.v9.9.1.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+1/OpenSSH.v9.9.1.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+1/OpenSSH.v9.9.1.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+1/OpenSSH.v9.9.1.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+1/OpenSSH.v9.9.1.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+1/OpenSSH.v9.9.1.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+1/OpenSSH.v9.9.1.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+1/OpenSSH.v9.9.1.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+1/OpenSSH.v9.9.1.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.1+1/OpenSSH.v9.9.1.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/e64e7f582cc656e219e3bdb7d3ed1f2658dec497/O/OpenSSH/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/o/openssh/build_tarballs.jl/e64e7f582cc656e219e3bdb7d3ed1f2658dec497.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.6.0"
-
-        ["9.9.1+1".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "OpenSSH"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd $WORKSPACE/srcdir\n\ninstall_license openssh-*/LICENCE\nPRODUCTS=(ssh ssh-add ssh-keygen ssh-keyscan ssh-agent scp sftp)\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    cd \"${target}/OpenSSH-Win${nbits}\"\nelse\n    cd openssh-*\n\n    # Remove OpenSSL from the sysroot to avoid confusion\n    rm -f /opt/${target}/${target}/sys-root/usr/lib/libcrypto.*\n    rm -f /opt/${target}/${target}/sys-root/usr/lib/libssl.*\n    rm -f /lib/libcrypto.so*\n    rm -f /usr/lib/libcrypto.so*\n\n    conf_args=()\n    if [[ \"${target}\" == *-linux-gnu* ]]; then\n        # We use very old versions of glibc which used to have `libcrypt.so.1`, but modern\n        # glibcs have `libcrypt.so.2`, so if we link to `libcrypt.so.1` most users would\n        # have troubles running the programs at runtime.\n        conf_args+=(ac_cv_lib_crypt_crypt=no)\n    fi\n\n    export CPPFLAGS=\"-I${includedir}\"\n    autoreconf -vi\n    ./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \"${conf_args[@]}\"\n    make -j${nproc} \"${PRODUCTS[@]}\"\nfi\n\nfor binary in \"${PRODUCTS[@]}\"; do\n    install -Dvm 0755 \"${binary}${exeext}\" -t \"${bindir}\"\ndone\nif [[ \"${target}\" == *-mingw* ]]; then\n    # Install also a library needed by the Windows executables.  We do provide\n    # it in OpenSSL_jll, but with a different soname (`libcrypto-3-x64.dll`) and\n    # so it can't be found.\n    install -Dvm 0755 libcrypto.dll -t \"${libdir}\"\nfi\n"""
-        version = "v9.9.1"
-
-            [["9.9.1+1".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Zlib_jll"
-            platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["9.9.1+1".artifact_metadata.metadata.dependencies]]
-            compat = "3.0.15"
-            name = "OpenSSL_jll"
-            platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["9.9.1+1".artifact_metadata.metadata.products]]
-            binnames = ["ssh"]
-            type = "exe"
-            variable_name = "ssh"
-            [["9.9.1+1".artifact_metadata.metadata.products]]
-            binnames = ["scp"]
-            type = "exe"
-            variable_name = "scp"
-            [["9.9.1+1".artifact_metadata.metadata.products]]
-            binnames = ["sftp"]
-            type = "exe"
-            variable_name = "sftp"
-            [["9.9.1+1".artifact_metadata.metadata.products]]
-            binnames = ["ssh-agent"]
-            type = "exe"
-            variable_name = "ssh_agent"
-            [["9.9.1+1".artifact_metadata.metadata.products]]
-            binnames = ["ssh-add"]
-            type = "exe"
-            variable_name = "ssh_add"
-            [["9.9.1+1".artifact_metadata.metadata.products]]
-            binnames = ["ssh-keygen"]
-            type = "exe"
-            variable_name = "ssh_keygen"
-            [["9.9.1+1".artifact_metadata.metadata.products]]
-            binnames = ["ssh-keyscan"]
-            type = "exe"
-            variable_name = "ssh_keyscan"
-
-            [["9.9.1+1".artifact_metadata.metadata.sources]]
-            hash = "b343fbcdbff87f15b1986e6e15d6d4fc9a7d36066be6b7fb507087ba8f966c02"
-            type = "archive"
-            unpack_target = ""
-            url = "https://cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-9.9p1.tar.gz"
-            [["9.9.1+1".artifact_metadata.metadata.sources]]
-            hash = "9245c9ff62d6d11708cb3125097f8cd5627e995c225d0469cf2c3c6be4014952"
-            type = "archive"
-            unpack_target = "i686-w64-mingw32"
-            url = "https://github.com/PowerShell/Win32-OpenSSH/releases/download/v9.5.0.0p1-Beta/OpenSSH-Win32.zip"
-            [["9.9.1+1".artifact_metadata.metadata.sources]]
-            hash = "bd48fe985d400402c278c485db20e6a82bc4c7f7d8e0ef5a81128f523096530c"
-            type = "archive"
-            unpack_target = "x86_64-w64-mingw32"
-            url = "https://github.com/PowerShell/Win32-OpenSSH/releases/download/v9.5.0.0p1-Beta/OpenSSH-Win64.zip"
 
 ["9.9.2+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.2+0/OpenSSH.v9.9.2.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.2+0/OpenSSH.v9.9.2.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.2+0/OpenSSH.v9.9.2.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.2+0/OpenSSH.v9.9.2.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.2+0/OpenSSH.v9.9.2.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.2+0/OpenSSH.v9.9.2.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.2+0/OpenSSH.v9.9.2.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.2+0/OpenSSH.v9.9.2.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.2+0/OpenSSH.v9.9.2.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.2+0/OpenSSH.v9.9.2.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.2+0/OpenSSH.v9.9.2.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.2+0/OpenSSH.v9.9.2.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.2+0/OpenSSH.v9.9.2.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.2+0/OpenSSH.v9.9.2.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.2+0/OpenSSH.v9.9.2.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.2+0/OpenSSH.v9.9.2.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.2+0/OpenSSH.v9.9.2.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.2+0/OpenSSH.v9.9.2.x86_64-w64-mingw32.tar.gz"]
@@ -652,83 +101,10 @@ registered = 2025-02-18T20:12:27.000Z
     [["9.9.2+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.2+0/OpenSSH.v9.9.2.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.2+0/OpenSSH.v9.9.2.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.2+0/OpenSSH.v9.9.2.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.2+0/OpenSSH.v9.9.2.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.2+0/OpenSSH.v9.9.2.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.2+0/OpenSSH.v9.9.2.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.2+0/OpenSSH.v9.9.2.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.2+0/OpenSSH.v9.9.2.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.2+0/OpenSSH.v9.9.2.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.2+0/OpenSSH.v9.9.2.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.2+0/OpenSSH.v9.9.2.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.2+0/OpenSSH.v9.9.2.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.2+0/OpenSSH.v9.9.2.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.2+0/OpenSSH.v9.9.2.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.2+0/OpenSSH.v9.9.2.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.2+0/OpenSSH.v9.9.2.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.2+0/OpenSSH.v9.9.2.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v9.9.2+0/OpenSSH.v9.9.2.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/5101e4f65084fec362de8fd58349b846c6870c10/O/OpenSSH/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/o/openssh/build_tarballs.jl/5101e4f65084fec362de8fd58349b846c6870c10.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.6.4"
-
-        ["9.9.2+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "OpenSSH"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd $WORKSPACE/srcdir\n\ninstall_license openssh-*/LICENCE\nPRODUCTS=(ssh ssh-add ssh-keygen ssh-keyscan ssh-agent scp sftp)\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    cd \"${target}/OpenSSH-Win${nbits}\"\nelse\n    cd openssh-*\n\n    # Remove OpenSSL from the sysroot to avoid confusion\n    rm -f /opt/${target}/${target}/sys-root/usr/lib/libcrypto.*\n    rm -f /opt/${target}/${target}/sys-root/usr/lib/libssl.*\n    rm -f /lib/libcrypto.so*\n    rm -f /usr/lib/libcrypto.so*\n\n    conf_args=()\n    if [[ \"${target}\" == *-linux-gnu* ]]; then\n        # We use very old versions of glibc which used to have `libcrypt.so.1`, but modern\n        # glibcs have `libcrypt.so.2`, so if we link to `libcrypt.so.1` most users would\n        # have troubles running the programs at runtime.\n        conf_args+=(ac_cv_lib_crypt_crypt=no)\n    fi\n\n    export CPPFLAGS=\"-I${includedir}\"\n    autoreconf -vi\n    ./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \"${conf_args[@]}\"\n    make -j${nproc} \"${PRODUCTS[@]}\"\nfi\n\nfor binary in \"${PRODUCTS[@]}\"; do\n    install -Dvm 0755 \"${binary}${exeext}\" -t \"${bindir}\"\ndone\nif [[ \"${target}\" == *-mingw* ]]; then\n    # Install also a library needed by the Windows executables.  We do provide\n    # it in OpenSSL_jll, but with a different soname (`libcrypto-3-x64.dll`) and\n    # so it can't be found.\n    install -Dvm 0755 libcrypto.dll -t \"${libdir}\"\nfi\n"""
-        version = "v9.9.2"
-
-            [["9.9.2+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Zlib_jll"
-            platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["9.9.2+0".artifact_metadata.metadata.dependencies]]
-            compat = "3.0.16"
-            name = "OpenSSL_jll"
-            platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["9.9.2+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh"]
-            type = "exe"
-            variable_name = "ssh"
-            [["9.9.2+0".artifact_metadata.metadata.products]]
-            binnames = ["scp"]
-            type = "exe"
-            variable_name = "scp"
-            [["9.9.2+0".artifact_metadata.metadata.products]]
-            binnames = ["sftp"]
-            type = "exe"
-            variable_name = "sftp"
-            [["9.9.2+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh-agent"]
-            type = "exe"
-            variable_name = "ssh_agent"
-            [["9.9.2+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh-add"]
-            type = "exe"
-            variable_name = "ssh_add"
-            [["9.9.2+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh-keygen"]
-            type = "exe"
-            variable_name = "ssh_keygen"
-            [["9.9.2+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh-keyscan"]
-            type = "exe"
-            variable_name = "ssh_keyscan"
-
-            [["9.9.2+0".artifact_metadata.metadata.sources]]
-            hash = "91aadb603e08cc285eddf965e1199d02585fa94d994d6cae5b41e1721e215673"
-            type = "archive"
-            unpack_target = ""
-            url = "https://cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-9.9p2.tar.gz"
-            [["9.9.2+0".artifact_metadata.metadata.sources]]
-            hash = "9245c9ff62d6d11708cb3125097f8cd5627e995c225d0469cf2c3c6be4014952"
-            type = "archive"
-            unpack_target = "i686-w64-mingw32"
-            url = "https://github.com/PowerShell/Win32-OpenSSH/releases/download/v9.5.0.0p1-Beta/OpenSSH-Win32.zip"
-            [["9.9.2+0".artifact_metadata.metadata.sources]]
-            hash = "bd48fe985d400402c278c485db20e6a82bc4c7f7d8e0ef5a81128f523096530c"
-            type = "archive"
-            unpack_target = "x86_64-w64-mingw32"
-            url = "https://github.com/PowerShell/Win32-OpenSSH/releases/download/v9.5.0.0p1-Beta/OpenSSH-Win64.zip"
 
 ["10.0.1+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.1+0/OpenSSH.v10.0.1.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.1+0/OpenSSH.v10.0.1.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.1+0/OpenSSH.v10.0.1.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.1+0/OpenSSH.v10.0.1.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.1+0/OpenSSH.v10.0.1.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.1+0/OpenSSH.v10.0.1.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.1+0/OpenSSH.v10.0.1.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.1+0/OpenSSH.v10.0.1.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.1+0/OpenSSH.v10.0.1.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.1+0/OpenSSH.v10.0.1.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.1+0/OpenSSH.v10.0.1.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.1+0/OpenSSH.v10.0.1.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.1+0/OpenSSH.v10.0.1.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.1+0/OpenSSH.v10.0.1.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.1+0/OpenSSH.v10.0.1.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.1+0/OpenSSH.v10.0.1.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.1+0/OpenSSH.v10.0.1.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.1+0/OpenSSH.v10.0.1.x86_64-w64-mingw32.tar.gz"]
@@ -737,83 +113,10 @@ registered = 2025-04-18T19:57:12.000Z
     [["10.0.1+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.1+0/OpenSSH.v10.0.1.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.1+0/OpenSSH.v10.0.1.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.1+0/OpenSSH.v10.0.1.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.1+0/OpenSSH.v10.0.1.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.1+0/OpenSSH.v10.0.1.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.1+0/OpenSSH.v10.0.1.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.1+0/OpenSSH.v10.0.1.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.1+0/OpenSSH.v10.0.1.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.1+0/OpenSSH.v10.0.1.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.1+0/OpenSSH.v10.0.1.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.1+0/OpenSSH.v10.0.1.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.1+0/OpenSSH.v10.0.1.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.1+0/OpenSSH.v10.0.1.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.1+0/OpenSSH.v10.0.1.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.1+0/OpenSSH.v10.0.1.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.1+0/OpenSSH.v10.0.1.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.1+0/OpenSSH.v10.0.1.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.1+0/OpenSSH.v10.0.1.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/1e92baa05073303ba94a85dd3c506d568db83afd/O/OpenSSH/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/o/openssh/build_tarballs.jl/1e92baa05073303ba94a85dd3c506d568db83afd.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.6.4"
-
-        ["10.0.1+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "OpenSSH"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd $WORKSPACE/srcdir\n\ninstall_license openssh-*/LICENCE\nPRODUCTS=(ssh ssh-add ssh-keygen ssh-keyscan ssh-agent scp sftp)\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    cd \"${target}/OpenSSH-Win${nbits}\"\nelse\n    cd openssh-*\n\n    # Remove OpenSSL from the sysroot to avoid confusion\n    rm -f /opt/${target}/${target}/sys-root/usr/lib/libcrypto.*\n    rm -f /opt/${target}/${target}/sys-root/usr/lib/libssl.*\n    rm -f /lib/libcrypto.so*\n    rm -f /usr/lib/libcrypto.so*\n\n    conf_args=()\n    if [[ \"${target}\" == *-linux-gnu* ]]; then\n        # We use very old versions of glibc which used to have `libcrypt.so.1`, but modern\n        # glibcs have `libcrypt.so.2`, so if we link to `libcrypt.so.1` most users would\n        # have troubles running the programs at runtime.\n        conf_args+=(ac_cv_lib_crypt_crypt=no)\n    fi\n\n    export CPPFLAGS=\"-I${includedir}\"\n    autoreconf -vi\n    ./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \"${conf_args[@]}\"\n    make -j${nproc} \"${PRODUCTS[@]}\"\nfi\n\nfor binary in \"${PRODUCTS[@]}\"; do\n    install -Dvm 0755 \"${binary}${exeext}\" -t \"${bindir}\"\ndone\nif [[ \"${target}\" == *-mingw* ]]; then\n    # Install also a library needed by the Windows executables.  We do provide\n    # it in OpenSSL_jll, but with a different soname (`libcrypto-3-x64.dll`) and\n    # so it can't be found.\n    install -Dvm 0755 libcrypto.dll -t \"${libdir}\"\nfi\n"""
-        version = "v10.0.1"
-
-            [["10.0.1+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Zlib_jll"
-            platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["10.0.1+0".artifact_metadata.metadata.dependencies]]
-            compat = "3.0.16"
-            name = "OpenSSL_jll"
-            platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["10.0.1+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh"]
-            type = "exe"
-            variable_name = "ssh"
-            [["10.0.1+0".artifact_metadata.metadata.products]]
-            binnames = ["scp"]
-            type = "exe"
-            variable_name = "scp"
-            [["10.0.1+0".artifact_metadata.metadata.products]]
-            binnames = ["sftp"]
-            type = "exe"
-            variable_name = "sftp"
-            [["10.0.1+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh-agent"]
-            type = "exe"
-            variable_name = "ssh_agent"
-            [["10.0.1+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh-add"]
-            type = "exe"
-            variable_name = "ssh_add"
-            [["10.0.1+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh-keygen"]
-            type = "exe"
-            variable_name = "ssh_keygen"
-            [["10.0.1+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh-keyscan"]
-            type = "exe"
-            variable_name = "ssh_keyscan"
-
-            [["10.0.1+0".artifact_metadata.metadata.sources]]
-            hash = "021a2e709a0edf4250b1256bd5a9e500411a90dddabea830ed59cef90eb9d85c"
-            type = "archive"
-            unpack_target = ""
-            url = "https://cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-10.0p1.tar.gz"
-            [["10.0.1+0".artifact_metadata.metadata.sources]]
-            hash = "9245c9ff62d6d11708cb3125097f8cd5627e995c225d0469cf2c3c6be4014952"
-            type = "archive"
-            unpack_target = "i686-w64-mingw32"
-            url = "https://github.com/PowerShell/Win32-OpenSSH/releases/download/v9.5.0.0p1-Beta/OpenSSH-Win32.zip"
-            [["10.0.1+0".artifact_metadata.metadata.sources]]
-            hash = "bd48fe985d400402c278c485db20e6a82bc4c7f7d8e0ef5a81128f523096530c"
-            type = "archive"
-            unpack_target = "x86_64-w64-mingw32"
-            url = "https://github.com/PowerShell/Win32-OpenSSH/releases/download/v9.5.0.0p1-Beta/OpenSSH-Win64.zip"
 
 ["10.0.2+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.2+0/OpenSSH.v10.0.2.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.2+0/OpenSSH.v10.0.2.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.2+0/OpenSSH.v10.0.2.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.2+0/OpenSSH.v10.0.2.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.2+0/OpenSSH.v10.0.2.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.2+0/OpenSSH.v10.0.2.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.2+0/OpenSSH.v10.0.2.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.2+0/OpenSSH.v10.0.2.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.2+0/OpenSSH.v10.0.2.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.2+0/OpenSSH.v10.0.2.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.2+0/OpenSSH.v10.0.2.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.2+0/OpenSSH.v10.0.2.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.2+0/OpenSSH.v10.0.2.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.2+0/OpenSSH.v10.0.2.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.2+0/OpenSSH.v10.0.2.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.2+0/OpenSSH.v10.0.2.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.2+0/OpenSSH.v10.0.2.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.2+0/OpenSSH.v10.0.2.x86_64-w64-mingw32.tar.gz"]
@@ -822,88 +125,10 @@ registered = 2025-09-17T17:29:31.000Z
     [["10.0.2+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.2+0/OpenSSH.v10.0.2.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.2+0/OpenSSH.v10.0.2.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.2+0/OpenSSH.v10.0.2.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.2+0/OpenSSH.v10.0.2.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.2+0/OpenSSH.v10.0.2.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.2+0/OpenSSH.v10.0.2.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.2+0/OpenSSH.v10.0.2.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.2+0/OpenSSH.v10.0.2.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.2+0/OpenSSH.v10.0.2.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.2+0/OpenSSH.v10.0.2.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.2+0/OpenSSH.v10.0.2.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.2+0/OpenSSH.v10.0.2.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.2+0/OpenSSH.v10.0.2.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.2+0/OpenSSH.v10.0.2.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.2+0/OpenSSH.v10.0.2.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.2+0/OpenSSH.v10.0.2.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.2+0/OpenSSH.v10.0.2.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.0.2+0/OpenSSH.v10.0.2.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/bf7c3b93e4e3701413d88e367276de9451a09edf/O/OpenSSH/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/o/openssh/build_tarballs.jl/bf7c3b93e4e3701413d88e367276de9451a09edf.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.6.5"
-
-        ["10.0.2+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "OpenSSH"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd ${WORKSPACE}/srcdir\n\ninstall_license openssh-*/LICENCE\nPRODUCTS=(ssh ssh-add ssh-keygen ssh-keyscan ssh-agent scp sftp)\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    cd \"${target}/OpenSSH-Win${nbits}\"\nelse\n    cd openssh-*\n\n    # Remove OpenSSL from the sysroot to avoid confusion\n    rm -f /opt/${target}/${target}/sys-root/usr/lib/libcrypto.*\n    rm -f /opt/${target}/${target}/sys-root/usr/lib/libssl.*\n    rm -f /lib/libcrypto.so*\n    rm -f /usr/lib/libcrypto.so*\n\n    # Including https://github.com/openssl/openssl/issues/28575#issuecomment-3300220951 to avoid compatibility issues with OpenSSL\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/version-check.patch\n\n    conf_args=()\n    if [[ \"${target}\" == *-linux-gnu* ]]; then\n        # We use very old versions of glibc which used to have `libcrypt.so.1`, but modern\n        # glibcs have `libcrypt.so.2`, so if we link to `libcrypt.so.1` most users would\n        # have troubles running the programs at runtime.\n        conf_args+=(ac_cv_lib_crypt_crypt=no)\n    fi\n\n    export CPPFLAGS=\"-I${includedir}\"\n    autoreconf -vi\n    ./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \"${conf_args[@]}\"\n    make -j${nproc} \"${PRODUCTS[@]}\"\nfi\n\nfor binary in \"${PRODUCTS[@]}\"; do\n    install -Dvm 0755 \"${binary}${exeext}\" -t \"${bindir}\"\ndone\nif [[ \"${target}\" == *-mingw* ]]; then\n    # Install also a library needed by the Windows executables.  We do provide\n    # it in OpenSSL_jll, but with a different soname (`libcrypto-3-x64.dll`) and\n    # so it can't be found.\n    install -Dvm 0755 libcrypto.dll -t \"${libdir}\"\nfi\n"""
-        version = "v10.0.2"
-
-            [["10.0.2+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Zlib_jll"
-            platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["10.0.2+0".artifact_metadata.metadata.dependencies]]
-            compat = "3.0.16"
-            name = "OpenSSL_jll"
-            platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["10.0.2+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh"]
-            type = "exe"
-            variable_name = "ssh"
-            [["10.0.2+0".artifact_metadata.metadata.products]]
-            binnames = ["scp"]
-            type = "exe"
-            variable_name = "scp"
-            [["10.0.2+0".artifact_metadata.metadata.products]]
-            binnames = ["sftp"]
-            type = "exe"
-            variable_name = "sftp"
-            [["10.0.2+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh-agent"]
-            type = "exe"
-            variable_name = "ssh_agent"
-            [["10.0.2+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh-add"]
-            type = "exe"
-            variable_name = "ssh_add"
-            [["10.0.2+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh-keygen"]
-            type = "exe"
-            variable_name = "ssh_keygen"
-            [["10.0.2+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh-keyscan"]
-            type = "exe"
-            variable_name = "ssh_keyscan"
-
-            [["10.0.2+0".artifact_metadata.metadata.sources]]
-            hash = "021a2e709a0edf4250b1256bd5a9e500411a90dddabea830ed59cef90eb9d85c"
-            type = "archive"
-            unpack_target = ""
-            url = "https://cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-10.0p2.tar.gz"
-            [["10.0.2+0".artifact_metadata.metadata.sources]]
-            hash = "9245c9ff62d6d11708cb3125097f8cd5627e995c225d0469cf2c3c6be4014952"
-            type = "archive"
-            unpack_target = "i686-w64-mingw32"
-            url = "https://github.com/PowerShell/Win32-OpenSSH/releases/download/v9.5.0.0p1-Beta/OpenSSH-Win32.zip"
-            [["10.0.2+0".artifact_metadata.metadata.sources]]
-            hash = "bd48fe985d400402c278c485db20e6a82bc4c7f7d8e0ef5a81128f523096530c"
-            type = "archive"
-            unpack_target = "x86_64-w64-mingw32"
-            url = "https://github.com/PowerShell/Win32-OpenSSH/releases/download/v9.5.0.0p1-Beta/OpenSSH-Win64.zip"
-            [["10.0.2+0".artifact_metadata.metadata.sources]]
-            follow_symlinks = false
-            path = "bundled"
-            target = ""
-            type = "directory"
 
 ["10.1.1+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.1.1+0/OpenSSH.v10.1.1.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.1.1+0/OpenSSH.v10.1.1.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.1.1+0/OpenSSH.v10.1.1.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.1.1+0/OpenSSH.v10.1.1.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.1.1+0/OpenSSH.v10.1.1.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.1.1+0/OpenSSH.v10.1.1.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.1.1+0/OpenSSH.v10.1.1.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.1.1+0/OpenSSH.v10.1.1.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.1.1+0/OpenSSH.v10.1.1.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.1.1+0/OpenSSH.v10.1.1.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.1.1+0/OpenSSH.v10.1.1.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.1.1+0/OpenSSH.v10.1.1.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.1.1+0/OpenSSH.v10.1.1.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.1.1+0/OpenSSH.v10.1.1.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.1.1+0/OpenSSH.v10.1.1.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.1.1+0/OpenSSH.v10.1.1.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.1.1+0/OpenSSH.v10.1.1.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.1.1+0/OpenSSH.v10.1.1.x86_64-w64-mingw32.tar.gz"]
@@ -912,83 +137,10 @@ registered = 2025-10-07T13:51:02.000Z
     [["10.1.1+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.1.1+0/OpenSSH.v10.1.1.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.1.1+0/OpenSSH.v10.1.1.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.1.1+0/OpenSSH.v10.1.1.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.1.1+0/OpenSSH.v10.1.1.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.1.1+0/OpenSSH.v10.1.1.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.1.1+0/OpenSSH.v10.1.1.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.1.1+0/OpenSSH.v10.1.1.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.1.1+0/OpenSSH.v10.1.1.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.1.1+0/OpenSSH.v10.1.1.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.1.1+0/OpenSSH.v10.1.1.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.1.1+0/OpenSSH.v10.1.1.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.1.1+0/OpenSSH.v10.1.1.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.1.1+0/OpenSSH.v10.1.1.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.1.1+0/OpenSSH.v10.1.1.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.1.1+0/OpenSSH.v10.1.1.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.1.1+0/OpenSSH.v10.1.1.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.1.1+0/OpenSSH.v10.1.1.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.1.1+0/OpenSSH.v10.1.1.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/e309c0a0d2725fc4792aeed5983f556db5c40c68/O/OpenSSH/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/o/openssh/build_tarballs.jl/e309c0a0d2725fc4792aeed5983f556db5c40c68.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.6.5"
-
-        ["10.1.1+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "OpenSSH"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd ${WORKSPACE}/srcdir\n\ninstall_license openssh-*/LICENCE\nPRODUCTS=(ssh ssh-add ssh-keygen ssh-keyscan ssh-agent scp sftp)\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    cd \"${target}/OpenSSH-Win${nbits}\"\nelse\n    cd openssh-*\n\n    # Remove OpenSSL from the sysroot to avoid confusion\n    rm -f /opt/${target}/${target}/sys-root/usr/lib/libcrypto.*\n    rm -f /opt/${target}/${target}/sys-root/usr/lib/libssl.*\n    rm -f /lib/libcrypto.so*\n    rm -f /usr/lib/libcrypto.so*\n\n    conf_args=()\n    if [[ \"${target}\" == *-linux-gnu* ]]; then\n        # We use very old versions of glibc which used to have `libcrypt.so.1`, but modern\n        # glibcs have `libcrypt.so.2`, so if we link to `libcrypt.so.1` most users would\n        # have troubles running the programs at runtime.\n        conf_args+=(ac_cv_lib_crypt_crypt=no)\n    fi\n\n    export CPPFLAGS=\"-I${includedir}\"\n    autoreconf -vi\n    ./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \"${conf_args[@]}\"\n    make -j${nproc} \"${PRODUCTS[@]}\"\nfi\n\nfor binary in \"${PRODUCTS[@]}\"; do\n    install -Dvm 0755 \"${binary}${exeext}\" -t \"${bindir}\"\ndone\nif [[ \"${target}\" == *-mingw* ]]; then\n    # Install also a library needed by the Windows executables.  We do provide\n    # it in OpenSSL_jll, but with a different soname (`libcrypto-3-x64.dll`) and\n    # so it can't be found.\n    install -Dvm 0755 libcrypto.dll -t \"${libdir}\"\nfi\n"""
-        version = "v10.1.1"
-
-            [["10.1.1+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Zlib_jll"
-            platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["10.1.1+0".artifact_metadata.metadata.dependencies]]
-            compat = "3.0.16"
-            name = "OpenSSL_jll"
-            platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["10.1.1+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh"]
-            type = "exe"
-            variable_name = "ssh"
-            [["10.1.1+0".artifact_metadata.metadata.products]]
-            binnames = ["scp"]
-            type = "exe"
-            variable_name = "scp"
-            [["10.1.1+0".artifact_metadata.metadata.products]]
-            binnames = ["sftp"]
-            type = "exe"
-            variable_name = "sftp"
-            [["10.1.1+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh-agent"]
-            type = "exe"
-            variable_name = "ssh_agent"
-            [["10.1.1+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh-add"]
-            type = "exe"
-            variable_name = "ssh_add"
-            [["10.1.1+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh-keygen"]
-            type = "exe"
-            variable_name = "ssh_keygen"
-            [["10.1.1+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh-keyscan"]
-            type = "exe"
-            variable_name = "ssh_keyscan"
-
-            [["10.1.1+0".artifact_metadata.metadata.sources]]
-            hash = "b9fc7a2b82579467a6f2f43e4a81c8e1dfda614ddb4f9b255aafd7020bbf0758"
-            type = "archive"
-            unpack_target = ""
-            url = "https://cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-10.1p1.tar.gz"
-            [["10.1.1+0".artifact_metadata.metadata.sources]]
-            hash = "9245c9ff62d6d11708cb3125097f8cd5627e995c225d0469cf2c3c6be4014952"
-            type = "archive"
-            unpack_target = "i686-w64-mingw32"
-            url = "https://github.com/PowerShell/Win32-OpenSSH/releases/download/v9.5.0.0p1-Beta/OpenSSH-Win32.zip"
-            [["10.1.1+0".artifact_metadata.metadata.sources]]
-            hash = "bd48fe985d400402c278c485db20e6a82bc4c7f7d8e0ef5a81128f523096530c"
-            type = "archive"
-            unpack_target = "x86_64-w64-mingw32"
-            url = "https://github.com/PowerShell/Win32-OpenSSH/releases/download/v9.5.0.0p1-Beta/OpenSSH-Win64.zip"
 
 ["10.2.1+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.2.1+0/OpenSSH.v10.2.1.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.2.1+0/OpenSSH.v10.2.1.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.2.1+0/OpenSSH.v10.2.1.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.2.1+0/OpenSSH.v10.2.1.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.2.1+0/OpenSSH.v10.2.1.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.2.1+0/OpenSSH.v10.2.1.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.2.1+0/OpenSSH.v10.2.1.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.2.1+0/OpenSSH.v10.2.1.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.2.1+0/OpenSSH.v10.2.1.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.2.1+0/OpenSSH.v10.2.1.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.2.1+0/OpenSSH.v10.2.1.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.2.1+0/OpenSSH.v10.2.1.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.2.1+0/OpenSSH.v10.2.1.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.2.1+0/OpenSSH.v10.2.1.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.2.1+0/OpenSSH.v10.2.1.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.2.1+0/OpenSSH.v10.2.1.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.2.1+0/OpenSSH.v10.2.1.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.2.1+0/OpenSSH.v10.2.1.x86_64-w64-mingw32.tar.gz"]
@@ -997,80 +149,7 @@ registered = 2025-10-12T19:08:28.000Z
     [["10.2.1+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.2.1+0/OpenSSH.v10.2.1.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.2.1+0/OpenSSH.v10.2.1.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.2.1+0/OpenSSH.v10.2.1.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.2.1+0/OpenSSH.v10.2.1.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.2.1+0/OpenSSH.v10.2.1.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.2.1+0/OpenSSH.v10.2.1.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.2.1+0/OpenSSH.v10.2.1.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.2.1+0/OpenSSH.v10.2.1.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.2.1+0/OpenSSH.v10.2.1.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.2.1+0/OpenSSH.v10.2.1.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.2.1+0/OpenSSH.v10.2.1.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.2.1+0/OpenSSH.v10.2.1.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.2.1+0/OpenSSH.v10.2.1.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.2.1+0/OpenSSH.v10.2.1.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.2.1+0/OpenSSH.v10.2.1.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.2.1+0/OpenSSH.v10.2.1.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.2.1+0/OpenSSH.v10.2.1.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/OpenSSH_jll.jl/releases/download/OpenSSH-v10.2.1+0/OpenSSH.v10.2.1.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/313d2601260c858557fd7deb300bf107e6baa16e/O/OpenSSH/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/o/openssh/build_tarballs.jl/313d2601260c858557fd7deb300bf107e6baa16e.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.6.5"
-
-        ["10.2.1+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "OpenSSH"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd ${WORKSPACE}/srcdir\n\ninstall_license openssh-*/LICENCE\nPRODUCTS=(ssh ssh-add ssh-keygen ssh-keyscan ssh-agent scp sftp)\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    cd \"${target}/OpenSSH-Win${nbits}\"\nelse\n    cd openssh-*\n\n    # Remove OpenSSL from the sysroot to avoid confusion\n    rm -f /opt/${target}/${target}/sys-root/usr/lib/libcrypto.*\n    rm -f /opt/${target}/${target}/sys-root/usr/lib/libssl.*\n    rm -f /lib/libcrypto.so*\n    rm -f /usr/lib/libcrypto.so*\n\n    conf_args=()\n    if [[ \"${target}\" == *-linux-gnu* ]]; then\n        # We use very old versions of glibc which used to have `libcrypt.so.1`, but modern\n        # glibcs have `libcrypt.so.2`, so if we link to `libcrypt.so.1` most users would\n        # have troubles running the programs at runtime.\n        conf_args+=(ac_cv_lib_crypt_crypt=no)\n    fi\n\n    export CPPFLAGS=\"-I${includedir}\"\n    autoreconf -vi\n    ./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \"${conf_args[@]}\"\n    make -j${nproc} \"${PRODUCTS[@]}\"\nfi\n\nfor binary in \"${PRODUCTS[@]}\"; do\n    install -Dvm 0755 \"${binary}${exeext}\" -t \"${bindir}\"\ndone\nif [[ \"${target}\" == *-mingw* ]]; then\n    # Install also a library needed by the Windows executables.  We do provide\n    # it in OpenSSL_jll, but with a different soname (`libcrypto-3-x64.dll`) and\n    # so it can't be found.\n    install -Dvm 0755 libcrypto.dll -t \"${libdir}\"\nfi\n"""
-        version = "v10.2.1"
-
-            [["10.2.1+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Zlib_jll"
-            platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["10.2.1+0".artifact_metadata.metadata.dependencies]]
-            compat = "3.0.16"
-            name = "OpenSSL_jll"
-            platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["10.2.1+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh"]
-            type = "exe"
-            variable_name = "ssh"
-            [["10.2.1+0".artifact_metadata.metadata.products]]
-            binnames = ["scp"]
-            type = "exe"
-            variable_name = "scp"
-            [["10.2.1+0".artifact_metadata.metadata.products]]
-            binnames = ["sftp"]
-            type = "exe"
-            variable_name = "sftp"
-            [["10.2.1+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh-agent"]
-            type = "exe"
-            variable_name = "ssh_agent"
-            [["10.2.1+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh-add"]
-            type = "exe"
-            variable_name = "ssh_add"
-            [["10.2.1+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh-keygen"]
-            type = "exe"
-            variable_name = "ssh_keygen"
-            [["10.2.1+0".artifact_metadata.metadata.products]]
-            binnames = ["ssh-keyscan"]
-            type = "exe"
-            variable_name = "ssh_keyscan"
-
-            [["10.2.1+0".artifact_metadata.metadata.sources]]
-            hash = "ccc42c0419937959263fa1dbd16dafc18c56b984c03562d2937ce56a60f798b2"
-            type = "archive"
-            unpack_target = ""
-            url = "https://cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-10.2p1.tar.gz"
-            [["10.2.1+0".artifact_metadata.metadata.sources]]
-            hash = "9245c9ff62d6d11708cb3125097f8cd5627e995c225d0469cf2c3c6be4014952"
-            type = "archive"
-            unpack_target = "i686-w64-mingw32"
-            url = "https://github.com/PowerShell/Win32-OpenSSH/releases/download/v9.8.3.0p2-Preview/OpenSSH-Win32.zip"
-            [["10.2.1+0".artifact_metadata.metadata.sources]]
-            hash = "bd48fe985d400402c278c485db20e6a82bc4c7f7d8e0ef5a81128f523096530c"
-            type = "archive"
-            unpack_target = "x86_64-w64-mingw32"
-            url = "https://github.com/PowerShell/Win32-OpenSSH/releases/download/v9.8.3.0p2-Preview/OpenSSH-Win64.zip"

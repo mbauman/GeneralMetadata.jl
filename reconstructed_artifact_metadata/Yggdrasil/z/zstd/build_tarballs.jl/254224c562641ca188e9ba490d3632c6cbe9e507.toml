@@ -1,0 +1,30 @@
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Zstd"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "aarch64-apple-darwin", "armv6l-linux-gnueabihf", "armv6l-linux-musleabihf"]
+script = """cd ${WORKSPACE}/srcdir/zstd-*/\nmkdir build-zstd && cd build-zstd\nif [[ \"${target}\" == i686-linux-musl ]]; then\n    # We can't run executables for i686-linux-musl in the BB environment\n    sed -i \"s/needs_exe_wrapper = false/needs_exe_wrapper = true/\" \"${MESON_TARGET_TOOLCHAIN}\"\nelif [[ \"${target}\" == aarch64-linux-gnu ]]; then\n    # Work around https://github.com/facebook/zstd/issues/1872\n    #\n    #   ../programs/util.c:76:29: error: ‘stat_t’ has no member named ‘st_mtim’\n    #            timebuf[1] = statbuf->st_mtim;\n    #                                ^\n    sed -i \"s/c_args = \\[\\]/c_args = ['-D_POSIX_C_SOURCE']/\" \"${MESON_TARGET_TOOLCHAIN}\"\nfi\nmeson --cross-file=\"${MESON_TARGET_TOOLCHAIN}\" ../build/meson/\nninja -j${nproc}\nninja install\n"""
+version = "v1.5.0"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libzstd"]
+type = "lib"
+variable_name = "libzstd"
+[[products]]
+binnames = ["zstd"]
+type = "exe"
+variable_name = "zstd"
+[[products]]
+binnames = ["zstdmt"]
+type = "exe"
+variable_name = "zstdmt"
+
+[[sources]]
+hash = "5194fbfa781fcf45b98c5e849651aa7b3b0a008c6b72d4a0db760f3002291e94"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/facebook/zstd/releases/download/v1.5.0/zstd-1.5.0.tar.gz"

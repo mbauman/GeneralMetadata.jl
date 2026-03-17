@@ -1,0 +1,28 @@
+init_block = ""
+julia_compat = "1.5"
+lazy_artifacts = false
+name = "Enzyme"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd Enzyme\n# install_license LICENSE.TXT\n\nCMAKE_FLAGS=()\n\n# Release build for best performance\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=RelWithDebInfo)\n\n# Install things into $prefix\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix})\n\n# Explicitly use our cmake toolchain file and tell CMake we're cross-compiling\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING:BOOL=ON)\n\n# Tell CMake where LLVM is\nCMAKE_FLAGS+=(-DLLVM_DIR=\"${prefix}/lib/cmake/llvm\")\n\n# Force linking against shared lib\nCMAKE_FLAGS+=(-DLLVM_LINK_LLVM_DYLIB=ON)\n\n# Build the library\nCMAKE_FLAGS+=(-DBUILD_SHARED_LIBS=ON)\ncmake -B build -S enzyme -GNinja ${CMAKE_FLAGS[@]}\nninja -C build -j ${nproc} install\n"""
+version = "v0.0.4"
+
+[[dependencies]]
+name = "LLVM_full_jll"
+type = "builddependency"
+version-major = 9
+version-minor = 0
+version-patch = 1
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["LLVMEnzyme-9", "LLVMEnzyme"]
+type = "lib"
+variable_name = "libEnzyme"
+
+[[sources]]
+hash = "f86dc1b68d1d29b95912ee260810f2806657240a"
+type = "git"
+unpack_target = ""
+url = "https://github.com/wsmoses/Enzyme.git"

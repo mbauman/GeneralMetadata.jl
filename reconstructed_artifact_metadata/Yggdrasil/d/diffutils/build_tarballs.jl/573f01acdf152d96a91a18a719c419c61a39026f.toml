@@ -1,0 +1,37 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "diffutils"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/diffutils-*/\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    atomic_patch -p1 ../patches/win_sa_restart.patch\n    atomic_patch -p1 ../patches/win_signal_handling.patch\nfi\n\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} --disable-dependency-tracking\n\n# skip gnulib-tests on mingw\nif [[ \"${target}\" == *-mingw* ]]; then\n    make -j${nproc} SUBDIRS=\"lib src tests doc man po\"\n    make install SUBDIRS=\"lib src tests doc man po\"\nelse\n    make -j${nproc}\n    make install\nfi\n"""
+version = "v3.10.0"
+
+[[products]]
+binnames = ["cmp"]
+type = "exe"
+variable_name = "_cmp"
+[[products]]
+binnames = ["diff"]
+type = "exe"
+variable_name = "_diff"
+[[products]]
+binnames = ["diff3"]
+type = "exe"
+variable_name = "diff3"
+[[products]]
+binnames = ["sdiff"]
+type = "exe"
+variable_name = "sdiff"
+
+[[sources]]
+hash = "90e5e93cc724e4ebe12ede80df1634063c7a855692685919bfe60b556c9bd09e"
+type = "archive"
+unpack_target = ""
+url = "https://ftp.gnu.org/gnu/diffutils/diffutils-3.10.tar.xz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

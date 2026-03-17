@@ -1,0 +1,28 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "libdeflate"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """# This requires macOS 10.13\nif [[ \"${target}\" == x86_64-apple-darwin* ]]; then\n    rm -rf /opt/${target}/${target}/sys-root/System\n    tar --extract --file=${WORKSPACE}/srcdir/MacOSX10.13.sdk.tar.xz --directory=\"/opt/${target}/${target}/sys-root/.\" --strip-components=1 MacOSX10.13.sdk/System MacOSX10.13.sdk/usr\n    export MACOSX_DEPLOYMENT_TARGET=10.13\nfi\n\ncd $WORKSPACE/srcdir/libdeflate\ncmake -DCMAKE_INSTALL_PREFIX=$prefix -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} -DCMAKE_BUILD_TYPE=Release\nmake -j${nproc}\nmake install\ninstall_license ${WORKSPACE}/srcdir/libdeflate/COPYING\n"""
+version = "v1.24.0"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libdeflate"]
+type = "lib"
+variable_name = "libdeflate"
+
+[[sources]]
+hash = "96836d7d9d10e3e0d53e6edb54eb908514e336c4"
+type = "git"
+unpack_target = ""
+url = "https://github.com/ebiggers/libdeflate"
+[[sources]]
+filename = "MacOSX10.13.sdk.tar.xz"
+hash = "a3a077385205039a7c6f9e2c98ecdf2a720b2a819da715e03e0630c75782c1e4"
+type = "file"
+url = "https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.13.sdk.tar.xz"

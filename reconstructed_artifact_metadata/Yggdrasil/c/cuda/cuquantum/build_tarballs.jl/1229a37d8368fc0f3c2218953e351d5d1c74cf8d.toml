@@ -1,0 +1,73 @@
+augment_platform_block = """using Base.BinaryPlatforms\n\ntry\n    using CUDA_Runtime_jll\ncatch\n    # during initial package installation, CUDA_Runtime_jll may not be available.\n    # in that case, we just won't select an artifact.\nend\n\nfunction cuda_comparison_strategy(a::String, b::String, a_requested::Bool, b_requested::Bool)\n    if a == \"none\" || b == \"none\"\n        return a == b\n    end\n    if a == \"local\" || b == \"local\"\n        return a == b\n    end\n    a = VersionNumber(a)\n    b = VersionNumber(b)\n\n    # If both b and a requested, then we fall back to equality:\n    if a_requested && b_requested\n        return Base.thisminor(a) == Base.thisminor(b)\n    end\n\n    # Otherwise, do the comparison between the the single version cap and the single version:\n    function is_compatible(artifact::VersionNumber, host::VersionNumber)\n        if host >= v\"11.0\"\n            # enhanced compatibility, semver-style\n            artifact.major == host.major &&\n            Base.thisminor(artifact) <= Base.thisminor(host)\n        else\n            Base.thisminor(artifact) == Base.thisminor(host)\n        end\n    end\n    if a_requested\n        is_compatible(b, a)\n    else\n        is_compatible(a, b)\n    end\nend\n\nfunction augment_platform!(platform::Platform)\n    if !@isdefined(CUDA_Runtime_jll)\n        # don't set to nothing or Pkg will download any artifact\n        platform[\"cuda\"] = \"none\"\n    end\n\n    if !haskey(platform, \"cuda\")\n        CUDA_Runtime_jll.augment_platform!(platform)\n    end\n    BinaryPlatforms.set_compare_strategy!(platform, \"cuda\", cuda_comparison_strategy)\n    return platform\nend"""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = true
+name = "cuQuantum"
+platforms = ["x86_64-linux-gnu-cuda+11.0", "powerpc64le-linux-gnu-cuda+11.0", "aarch64-linux-gnu-cuda+11.0", "x86_64-linux-gnu-cuda+12.0", "powerpc64le-linux-gnu-cuda+12.0", "aarch64-linux-gnu-cuda+12.0"]
+script = """mkdir -p ${libdir} ${prefix}/include\n\ncd ${WORKSPACE}/srcdir/cuquantum-*\ninstall_license LICENSE\n\nmv lib/*.so* ${libdir}\nmv include/* ${prefix}/include\n"""
+version = "v23.6.1"
+
+[[dependencies]]
+compat = ""
+name = "CUDA_Runtime_jll"
+platforms = ["any"]
+top_level = false
+type = "runtimedependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "~1.6.1"
+name = "CUTENSOR_jll"
+platforms = ["any"]
+top_level = false
+type = "runtimedependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcustatevec"]
+type = "lib"
+variable_name = "libcustatevec"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcutensornet"]
+type = "lib"
+variable_name = "libcutensornet"
+
+[[sources]]
+hash = "7794952a6dc8593881b0aef5798a6a2bf5087bc64748ec951971235d2357aae3"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum/linux-x86_64/cuquantum-linux-x86_64-23.06.1.8_cuda11-archive.tar.xz"
+[[sources]]
+hash = "5265dc591d7c4352eaf1d3b5cbb7780af5d1255714c36f0436b8297f62a9f6bb"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum/linux-ppc64le/cuquantum-linux-ppc64le-23.06.1.8_cuda11-archive.tar.xz"
+[[sources]]
+hash = "9cbd6f44705133a8743048276bc81823f0778a0d107cce641600e1a3dfc1ae75"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum/linux-sbsa/cuquantum-linux-sbsa-23.06.1.8_cuda11-archive.tar.xz"
+[[sources]]
+hash = "6f53da19c6f052ed1eb83a3c594862a161c92517c7fa2e0c054466d7783d4920"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum/linux-x86_64/cuquantum-linux-x86_64-23.06.1.8_cuda12-archive.tar.xz"
+[[sources]]
+hash = "d8a52117c2adc874363d4f128344e80ee9fb1b45e1c572377cf6f3392a95362c"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum/linux-ppc64le/cuquantum-linux-ppc64le-23.06.1.8_cuda12-archive.tar.xz"
+[[sources]]
+hash = "c0b6c54b790907b30a57e4e0c8dd9620e2bd4d0cd67134ccf063af1d4c36b160"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum/linux-sbsa/cuquantum-linux-sbsa-23.06.1.8_cuda12-archive.tar.xz"

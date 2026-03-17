@@ -1,0 +1,755 @@
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "Qt"
+platforms = ["aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-unknown-freebsd", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-apple-darwin"]
+script = """cd $WORKSPACE/srcdir\n\nBIN_DIR=\"/opt/bin/${bb_full_target}\"\n\nsed -i 's/-march=core-avx2//' ./qt-everywhere-src-*/qtbase/mkspecs/common/gcc-base.conf\n\nmkdir build\ncd build/\n\nqtsrcdir=`ls -d ../qt-everywhere-src-*`\n\ncommonoptions=\" \\\n-opensource -confirm-license \\\n-skip qtactiveqt -skip qtandroidextras -skip qtcanvas3d -skip qtconnectivity -skip qtdatavis3d -skip qtdoc -skip qtgamepad \\\n-skip qtnetworkauth -skip qtpurchasing -skip qtremoteobjects -skip qtscript -skip qtscxml -skip qtsensors -skip qtserialbus \\\n-skip qtserialport -skip qtspeech -skip qtvirtualkeyboard -skip qtlocation -skip qtwayland -skip qtwebchannel -skip qtwebengine \\\n-skip qtwebglplugin -skip qtwebsockets -skip qtwebview  -skip qttools  -openssl-linked  -nomake examples -release \\\n\"\n\nexport OPENSSL_LIBS=\"-L${libdir} -lssl -lcrypto\"\n\napk add g++ linux-headers\n\nif [[ $target != x86_64-linux* ]]; then\n    export PATH=$(echo \"$PATH\" | sed -e \"s?${BIN_DIR}:??\")\nfi\n\ncase \"$target\" in\n\n\t*x86_64*linux*)\n        ../qt-everywhere-src-*/configure -L ${libdir} -I ${includedir} \\\n            -prefix $prefix $commonoptions \\\n            -skip qtwinextras -fontconfig\n        ;;\n\n\t*apple-darwin*)\n        cd $WORKSPACE/srcdir/MacOSX10.14.sdk\n        rm -rf /opt/$target/$target/sys-root/System\n        rsync -a usr/* /opt/$target/$target/sys-root/usr/\n        cp -a System /opt/$target/$target/sys-root/\n\n        cd $WORKSPACE/srcdir/qt-everywhere-src-*/qtbase\n\n        cat <<EOT > mkspecs/features/mac/default_pre.prf\nCONFIG = asset_catalogs rez \\$\\$CONFIG\nload(default_pre)\n\nQMAKE_ASSET_CATALOGS_APP_ICON = AppIcon\n\nmacx-xcode:qtConfig(static): \\\\\n    QMAKE_XCODE_DEBUG_INFORMATION_FORMAT = dwarf\n\nQMAKE_XCODE_LIBRARY_SUFFIX_SETTING = QT_LIBRARY_SUFFIX\n\nxcode_copy_phase_strip_setting.name = COPY_PHASE_STRIP\nxcode_copy_phase_strip_setting.value = NO\nQMAKE_MAC_XCODE_SETTINGS += xcode_copy_phase_strip_setting\nEOT\n\n        sed -i '1s;^;QMAKE_MAC_SDK.macosx.Path = '\"/opt/$target/$target/sys-root\"'\\\n        QMAKE_MAC_SDK.macosx.SDKVersion = '\"10.14\"'\\\n        QMAKE_MAC_SDK.macosx.PlatformPath = '\"/opt/$target\"'\\n;' 'mkspecs/features/mac/sdk.prf'\n        echo \"\" >  mkspecs/features/mac/no_warn_empty_obj_files.prf\n\n        sed -i \"s?-fuse-ld=x86_64-apple-darwin14?-fuse-ld=${BIN_DIR}/x86_64-apple-darwin14-ld?g\" ${BIN_DIR}/x86_64-apple-darwin14-clang++\n        sed -i \"s?-fuse-ld=x86_64-apple-darwin14?-fuse-ld=${BIN_DIR}/x86_64-apple-darwin14-ld?g\" ${BIN_DIR}/x86_64-apple-darwin14-clang\n\n        cd $WORKSPACE/srcdir/build\n\n        export QT_MAC_SDK_NO_VERSION_CHECK=1\n        ../qt-everywhere-src-*/configure \\\n            QMAKE_CXXFLAGS+=-F/opt/$target/$target/sys-root/System/Library/Frameworks \\\n            QMAKE_RANLIB=${BIN_DIR}/ranlib \\\n            QMAKE_MACOSX_DEPLOYMENT_TARGET=10.14 \\\n            -platform linux-g++ -xplatform macx-clang -device-option CROSS_COMPILE=${BIN_DIR}/$target- \\\n            -prefix ${prefix} $commonoptions \\\n            -skip qtwinextras\n        ;;\n\n    *mingw*)\n        ../qt-everywhere-src-*/configure -I $WORKSPACE/srcdir/qt-everywhere-src-*/qtbase/include/QtANGLE -platform linux-g++ -xplatform win32-g++ -device-option CROSS_COMPILE=${BIN_DIR}/$target- \\\n            -prefix $prefix $commonoptions \\\n            -opengl dynamic\n\t\t;;\n\n    *arm-linux*)\n        sed -i 's/linux-gnueabi/linux-gnueabihf/g' ../qt-everywhere-src-*/qtbase/mkspecs/linux-arm-gnueabi-g++/qmake.conf\n\n        ../qt-everywhere-src-*/configure QMAKE_LFLAGS=-liconv -platform linux-g++ -xplatform linux-arm-gnueabi-g++ -device-option CROSS_COMPILE=${BIN_DIR}/${target}- \\\n            -extprefix $prefix $commonoptions \\\n            -skip qtwinextras -fontconfig -sysroot /opt/$target/bin/../$target/sys-root\n        ;;\n\n    *aarch64-linux*)\n        ../qt-everywhere-src-*/configure QMAKE_LFLAGS=-liconv -platform linux-g++ -xplatform linux-aarch64-gnu-g++ -device-option CROSS_COMPILE=${BIN_DIR}/${target}- \\\n            -extprefix $prefix $commonoptions \\\n            -skip qtwinextras -fontconfig -sysroot /opt/$target/bin/../$target/sys-root\n        ;;\n\n    *i686-linux*)\n        cp -a ../qt-everywhere-src-*/qtbase/mkspecs/linux-aarch64-gnu-g++ $qtsrcdir/qtbase/mkspecs/linux-i686-bb\n        sed -i 's/aarch64-/i686-/g' ../qt-everywhere-src-*/qtbase/mkspecs/linux-i686-bb/qmake.conf\n\n        ../qt-everywhere-src-*/configure -platform linux-g++ -xplatform linux-i686-bb -device-option CROSS_COMPILE=${BIN_DIR}/$target- \\\n            -extprefix $prefix $commonoptions \\\n            -skip qtwinextras -fontconfig -sysroot /opt/$target/bin/../$target/sys-root\n        ;;\n\n    *x86_64-unknown-freebsd*)\n        sed -i 's/load(qt_config)//' ../qt-everywhere-src-*/qtbase/mkspecs/freebsd-g++/qmake.conf\n        grep -A11 QMAKE_CC ../qt-everywhere-src-*/qtbase/mkspecs/linux-aarch64-gnu-g++/qmake.conf | sed -e 's/aarch64-linux-gnu/x86_64-unknown-freebsd11.1/' >> ../qt-everywhere-src-*/qtbase/mkspecs/freebsd-g++/qmake.conf\n        sed -i 's/stat64/stat/' ../qt-everywhere-src-*/qt3d/src/3rdparty/assimp/contrib/zip/src/miniz.h\n        sed -i 's/fopen64/fopen/' ../qt-everywhere-src-*/qt3d/src/3rdparty/assimp/contrib/zip/src/miniz.h\n        sed -i 's/ftello64/ftello/' ../qt-everywhere-src-*/qt3d/src/3rdparty/assimp/contrib/zip/src/miniz.h\n        sed -i 's/fseeko64/fseeko/' ../qt-everywhere-src-*/qt3d/src/3rdparty/assimp/contrib/zip/src/miniz.h\n        sed -i 's/freopen64/freopen/' ../qt-everywhere-src-*/qt3d/src/3rdparty/assimp/contrib/zip/src/miniz.h\n\n        ../qt-everywhere-src-*/configure -platform linux-g++ -xplatform freebsd-g++ -device-option CROSS_COMPILE=${BIN_DIR}/$target- \\\n            -extprefix $prefix $commonoptions \\\n            -skip qtwinextras -fontconfig -sysroot /opt/$target/bin/../$target/sys-root\n\t\t;;\n\n    *powerpc64le-linux*)\n        cp -a ../qt-everywhere-src-*/qtbase/mkspecs/linux-aarch64-gnu-g++ $qtsrcdir/qtbase/mkspecs/linux-ppc64-bb\n        sed -i 's/aarch64-/powerpc64le-/g' ../qt-everywhere-src-*/qtbase/mkspecs/linux-ppc64-bb/qmake.conf\n\n        ../qt-everywhere-src-*/configure QMAKE_LFLAGS=\"-liconv -Wl,-rpath-link,/opt/${target}/${target}/sys-root/lib64\" -platform linux-g++ -xplatform linux-ppc64-bb -device-option CROSS_COMPILE=${BIN_DIR}/${target}- \\\n            -extprefix $prefix $commonoptions \\\n            -skip qtwinextras -fontconfig -sysroot /opt/$target/bin/../$target/sys-root\n\t\t;;\nesac\n\nmake -j${nproc}\nmake install\n\n# Deleting static libraries is problematic: https://github.com/JuliaPackaging/Yggdrasil/pull/2713\n#rm ${prefix}/lib/*.a\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    # Make executables for Windows... executable\n    chmod 755 ${bindir}/*${exeext}\nfi\n\ninstall_license $WORKSPACE/srcdir/qt-everywhere-src-*/LICENSE.LGPLv3\n"""
+version = "v5.15.2"
+
+[[dependencies]]
+compat = ""
+name = "Xorg_libX11_jll"
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_libXext_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_glproto_jll"
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_libxcb_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_xcb_util_wm_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_xcb_util_image_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_xcb_util_keysyms_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_xcb_util_renderutil_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "xkbcommon_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Libglvnd_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Fontconfig_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Glib_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenSSL_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt53DAnimation", "libQt53DAnimation", "Qt3DAnimation"]
+type = "lib"
+variable_name = "libqt53danimation"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt53DCore", "libQt53DCore", "Qt3DCore"]
+type = "lib"
+variable_name = "libqt53dcore"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt53DExtras", "libQt53DExtras", "Qt3DExtras"]
+type = "lib"
+variable_name = "libqt53dextras"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt53DInput", "libQt53DInput", "Qt3DInput"]
+type = "lib"
+variable_name = "libqt53dinput"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt53DLogic", "libQt53DLogic", "Qt3DLogic"]
+type = "lib"
+variable_name = "libqt53dlogic"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt53DQuick", "libQt53DQuick", "Qt3DQuick"]
+type = "lib"
+variable_name = "libqt53dquick"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt53DQuickAnimation", "libQt53DQuickAnimation", "Qt3DQuickAnimation"]
+type = "lib"
+variable_name = "libqt53dquickanimation"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt53DQuickExtras", "libQt53DQuickExtras", "Qt3DQuickExtras"]
+type = "lib"
+variable_name = "libqt53dquickextras"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt53DQuickInput", "libQt53DQuickInput", "Qt3DQuickInput"]
+type = "lib"
+variable_name = "libqt53dquickinput"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt53DQuickRender", "libQt53DQuickRender", "Qt3DQuickRender"]
+type = "lib"
+variable_name = "libqt53dquickrender"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt53DQuickScene2D", "libQt53DQuickScene2D", "Qt3DQuickScene2D"]
+type = "lib"
+variable_name = "libqt53dquickscene2d"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt53DRender", "libQt53DRender", "Qt3DRender"]
+type = "lib"
+variable_name = "libqt53drender"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt5Bodymovin", "libQt5Bodymovin", "QtBodymovin"]
+type = "lib"
+variable_name = "libqt5bodymovin"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt5Charts", "libQt5Charts", "QtCharts"]
+type = "lib"
+variable_name = "libqt5charts"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt5Concurrent", "libQt5Concurrent", "QtConcurrent"]
+type = "lib"
+variable_name = "libqt5concurrent"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt5Core", "libQt5Core", "QtCore"]
+type = "lib"
+variable_name = "libqt5core"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt5DBus", "libQt5DBus", "QtDBus"]
+type = "lib"
+variable_name = "libqt5dbus"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt5Gui", "libQt5Gui", "QtGui"]
+type = "lib"
+variable_name = "libqt5gui"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt5Multimedia", "libQt5Multimedia", "QtMultimedia"]
+type = "lib"
+variable_name = "libqt5multimedia"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt5MultimediaQuick", "libQt5MultimediaQuick", "QtMultimediaQuick"]
+type = "lib"
+variable_name = "libqt5multimediaquick"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt5MultimediaWidgets", "libQt5MultimediaWidgets", "QtMultimediaWidgets"]
+type = "lib"
+variable_name = "libqt5multimediawidgets"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt5Network", "libQt5Network", "QtNetwork"]
+type = "lib"
+variable_name = "libqt5network"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt5OpenGL", "libQt5OpenGL", "QtOpenGL"]
+type = "lib"
+variable_name = "libqt5opengl"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt5PrintSupport", "libQt5PrintSupport", "QtPrintSupport"]
+type = "lib"
+variable_name = "libqt5printsupport"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt5Qml", "libQt5Qml", "QtQml"]
+type = "lib"
+variable_name = "libqt5qml"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt5QmlModels", "libQt5QmlModels", "QtQmlModels"]
+type = "lib"
+variable_name = "libqt5qmlmodels"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt5QmlWorkerScript", "libQt5QmlWorkerScript", "QtQmlWorkerScript"]
+type = "lib"
+variable_name = "libqt5qmlworkerscript"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt5Quick", "libQt5Quick", "QtQuick"]
+type = "lib"
+variable_name = "libqt5quick"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt5Quick3D", "libQt5Quick3D", "QtQuick3D"]
+type = "lib"
+variable_name = "libqt5quick3d"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt5Quick3DAssetImport", "libQt5Quick3DAssetImport", "QtQuick3DAssetImport"]
+type = "lib"
+variable_name = "libqt5quick3dassetimport"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt5Quick3DRender", "libQt5Quick3DRender", "QtQuick3DRender"]
+type = "lib"
+variable_name = "libqt5quick3drender"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt5Quick3DRuntimeRender", "libQt5Quick3DRuntimeRender", "QtQuick3DRuntimeRender"]
+type = "lib"
+variable_name = "libqt5quick3druntimerender"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt5Quick3DUtils", "libQt5Quick3DUtils", "QtQuick3DUtils"]
+type = "lib"
+variable_name = "libqt5quick3dutils"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt5QuickControls2", "libQt5QuickControls2", "QtQuickControls2"]
+type = "lib"
+variable_name = "libqt5quickcontrols2"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt5QuickParticles", "libQt5QuickParticles", "QtQuickParticles"]
+type = "lib"
+variable_name = "libqt5quickparticles"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt5QuickShapes", "libQt5QuickShapes", "QtQuickShapes"]
+type = "lib"
+variable_name = "libqt5quickshapes"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt5QuickTemplates2", "libQt5QuickTemplates2", "QtQuickTemplates2"]
+type = "lib"
+variable_name = "libqt5quicktemplates2"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt5QuickTest", "libQt5QuickTest", "QtQuickTest"]
+type = "lib"
+variable_name = "libqt5quicktest"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt5QuickWidgets", "libQt5QuickWidgets", "QtQuickWidgets"]
+type = "lib"
+variable_name = "libqt5quickwidgets"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt5Sql", "libQt5Sql", "QtSql"]
+type = "lib"
+variable_name = "libqt5sql"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt5Svg", "libQt5Svg", "QtSvg"]
+type = "lib"
+variable_name = "libqt5svg"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt5Test", "libQt5Test", "QtTest"]
+type = "lib"
+variable_name = "libqt5test"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt5Widgets", "libQt5Widgets", "QtWidgets"]
+type = "lib"
+variable_name = "libqt5widgets"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt5Xml", "libQt5Xml", "QtXml"]
+type = "lib"
+variable_name = "libqt5xml"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt5XmlPatterns", "libQt5XmlPatterns", "QtXmlPatterns"]
+type = "lib"
+variable_name = "libqt5xmlpatterns"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt3DAnimation"]
+type = "framework"
+variable_name = "libqt53danimation"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt3DCore"]
+type = "framework"
+variable_name = "libqt53dcore"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt3DExtras"]
+type = "framework"
+variable_name = "libqt53dextras"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt3DInput"]
+type = "framework"
+variable_name = "libqt53dinput"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt3DLogic"]
+type = "framework"
+variable_name = "libqt53dlogic"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt3DQuick"]
+type = "framework"
+variable_name = "libqt53dquick"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt3DQuickAnimation"]
+type = "framework"
+variable_name = "libqt53dquickanimation"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt3DQuickExtras"]
+type = "framework"
+variable_name = "libqt53dquickextras"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt3DQuickInput"]
+type = "framework"
+variable_name = "libqt53dquickinput"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt3DQuickRender"]
+type = "framework"
+variable_name = "libqt53dquickrender"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt3DQuickScene2D"]
+type = "framework"
+variable_name = "libqt53dquickscene2d"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt3DRender"]
+type = "framework"
+variable_name = "libqt53drender"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["QtBodymovin"]
+type = "framework"
+variable_name = "libqt5bodymovin"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["QtCharts"]
+type = "framework"
+variable_name = "libqt5charts"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["QtConcurrent"]
+type = "framework"
+variable_name = "libqt5concurrent"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["QtCore"]
+type = "framework"
+variable_name = "libqt5core"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["QtDBus"]
+type = "framework"
+variable_name = "libqt5dbus"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["QtGui"]
+type = "framework"
+variable_name = "libqt5gui"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["QtMultimedia"]
+type = "framework"
+variable_name = "libqt5multimedia"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["QtMultimediaQuick"]
+type = "framework"
+variable_name = "libqt5multimediaquick"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["QtMultimediaWidgets"]
+type = "framework"
+variable_name = "libqt5multimediawidgets"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["QtNetwork"]
+type = "framework"
+variable_name = "libqt5network"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["QtOpenGL"]
+type = "framework"
+variable_name = "libqt5opengl"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["QtPrintSupport"]
+type = "framework"
+variable_name = "libqt5printsupport"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["QtQml"]
+type = "framework"
+variable_name = "libqt5qml"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["QtQmlModels"]
+type = "framework"
+variable_name = "libqt5qmlmodels"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["QtQmlWorkerScript"]
+type = "framework"
+variable_name = "libqt5qmlworkerscript"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["QtQuick"]
+type = "framework"
+variable_name = "libqt5quick"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["QtQuick3D"]
+type = "framework"
+variable_name = "libqt5quick3d"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["QtQuick3DAssetImport"]
+type = "framework"
+variable_name = "libqt5quick3dassetimport"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["QtQuick3DRender"]
+type = "framework"
+variable_name = "libqt5quick3drender"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["QtQuick3DRuntimeRender"]
+type = "framework"
+variable_name = "libqt5quick3druntimerender"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["QtQuick3DUtils"]
+type = "framework"
+variable_name = "libqt5quick3dutils"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["QtQuickControls2"]
+type = "framework"
+variable_name = "libqt5quickcontrols2"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["QtQuickParticles"]
+type = "framework"
+variable_name = "libqt5quickparticles"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["QtQuickShapes"]
+type = "framework"
+variable_name = "libqt5quickshapes"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["QtQuickTemplates2"]
+type = "framework"
+variable_name = "libqt5quicktemplates2"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["QtQuickTest"]
+type = "framework"
+variable_name = "libqt5quicktest"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["QtQuickWidgets"]
+type = "framework"
+variable_name = "libqt5quickwidgets"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["QtSql"]
+type = "framework"
+variable_name = "libqt5sql"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["QtSvg"]
+type = "framework"
+variable_name = "libqt5svg"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["QtTest"]
+type = "framework"
+variable_name = "libqt5test"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["QtWidgets"]
+type = "framework"
+variable_name = "libqt5widgets"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["QtXml"]
+type = "framework"
+variable_name = "libqt5xml"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["QtXmlPatterns"]
+type = "framework"
+variable_name = "libqt5xmlpatterns"
+
+[[sources]]
+hash = "3a530d1b243b5dec00bc54937455471aaa3e56849d2593edb8ded07228202240"
+type = "archive"
+unpack_target = ""
+url = "https://download.qt.io/official_releases/qt/5.15/5.15.2/single/qt-everywhere-src-5.15.2.tar.xz"
+[[sources]]
+hash = "0f03869f72df8705b832910517b47dd5b79eb4e160512602f593ed243b28715f"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.14.sdk.tar.xz"

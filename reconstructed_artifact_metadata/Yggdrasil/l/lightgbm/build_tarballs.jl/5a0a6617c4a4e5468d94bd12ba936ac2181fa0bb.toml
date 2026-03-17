@@ -1,0 +1,689 @@
+augment_platform_block = """using Base.BinaryPlatforms\n\ntry\n    using CUDA_Runtime_jll\ncatch\n    # during initial package installation, CUDA_Runtime_jll may not be available.\n    # in that case, we just won't select an artifact.\nend\n\n# can't use Preferences for the same reason\nconst CUDA_Runtime_jll_uuid = Base.UUID(\"76a88914-d11a-5bdc-97e0-2f5a05c973a2\")\nconst preferences = Base.get_preferences(CUDA_Runtime_jll_uuid)\nBase.record_compiletime_preference(CUDA_Runtime_jll_uuid, \"version\")\nBase.record_compiletime_preference(CUDA_Runtime_jll_uuid, \"local\")\nconst local_toolkit = something(tryparse(Bool, get(preferences, \"local\", \"false\")), false)\n\nfunction cuda_comparison_strategy(_a::String, _b::String, a_requested::Bool, b_requested::Bool)\n    # if we're using a local toolkit, we can't use artifacts\n    if local_toolkit\n        return false\n    end\n\n    # if either isn't a version number (e.g. \"none\"), perform a simple equality check\n    a = tryparse(VersionNumber, _a)\n    b = tryparse(VersionNumber, _b)\n    if a === nothing || b === nothing\n        return _a == _b\n    end\n\n    # if both b and a requested, then we fall back to equality\n    if a_requested && b_requested\n        return Base.thisminor(a) == Base.thisminor(b)\n    end\n\n    # otherwise, do the comparison between the the single version cap and the single version:\n    function is_compatible(artifact::VersionNumber, host::VersionNumber)\n        if host >= v\"11.0\"\n            # enhanced compatibility, semver-style\n            artifact.major == host.major &&\n            Base.thisminor(artifact) <= Base.thisminor(host)\n        else\n            Base.thisminor(artifact) == Base.thisminor(host)\n        end\n    end\n    if a_requested\n        is_compatible(b, a)\n    else\n        is_compatible(a, b)\n    end\nend\n\nfunction augment_platform!(platform::Platform)\n    if !@isdefined(CUDA_Runtime_jll)\n        # don't set to nothing or Pkg will download any artifact\n        platform[\"cuda\"] = \"none\"\n    end\n\n    if !haskey(platform, \"cuda\")\n        CUDA_Runtime_jll.augment_platform!(platform)\n    end\n    BinaryPlatforms.set_compare_strategy!(platform, \"cuda\", cuda_comparison_strategy)\n\n    return platform\nend"""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = true
+name = "LightGBM"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03-cuda+none", "x86_64-linux-gnu-cxx11-cuda+none", "aarch64-linux-gnu-cxx03-cuda+none", "aarch64-linux-gnu-cxx11-cuda+none", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03-cuda+none", "powerpc64le-linux-gnu-cxx11-cuda+none", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03-cuda+none", "x86_64-linux-musl-cxx11-cuda+none", "aarch64-linux-musl-cxx03-cuda+none", "aarch64-linux-musl-cxx11-cuda+none", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11", "x86_64-linux-gnu-cxx03-cuda+11.4", "x86_64-linux-gnu-cxx11-cuda+11.4", "x86_64-linux-gnu-cxx03-cuda+11.5", "x86_64-linux-gnu-cxx11-cuda+11.5", "x86_64-linux-gnu-cxx03-cuda+11.6", "x86_64-linux-gnu-cxx11-cuda+11.6", "x86_64-linux-gnu-cxx03-cuda+11.7", "x86_64-linux-gnu-cxx11-cuda+11.7", "x86_64-linux-gnu-cxx03-cuda+11.8", "x86_64-linux-gnu-cxx11-cuda+11.8", "x86_64-linux-gnu-cxx03-cuda+12.0", "x86_64-linux-gnu-cxx11-cuda+12.0", "x86_64-linux-gnu-cxx03-cuda+12.1", "x86_64-linux-gnu-cxx11-cuda+12.1", "x86_64-linux-gnu-cxx03-cuda+12.2", "x86_64-linux-gnu-cxx11-cuda+12.2", "x86_64-linux-gnu-cxx03-cuda+12.3", "x86_64-linux-gnu-cxx11-cuda+12.3", "x86_64-linux-gnu-cxx03-cuda+12.4", "x86_64-linux-gnu-cxx11-cuda+12.4", "x86_64-linux-gnu-cxx03-cuda+12.5", "x86_64-linux-gnu-cxx11-cuda+12.5"]
+script = """cd $WORKSPACE/srcdir/LightGBM\ngit submodule update --init --depth=1\ngit submodule update --checkout --depth=1\n\n# https://github.com/microsoft/LightGBM/pull/6457\natomic_patch -p1 \"$WORKSPACE/srcdir/patches/lightgbm-cmake-find-cuda.patch\"\n\nFLAGS=()\ncmake_extra_args=()\n\nif [[ \"${bb_full_target}\" == *\"apple-darwin\"* ]]; then\n  cmake_extra_args+=(-DAPPLE=1 -DAPPLE_OUTPUT_DYLIB=1)\nfi\n\nif [[ \"${bb_full_target}\" == *-mingw* ]]; then\n  cmake_extra_args+=(-DWIN32=1 -DMINGW=1)\n  FLAGS+=(LDFLAGS=\"-no-undefined\")\nfi\n\nif [[ \"${bb_full_target}\" == *-linux* ]]; then\n  cmake_extra_args+=(-DUSE_GPU=1)\nfi\n\nif  [[ (\"${bb_full_target}\" == *-cuda*) && (\"${bb_full_target}\" != *-cuda+none*) ]]; then\n  # nvcc writes to /tmp, which is a small tmpfs in our sandbox.\n  # make it use the workspace instead\n  export TMPDIR=${WORKSPACE}/tmpdir\n  mkdir ${TMPDIR}\n  export CUDA_PATH=${WORKSPACE}/destdir/cuda\n  export PATH=$PATH:$CUDA_PATH/bin/\n\n  cmake_extra_args+=(-DUSE_CUDA=1 -DCMAKE_CUDA_FLAGS=\"-L${CUDA_PATH}/lib -L${CUDA_PATH}/lib/stubs\")\nfi\n\ncmake . \\\n  -DCMAKE_INSTALL_PREFIX=$prefix\\\n  -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n  -DCMAKE_BUILD_TYPE=Release \\\n  \"${cmake_extra_args[@]}\"\n\nmake -j${nproc} \"${FLAGS[@]}\"\nmake install\ninstall_license LICENSE\n"""
+version = "v4.3.0"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11", "x86_64-linux-gnu-cxx03-cuda+11.4", "x86_64-linux-gnu-cxx11-cuda+11.4", "x86_64-linux-gnu-cxx03-cuda+11.5", "x86_64-linux-gnu-cxx11-cuda+11.5", "x86_64-linux-gnu-cxx03-cuda+11.6", "x86_64-linux-gnu-cxx11-cuda+11.6", "x86_64-linux-gnu-cxx03-cuda+11.7", "x86_64-linux-gnu-cxx11-cuda+11.7", "x86_64-linux-gnu-cxx03-cuda+11.8", "x86_64-linux-gnu-cxx11-cuda+11.8", "x86_64-linux-gnu-cxx03-cuda+12.0", "x86_64-linux-gnu-cxx11-cuda+12.0", "x86_64-linux-gnu-cxx03-cuda+12.1", "x86_64-linux-gnu-cxx11-cuda+12.1", "x86_64-linux-gnu-cxx03-cuda+12.2", "x86_64-linux-gnu-cxx11-cuda+12.2", "x86_64-linux-gnu-cxx03-cuda+12.3", "x86_64-linux-gnu-cxx11-cuda+12.3", "x86_64-linux-gnu-cxx03-cuda+12.4", "x86_64-linux-gnu-cxx11-cuda+12.4", "x86_64-linux-gnu-cxx03-cuda+12.5", "x86_64-linux-gnu-cxx11-cuda+12.5"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LLVMOpenMP_jll"
+platforms = ["x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd"]
+top_level = false
+type = "dependency"
+uuid = "1d63c593-3942-5779-bab2-d838dc0a180e"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenCL_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-linux-gnu-cxx03-cuda+11.4", "x86_64-linux-gnu-cxx11-cuda+11.4", "x86_64-linux-gnu-cxx03-cuda+11.5", "x86_64-linux-gnu-cxx11-cuda+11.5", "x86_64-linux-gnu-cxx03-cuda+11.6", "x86_64-linux-gnu-cxx11-cuda+11.6", "x86_64-linux-gnu-cxx03-cuda+11.7", "x86_64-linux-gnu-cxx11-cuda+11.7", "x86_64-linux-gnu-cxx03-cuda+11.8", "x86_64-linux-gnu-cxx11-cuda+11.8", "x86_64-linux-gnu-cxx03-cuda+12.0", "x86_64-linux-gnu-cxx11-cuda+12.0", "x86_64-linux-gnu-cxx03-cuda+12.1", "x86_64-linux-gnu-cxx11-cuda+12.1", "x86_64-linux-gnu-cxx03-cuda+12.2", "x86_64-linux-gnu-cxx11-cuda+12.2", "x86_64-linux-gnu-cxx03-cuda+12.3", "x86_64-linux-gnu-cxx11-cuda+12.3", "x86_64-linux-gnu-cxx03-cuda+12.4", "x86_64-linux-gnu-cxx11-cuda+12.4", "x86_64-linux-gnu-cxx03-cuda+12.5", "x86_64-linux-gnu-cxx11-cuda+12.5"]
+top_level = false
+type = "dependency"
+uuid = "6cb37087-e8b6-5417-8430-1f242f1e46e4"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenCL_Headers_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-linux-gnu-cxx03-cuda+11.4", "x86_64-linux-gnu-cxx11-cuda+11.4", "x86_64-linux-gnu-cxx03-cuda+11.5", "x86_64-linux-gnu-cxx11-cuda+11.5", "x86_64-linux-gnu-cxx03-cuda+11.6", "x86_64-linux-gnu-cxx11-cuda+11.6", "x86_64-linux-gnu-cxx03-cuda+11.7", "x86_64-linux-gnu-cxx11-cuda+11.7", "x86_64-linux-gnu-cxx03-cuda+11.8", "x86_64-linux-gnu-cxx11-cuda+11.8", "x86_64-linux-gnu-cxx03-cuda+12.0", "x86_64-linux-gnu-cxx11-cuda+12.0", "x86_64-linux-gnu-cxx03-cuda+12.1", "x86_64-linux-gnu-cxx11-cuda+12.1", "x86_64-linux-gnu-cxx03-cuda+12.2", "x86_64-linux-gnu-cxx11-cuda+12.2", "x86_64-linux-gnu-cxx03-cuda+12.3", "x86_64-linux-gnu-cxx11-cuda+12.3", "x86_64-linux-gnu-cxx03-cuda+12.4", "x86_64-linux-gnu-cxx11-cuda+12.4", "x86_64-linux-gnu-cxx03-cuda+12.5", "x86_64-linux-gnu-cxx11-cuda+12.5"]
+top_level = false
+type = "builddependency"
+uuid = "a7aa756b-2b7f-562a-9e9d-e94076c5c8ee"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "=1.76.0"
+name = "boost_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-linux-gnu-cxx03-cuda+11.4", "x86_64-linux-gnu-cxx11-cuda+11.4", "x86_64-linux-gnu-cxx03-cuda+11.5", "x86_64-linux-gnu-cxx11-cuda+11.5", "x86_64-linux-gnu-cxx03-cuda+11.6", "x86_64-linux-gnu-cxx11-cuda+11.6", "x86_64-linux-gnu-cxx03-cuda+11.7", "x86_64-linux-gnu-cxx11-cuda+11.7", "x86_64-linux-gnu-cxx03-cuda+11.8", "x86_64-linux-gnu-cxx11-cuda+11.8", "x86_64-linux-gnu-cxx03-cuda+12.0", "x86_64-linux-gnu-cxx11-cuda+12.0", "x86_64-linux-gnu-cxx03-cuda+12.1", "x86_64-linux-gnu-cxx11-cuda+12.1", "x86_64-linux-gnu-cxx03-cuda+12.2", "x86_64-linux-gnu-cxx11-cuda+12.2", "x86_64-linux-gnu-cxx03-cuda+12.3", "x86_64-linux-gnu-cxx11-cuda+12.3", "x86_64-linux-gnu-cxx03-cuda+12.4", "x86_64-linux-gnu-cxx11-cuda+12.4", "x86_64-linux-gnu-cxx03-cuda+12.5", "x86_64-linux-gnu-cxx11-cuda+12.5"]
+top_level = false
+type = "dependency"
+uuid = "28df3c45-c428-5900-9ff8-a3135698ca75"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03-cuda+none", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11", "x86_64-linux-gnu-cxx03-cuda+11.4", "x86_64-linux-gnu-cxx11-cuda+11.4", "x86_64-linux-gnu-cxx03-cuda+11.5", "x86_64-linux-gnu-cxx11-cuda+11.5", "x86_64-linux-gnu-cxx03-cuda+11.6", "x86_64-linux-gnu-cxx11-cuda+11.6", "x86_64-linux-gnu-cxx03-cuda+11.7", "x86_64-linux-gnu-cxx11-cuda+11.7", "x86_64-linux-gnu-cxx03-cuda+11.8", "x86_64-linux-gnu-cxx11-cuda+11.8", "x86_64-linux-gnu-cxx03-cuda+12.0", "x86_64-linux-gnu-cxx11-cuda+12.0", "x86_64-linux-gnu-cxx03-cuda+12.1", "x86_64-linux-gnu-cxx11-cuda+12.1", "x86_64-linux-gnu-cxx03-cuda+12.2", "x86_64-linux-gnu-cxx11-cuda+12.2", "x86_64-linux-gnu-cxx03-cuda+12.3", "x86_64-linux-gnu-cxx11-cuda+12.3", "x86_64-linux-gnu-cxx03-cuda+12.4", "x86_64-linux-gnu-cxx11-cuda+12.4", "x86_64-linux-gnu-cxx03-cuda+12.5", "x86_64-linux-gnu-cxx11-cuda+12.5"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenCL_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03-cuda+none", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-linux-gnu-cxx03-cuda+11.4", "x86_64-linux-gnu-cxx11-cuda+11.4", "x86_64-linux-gnu-cxx03-cuda+11.5", "x86_64-linux-gnu-cxx11-cuda+11.5", "x86_64-linux-gnu-cxx03-cuda+11.6", "x86_64-linux-gnu-cxx11-cuda+11.6", "x86_64-linux-gnu-cxx03-cuda+11.7", "x86_64-linux-gnu-cxx11-cuda+11.7", "x86_64-linux-gnu-cxx03-cuda+11.8", "x86_64-linux-gnu-cxx11-cuda+11.8", "x86_64-linux-gnu-cxx03-cuda+12.0", "x86_64-linux-gnu-cxx11-cuda+12.0", "x86_64-linux-gnu-cxx03-cuda+12.1", "x86_64-linux-gnu-cxx11-cuda+12.1", "x86_64-linux-gnu-cxx03-cuda+12.2", "x86_64-linux-gnu-cxx11-cuda+12.2", "x86_64-linux-gnu-cxx03-cuda+12.3", "x86_64-linux-gnu-cxx11-cuda+12.3", "x86_64-linux-gnu-cxx03-cuda+12.4", "x86_64-linux-gnu-cxx11-cuda+12.4", "x86_64-linux-gnu-cxx03-cuda+12.5", "x86_64-linux-gnu-cxx11-cuda+12.5"]
+top_level = false
+type = "dependency"
+uuid = "6cb37087-e8b6-5417-8430-1f242f1e46e4"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenCL_Headers_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03-cuda+none", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-linux-gnu-cxx03-cuda+11.4", "x86_64-linux-gnu-cxx11-cuda+11.4", "x86_64-linux-gnu-cxx03-cuda+11.5", "x86_64-linux-gnu-cxx11-cuda+11.5", "x86_64-linux-gnu-cxx03-cuda+11.6", "x86_64-linux-gnu-cxx11-cuda+11.6", "x86_64-linux-gnu-cxx03-cuda+11.7", "x86_64-linux-gnu-cxx11-cuda+11.7", "x86_64-linux-gnu-cxx03-cuda+11.8", "x86_64-linux-gnu-cxx11-cuda+11.8", "x86_64-linux-gnu-cxx03-cuda+12.0", "x86_64-linux-gnu-cxx11-cuda+12.0", "x86_64-linux-gnu-cxx03-cuda+12.1", "x86_64-linux-gnu-cxx11-cuda+12.1", "x86_64-linux-gnu-cxx03-cuda+12.2", "x86_64-linux-gnu-cxx11-cuda+12.2", "x86_64-linux-gnu-cxx03-cuda+12.3", "x86_64-linux-gnu-cxx11-cuda+12.3", "x86_64-linux-gnu-cxx03-cuda+12.4", "x86_64-linux-gnu-cxx11-cuda+12.4", "x86_64-linux-gnu-cxx03-cuda+12.5", "x86_64-linux-gnu-cxx11-cuda+12.5"]
+top_level = false
+type = "builddependency"
+uuid = "a7aa756b-2b7f-562a-9e9d-e94076c5c8ee"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "=1.76.0"
+name = "boost_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03-cuda+none", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-linux-gnu-cxx03-cuda+11.4", "x86_64-linux-gnu-cxx11-cuda+11.4", "x86_64-linux-gnu-cxx03-cuda+11.5", "x86_64-linux-gnu-cxx11-cuda+11.5", "x86_64-linux-gnu-cxx03-cuda+11.6", "x86_64-linux-gnu-cxx11-cuda+11.6", "x86_64-linux-gnu-cxx03-cuda+11.7", "x86_64-linux-gnu-cxx11-cuda+11.7", "x86_64-linux-gnu-cxx03-cuda+11.8", "x86_64-linux-gnu-cxx11-cuda+11.8", "x86_64-linux-gnu-cxx03-cuda+12.0", "x86_64-linux-gnu-cxx11-cuda+12.0", "x86_64-linux-gnu-cxx03-cuda+12.1", "x86_64-linux-gnu-cxx11-cuda+12.1", "x86_64-linux-gnu-cxx03-cuda+12.2", "x86_64-linux-gnu-cxx11-cuda+12.2", "x86_64-linux-gnu-cxx03-cuda+12.3", "x86_64-linux-gnu-cxx11-cuda+12.3", "x86_64-linux-gnu-cxx03-cuda+12.4", "x86_64-linux-gnu-cxx11-cuda+12.4", "x86_64-linux-gnu-cxx03-cuda+12.5", "x86_64-linux-gnu-cxx11-cuda+12.5"]
+top_level = false
+type = "dependency"
+uuid = "28df3c45-c428-5900-9ff8-a3135698ca75"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03-cuda+none", "x86_64-linux-gnu-cxx11-cuda+none", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11", "x86_64-linux-gnu-cxx03-cuda+11.4", "x86_64-linux-gnu-cxx11-cuda+11.4", "x86_64-linux-gnu-cxx03-cuda+11.5", "x86_64-linux-gnu-cxx11-cuda+11.5", "x86_64-linux-gnu-cxx03-cuda+11.6", "x86_64-linux-gnu-cxx11-cuda+11.6", "x86_64-linux-gnu-cxx03-cuda+11.7", "x86_64-linux-gnu-cxx11-cuda+11.7", "x86_64-linux-gnu-cxx03-cuda+11.8", "x86_64-linux-gnu-cxx11-cuda+11.8", "x86_64-linux-gnu-cxx03-cuda+12.0", "x86_64-linux-gnu-cxx11-cuda+12.0", "x86_64-linux-gnu-cxx03-cuda+12.1", "x86_64-linux-gnu-cxx11-cuda+12.1", "x86_64-linux-gnu-cxx03-cuda+12.2", "x86_64-linux-gnu-cxx11-cuda+12.2", "x86_64-linux-gnu-cxx03-cuda+12.3", "x86_64-linux-gnu-cxx11-cuda+12.3", "x86_64-linux-gnu-cxx03-cuda+12.4", "x86_64-linux-gnu-cxx11-cuda+12.4", "x86_64-linux-gnu-cxx03-cuda+12.5", "x86_64-linux-gnu-cxx11-cuda+12.5"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenCL_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03-cuda+none", "x86_64-linux-gnu-cxx11-cuda+none", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-linux-gnu-cxx03-cuda+11.4", "x86_64-linux-gnu-cxx11-cuda+11.4", "x86_64-linux-gnu-cxx03-cuda+11.5", "x86_64-linux-gnu-cxx11-cuda+11.5", "x86_64-linux-gnu-cxx03-cuda+11.6", "x86_64-linux-gnu-cxx11-cuda+11.6", "x86_64-linux-gnu-cxx03-cuda+11.7", "x86_64-linux-gnu-cxx11-cuda+11.7", "x86_64-linux-gnu-cxx03-cuda+11.8", "x86_64-linux-gnu-cxx11-cuda+11.8", "x86_64-linux-gnu-cxx03-cuda+12.0", "x86_64-linux-gnu-cxx11-cuda+12.0", "x86_64-linux-gnu-cxx03-cuda+12.1", "x86_64-linux-gnu-cxx11-cuda+12.1", "x86_64-linux-gnu-cxx03-cuda+12.2", "x86_64-linux-gnu-cxx11-cuda+12.2", "x86_64-linux-gnu-cxx03-cuda+12.3", "x86_64-linux-gnu-cxx11-cuda+12.3", "x86_64-linux-gnu-cxx03-cuda+12.4", "x86_64-linux-gnu-cxx11-cuda+12.4", "x86_64-linux-gnu-cxx03-cuda+12.5", "x86_64-linux-gnu-cxx11-cuda+12.5"]
+top_level = false
+type = "dependency"
+uuid = "6cb37087-e8b6-5417-8430-1f242f1e46e4"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenCL_Headers_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03-cuda+none", "x86_64-linux-gnu-cxx11-cuda+none", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-linux-gnu-cxx03-cuda+11.4", "x86_64-linux-gnu-cxx11-cuda+11.4", "x86_64-linux-gnu-cxx03-cuda+11.5", "x86_64-linux-gnu-cxx11-cuda+11.5", "x86_64-linux-gnu-cxx03-cuda+11.6", "x86_64-linux-gnu-cxx11-cuda+11.6", "x86_64-linux-gnu-cxx03-cuda+11.7", "x86_64-linux-gnu-cxx11-cuda+11.7", "x86_64-linux-gnu-cxx03-cuda+11.8", "x86_64-linux-gnu-cxx11-cuda+11.8", "x86_64-linux-gnu-cxx03-cuda+12.0", "x86_64-linux-gnu-cxx11-cuda+12.0", "x86_64-linux-gnu-cxx03-cuda+12.1", "x86_64-linux-gnu-cxx11-cuda+12.1", "x86_64-linux-gnu-cxx03-cuda+12.2", "x86_64-linux-gnu-cxx11-cuda+12.2", "x86_64-linux-gnu-cxx03-cuda+12.3", "x86_64-linux-gnu-cxx11-cuda+12.3", "x86_64-linux-gnu-cxx03-cuda+12.4", "x86_64-linux-gnu-cxx11-cuda+12.4", "x86_64-linux-gnu-cxx03-cuda+12.5", "x86_64-linux-gnu-cxx11-cuda+12.5"]
+top_level = false
+type = "builddependency"
+uuid = "a7aa756b-2b7f-562a-9e9d-e94076c5c8ee"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "=1.76.0"
+name = "boost_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03-cuda+none", "x86_64-linux-gnu-cxx11-cuda+none", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-linux-gnu-cxx03-cuda+11.4", "x86_64-linux-gnu-cxx11-cuda+11.4", "x86_64-linux-gnu-cxx03-cuda+11.5", "x86_64-linux-gnu-cxx11-cuda+11.5", "x86_64-linux-gnu-cxx03-cuda+11.6", "x86_64-linux-gnu-cxx11-cuda+11.6", "x86_64-linux-gnu-cxx03-cuda+11.7", "x86_64-linux-gnu-cxx11-cuda+11.7", "x86_64-linux-gnu-cxx03-cuda+11.8", "x86_64-linux-gnu-cxx11-cuda+11.8", "x86_64-linux-gnu-cxx03-cuda+12.0", "x86_64-linux-gnu-cxx11-cuda+12.0", "x86_64-linux-gnu-cxx03-cuda+12.1", "x86_64-linux-gnu-cxx11-cuda+12.1", "x86_64-linux-gnu-cxx03-cuda+12.2", "x86_64-linux-gnu-cxx11-cuda+12.2", "x86_64-linux-gnu-cxx03-cuda+12.3", "x86_64-linux-gnu-cxx11-cuda+12.3", "x86_64-linux-gnu-cxx03-cuda+12.4", "x86_64-linux-gnu-cxx11-cuda+12.4", "x86_64-linux-gnu-cxx03-cuda+12.5", "x86_64-linux-gnu-cxx11-cuda+12.5"]
+top_level = false
+type = "dependency"
+uuid = "28df3c45-c428-5900-9ff8-a3135698ca75"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03-cuda+none", "x86_64-linux-gnu-cxx11-cuda+none", "aarch64-linux-gnu-cxx03-cuda+none", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11", "x86_64-linux-gnu-cxx03-cuda+11.4", "x86_64-linux-gnu-cxx11-cuda+11.4", "x86_64-linux-gnu-cxx03-cuda+11.5", "x86_64-linux-gnu-cxx11-cuda+11.5", "x86_64-linux-gnu-cxx03-cuda+11.6", "x86_64-linux-gnu-cxx11-cuda+11.6", "x86_64-linux-gnu-cxx03-cuda+11.7", "x86_64-linux-gnu-cxx11-cuda+11.7", "x86_64-linux-gnu-cxx03-cuda+11.8", "x86_64-linux-gnu-cxx11-cuda+11.8", "x86_64-linux-gnu-cxx03-cuda+12.0", "x86_64-linux-gnu-cxx11-cuda+12.0", "x86_64-linux-gnu-cxx03-cuda+12.1", "x86_64-linux-gnu-cxx11-cuda+12.1", "x86_64-linux-gnu-cxx03-cuda+12.2", "x86_64-linux-gnu-cxx11-cuda+12.2", "x86_64-linux-gnu-cxx03-cuda+12.3", "x86_64-linux-gnu-cxx11-cuda+12.3", "x86_64-linux-gnu-cxx03-cuda+12.4", "x86_64-linux-gnu-cxx11-cuda+12.4", "x86_64-linux-gnu-cxx03-cuda+12.5", "x86_64-linux-gnu-cxx11-cuda+12.5"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenCL_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03-cuda+none", "x86_64-linux-gnu-cxx11-cuda+none", "aarch64-linux-gnu-cxx03-cuda+none", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-linux-gnu-cxx03-cuda+11.4", "x86_64-linux-gnu-cxx11-cuda+11.4", "x86_64-linux-gnu-cxx03-cuda+11.5", "x86_64-linux-gnu-cxx11-cuda+11.5", "x86_64-linux-gnu-cxx03-cuda+11.6", "x86_64-linux-gnu-cxx11-cuda+11.6", "x86_64-linux-gnu-cxx03-cuda+11.7", "x86_64-linux-gnu-cxx11-cuda+11.7", "x86_64-linux-gnu-cxx03-cuda+11.8", "x86_64-linux-gnu-cxx11-cuda+11.8", "x86_64-linux-gnu-cxx03-cuda+12.0", "x86_64-linux-gnu-cxx11-cuda+12.0", "x86_64-linux-gnu-cxx03-cuda+12.1", "x86_64-linux-gnu-cxx11-cuda+12.1", "x86_64-linux-gnu-cxx03-cuda+12.2", "x86_64-linux-gnu-cxx11-cuda+12.2", "x86_64-linux-gnu-cxx03-cuda+12.3", "x86_64-linux-gnu-cxx11-cuda+12.3", "x86_64-linux-gnu-cxx03-cuda+12.4", "x86_64-linux-gnu-cxx11-cuda+12.4", "x86_64-linux-gnu-cxx03-cuda+12.5", "x86_64-linux-gnu-cxx11-cuda+12.5"]
+top_level = false
+type = "dependency"
+uuid = "6cb37087-e8b6-5417-8430-1f242f1e46e4"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenCL_Headers_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03-cuda+none", "x86_64-linux-gnu-cxx11-cuda+none", "aarch64-linux-gnu-cxx03-cuda+none", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-linux-gnu-cxx03-cuda+11.4", "x86_64-linux-gnu-cxx11-cuda+11.4", "x86_64-linux-gnu-cxx03-cuda+11.5", "x86_64-linux-gnu-cxx11-cuda+11.5", "x86_64-linux-gnu-cxx03-cuda+11.6", "x86_64-linux-gnu-cxx11-cuda+11.6", "x86_64-linux-gnu-cxx03-cuda+11.7", "x86_64-linux-gnu-cxx11-cuda+11.7", "x86_64-linux-gnu-cxx03-cuda+11.8", "x86_64-linux-gnu-cxx11-cuda+11.8", "x86_64-linux-gnu-cxx03-cuda+12.0", "x86_64-linux-gnu-cxx11-cuda+12.0", "x86_64-linux-gnu-cxx03-cuda+12.1", "x86_64-linux-gnu-cxx11-cuda+12.1", "x86_64-linux-gnu-cxx03-cuda+12.2", "x86_64-linux-gnu-cxx11-cuda+12.2", "x86_64-linux-gnu-cxx03-cuda+12.3", "x86_64-linux-gnu-cxx11-cuda+12.3", "x86_64-linux-gnu-cxx03-cuda+12.4", "x86_64-linux-gnu-cxx11-cuda+12.4", "x86_64-linux-gnu-cxx03-cuda+12.5", "x86_64-linux-gnu-cxx11-cuda+12.5"]
+top_level = false
+type = "builddependency"
+uuid = "a7aa756b-2b7f-562a-9e9d-e94076c5c8ee"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "=1.76.0"
+name = "boost_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03-cuda+none", "x86_64-linux-gnu-cxx11-cuda+none", "aarch64-linux-gnu-cxx03-cuda+none", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-linux-gnu-cxx03-cuda+11.4", "x86_64-linux-gnu-cxx11-cuda+11.4", "x86_64-linux-gnu-cxx03-cuda+11.5", "x86_64-linux-gnu-cxx11-cuda+11.5", "x86_64-linux-gnu-cxx03-cuda+11.6", "x86_64-linux-gnu-cxx11-cuda+11.6", "x86_64-linux-gnu-cxx03-cuda+11.7", "x86_64-linux-gnu-cxx11-cuda+11.7", "x86_64-linux-gnu-cxx03-cuda+11.8", "x86_64-linux-gnu-cxx11-cuda+11.8", "x86_64-linux-gnu-cxx03-cuda+12.0", "x86_64-linux-gnu-cxx11-cuda+12.0", "x86_64-linux-gnu-cxx03-cuda+12.1", "x86_64-linux-gnu-cxx11-cuda+12.1", "x86_64-linux-gnu-cxx03-cuda+12.2", "x86_64-linux-gnu-cxx11-cuda+12.2", "x86_64-linux-gnu-cxx03-cuda+12.3", "x86_64-linux-gnu-cxx11-cuda+12.3", "x86_64-linux-gnu-cxx03-cuda+12.4", "x86_64-linux-gnu-cxx11-cuda+12.4", "x86_64-linux-gnu-cxx03-cuda+12.5", "x86_64-linux-gnu-cxx11-cuda+12.5"]
+top_level = false
+type = "dependency"
+uuid = "28df3c45-c428-5900-9ff8-a3135698ca75"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03-cuda+none", "x86_64-linux-gnu-cxx11-cuda+none", "aarch64-linux-gnu-cxx03-cuda+none", "aarch64-linux-gnu-cxx11-cuda+none", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11", "x86_64-linux-gnu-cxx03-cuda+11.4", "x86_64-linux-gnu-cxx11-cuda+11.4", "x86_64-linux-gnu-cxx03-cuda+11.5", "x86_64-linux-gnu-cxx11-cuda+11.5", "x86_64-linux-gnu-cxx03-cuda+11.6", "x86_64-linux-gnu-cxx11-cuda+11.6", "x86_64-linux-gnu-cxx03-cuda+11.7", "x86_64-linux-gnu-cxx11-cuda+11.7", "x86_64-linux-gnu-cxx03-cuda+11.8", "x86_64-linux-gnu-cxx11-cuda+11.8", "x86_64-linux-gnu-cxx03-cuda+12.0", "x86_64-linux-gnu-cxx11-cuda+12.0", "x86_64-linux-gnu-cxx03-cuda+12.1", "x86_64-linux-gnu-cxx11-cuda+12.1", "x86_64-linux-gnu-cxx03-cuda+12.2", "x86_64-linux-gnu-cxx11-cuda+12.2", "x86_64-linux-gnu-cxx03-cuda+12.3", "x86_64-linux-gnu-cxx11-cuda+12.3", "x86_64-linux-gnu-cxx03-cuda+12.4", "x86_64-linux-gnu-cxx11-cuda+12.4", "x86_64-linux-gnu-cxx03-cuda+12.5", "x86_64-linux-gnu-cxx11-cuda+12.5"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenCL_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03-cuda+none", "x86_64-linux-gnu-cxx11-cuda+none", "aarch64-linux-gnu-cxx03-cuda+none", "aarch64-linux-gnu-cxx11-cuda+none", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-linux-gnu-cxx03-cuda+11.4", "x86_64-linux-gnu-cxx11-cuda+11.4", "x86_64-linux-gnu-cxx03-cuda+11.5", "x86_64-linux-gnu-cxx11-cuda+11.5", "x86_64-linux-gnu-cxx03-cuda+11.6", "x86_64-linux-gnu-cxx11-cuda+11.6", "x86_64-linux-gnu-cxx03-cuda+11.7", "x86_64-linux-gnu-cxx11-cuda+11.7", "x86_64-linux-gnu-cxx03-cuda+11.8", "x86_64-linux-gnu-cxx11-cuda+11.8", "x86_64-linux-gnu-cxx03-cuda+12.0", "x86_64-linux-gnu-cxx11-cuda+12.0", "x86_64-linux-gnu-cxx03-cuda+12.1", "x86_64-linux-gnu-cxx11-cuda+12.1", "x86_64-linux-gnu-cxx03-cuda+12.2", "x86_64-linux-gnu-cxx11-cuda+12.2", "x86_64-linux-gnu-cxx03-cuda+12.3", "x86_64-linux-gnu-cxx11-cuda+12.3", "x86_64-linux-gnu-cxx03-cuda+12.4", "x86_64-linux-gnu-cxx11-cuda+12.4", "x86_64-linux-gnu-cxx03-cuda+12.5", "x86_64-linux-gnu-cxx11-cuda+12.5"]
+top_level = false
+type = "dependency"
+uuid = "6cb37087-e8b6-5417-8430-1f242f1e46e4"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenCL_Headers_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03-cuda+none", "x86_64-linux-gnu-cxx11-cuda+none", "aarch64-linux-gnu-cxx03-cuda+none", "aarch64-linux-gnu-cxx11-cuda+none", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-linux-gnu-cxx03-cuda+11.4", "x86_64-linux-gnu-cxx11-cuda+11.4", "x86_64-linux-gnu-cxx03-cuda+11.5", "x86_64-linux-gnu-cxx11-cuda+11.5", "x86_64-linux-gnu-cxx03-cuda+11.6", "x86_64-linux-gnu-cxx11-cuda+11.6", "x86_64-linux-gnu-cxx03-cuda+11.7", "x86_64-linux-gnu-cxx11-cuda+11.7", "x86_64-linux-gnu-cxx03-cuda+11.8", "x86_64-linux-gnu-cxx11-cuda+11.8", "x86_64-linux-gnu-cxx03-cuda+12.0", "x86_64-linux-gnu-cxx11-cuda+12.0", "x86_64-linux-gnu-cxx03-cuda+12.1", "x86_64-linux-gnu-cxx11-cuda+12.1", "x86_64-linux-gnu-cxx03-cuda+12.2", "x86_64-linux-gnu-cxx11-cuda+12.2", "x86_64-linux-gnu-cxx03-cuda+12.3", "x86_64-linux-gnu-cxx11-cuda+12.3", "x86_64-linux-gnu-cxx03-cuda+12.4", "x86_64-linux-gnu-cxx11-cuda+12.4", "x86_64-linux-gnu-cxx03-cuda+12.5", "x86_64-linux-gnu-cxx11-cuda+12.5"]
+top_level = false
+type = "builddependency"
+uuid = "a7aa756b-2b7f-562a-9e9d-e94076c5c8ee"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "=1.76.0"
+name = "boost_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03-cuda+none", "x86_64-linux-gnu-cxx11-cuda+none", "aarch64-linux-gnu-cxx03-cuda+none", "aarch64-linux-gnu-cxx11-cuda+none", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-linux-gnu-cxx03-cuda+11.4", "x86_64-linux-gnu-cxx11-cuda+11.4", "x86_64-linux-gnu-cxx03-cuda+11.5", "x86_64-linux-gnu-cxx11-cuda+11.5", "x86_64-linux-gnu-cxx03-cuda+11.6", "x86_64-linux-gnu-cxx11-cuda+11.6", "x86_64-linux-gnu-cxx03-cuda+11.7", "x86_64-linux-gnu-cxx11-cuda+11.7", "x86_64-linux-gnu-cxx03-cuda+11.8", "x86_64-linux-gnu-cxx11-cuda+11.8", "x86_64-linux-gnu-cxx03-cuda+12.0", "x86_64-linux-gnu-cxx11-cuda+12.0", "x86_64-linux-gnu-cxx03-cuda+12.1", "x86_64-linux-gnu-cxx11-cuda+12.1", "x86_64-linux-gnu-cxx03-cuda+12.2", "x86_64-linux-gnu-cxx11-cuda+12.2", "x86_64-linux-gnu-cxx03-cuda+12.3", "x86_64-linux-gnu-cxx11-cuda+12.3", "x86_64-linux-gnu-cxx03-cuda+12.4", "x86_64-linux-gnu-cxx11-cuda+12.4", "x86_64-linux-gnu-cxx03-cuda+12.5", "x86_64-linux-gnu-cxx11-cuda+12.5"]
+top_level = false
+type = "dependency"
+uuid = "28df3c45-c428-5900-9ff8-a3135698ca75"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03-cuda+none", "x86_64-linux-gnu-cxx11-cuda+none", "aarch64-linux-gnu-cxx03-cuda+none", "aarch64-linux-gnu-cxx11-cuda+none", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03-cuda+none", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11", "x86_64-linux-gnu-cxx03-cuda+11.4", "x86_64-linux-gnu-cxx11-cuda+11.4", "x86_64-linux-gnu-cxx03-cuda+11.5", "x86_64-linux-gnu-cxx11-cuda+11.5", "x86_64-linux-gnu-cxx03-cuda+11.6", "x86_64-linux-gnu-cxx11-cuda+11.6", "x86_64-linux-gnu-cxx03-cuda+11.7", "x86_64-linux-gnu-cxx11-cuda+11.7", "x86_64-linux-gnu-cxx03-cuda+11.8", "x86_64-linux-gnu-cxx11-cuda+11.8", "x86_64-linux-gnu-cxx03-cuda+12.0", "x86_64-linux-gnu-cxx11-cuda+12.0", "x86_64-linux-gnu-cxx03-cuda+12.1", "x86_64-linux-gnu-cxx11-cuda+12.1", "x86_64-linux-gnu-cxx03-cuda+12.2", "x86_64-linux-gnu-cxx11-cuda+12.2", "x86_64-linux-gnu-cxx03-cuda+12.3", "x86_64-linux-gnu-cxx11-cuda+12.3", "x86_64-linux-gnu-cxx03-cuda+12.4", "x86_64-linux-gnu-cxx11-cuda+12.4", "x86_64-linux-gnu-cxx03-cuda+12.5", "x86_64-linux-gnu-cxx11-cuda+12.5"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenCL_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03-cuda+none", "x86_64-linux-gnu-cxx11-cuda+none", "aarch64-linux-gnu-cxx03-cuda+none", "aarch64-linux-gnu-cxx11-cuda+none", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03-cuda+none", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-linux-gnu-cxx03-cuda+11.4", "x86_64-linux-gnu-cxx11-cuda+11.4", "x86_64-linux-gnu-cxx03-cuda+11.5", "x86_64-linux-gnu-cxx11-cuda+11.5", "x86_64-linux-gnu-cxx03-cuda+11.6", "x86_64-linux-gnu-cxx11-cuda+11.6", "x86_64-linux-gnu-cxx03-cuda+11.7", "x86_64-linux-gnu-cxx11-cuda+11.7", "x86_64-linux-gnu-cxx03-cuda+11.8", "x86_64-linux-gnu-cxx11-cuda+11.8", "x86_64-linux-gnu-cxx03-cuda+12.0", "x86_64-linux-gnu-cxx11-cuda+12.0", "x86_64-linux-gnu-cxx03-cuda+12.1", "x86_64-linux-gnu-cxx11-cuda+12.1", "x86_64-linux-gnu-cxx03-cuda+12.2", "x86_64-linux-gnu-cxx11-cuda+12.2", "x86_64-linux-gnu-cxx03-cuda+12.3", "x86_64-linux-gnu-cxx11-cuda+12.3", "x86_64-linux-gnu-cxx03-cuda+12.4", "x86_64-linux-gnu-cxx11-cuda+12.4", "x86_64-linux-gnu-cxx03-cuda+12.5", "x86_64-linux-gnu-cxx11-cuda+12.5"]
+top_level = false
+type = "dependency"
+uuid = "6cb37087-e8b6-5417-8430-1f242f1e46e4"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenCL_Headers_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03-cuda+none", "x86_64-linux-gnu-cxx11-cuda+none", "aarch64-linux-gnu-cxx03-cuda+none", "aarch64-linux-gnu-cxx11-cuda+none", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03-cuda+none", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-linux-gnu-cxx03-cuda+11.4", "x86_64-linux-gnu-cxx11-cuda+11.4", "x86_64-linux-gnu-cxx03-cuda+11.5", "x86_64-linux-gnu-cxx11-cuda+11.5", "x86_64-linux-gnu-cxx03-cuda+11.6", "x86_64-linux-gnu-cxx11-cuda+11.6", "x86_64-linux-gnu-cxx03-cuda+11.7", "x86_64-linux-gnu-cxx11-cuda+11.7", "x86_64-linux-gnu-cxx03-cuda+11.8", "x86_64-linux-gnu-cxx11-cuda+11.8", "x86_64-linux-gnu-cxx03-cuda+12.0", "x86_64-linux-gnu-cxx11-cuda+12.0", "x86_64-linux-gnu-cxx03-cuda+12.1", "x86_64-linux-gnu-cxx11-cuda+12.1", "x86_64-linux-gnu-cxx03-cuda+12.2", "x86_64-linux-gnu-cxx11-cuda+12.2", "x86_64-linux-gnu-cxx03-cuda+12.3", "x86_64-linux-gnu-cxx11-cuda+12.3", "x86_64-linux-gnu-cxx03-cuda+12.4", "x86_64-linux-gnu-cxx11-cuda+12.4", "x86_64-linux-gnu-cxx03-cuda+12.5", "x86_64-linux-gnu-cxx11-cuda+12.5"]
+top_level = false
+type = "builddependency"
+uuid = "a7aa756b-2b7f-562a-9e9d-e94076c5c8ee"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "=1.76.0"
+name = "boost_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03-cuda+none", "x86_64-linux-gnu-cxx11-cuda+none", "aarch64-linux-gnu-cxx03-cuda+none", "aarch64-linux-gnu-cxx11-cuda+none", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03-cuda+none", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-linux-gnu-cxx03-cuda+11.4", "x86_64-linux-gnu-cxx11-cuda+11.4", "x86_64-linux-gnu-cxx03-cuda+11.5", "x86_64-linux-gnu-cxx11-cuda+11.5", "x86_64-linux-gnu-cxx03-cuda+11.6", "x86_64-linux-gnu-cxx11-cuda+11.6", "x86_64-linux-gnu-cxx03-cuda+11.7", "x86_64-linux-gnu-cxx11-cuda+11.7", "x86_64-linux-gnu-cxx03-cuda+11.8", "x86_64-linux-gnu-cxx11-cuda+11.8", "x86_64-linux-gnu-cxx03-cuda+12.0", "x86_64-linux-gnu-cxx11-cuda+12.0", "x86_64-linux-gnu-cxx03-cuda+12.1", "x86_64-linux-gnu-cxx11-cuda+12.1", "x86_64-linux-gnu-cxx03-cuda+12.2", "x86_64-linux-gnu-cxx11-cuda+12.2", "x86_64-linux-gnu-cxx03-cuda+12.3", "x86_64-linux-gnu-cxx11-cuda+12.3", "x86_64-linux-gnu-cxx03-cuda+12.4", "x86_64-linux-gnu-cxx11-cuda+12.4", "x86_64-linux-gnu-cxx03-cuda+12.5", "x86_64-linux-gnu-cxx11-cuda+12.5"]
+top_level = false
+type = "dependency"
+uuid = "28df3c45-c428-5900-9ff8-a3135698ca75"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03-cuda+none", "x86_64-linux-gnu-cxx11-cuda+none", "aarch64-linux-gnu-cxx03-cuda+none", "aarch64-linux-gnu-cxx11-cuda+none", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03-cuda+none", "powerpc64le-linux-gnu-cxx11-cuda+none", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11", "x86_64-linux-gnu-cxx03-cuda+11.4", "x86_64-linux-gnu-cxx11-cuda+11.4", "x86_64-linux-gnu-cxx03-cuda+11.5", "x86_64-linux-gnu-cxx11-cuda+11.5", "x86_64-linux-gnu-cxx03-cuda+11.6", "x86_64-linux-gnu-cxx11-cuda+11.6", "x86_64-linux-gnu-cxx03-cuda+11.7", "x86_64-linux-gnu-cxx11-cuda+11.7", "x86_64-linux-gnu-cxx03-cuda+11.8", "x86_64-linux-gnu-cxx11-cuda+11.8", "x86_64-linux-gnu-cxx03-cuda+12.0", "x86_64-linux-gnu-cxx11-cuda+12.0", "x86_64-linux-gnu-cxx03-cuda+12.1", "x86_64-linux-gnu-cxx11-cuda+12.1", "x86_64-linux-gnu-cxx03-cuda+12.2", "x86_64-linux-gnu-cxx11-cuda+12.2", "x86_64-linux-gnu-cxx03-cuda+12.3", "x86_64-linux-gnu-cxx11-cuda+12.3", "x86_64-linux-gnu-cxx03-cuda+12.4", "x86_64-linux-gnu-cxx11-cuda+12.4", "x86_64-linux-gnu-cxx03-cuda+12.5", "x86_64-linux-gnu-cxx11-cuda+12.5"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenCL_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03-cuda+none", "x86_64-linux-gnu-cxx11-cuda+none", "aarch64-linux-gnu-cxx03-cuda+none", "aarch64-linux-gnu-cxx11-cuda+none", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03-cuda+none", "powerpc64le-linux-gnu-cxx11-cuda+none", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-linux-gnu-cxx03-cuda+11.4", "x86_64-linux-gnu-cxx11-cuda+11.4", "x86_64-linux-gnu-cxx03-cuda+11.5", "x86_64-linux-gnu-cxx11-cuda+11.5", "x86_64-linux-gnu-cxx03-cuda+11.6", "x86_64-linux-gnu-cxx11-cuda+11.6", "x86_64-linux-gnu-cxx03-cuda+11.7", "x86_64-linux-gnu-cxx11-cuda+11.7", "x86_64-linux-gnu-cxx03-cuda+11.8", "x86_64-linux-gnu-cxx11-cuda+11.8", "x86_64-linux-gnu-cxx03-cuda+12.0", "x86_64-linux-gnu-cxx11-cuda+12.0", "x86_64-linux-gnu-cxx03-cuda+12.1", "x86_64-linux-gnu-cxx11-cuda+12.1", "x86_64-linux-gnu-cxx03-cuda+12.2", "x86_64-linux-gnu-cxx11-cuda+12.2", "x86_64-linux-gnu-cxx03-cuda+12.3", "x86_64-linux-gnu-cxx11-cuda+12.3", "x86_64-linux-gnu-cxx03-cuda+12.4", "x86_64-linux-gnu-cxx11-cuda+12.4", "x86_64-linux-gnu-cxx03-cuda+12.5", "x86_64-linux-gnu-cxx11-cuda+12.5"]
+top_level = false
+type = "dependency"
+uuid = "6cb37087-e8b6-5417-8430-1f242f1e46e4"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenCL_Headers_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03-cuda+none", "x86_64-linux-gnu-cxx11-cuda+none", "aarch64-linux-gnu-cxx03-cuda+none", "aarch64-linux-gnu-cxx11-cuda+none", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03-cuda+none", "powerpc64le-linux-gnu-cxx11-cuda+none", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-linux-gnu-cxx03-cuda+11.4", "x86_64-linux-gnu-cxx11-cuda+11.4", "x86_64-linux-gnu-cxx03-cuda+11.5", "x86_64-linux-gnu-cxx11-cuda+11.5", "x86_64-linux-gnu-cxx03-cuda+11.6", "x86_64-linux-gnu-cxx11-cuda+11.6", "x86_64-linux-gnu-cxx03-cuda+11.7", "x86_64-linux-gnu-cxx11-cuda+11.7", "x86_64-linux-gnu-cxx03-cuda+11.8", "x86_64-linux-gnu-cxx11-cuda+11.8", "x86_64-linux-gnu-cxx03-cuda+12.0", "x86_64-linux-gnu-cxx11-cuda+12.0", "x86_64-linux-gnu-cxx03-cuda+12.1", "x86_64-linux-gnu-cxx11-cuda+12.1", "x86_64-linux-gnu-cxx03-cuda+12.2", "x86_64-linux-gnu-cxx11-cuda+12.2", "x86_64-linux-gnu-cxx03-cuda+12.3", "x86_64-linux-gnu-cxx11-cuda+12.3", "x86_64-linux-gnu-cxx03-cuda+12.4", "x86_64-linux-gnu-cxx11-cuda+12.4", "x86_64-linux-gnu-cxx03-cuda+12.5", "x86_64-linux-gnu-cxx11-cuda+12.5"]
+top_level = false
+type = "builddependency"
+uuid = "a7aa756b-2b7f-562a-9e9d-e94076c5c8ee"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "=1.76.0"
+name = "boost_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03-cuda+none", "x86_64-linux-gnu-cxx11-cuda+none", "aarch64-linux-gnu-cxx03-cuda+none", "aarch64-linux-gnu-cxx11-cuda+none", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03-cuda+none", "powerpc64le-linux-gnu-cxx11-cuda+none", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-linux-gnu-cxx03-cuda+11.4", "x86_64-linux-gnu-cxx11-cuda+11.4", "x86_64-linux-gnu-cxx03-cuda+11.5", "x86_64-linux-gnu-cxx11-cuda+11.5", "x86_64-linux-gnu-cxx03-cuda+11.6", "x86_64-linux-gnu-cxx11-cuda+11.6", "x86_64-linux-gnu-cxx03-cuda+11.7", "x86_64-linux-gnu-cxx11-cuda+11.7", "x86_64-linux-gnu-cxx03-cuda+11.8", "x86_64-linux-gnu-cxx11-cuda+11.8", "x86_64-linux-gnu-cxx03-cuda+12.0", "x86_64-linux-gnu-cxx11-cuda+12.0", "x86_64-linux-gnu-cxx03-cuda+12.1", "x86_64-linux-gnu-cxx11-cuda+12.1", "x86_64-linux-gnu-cxx03-cuda+12.2", "x86_64-linux-gnu-cxx11-cuda+12.2", "x86_64-linux-gnu-cxx03-cuda+12.3", "x86_64-linux-gnu-cxx11-cuda+12.3", "x86_64-linux-gnu-cxx03-cuda+12.4", "x86_64-linux-gnu-cxx11-cuda+12.4", "x86_64-linux-gnu-cxx03-cuda+12.5", "x86_64-linux-gnu-cxx11-cuda+12.5"]
+top_level = false
+type = "dependency"
+uuid = "28df3c45-c428-5900-9ff8-a3135698ca75"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03-cuda+none", "x86_64-linux-gnu-cxx11-cuda+none", "aarch64-linux-gnu-cxx03-cuda+none", "aarch64-linux-gnu-cxx11-cuda+none", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03-cuda+none", "powerpc64le-linux-gnu-cxx11-cuda+none", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03-cuda+none", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11", "x86_64-linux-gnu-cxx03-cuda+11.4", "x86_64-linux-gnu-cxx11-cuda+11.4", "x86_64-linux-gnu-cxx03-cuda+11.5", "x86_64-linux-gnu-cxx11-cuda+11.5", "x86_64-linux-gnu-cxx03-cuda+11.6", "x86_64-linux-gnu-cxx11-cuda+11.6", "x86_64-linux-gnu-cxx03-cuda+11.7", "x86_64-linux-gnu-cxx11-cuda+11.7", "x86_64-linux-gnu-cxx03-cuda+11.8", "x86_64-linux-gnu-cxx11-cuda+11.8", "x86_64-linux-gnu-cxx03-cuda+12.0", "x86_64-linux-gnu-cxx11-cuda+12.0", "x86_64-linux-gnu-cxx03-cuda+12.1", "x86_64-linux-gnu-cxx11-cuda+12.1", "x86_64-linux-gnu-cxx03-cuda+12.2", "x86_64-linux-gnu-cxx11-cuda+12.2", "x86_64-linux-gnu-cxx03-cuda+12.3", "x86_64-linux-gnu-cxx11-cuda+12.3", "x86_64-linux-gnu-cxx03-cuda+12.4", "x86_64-linux-gnu-cxx11-cuda+12.4", "x86_64-linux-gnu-cxx03-cuda+12.5", "x86_64-linux-gnu-cxx11-cuda+12.5"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenCL_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03-cuda+none", "x86_64-linux-gnu-cxx11-cuda+none", "aarch64-linux-gnu-cxx03-cuda+none", "aarch64-linux-gnu-cxx11-cuda+none", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03-cuda+none", "powerpc64le-linux-gnu-cxx11-cuda+none", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03-cuda+none", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-linux-gnu-cxx03-cuda+11.4", "x86_64-linux-gnu-cxx11-cuda+11.4", "x86_64-linux-gnu-cxx03-cuda+11.5", "x86_64-linux-gnu-cxx11-cuda+11.5", "x86_64-linux-gnu-cxx03-cuda+11.6", "x86_64-linux-gnu-cxx11-cuda+11.6", "x86_64-linux-gnu-cxx03-cuda+11.7", "x86_64-linux-gnu-cxx11-cuda+11.7", "x86_64-linux-gnu-cxx03-cuda+11.8", "x86_64-linux-gnu-cxx11-cuda+11.8", "x86_64-linux-gnu-cxx03-cuda+12.0", "x86_64-linux-gnu-cxx11-cuda+12.0", "x86_64-linux-gnu-cxx03-cuda+12.1", "x86_64-linux-gnu-cxx11-cuda+12.1", "x86_64-linux-gnu-cxx03-cuda+12.2", "x86_64-linux-gnu-cxx11-cuda+12.2", "x86_64-linux-gnu-cxx03-cuda+12.3", "x86_64-linux-gnu-cxx11-cuda+12.3", "x86_64-linux-gnu-cxx03-cuda+12.4", "x86_64-linux-gnu-cxx11-cuda+12.4", "x86_64-linux-gnu-cxx03-cuda+12.5", "x86_64-linux-gnu-cxx11-cuda+12.5"]
+top_level = false
+type = "dependency"
+uuid = "6cb37087-e8b6-5417-8430-1f242f1e46e4"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenCL_Headers_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03-cuda+none", "x86_64-linux-gnu-cxx11-cuda+none", "aarch64-linux-gnu-cxx03-cuda+none", "aarch64-linux-gnu-cxx11-cuda+none", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03-cuda+none", "powerpc64le-linux-gnu-cxx11-cuda+none", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03-cuda+none", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-linux-gnu-cxx03-cuda+11.4", "x86_64-linux-gnu-cxx11-cuda+11.4", "x86_64-linux-gnu-cxx03-cuda+11.5", "x86_64-linux-gnu-cxx11-cuda+11.5", "x86_64-linux-gnu-cxx03-cuda+11.6", "x86_64-linux-gnu-cxx11-cuda+11.6", "x86_64-linux-gnu-cxx03-cuda+11.7", "x86_64-linux-gnu-cxx11-cuda+11.7", "x86_64-linux-gnu-cxx03-cuda+11.8", "x86_64-linux-gnu-cxx11-cuda+11.8", "x86_64-linux-gnu-cxx03-cuda+12.0", "x86_64-linux-gnu-cxx11-cuda+12.0", "x86_64-linux-gnu-cxx03-cuda+12.1", "x86_64-linux-gnu-cxx11-cuda+12.1", "x86_64-linux-gnu-cxx03-cuda+12.2", "x86_64-linux-gnu-cxx11-cuda+12.2", "x86_64-linux-gnu-cxx03-cuda+12.3", "x86_64-linux-gnu-cxx11-cuda+12.3", "x86_64-linux-gnu-cxx03-cuda+12.4", "x86_64-linux-gnu-cxx11-cuda+12.4", "x86_64-linux-gnu-cxx03-cuda+12.5", "x86_64-linux-gnu-cxx11-cuda+12.5"]
+top_level = false
+type = "builddependency"
+uuid = "a7aa756b-2b7f-562a-9e9d-e94076c5c8ee"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "=1.76.0"
+name = "boost_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03-cuda+none", "x86_64-linux-gnu-cxx11-cuda+none", "aarch64-linux-gnu-cxx03-cuda+none", "aarch64-linux-gnu-cxx11-cuda+none", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03-cuda+none", "powerpc64le-linux-gnu-cxx11-cuda+none", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03-cuda+none", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-linux-gnu-cxx03-cuda+11.4", "x86_64-linux-gnu-cxx11-cuda+11.4", "x86_64-linux-gnu-cxx03-cuda+11.5", "x86_64-linux-gnu-cxx11-cuda+11.5", "x86_64-linux-gnu-cxx03-cuda+11.6", "x86_64-linux-gnu-cxx11-cuda+11.6", "x86_64-linux-gnu-cxx03-cuda+11.7", "x86_64-linux-gnu-cxx11-cuda+11.7", "x86_64-linux-gnu-cxx03-cuda+11.8", "x86_64-linux-gnu-cxx11-cuda+11.8", "x86_64-linux-gnu-cxx03-cuda+12.0", "x86_64-linux-gnu-cxx11-cuda+12.0", "x86_64-linux-gnu-cxx03-cuda+12.1", "x86_64-linux-gnu-cxx11-cuda+12.1", "x86_64-linux-gnu-cxx03-cuda+12.2", "x86_64-linux-gnu-cxx11-cuda+12.2", "x86_64-linux-gnu-cxx03-cuda+12.3", "x86_64-linux-gnu-cxx11-cuda+12.3", "x86_64-linux-gnu-cxx03-cuda+12.4", "x86_64-linux-gnu-cxx11-cuda+12.4", "x86_64-linux-gnu-cxx03-cuda+12.5", "x86_64-linux-gnu-cxx11-cuda+12.5"]
+top_level = false
+type = "dependency"
+uuid = "28df3c45-c428-5900-9ff8-a3135698ca75"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03-cuda+none", "x86_64-linux-gnu-cxx11-cuda+none", "aarch64-linux-gnu-cxx03-cuda+none", "aarch64-linux-gnu-cxx11-cuda+none", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03-cuda+none", "powerpc64le-linux-gnu-cxx11-cuda+none", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03-cuda+none", "x86_64-linux-musl-cxx11-cuda+none", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11", "x86_64-linux-gnu-cxx03-cuda+11.4", "x86_64-linux-gnu-cxx11-cuda+11.4", "x86_64-linux-gnu-cxx03-cuda+11.5", "x86_64-linux-gnu-cxx11-cuda+11.5", "x86_64-linux-gnu-cxx03-cuda+11.6", "x86_64-linux-gnu-cxx11-cuda+11.6", "x86_64-linux-gnu-cxx03-cuda+11.7", "x86_64-linux-gnu-cxx11-cuda+11.7", "x86_64-linux-gnu-cxx03-cuda+11.8", "x86_64-linux-gnu-cxx11-cuda+11.8", "x86_64-linux-gnu-cxx03-cuda+12.0", "x86_64-linux-gnu-cxx11-cuda+12.0", "x86_64-linux-gnu-cxx03-cuda+12.1", "x86_64-linux-gnu-cxx11-cuda+12.1", "x86_64-linux-gnu-cxx03-cuda+12.2", "x86_64-linux-gnu-cxx11-cuda+12.2", "x86_64-linux-gnu-cxx03-cuda+12.3", "x86_64-linux-gnu-cxx11-cuda+12.3", "x86_64-linux-gnu-cxx03-cuda+12.4", "x86_64-linux-gnu-cxx11-cuda+12.4", "x86_64-linux-gnu-cxx03-cuda+12.5", "x86_64-linux-gnu-cxx11-cuda+12.5"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenCL_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03-cuda+none", "x86_64-linux-gnu-cxx11-cuda+none", "aarch64-linux-gnu-cxx03-cuda+none", "aarch64-linux-gnu-cxx11-cuda+none", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03-cuda+none", "powerpc64le-linux-gnu-cxx11-cuda+none", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03-cuda+none", "x86_64-linux-musl-cxx11-cuda+none", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-linux-gnu-cxx03-cuda+11.4", "x86_64-linux-gnu-cxx11-cuda+11.4", "x86_64-linux-gnu-cxx03-cuda+11.5", "x86_64-linux-gnu-cxx11-cuda+11.5", "x86_64-linux-gnu-cxx03-cuda+11.6", "x86_64-linux-gnu-cxx11-cuda+11.6", "x86_64-linux-gnu-cxx03-cuda+11.7", "x86_64-linux-gnu-cxx11-cuda+11.7", "x86_64-linux-gnu-cxx03-cuda+11.8", "x86_64-linux-gnu-cxx11-cuda+11.8", "x86_64-linux-gnu-cxx03-cuda+12.0", "x86_64-linux-gnu-cxx11-cuda+12.0", "x86_64-linux-gnu-cxx03-cuda+12.1", "x86_64-linux-gnu-cxx11-cuda+12.1", "x86_64-linux-gnu-cxx03-cuda+12.2", "x86_64-linux-gnu-cxx11-cuda+12.2", "x86_64-linux-gnu-cxx03-cuda+12.3", "x86_64-linux-gnu-cxx11-cuda+12.3", "x86_64-linux-gnu-cxx03-cuda+12.4", "x86_64-linux-gnu-cxx11-cuda+12.4", "x86_64-linux-gnu-cxx03-cuda+12.5", "x86_64-linux-gnu-cxx11-cuda+12.5"]
+top_level = false
+type = "dependency"
+uuid = "6cb37087-e8b6-5417-8430-1f242f1e46e4"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenCL_Headers_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03-cuda+none", "x86_64-linux-gnu-cxx11-cuda+none", "aarch64-linux-gnu-cxx03-cuda+none", "aarch64-linux-gnu-cxx11-cuda+none", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03-cuda+none", "powerpc64le-linux-gnu-cxx11-cuda+none", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03-cuda+none", "x86_64-linux-musl-cxx11-cuda+none", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-linux-gnu-cxx03-cuda+11.4", "x86_64-linux-gnu-cxx11-cuda+11.4", "x86_64-linux-gnu-cxx03-cuda+11.5", "x86_64-linux-gnu-cxx11-cuda+11.5", "x86_64-linux-gnu-cxx03-cuda+11.6", "x86_64-linux-gnu-cxx11-cuda+11.6", "x86_64-linux-gnu-cxx03-cuda+11.7", "x86_64-linux-gnu-cxx11-cuda+11.7", "x86_64-linux-gnu-cxx03-cuda+11.8", "x86_64-linux-gnu-cxx11-cuda+11.8", "x86_64-linux-gnu-cxx03-cuda+12.0", "x86_64-linux-gnu-cxx11-cuda+12.0", "x86_64-linux-gnu-cxx03-cuda+12.1", "x86_64-linux-gnu-cxx11-cuda+12.1", "x86_64-linux-gnu-cxx03-cuda+12.2", "x86_64-linux-gnu-cxx11-cuda+12.2", "x86_64-linux-gnu-cxx03-cuda+12.3", "x86_64-linux-gnu-cxx11-cuda+12.3", "x86_64-linux-gnu-cxx03-cuda+12.4", "x86_64-linux-gnu-cxx11-cuda+12.4", "x86_64-linux-gnu-cxx03-cuda+12.5", "x86_64-linux-gnu-cxx11-cuda+12.5"]
+top_level = false
+type = "builddependency"
+uuid = "a7aa756b-2b7f-562a-9e9d-e94076c5c8ee"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "=1.76.0"
+name = "boost_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03-cuda+none", "x86_64-linux-gnu-cxx11-cuda+none", "aarch64-linux-gnu-cxx03-cuda+none", "aarch64-linux-gnu-cxx11-cuda+none", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03-cuda+none", "powerpc64le-linux-gnu-cxx11-cuda+none", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03-cuda+none", "x86_64-linux-musl-cxx11-cuda+none", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-linux-gnu-cxx03-cuda+11.4", "x86_64-linux-gnu-cxx11-cuda+11.4", "x86_64-linux-gnu-cxx03-cuda+11.5", "x86_64-linux-gnu-cxx11-cuda+11.5", "x86_64-linux-gnu-cxx03-cuda+11.6", "x86_64-linux-gnu-cxx11-cuda+11.6", "x86_64-linux-gnu-cxx03-cuda+11.7", "x86_64-linux-gnu-cxx11-cuda+11.7", "x86_64-linux-gnu-cxx03-cuda+11.8", "x86_64-linux-gnu-cxx11-cuda+11.8", "x86_64-linux-gnu-cxx03-cuda+12.0", "x86_64-linux-gnu-cxx11-cuda+12.0", "x86_64-linux-gnu-cxx03-cuda+12.1", "x86_64-linux-gnu-cxx11-cuda+12.1", "x86_64-linux-gnu-cxx03-cuda+12.2", "x86_64-linux-gnu-cxx11-cuda+12.2", "x86_64-linux-gnu-cxx03-cuda+12.3", "x86_64-linux-gnu-cxx11-cuda+12.3", "x86_64-linux-gnu-cxx03-cuda+12.4", "x86_64-linux-gnu-cxx11-cuda+12.4", "x86_64-linux-gnu-cxx03-cuda+12.5", "x86_64-linux-gnu-cxx11-cuda+12.5"]
+top_level = false
+type = "dependency"
+uuid = "28df3c45-c428-5900-9ff8-a3135698ca75"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03-cuda+none", "x86_64-linux-gnu-cxx11-cuda+none", "aarch64-linux-gnu-cxx03-cuda+none", "aarch64-linux-gnu-cxx11-cuda+none", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03-cuda+none", "powerpc64le-linux-gnu-cxx11-cuda+none", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03-cuda+none", "x86_64-linux-musl-cxx11-cuda+none", "aarch64-linux-musl-cxx03-cuda+none", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11", "x86_64-linux-gnu-cxx03-cuda+11.4", "x86_64-linux-gnu-cxx11-cuda+11.4", "x86_64-linux-gnu-cxx03-cuda+11.5", "x86_64-linux-gnu-cxx11-cuda+11.5", "x86_64-linux-gnu-cxx03-cuda+11.6", "x86_64-linux-gnu-cxx11-cuda+11.6", "x86_64-linux-gnu-cxx03-cuda+11.7", "x86_64-linux-gnu-cxx11-cuda+11.7", "x86_64-linux-gnu-cxx03-cuda+11.8", "x86_64-linux-gnu-cxx11-cuda+11.8", "x86_64-linux-gnu-cxx03-cuda+12.0", "x86_64-linux-gnu-cxx11-cuda+12.0", "x86_64-linux-gnu-cxx03-cuda+12.1", "x86_64-linux-gnu-cxx11-cuda+12.1", "x86_64-linux-gnu-cxx03-cuda+12.2", "x86_64-linux-gnu-cxx11-cuda+12.2", "x86_64-linux-gnu-cxx03-cuda+12.3", "x86_64-linux-gnu-cxx11-cuda+12.3", "x86_64-linux-gnu-cxx03-cuda+12.4", "x86_64-linux-gnu-cxx11-cuda+12.4", "x86_64-linux-gnu-cxx03-cuda+12.5", "x86_64-linux-gnu-cxx11-cuda+12.5"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenCL_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03-cuda+none", "x86_64-linux-gnu-cxx11-cuda+none", "aarch64-linux-gnu-cxx03-cuda+none", "aarch64-linux-gnu-cxx11-cuda+none", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03-cuda+none", "powerpc64le-linux-gnu-cxx11-cuda+none", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03-cuda+none", "x86_64-linux-musl-cxx11-cuda+none", "aarch64-linux-musl-cxx03-cuda+none", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-linux-gnu-cxx03-cuda+11.4", "x86_64-linux-gnu-cxx11-cuda+11.4", "x86_64-linux-gnu-cxx03-cuda+11.5", "x86_64-linux-gnu-cxx11-cuda+11.5", "x86_64-linux-gnu-cxx03-cuda+11.6", "x86_64-linux-gnu-cxx11-cuda+11.6", "x86_64-linux-gnu-cxx03-cuda+11.7", "x86_64-linux-gnu-cxx11-cuda+11.7", "x86_64-linux-gnu-cxx03-cuda+11.8", "x86_64-linux-gnu-cxx11-cuda+11.8", "x86_64-linux-gnu-cxx03-cuda+12.0", "x86_64-linux-gnu-cxx11-cuda+12.0", "x86_64-linux-gnu-cxx03-cuda+12.1", "x86_64-linux-gnu-cxx11-cuda+12.1", "x86_64-linux-gnu-cxx03-cuda+12.2", "x86_64-linux-gnu-cxx11-cuda+12.2", "x86_64-linux-gnu-cxx03-cuda+12.3", "x86_64-linux-gnu-cxx11-cuda+12.3", "x86_64-linux-gnu-cxx03-cuda+12.4", "x86_64-linux-gnu-cxx11-cuda+12.4", "x86_64-linux-gnu-cxx03-cuda+12.5", "x86_64-linux-gnu-cxx11-cuda+12.5"]
+top_level = false
+type = "dependency"
+uuid = "6cb37087-e8b6-5417-8430-1f242f1e46e4"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenCL_Headers_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03-cuda+none", "x86_64-linux-gnu-cxx11-cuda+none", "aarch64-linux-gnu-cxx03-cuda+none", "aarch64-linux-gnu-cxx11-cuda+none", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03-cuda+none", "powerpc64le-linux-gnu-cxx11-cuda+none", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03-cuda+none", "x86_64-linux-musl-cxx11-cuda+none", "aarch64-linux-musl-cxx03-cuda+none", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-linux-gnu-cxx03-cuda+11.4", "x86_64-linux-gnu-cxx11-cuda+11.4", "x86_64-linux-gnu-cxx03-cuda+11.5", "x86_64-linux-gnu-cxx11-cuda+11.5", "x86_64-linux-gnu-cxx03-cuda+11.6", "x86_64-linux-gnu-cxx11-cuda+11.6", "x86_64-linux-gnu-cxx03-cuda+11.7", "x86_64-linux-gnu-cxx11-cuda+11.7", "x86_64-linux-gnu-cxx03-cuda+11.8", "x86_64-linux-gnu-cxx11-cuda+11.8", "x86_64-linux-gnu-cxx03-cuda+12.0", "x86_64-linux-gnu-cxx11-cuda+12.0", "x86_64-linux-gnu-cxx03-cuda+12.1", "x86_64-linux-gnu-cxx11-cuda+12.1", "x86_64-linux-gnu-cxx03-cuda+12.2", "x86_64-linux-gnu-cxx11-cuda+12.2", "x86_64-linux-gnu-cxx03-cuda+12.3", "x86_64-linux-gnu-cxx11-cuda+12.3", "x86_64-linux-gnu-cxx03-cuda+12.4", "x86_64-linux-gnu-cxx11-cuda+12.4", "x86_64-linux-gnu-cxx03-cuda+12.5", "x86_64-linux-gnu-cxx11-cuda+12.5"]
+top_level = false
+type = "builddependency"
+uuid = "a7aa756b-2b7f-562a-9e9d-e94076c5c8ee"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "=1.76.0"
+name = "boost_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03-cuda+none", "x86_64-linux-gnu-cxx11-cuda+none", "aarch64-linux-gnu-cxx03-cuda+none", "aarch64-linux-gnu-cxx11-cuda+none", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03-cuda+none", "powerpc64le-linux-gnu-cxx11-cuda+none", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03-cuda+none", "x86_64-linux-musl-cxx11-cuda+none", "aarch64-linux-musl-cxx03-cuda+none", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-linux-gnu-cxx03-cuda+11.4", "x86_64-linux-gnu-cxx11-cuda+11.4", "x86_64-linux-gnu-cxx03-cuda+11.5", "x86_64-linux-gnu-cxx11-cuda+11.5", "x86_64-linux-gnu-cxx03-cuda+11.6", "x86_64-linux-gnu-cxx11-cuda+11.6", "x86_64-linux-gnu-cxx03-cuda+11.7", "x86_64-linux-gnu-cxx11-cuda+11.7", "x86_64-linux-gnu-cxx03-cuda+11.8", "x86_64-linux-gnu-cxx11-cuda+11.8", "x86_64-linux-gnu-cxx03-cuda+12.0", "x86_64-linux-gnu-cxx11-cuda+12.0", "x86_64-linux-gnu-cxx03-cuda+12.1", "x86_64-linux-gnu-cxx11-cuda+12.1", "x86_64-linux-gnu-cxx03-cuda+12.2", "x86_64-linux-gnu-cxx11-cuda+12.2", "x86_64-linux-gnu-cxx03-cuda+12.3", "x86_64-linux-gnu-cxx11-cuda+12.3", "x86_64-linux-gnu-cxx03-cuda+12.4", "x86_64-linux-gnu-cxx11-cuda+12.4", "x86_64-linux-gnu-cxx03-cuda+12.5", "x86_64-linux-gnu-cxx11-cuda+12.5"]
+top_level = false
+type = "dependency"
+uuid = "28df3c45-c428-5900-9ff8-a3135698ca75"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03-cuda+none", "x86_64-linux-gnu-cxx11-cuda+none", "aarch64-linux-gnu-cxx03-cuda+none", "aarch64-linux-gnu-cxx11-cuda+none", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03-cuda+none", "powerpc64le-linux-gnu-cxx11-cuda+none", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03-cuda+none", "x86_64-linux-musl-cxx11-cuda+none", "aarch64-linux-musl-cxx03-cuda+none", "aarch64-linux-musl-cxx11-cuda+none", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11", "x86_64-linux-gnu-cxx03-cuda+11.4", "x86_64-linux-gnu-cxx11-cuda+11.4", "x86_64-linux-gnu-cxx03-cuda+11.5", "x86_64-linux-gnu-cxx11-cuda+11.5", "x86_64-linux-gnu-cxx03-cuda+11.6", "x86_64-linux-gnu-cxx11-cuda+11.6", "x86_64-linux-gnu-cxx03-cuda+11.7", "x86_64-linux-gnu-cxx11-cuda+11.7", "x86_64-linux-gnu-cxx03-cuda+11.8", "x86_64-linux-gnu-cxx11-cuda+11.8", "x86_64-linux-gnu-cxx03-cuda+12.0", "x86_64-linux-gnu-cxx11-cuda+12.0", "x86_64-linux-gnu-cxx03-cuda+12.1", "x86_64-linux-gnu-cxx11-cuda+12.1", "x86_64-linux-gnu-cxx03-cuda+12.2", "x86_64-linux-gnu-cxx11-cuda+12.2", "x86_64-linux-gnu-cxx03-cuda+12.3", "x86_64-linux-gnu-cxx11-cuda+12.3", "x86_64-linux-gnu-cxx03-cuda+12.4", "x86_64-linux-gnu-cxx11-cuda+12.4", "x86_64-linux-gnu-cxx03-cuda+12.5", "x86_64-linux-gnu-cxx11-cuda+12.5"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenCL_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03-cuda+none", "x86_64-linux-gnu-cxx11-cuda+none", "aarch64-linux-gnu-cxx03-cuda+none", "aarch64-linux-gnu-cxx11-cuda+none", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03-cuda+none", "powerpc64le-linux-gnu-cxx11-cuda+none", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03-cuda+none", "x86_64-linux-musl-cxx11-cuda+none", "aarch64-linux-musl-cxx03-cuda+none", "aarch64-linux-musl-cxx11-cuda+none", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-linux-gnu-cxx03-cuda+11.4", "x86_64-linux-gnu-cxx11-cuda+11.4", "x86_64-linux-gnu-cxx03-cuda+11.5", "x86_64-linux-gnu-cxx11-cuda+11.5", "x86_64-linux-gnu-cxx03-cuda+11.6", "x86_64-linux-gnu-cxx11-cuda+11.6", "x86_64-linux-gnu-cxx03-cuda+11.7", "x86_64-linux-gnu-cxx11-cuda+11.7", "x86_64-linux-gnu-cxx03-cuda+11.8", "x86_64-linux-gnu-cxx11-cuda+11.8", "x86_64-linux-gnu-cxx03-cuda+12.0", "x86_64-linux-gnu-cxx11-cuda+12.0", "x86_64-linux-gnu-cxx03-cuda+12.1", "x86_64-linux-gnu-cxx11-cuda+12.1", "x86_64-linux-gnu-cxx03-cuda+12.2", "x86_64-linux-gnu-cxx11-cuda+12.2", "x86_64-linux-gnu-cxx03-cuda+12.3", "x86_64-linux-gnu-cxx11-cuda+12.3", "x86_64-linux-gnu-cxx03-cuda+12.4", "x86_64-linux-gnu-cxx11-cuda+12.4", "x86_64-linux-gnu-cxx03-cuda+12.5", "x86_64-linux-gnu-cxx11-cuda+12.5"]
+top_level = false
+type = "dependency"
+uuid = "6cb37087-e8b6-5417-8430-1f242f1e46e4"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenCL_Headers_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03-cuda+none", "x86_64-linux-gnu-cxx11-cuda+none", "aarch64-linux-gnu-cxx03-cuda+none", "aarch64-linux-gnu-cxx11-cuda+none", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03-cuda+none", "powerpc64le-linux-gnu-cxx11-cuda+none", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03-cuda+none", "x86_64-linux-musl-cxx11-cuda+none", "aarch64-linux-musl-cxx03-cuda+none", "aarch64-linux-musl-cxx11-cuda+none", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-linux-gnu-cxx03-cuda+11.4", "x86_64-linux-gnu-cxx11-cuda+11.4", "x86_64-linux-gnu-cxx03-cuda+11.5", "x86_64-linux-gnu-cxx11-cuda+11.5", "x86_64-linux-gnu-cxx03-cuda+11.6", "x86_64-linux-gnu-cxx11-cuda+11.6", "x86_64-linux-gnu-cxx03-cuda+11.7", "x86_64-linux-gnu-cxx11-cuda+11.7", "x86_64-linux-gnu-cxx03-cuda+11.8", "x86_64-linux-gnu-cxx11-cuda+11.8", "x86_64-linux-gnu-cxx03-cuda+12.0", "x86_64-linux-gnu-cxx11-cuda+12.0", "x86_64-linux-gnu-cxx03-cuda+12.1", "x86_64-linux-gnu-cxx11-cuda+12.1", "x86_64-linux-gnu-cxx03-cuda+12.2", "x86_64-linux-gnu-cxx11-cuda+12.2", "x86_64-linux-gnu-cxx03-cuda+12.3", "x86_64-linux-gnu-cxx11-cuda+12.3", "x86_64-linux-gnu-cxx03-cuda+12.4", "x86_64-linux-gnu-cxx11-cuda+12.4", "x86_64-linux-gnu-cxx03-cuda+12.5", "x86_64-linux-gnu-cxx11-cuda+12.5"]
+top_level = false
+type = "builddependency"
+uuid = "a7aa756b-2b7f-562a-9e9d-e94076c5c8ee"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "=1.76.0"
+name = "boost_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03-cuda+none", "x86_64-linux-gnu-cxx11-cuda+none", "aarch64-linux-gnu-cxx03-cuda+none", "aarch64-linux-gnu-cxx11-cuda+none", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03-cuda+none", "powerpc64le-linux-gnu-cxx11-cuda+none", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03-cuda+none", "x86_64-linux-musl-cxx11-cuda+none", "aarch64-linux-musl-cxx03-cuda+none", "aarch64-linux-musl-cxx11-cuda+none", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-linux-gnu-cxx03-cuda+11.4", "x86_64-linux-gnu-cxx11-cuda+11.4", "x86_64-linux-gnu-cxx03-cuda+11.5", "x86_64-linux-gnu-cxx11-cuda+11.5", "x86_64-linux-gnu-cxx03-cuda+11.6", "x86_64-linux-gnu-cxx11-cuda+11.6", "x86_64-linux-gnu-cxx03-cuda+11.7", "x86_64-linux-gnu-cxx11-cuda+11.7", "x86_64-linux-gnu-cxx03-cuda+11.8", "x86_64-linux-gnu-cxx11-cuda+11.8", "x86_64-linux-gnu-cxx03-cuda+12.0", "x86_64-linux-gnu-cxx11-cuda+12.0", "x86_64-linux-gnu-cxx03-cuda+12.1", "x86_64-linux-gnu-cxx11-cuda+12.1", "x86_64-linux-gnu-cxx03-cuda+12.2", "x86_64-linux-gnu-cxx11-cuda+12.2", "x86_64-linux-gnu-cxx03-cuda+12.3", "x86_64-linux-gnu-cxx11-cuda+12.3", "x86_64-linux-gnu-cxx03-cuda+12.4", "x86_64-linux-gnu-cxx11-cuda+12.4", "x86_64-linux-gnu-cxx03-cuda+12.5", "x86_64-linux-gnu-cxx11-cuda+12.5"]
+top_level = false
+type = "dependency"
+uuid = "28df3c45-c428-5900-9ff8-a3135698ca75"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 11
+version-minor = 4
+version-patch = 4
+[[dependencies]]
+compat = ""
+name = "CUDA_Runtime_jll"
+platforms = ["any"]
+top_level = false
+type = "runtimedependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_static_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 11
+version-minor = 4
+version-patch = 4
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 11
+version-minor = 5
+version-patch = 2
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_static_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 11
+version-minor = 5
+version-patch = 2
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 11
+version-minor = 6
+version-patch = 2
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_static_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 11
+version-minor = 6
+version-patch = 2
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 11
+version-minor = 7
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_static_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 11
+version-minor = 7
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 11
+version-minor = 8
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_static_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 11
+version-minor = 8
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 0
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_static_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 0
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 1
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_static_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 1
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 2
+version-patch = 2
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_static_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 2
+version-patch = 2
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 3
+version-patch = 2
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_static_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 3
+version-patch = 2
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 4
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_static_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 4
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 5
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_static_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 5
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["lib_lightgbm"]
+type = "lib"
+variable_name = "lib_lightgbm"
+[[products]]
+binnames = ["lightgbm"]
+type = "exe"
+variable_name = "lightgbm"
+
+[[sources]]
+hash = "252828fd86627d7405021c3377534d6a8239dd69"
+type = "git"
+unpack_target = ""
+url = "https://github.com/microsoft/LightGBM.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

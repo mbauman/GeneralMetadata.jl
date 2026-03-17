@@ -1,0 +1,144 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "GANAK"
+platforms = ["i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx11", "riscv64-linux-gnu-cxx11", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd"]
+script = """# For C++20 support on macOS\nif [[ \"${target}\" == *-apple-darwin* ]]; then\n    rm -rf /opt/${target}/${target}/sys-root/System /opt/${target}/${target}/sys-root/usr/include/libxml2\n    tar --extract --file=${WORKSPACE}/srcdir/MacOSX13.3.tar.xz --directory=\"/opt/${target}/${target}/sys-root/.\" --strip-components=1 MacOSX13.3.sdk/System MacOSX13.3.sdk/usr\n    export MACOSX_DEPLOYMENT_TARGET=13.3\nfi\n\n# Build CaDiCaL\ncd ${WORKSPACE}/srcdir/cadical\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/cadical-cross-compile.patch\nif [[ \"${target}\" == *-freebsd* ]]; then\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/cadical-freebsd-headers.patch\nfi\nCXXFLAGS=\"-fPIC\" ./configure --competition\nmake -j${nproc}\n# For apple, fix the dylib ID\nif [[ \"${target}\" == *-apple-* ]]; then\n    install_name_tool -id \"@rpath/libcadical.dylib\" build/libcadical.so\nfi\ninstall -D -m755 build/libcadical.so \"${prefix}/lib/libcadical.${dlext}\"\ninstall -D -m644 src/cadical.hpp \"${prefix}/include/cadical.hpp\"\ninstall -D -m644 src/ccadical.h \"${prefix}/include/ccadical.h\"\n\n# Build CaDiBack\ncd ${WORKSPACE}/srcdir/cadiback\nCXX=c++ ./configure\nmake -j${nproc}\n# For apple, fix the dylib ID and the libcadical dependency\nif [[ \"${target}\" == *-apple-* ]]; then\n    install_name_tool -id \"@rpath/libcadiback.dylib\" libcadiback.so\n    install_name_tool -change libcadical.so \"@rpath/libcadical.dylib\" libcadiback.so\nfi\ninstall -D -m755 libcadiback.so \"${prefix}/lib/libcadiback.${dlext}\"\ninstall -D -m644 include/cadiback.h \"${prefix}/include/cadiback.h\"\n\n# Build BreakID\ncd ${WORKSPACE}/srcdir/breakid\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/breakid-cstdint.patch\nmkdir build && cd build\ncmake \\\n    -DCMAKE_PREFIX_PATH=${prefix} \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DSTATICCOMPILE=OFF \\\n    -DCMAKE_SKIP_INSTALL_RPATH=ON \\\n    -DENABLE_TESTING=OFF \\\n    -S ..\ncmake --build . --config Release --parallel ${nproc}\ncmake --install .\n\n# Build CryptoMiniSat\ncd ${WORKSPACE}/srcdir/cryptominisat\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/cryptominisat-disable-fpu-check.patch\nmkdir build && cd build\ncmake \\\n    -DCMAKE_PREFIX_PATH=${prefix} \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DSTATICCOMPILE=OFF \\\n    -DCMAKE_SKIP_INSTALL_RPATH=ON \\\n    -DENABLE_TESTING=OFF \\\n    -DIPASIR=ON \\\n    -S ..\ncmake --build . --config Release --parallel ${nproc}\ncmake --install .\n\n# Build SBVA\ncd ${WORKSPACE}/srcdir/SBVA\nif [[ \"${target}\" == *-linux-musl* ]]; then\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/sbva-musl-feenableexcept.patch\nfi\nmkdir build && cd build\nln -s ../scripts/*.sh .\ncmake \\\n    -DCMAKE_PREFIX_PATH=${prefix} \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DSTATICCOMPILE=OFF \\\n    -DCMAKE_SKIP_INSTALL_RPATH=ON \\\n    -DENABLE_TESTING=OFF \\\n    -S ..\ncmake --build . --config Release --parallel ${nproc}\ncmake --install .\n\n# Build Arjun\ncd ${WORKSPACE}/srcdir/arjun\nif [[ \"${target}\" == *-linux-musl* ]]; then\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/arjun-musl-feenableexcept.patch\nfi\nmkdir build && cd build\ncmake \\\n    -DCMAKE_CXX_FLAGS=\"-I${prefix}/include\" \\\n    -DCMAKE_PREFIX_PATH=${prefix} \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DSTATICCOMPILE=OFF \\\n    -DCMAKE_SKIP_INSTALL_RPATH=ON \\\n    -DENABLE_TESTING=OFF \\\n    -S ..\ncmake --build . --config Release --parallel ${nproc}\ncmake --install .\n\n# Build ApproxMC\ncd ${WORKSPACE}/srcdir/approxmc\nif [[ \"${target}\" == *-linux-musl* ]]; then\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/approxmc-musl-feenableexcept.patch\nfi\nmkdir build && cd build\ncmake \\\n    -DCMAKE_PREFIX_PATH=${prefix} \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DSTATICCOMPILE=OFF \\\n    -DCMAKE_SKIP_INSTALL_RPATH=ON \\\n    -DENABLE_TESTING=OFF \\\n    -S ..\ncmake --build . --config Release --parallel ${nproc}\ncmake --install .\n\n# Build Ganak\ncd ${WORKSPACE}/srcdir/ganak\nif [[ \"${target}\" == *-linux-musl* ]]; then\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/ganak-musl-feenableexcept.patch\nfi\nmkdir build && cd build\ncmake \\\n    -DCMAKE_PREFIX_PATH=${prefix} \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DSTATICCOMPILE=OFF \\\n    -DCMAKE_SKIP_INSTALL_RPATH=ON \\\n    -DENABLE_TESTING=OFF \\\n    -S ..\ncmake --build . --config Release --parallel ${nproc}\ncmake --install .\n# remove redundant files in lib/cmake/ganak\nrm -f ${prefix}/lib/cmake/ganak/libganak.* ${prefix}/lib/cmake/ganak/*.hpp\n\ninstall_license ${WORKSPACE}/srcdir/ganak/LICENSE.txt\n"""
+version = "v2.5.2"
+
+[[dependencies]]
+compat = "6.2.1"
+name = "GMP_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MPFR_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "FLINT_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "cereal_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "armadillo_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "ensmallen_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "mlpack_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["ganak"]
+type = "exe"
+variable_name = "ganak"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libganak"]
+type = "lib"
+variable_name = "libganak"
+
+[[sources]]
+hash = "7ab65562ea23243163dea4b3a016c3c14ca29e52"
+type = "git"
+unpack_target = ""
+url = "https://github.com/meelgroup/ganak.git"
+[[sources]]
+hash = "58ec9aff687c9adcd6a26f158a947c07794e43f6"
+type = "git"
+unpack_target = ""
+url = "https://github.com/meelgroup/arjun.git"
+[[sources]]
+hash = "0faa08cf3cc26ed855831c9dc16a3489c9ae010f"
+type = "git"
+unpack_target = ""
+url = "https://github.com/meelgroup/SBVA.git"
+[[sources]]
+hash = "0f7487ebf5afa1ae3f7be279ba3709906a1c861d"
+type = "git"
+unpack_target = ""
+url = "https://github.com/msoos/cryptominisat.git"
+[[sources]]
+hash = "56042dc9002dee312bb4be283d2bdf8bc2a67827"
+type = "git"
+unpack_target = ""
+url = "https://github.com/meelgroup/approxmc.git"
+[[sources]]
+hash = "a35c4b98b6237b16ca0fd08dded8f8f51ff998a8"
+type = "git"
+unpack_target = ""
+url = "https://github.com/meelgroup/cadiback.git"
+[[sources]]
+hash = "81de5d2b5c68727b4d183ec5ceb56561f1b3b6e1"
+type = "git"
+unpack_target = ""
+url = "https://github.com/meelgroup/cadical.git"
+[[sources]]
+hash = "dee9744b7041cec373aa0489128b06a40fce43a1"
+type = "git"
+unpack_target = ""
+url = "https://github.com/meelgroup/breakid.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"
+[[sources]]
+filename = "MacOSX13.3.tar.xz"
+hash = "71ae3a78ab1be6c45cf52ce44cb29a3cc27ed312c9f7884ee88e303a862a1404"
+type = "file"
+url = "https://github.com/alexey-lysiuk/macos-sdk/releases/download/13.3/MacOSX13.3.tar.xz"

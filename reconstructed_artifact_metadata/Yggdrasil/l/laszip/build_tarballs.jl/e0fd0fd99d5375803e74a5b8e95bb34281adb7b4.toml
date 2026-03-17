@@ -1,0 +1,23 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "LASzip"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir\n\n# Patch to find unordered_map from tr1, logic there doesn't work for MINGW32.\nif [[ \"${target}\" == *-mingw* ]]; then\n    sed -i '/add_definitions(-DUNORDERED)/d' LASzip/src/CMakeLists.txt;  \nfi\n\nmkdir LASzip/build\ncd LASzip/build/\ncmake -DCMAKE_INSTALL_PREFIX=$prefix -DCMAKE_CXX_FLAGS=\"-std=c++11\" -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_VERBOSE_MAKEFILE=OFF ..\ncmake --build . --target install --config Release\n"""
+version = "v3.4.3000"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["liblaszip", "liblaszip3"]
+type = "lib"
+variable_name = "liblaszip"
+
+[[sources]]
+hash = "1ab671e42ff1f086e29d5b7e300a5026e7b8d69b"
+type = "git"
+unpack_target = ""
+url = "https://github.com/LASzip/LASzip.git"

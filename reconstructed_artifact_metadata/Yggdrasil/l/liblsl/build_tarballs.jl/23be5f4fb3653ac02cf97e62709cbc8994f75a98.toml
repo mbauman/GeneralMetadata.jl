@@ -1,0 +1,27 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "liblsl"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "riscv64-linux-gnu-cxx03", "riscv64-linux-gnu-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir/liblsl\n\n# Add license file\ninstall_license LICENSE\n\noptions=(\n    -DCMAKE_BUILD_TYPE=Release \n    -DCMAKE_INSTALL_PREFIX=${prefix}\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN}\n)\nif [[ \"${target}\" == x86_64-apple-darwin* ]]; then\n    # We need at least MacOS 10.12 for `shared_mutex`\n    export MACOSX_DEPLOYMENT_TARGET=10.12\n    # LTO doesn't work. Somehow we're compiling with LLVM 18, and libLTO is from LLVM 8, and that mismatch causes a linker error.\n    options+=(-DLSL_OPTIMIZATIONS=OFF)\nfi\n\ncmake -Bbuild ${options[@]}\ncmake --build build --parallel ${nproc}\ncmake --install build\n"""
+version = "v1.16.2"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["liblsl"]
+type = "lib"
+variable_name = "liblsl"
+[[products]]
+binnames = ["lslver"]
+type = "exe"
+variable_name = "lslver"
+
+[[sources]]
+hash = "6ca188c266c21f7228dc67077303fa6abaf2e8be"
+type = "git"
+unpack_target = ""
+url = "https://github.com/sccn/liblsl"

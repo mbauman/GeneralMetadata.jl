@@ -1,0 +1,59 @@
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Couenne"
+platforms = ["i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx11", "aarch64-apple-darwin", "armv6l-linux-gnueabihf-cxx11", "armv6l-linux-musleabihf-cxx11"]
+script = """cd $WORKSPACE/srcdir/Couenne\n\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/fixes.patch\n\nif [[ ${target} == *mingw* ]]; then\n    # Disable user-interrupts on Windows.\n    sed -i s/'#define SIGNAL'// ${WORKSPACE}/srcdir/Couenne/Couenne/src/main/CouenneBab.cpp\n    # Export symbols from DLL\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/export.patch\nfi\n\n# asl.h defines a macro called `filename`. Very unhelpful.\nsed -i s/'#define filename'/'#define __asl_filename'/ /workspace/destdir/include/asl.h\nsed -i s/'filename;'/'__asl_filename;'/ /workspace/srcdir/Couenne/Couenne/src/readnl/readnl.cpp\n\n# Remove misleading libtool files\nrm -f ${libdir}/*.la\nupdate_configure_scripts\n\n# old and custom autoconf\nsed -i s/elf64ppc/elf64lppc/ configure\n\nexport CPPFLAGS=\"${CPPFLAGS} -I${includedir} -I${includedir}/coin -I${includedir}/coin-or\"\nexport CXXFLAGS=\"${CXXFLAGS} -std=c++11\"\n\nif [[ ${target} == *mingw* ]]; then\n    export LDFLAGS=\"-L${libdir}\"\n    export LT_LDFLAGS=\"-no-undefined\"\nelif [[ ${target} == *apple* ]]; then\n    # Turn off the annoying, but harmless, -Wdeprecated-register.\n    export CPPFLAGS=\"${CPPFLAGS} -Wno-deprecated-register\"\nfi\n\n./configure \\\n    --prefix=$prefix \\\n    --build=${MACHTYPE} \\\n    --host=${target} \\\n    --enable-static \\\n    --enable-shared \\\n    lt_cv_deplibs_check_method=pass_all \\\n    --with-asl-lib=\"-lasl -lipoptamplinterface\" \\\n    --with-bonmin-lib=\"-lbonminampl -lbonmin -lipoptamplinterface -lipopt -lCbc -lCgl -lOsiClp -lClp -lOsi -lCoinUtils -lasl -lopenblas\"\n\nmake -j${nproc}\nmake install\n"""
+version = "v0.500.801"
+
+[[dependencies]]
+compat = ""
+name = "ASL_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "100.800.801"
+name = "Bonmin_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "200.1000.501"
+name = "Cbc_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "300.1400.400"
+name = "Ipopt_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libCouenne"]
+type = "lib"
+variable_name = "libcouenne"
+[[products]]
+binnames = ["couenne"]
+type = "exe"
+variable_name = "amplexe"
+
+[[sources]]
+hash = "7154f7a9b3cd84be378d02b483d090b76fc79ce8"
+type = "git"
+unpack_target = ""
+url = "https://github.com/coin-or/Couenne.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

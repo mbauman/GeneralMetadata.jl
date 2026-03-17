@@ -1,0 +1,42 @@
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "cif_api"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir/cif_api-*\n\nupdate_configure_scripts\n\nif [[ ${target} == *mingw* ]]; then\n    #remove win32 if branch to prevent file not found errors on make install?\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/mingw-remove-install-hook.patch\n    autoreconf -vi\nfi\n\n#CPP flags needed to help *-musl-* builds configure scripts find sqlite3.h, unsure exactly why?\nexport CPPFLAGS=\"-I${includedir}\"\n\n./configure \\\n    --prefix=${prefix} \\\n    --libdir=${libdir} \\\n    --includedir=${includedir} \\\n    --build=${MACHTYPE} \\\n    --host=${target} \\\n    --with-docs=no \\\n\nmake -j${nproc}\nmake install\n"""
+version = "v0.4.2"
+
+[[dependencies]]
+compat = "69.1"
+name = "ICU_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "SQLite_jll"
+type = "dependency"
+uuid = "76ed43ae-9a5d-5a62-8c75-30186b810ce8"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcif"]
+type = "lib"
+variable_name = "libcif"
+
+[[sources]]
+hash = "803fa1d0525bb51407754fa63b9439ba350178f45372103e84773ed4871b3924"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/COMCIFS/cif_api/archive/refs/tags/v0.4.2.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

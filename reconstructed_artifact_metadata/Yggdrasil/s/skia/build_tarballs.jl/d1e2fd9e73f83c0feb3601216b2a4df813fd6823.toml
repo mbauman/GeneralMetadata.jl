@@ -1,0 +1,152 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.10"
+lazy_artifacts = false
+name = "Skia"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "riscv64-linux-gnu-cxx03", "riscv64-linux-gnu-cxx11", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd"]
+script = """\ncd $WORKSPACE/srcdir/\nfor f in ${WORKSPACE}/srcdir/patches/*.patch; do\n    atomic_patch -p1 ${f}\ndone\n\nmkdir skia/third_party/externals/\nshopt -s extglob\n\n# Rename libraries to the names used in Skia\nmv wuffs-mirror-release-c wuffs\nmv freetype2 freetype\n\n# Move dependencies to the correct location\nmv !(cskia|skia|patches|MacOSX10.15.sdk.tar.xz) skia/third_party/externals/\n\n\ncd skia\n\ninstall_license LICENSE \n\nbin/fetch-gn \n\n\ncp ../cskia/capi/sk_capi.cpp src/base/\ncp ../cskia/capi/sk_capi.h src/base/\n\n\nif [[ \"${target}\" == x86_64-* ]]; then\n    target_cpu=x64\nelif [[ \"${target}\" == aarch64-* ]]; then\n    target_cpu=arm64\nelif [[ \"${target}\" == riscv64-* ]]; then\n    target_cpu=riscv\nelif [[ \"${target}\" == powerpc64le-* ]]; then\n    target_cpu=powerpc64le\nelif [[ \"${target}\" == i686-* ]]; then\n    target_cpu=x86\nelif [[ \"${target}\" == armv7l-* ]]; then\n    target_cpu=armv7-a\nelif [[ \"${target}\" == armv6l-* ]]; then\n    target_cpu=arm\nfi\n\n\nif [[ \"${target}\" == x86_64-apple-darwin* ]]; then\n    # Work around the issue\n    export MACOSX_DEPLOYMENT_TARGET=10.15\n    # ...and install a newer SDK\n    rm -rf /opt/${target}/${target}/sys-root/System\n    tar --extract --file=${WORKSPACE}/srcdir/MacOSX10.15.sdk.tar.xz --directory=\"/opt/${target}/${target}/sys-root/.\" --strip-components=1 MacOSX10.15.sdk/System MacOSX10.15.sdk/usr\n\nPLATFORM_ARGS=\"\nskia_use_x11=false \\\ntarget_os=\\\"mac\\\" \nskia_use_metal=false  \nskia_use_fonthost_mac=true\nskia_use_dng_sdk=false\nskia_use_fontconfig=false\nskia_use_freetype=false\n\"   \nelif [[ \"${target}\" == *-apple-* ]]; then\nPLATFORM_ARGS=\"\nskia_use_x11=false \\\ntarget_os=\\\"mac\\\" \nskia_use_metal=true  \nskia_enable_fontmgr_fontconfig=false\nskia_use_fonthost_mac=true\n\"\nelif [[ \"${target}\" == *-unknown-* ]]; then\nPLATFORM_ARGS=\"\ntarget_os=\\\"FreeBSD\\\" \\\nskia_use_dng_sdk=false\n\"\nelse\nPLATFORM_ARGS=\"\nskia_use_fontconfig=true \\\n\"\nfi\n\nARGS=\"\nis_component_build=true \\\ntarget_cpu=\\\"$target_cpu\\\"\ncc=\\\"clang\\\"\ncxx=\\\"clang++\\\"\nis_official_build=true\nskia_enable_pdf=true\nskia_enable_svg=true\nskia_use_gl=true\nskia_use_harfbuzz=false\nskia_use_system_expat=true\nskia_use_system_freetype2=false\nskia_use_system_icu=true\nskia_use_system_libjpeg_turbo=true\nskia_use_system_libpng=true\nskia_use_system_libwebp=true\nskia_use_system_zlib=true\nskia_use_lua=false\nskia_use_piex=false\nskia_use_dng_sdk=false\nextra_cflags=[\\\"-fpic\\\", \\\"-fvisibility=default\\\"]\n$PLATFORM_ARGS\n\"\nbin/gn gen out/Dynamic --args=\"$ARGS\"\n\nninja -j${nproc} -C out/Dynamic\n\ncd out/Dynamic/\n\n\ninstall -Dvm 755 \"libskia.${dlext}\" \"${libdir}/libskia.${dlext}\"\n"""
+version = "v0.40.1"
+
+[[dependencies]]
+compat = "2.16.0"
+name = "Fontconfig_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "3.1.1"
+name = "JpegTurbo_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.6.49"
+name = "libpng_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.5.0"
+name = "libwebp_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "76.1"
+name = "ICU_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "2.6.5"
+name = "Expat_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_libX11_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "4f6342f7-b3d2-589e-9d20-edeb45f2b2bc"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "xkbcommon_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "d8fb68d0-12a3-5cfd-a85a-d49703b185fd"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Libglvnd_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "7e76a0d4-f3c7-5321-8279-8d96eeed0f29"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_xorgproto_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+uuid = "c4d99508-4286-5418-9131-c86396af500b"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libskia"]
+type = "lib"
+variable_name = "libskia"
+
+[[sources]]
+hash = "482de011c920d85fdbe21a81c45852655df6a809"
+type = "git"
+unpack_target = ""
+url = "https://github.com/google/skia.git"
+[[sources]]
+hash = "7790e8f426cec7ad620cd04a04f28f604751e8d1"
+type = "git"
+unpack_target = ""
+url = "https://github.com/stensmo/cskia.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"
+[[sources]]
+hash = "5d4e649f740c675426fbe4cdaffc53ee2a4cb954"
+type = "git"
+unpack_target = ""
+url = "https://chromium.googlesource.com/chromium/src/third_party/freetype2.git"
+[[sources]]
+hash = "d248929c059ff7629a85333699717d7a677d8d96"
+type = "git"
+unpack_target = ""
+url = "https://chromium.googlesource.com/libyuv/libyuv.git"
+[[sources]]
+hash = "e3f919ccfe3ef542cfc983a82146070258fb57f8"
+type = "git"
+unpack_target = ""
+url = "https://skia.googlesource.com/external/github.com/google/wuffs-mirror-release-c.git"
+[[sources]]
+hash = "646b7f569718921d7d4b5b8e22572ff6c76f2596"
+type = "git"
+unpack_target = ""
+url = "https://chromium.googlesource.com/chromium/src/third_party/zlib"
+[[sources]]
+filename = "MacOSX10.15.sdk.tar.xz"
+hash = "2408d07df7f324d3beea818585a6d990ba99587c218a3969f924dfcc4de93b62"
+type = "file"
+url = "https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.15.sdk.tar.xz"

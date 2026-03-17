@@ -1,0 +1,61 @@
+lazy_artifacts = false
+name = "gperftools"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "x86_64-apple-darwin14-cxx03", "x86_64-apple-darwin14-cxx11", "x86_64-unknown-freebsd11.1-cxx03", "x86_64-unknown-freebsd11.1-cxx11"]
+script = """cd $WORKSPACE/srcdir/gperftools*/\n\n# Remove misleading libtool files\nrm -f ${prefix}/lib/*.la\nrm -f /opt/${target}/${target}/lib*/*.la\nrm -f /opt/${MACHTYPE}/${MACHTYPE}/lib*/*.la\n\nif [[ \"${target}\" == *-linux-* ]]; then\n    # https://github.com/gperftools/gperftools/blob/e5f77d6485bd2f6ce43862e3e57118b1bb97d30a/README\n    export CXXFLAGS=\"-fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free\"\nelif [[ \"${target}\" == *-apple-* ]]; then\n    # https://github.com/Homebrew/homebrew-core/blob/5e8ab5f092bd4dfe9658bab6d86150e26a326de3/Formula/gperftools.rb#L28\n    export CXXFLAGS=-D_XOPEN_SOURCE\nelif [[ \"${target}\" == *-freebsd* ]]; then\n    # Fix the error\n    #   undefined reference to `backtrace_symbols'\n    export LDFLAGS=\"-lexecinfo\"\nfi\n\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target}\nmake -j${nproc}\nmake install\n"""
+version = "v2.7.0"
+
+[[dependencies]]
+name = "LibUnwind_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libtcmalloc_debug"]
+type = "lib"
+variable_name = "libtcmalloc_debug"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libtcmalloc"]
+type = "lib"
+variable_name = "libtcmalloc"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libtcmalloc_and_profiler"]
+type = "lib"
+variable_name = "libtcmalloc_and_profiler"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libtcmalloc_minimal"]
+type = "lib"
+variable_name = "libtcmalloc_minimal"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libtcmalloc_minimal_debug"]
+type = "lib"
+variable_name = "libtcmalloc_minimal_debug"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libprofiler"]
+type = "lib"
+variable_name = "libprofiler"
+
+[[sources]]
+hash = "1ee8c8699a0eff6b6a203e59b43330536b22bbcbe6448f54c7091e5efb0763c9"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/gperftools/gperftools/releases/download/gperftools-2.7/gperftools-2.7.tar.gz"

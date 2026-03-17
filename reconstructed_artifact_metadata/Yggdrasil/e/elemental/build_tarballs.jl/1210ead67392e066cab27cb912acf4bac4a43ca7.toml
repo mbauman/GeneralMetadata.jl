@@ -1,0 +1,36 @@
+lazy_artifacts = false
+name = "Elemental"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin14-cxx03", "x86_64-apple-darwin14-cxx11", "x86_64-unknown-freebsd11.1-cxx03", "x86_64-unknown-freebsd11.1-cxx11"]
+script = """cd Elemental\n\natomic_patch -p1 ../patches/01-fix-suffix.patch\nif [[ \"$target\" == *86*-linux-musl* ]]; then\n    pushd /opt/$target/lib/gcc/$target/*/include\n    atomic_patch -p0 \"$WORKSPACE/srcdir/patches/02-fix-musl.patch\"\n    popd\nfi\n\nmkdir build\ncd build\n\nif [[ \"$nbits\" == 64 ]]; then\n  IS_64=\"ON\"\nelse\n  IS_64=\"OFF\"\nfi\n\nif [[ \"$nbits\" == 64 ]] && [[ \"$target\" != aarch64-* ]]; then\n  BLAS_LAPACK_LIB=\"$libdir/libopenblas64_.$dlext\"\n  IS_BLAS_64=\"ON\"\nelse\n  BLAS_LAPACK_LIB=\"$libdir/libopenblas.$dlext\"\n  IS_BLAS_64=\"OFF\"\nfi\n\ncmake \\\n  -DCMAKE_INSTALL_PREFIX=\"$prefix\" \\\n  -DCMAKE_TOOLCHAIN_FILE=\"$CMAKE_TARGET_TOOLCHAIN\" \\\n  -DCMAKE_BUILD_TYPE=\"Release\" \\\n  -DBUILD_SHARED_LIBS=\"ON\" \\\n  -DBLAS_LIBRARIES=\"$BLAS_LAPACK_LIB\" \\\n  -DLAPACK_LIBRARIES=\"$BLAS_LAPACK_LIB\" \\\n  -DHydrogen_ENABLE_TESTING=\"OFF\" \\\n  -DHydrogen_USE_OpenBLAS=\"ON\" \\\n  -DHydrogen_USE_64BIT_INTS=\"$IS_64\" \\\n  -DHydrogen_USE_64BIT_BLAS_INTS=\"$IS_BLAS_64\" \\\n  ..\n\nmake \"-j$nproc\"\nmake install\n"""
+version = "v1.3.3"
+
+[[dependencies]]
+name = "MPICH_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "OpenBLAS_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libHydrogen_CXX"]
+type = "lib"
+variable_name = "libHydrogen"
+
+[[sources]]
+hash = "38505fbf3b9f4a511fb35b0776144f336616fe38"
+type = "git"
+unpack_target = ""
+url = "https://github.com/LLNL/Elemental.git"
+[[sources]]
+path = "bundled"
+target = ""
+type = "directory"

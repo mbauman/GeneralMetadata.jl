@@ -1,0 +1,47 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.9"
+lazy_artifacts = false
+name = "SLATEC"
+platforms = ["i686-linux-gnu-libgfortran3", "i686-linux-gnu-libgfortran4", "i686-linux-gnu-libgfortran5", "x86_64-linux-gnu-libgfortran3", "x86_64-linux-gnu-libgfortran4", "x86_64-linux-gnu-libgfortran5", "aarch64-linux-gnu-libgfortran5", "armv6l-linux-gnueabihf-libgfortran3", "armv6l-linux-gnueabihf-libgfortran4", "armv6l-linux-gnueabihf-libgfortran5", "armv7l-linux-gnueabihf-libgfortran3", "armv7l-linux-gnueabihf-libgfortran4", "armv7l-linux-gnueabihf-libgfortran5", "powerpc64le-linux-gnu-libgfortran3", "powerpc64le-linux-gnu-libgfortran4", "powerpc64le-linux-gnu-libgfortran5", "i686-linux-musl-libgfortran3", "i686-linux-musl-libgfortran4", "i686-linux-musl-libgfortran5", "x86_64-linux-musl-libgfortran3", "x86_64-linux-musl-libgfortran4", "x86_64-linux-musl-libgfortran5", "aarch64-linux-musl-libgfortran5", "armv6l-linux-musleabihf-libgfortran3", "armv6l-linux-musleabihf-libgfortran4", "armv6l-linux-musleabihf-libgfortran5", "armv7l-linux-musleabihf-libgfortran3", "armv7l-linux-musleabihf-libgfortran4", "armv7l-linux-musleabihf-libgfortran5", "x86_64-apple-darwin-libgfortran3", "x86_64-apple-darwin-libgfortran4", "x86_64-apple-darwin-libgfortran5", "aarch64-apple-darwin-libgfortran5", "x86_64-unknown-freebsd-libgfortran3", "x86_64-unknown-freebsd-libgfortran4", "x86_64-unknown-freebsd-libgfortran5", "i686-w64-mingw32-libgfortran3", "i686-w64-mingw32-libgfortran4", "i686-w64-mingw32-libgfortran5", "x86_64-w64-mingw32-libgfortran3", "x86_64-w64-mingw32-libgfortran4", "x86_64-w64-mingw32-libgfortran5"]
+script = """cd $WORKSPACE/srcdir/slatec\n# BLAS/LAPACK is linked with libblastrampoline\nsed -i -e 's/\"Link to the system BLAS library?\" ON )/\"Link to the system BLAS library?\" OFF )/g' CMakeLists.txt\n# Do not build tests\nsed -i -e 's/\"Build the SLATEC tests?\" ON )/\"Build the SLATEC tests?\" OFF )/g' CMakeLists.txt\n\ncd $WORKSPACE/srcdir/slatec/src\n\n# Prepend undscore to symbols with i686 mingw target\nif [[ $target == *\"i686-w64-mingw32\" ]]; then \n    sed -i '/add_library( slatec_shared SHARED ${SLATEC_SOURCE_FILES} )/a\\\n    target_compile_options(slatec_shared PUBLIC -fleading-underscore)\n    ' CMakeLists.txt\nfi\n\n# libblastrampoline-5 required for mingw32\nif [[ $target == *\"w64-mingw32\" ]]; then\n    LBT=blastrampoline-5\nelse\n    LBT=blastrampoline\nfi\n# Change lapack library to libblastrampoline\nsed -i -e \"s/target_link_libraries( slatec_shared blas lapack )/target_link_libraries( slatec_shared ${LBT} )/g\" CMakeLists.txt\n\nif [[ \"${target}\" == aarch64-apple-* ]]; then\n    # Fix issue due to GCC 10+.\n    #     [  2%] Building Fortran object src/CMakeFiles/slatec_shared.dir/dwnlsm.f.o\n    #     cd /workspace/srcdir/slatec/build/src && /opt/bin/aarch64-apple-darwin20-libgfortran5-cxx11/aarch64-apple-darwin20-gfortran --sysroot=/opt/aarch64-apple-darwin20/aarch64-apple-darwin20/sys-root -Dslatec_shared_EXPORTS  -O3 -DNDEBUG -O3 -fPIC   -c /workspace/srcdir/slatec/src/dwnlsm.f -o CMakeFiles/slatec_shared.dir/dwnlsm.f.o\n    #     /workspace/srcdir/slatec/src/dwnlsm.f:440:28:\n    #\n    #       119 |       CALL DCOPY (N, 1.D0, 0, D, 1)\n    #           |                     2\n    #     ......\n    #       440 |          CALL DCOPY (NSOLN, Z, 1, X, 1)\n    #           |                            1\n    #     Error: Rank mismatch between actual argument at (1) and actual argument at (2) (scalar and rank-1)\n    #     /workspace/srcdir/slatec/src/dwnlsm.f:608:25:\n    #\n    #       119 |       CALL DCOPY (N, 1.D0, 0, D, 1)\n    #           |                     2\n    #     ......\n    #       608 |       CALL DCOPY (NSOLN, Z, 1, X, 1)\n    #           |                         1\n    #     Error: Rank mismatch between actual argument at (1) and actual argument at (2) (scalar and rank-1)\n    export FFLAGS=\"-fallow-argument-mismatch\"\nfi\n\n\nmkdir ../build\ncd ../build/\n# Build shared library\ncmake -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DUSE_OPTIMIZED_BLAS=0 \\\n    -DBUILD_SHARED_LIBRARY=1 \\\n    ..\nmake -j${nproc}\nmake install\n\ninstall_license ../../LICENSE\n"""
+version = "v4.1.1"
+
+[[dependencies]]
+compat = "5.4"
+name = "libblastrampoline_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libslatec"]
+type = "lib"
+variable_name = "libslatec"
+
+[[sources]]
+hash = "417db9e31c49eba4aee5ab9bb719093f6886bcee"
+type = "git"
+unpack_target = ""
+url = "https://github.com/sabjohnso/slatec.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

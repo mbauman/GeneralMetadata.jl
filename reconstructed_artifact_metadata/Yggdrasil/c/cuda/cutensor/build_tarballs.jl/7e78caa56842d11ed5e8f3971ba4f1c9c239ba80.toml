@@ -1,0 +1,64 @@
+augment_platform_block = """using Base.BinaryPlatforms\n\ntry\n    using CUDA_Runtime_jll\ncatch\n    # during initial package installation, CUDA_Runtime_jll may not be available.\n    # in that case, we just won't select an artifact.\nend\n\nfunction cuda_comparison_strategy(a::String, b::String, a_requested::Bool, b_requested::Bool)\n    if a == \"none\" || b == \"none\"\n        return a == b\n    end\n    if a == \"local\" || b == \"local\"\n        return a == b\n    end\n    a = VersionNumber(a)\n    b = VersionNumber(b)\n\n    # If both b and a requested, then we fall back to equality:\n    if a_requested && b_requested\n        return Base.thisminor(a) == Base.thisminor(b)\n    end\n\n    # Otherwise, do the comparison between the the single version cap and the single version:\n    function is_compatible(artifact::VersionNumber, host::VersionNumber)\n        if host >= v\"11.0\"\n            # enhanced compatibility, semver-style\n            artifact.major == host.major &&\n            Base.thisminor(artifact) <= Base.thisminor(host)\n        else\n            Base.thisminor(artifact) == Base.thisminor(host)\n        end\n    end\n    if a_requested\n        is_compatible(b, a)\n    else\n        is_compatible(a, b)\n    end\nend\n\nfunction augment_platform!(platform::Platform)\n    if !@isdefined(CUDA_Runtime_jll)\n        # don't set to nothing or Pkg will download any artifact\n        platform[\"cuda\"] = \"none\"\n    end\n\n    if !haskey(platform, \"cuda\")\n        CUDA_Runtime_jll.augment_platform!(platform)\n    end\n    BinaryPlatforms.set_compare_strategy!(platform, \"cuda\", cuda_comparison_strategy)\n    return platform\nend"""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = true
+name = "CUTENSOR"
+platforms = ["x86_64-linux-gnu-cuda+11.0", "powerpc64le-linux-gnu-cuda+11.0", "aarch64-linux-gnu-cuda+11.0", "x86_64-w64-mingw32-cuda+11.0", "x86_64-linux-gnu-cuda+12.0", "powerpc64le-linux-gnu-cuda+12.0", "aarch64-linux-gnu-cuda+12.0", "x86_64-w64-mingw32-cuda+12.0"]
+script = ["""mkdir -p ${libdir} ${prefix}/include\n\ncd ${WORKSPACE}/srcdir\nif [[ ${target} == *-linux-gnu ]]; then\n    cd libcutensor*\n    find .\n\n    install_license LICENSE\n\n    mv lib/11/libcutensor.so* ${libdir}\n    mv lib/11/libcutensorMg.so* ${libdir}\n    mv include/* ${prefix}/include\nelif [[ ${target} == x86_64-w64-mingw32 ]]; then\n    cd libcutensor*\n    find .\n\n    install_license LICENSE\n\n    mv lib/11/cutensor.dll ${libdir}\n    mv lib/11/cutensorMg.dll ${libdir}\n    mv include/* ${prefix}/include\n\n    # fixup\n    chmod +x ${libdir}/*.dll\nfi""", """mkdir -p ${libdir} ${prefix}/include\n\ncd ${WORKSPACE}/srcdir\nif [[ ${target} == *-linux-gnu ]]; then\n    cd libcutensor*\n    find .\n\n    install_license LICENSE\n\n    mv lib/12/libcutensor.so* ${libdir}\n    mv lib/12/libcutensorMg.so* ${libdir}\n    mv include/* ${prefix}/include\nelif [[ ${target} == x86_64-w64-mingw32 ]]; then\n    cd libcutensor*\n    find .\n\n    install_license LICENSE\n\n    mv lib/12/cutensor.dll ${libdir}\n    mv lib/12/cutensorMg.dll ${libdir}\n    mv include/* ${prefix}/include\n\n    # fixup\n    chmod +x ${libdir}/*.dll\nfi"""]
+version = "v1.7.0"
+
+[[dependencies]]
+compat = ""
+name = "CUDA_Runtime_jll"
+platforms = ["any"]
+top_level = false
+type = "runtimedependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "runtimedependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcutensor", "cutensor"]
+type = "lib"
+variable_name = "libcutensor"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcutensorMg", "cutensorMg"]
+type = "lib"
+variable_name = "libcutensorMg"
+
+[[sources]]
+hash = "dd3557891371a19e73e7c955efe5383b0bee954aba6a30e4892b0e7acb9deb26"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cutensor/redist/libcutensor/linux-x86_64/libcutensor-linux-x86_64-1.7.0.1-archive.tar.xz"
+[[sources]]
+hash = "af4ad5e29dcb636f1bf941ed1fd7fc8053eeec4813fbc0b41581e114438e84c8"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cutensor/redist/libcutensor/linux-ppc64le/libcutensor-linux-ppc64le-1.7.0.1-archive.tar.xz"
+[[sources]]
+hash = "c31f8e4386539434a5d1643ebfed74572011783b4e21b62be52003e3a9de3720"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cutensor/redist/libcutensor/linux-sbsa/libcutensor-linux-sbsa-1.7.0.1-archive.tar.xz"
+[[sources]]
+hash = "cdbb53bcc1c7b20ee0aa2dee781644a324d2d5e8065944039024fe22d6b822ab"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cutensor/redist/libcutensor/windows-x86_64/libcutensor-windows-x86_64-1.7.0.1-archive.zip"

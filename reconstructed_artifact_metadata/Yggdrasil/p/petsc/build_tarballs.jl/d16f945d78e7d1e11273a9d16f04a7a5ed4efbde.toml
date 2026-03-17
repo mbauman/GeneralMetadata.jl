@@ -1,0 +1,49 @@
+init_block = ""
+lazy_artifacts = false
+name = "PETSc"
+platforms = ["i686-linux-gnu-libgfortran3", "i686-linux-gnu-libgfortran4", "i686-linux-gnu-libgfortran5", "x86_64-linux-gnu-libgfortran3", "x86_64-linux-gnu-libgfortran4", "x86_64-linux-gnu-libgfortran5", "aarch64-linux-gnu-libgfortran3", "aarch64-linux-gnu-libgfortran4", "aarch64-linux-gnu-libgfortran5", "armv7l-linux-gnueabihf-libgfortran3", "armv7l-linux-gnueabihf-libgfortran4", "armv7l-linux-gnueabihf-libgfortran5", "powerpc64le-linux-gnu-libgfortran3", "powerpc64le-linux-gnu-libgfortran4", "powerpc64le-linux-gnu-libgfortran5", "i686-linux-musl-libgfortran3", "i686-linux-musl-libgfortran4", "i686-linux-musl-libgfortran5", "x86_64-linux-musl-libgfortran3", "x86_64-linux-musl-libgfortran4", "x86_64-linux-musl-libgfortran5", "aarch64-linux-musl-libgfortran3", "aarch64-linux-musl-libgfortran4", "aarch64-linux-musl-libgfortran5", "armv7l-linux-musleabihf-libgfortran3", "armv7l-linux-musleabihf-libgfortran4", "armv7l-linux-musleabihf-libgfortran5", "x86_64-apple-darwin14-libgfortran3", "x86_64-apple-darwin14-libgfortran4", "x86_64-apple-darwin14-libgfortran5", "x86_64-unknown-freebsd11.1-libgfortran3", "x86_64-unknown-freebsd11.1-libgfortran4", "x86_64-unknown-freebsd11.1-libgfortran5", "x86_64-w64-mingw32-libgfortran3", "x86_64-w64-mingw32-libgfortran4", "x86_64-w64-mingw32-libgfortran5"]
+script = """cd $WORKSPACE/srcdir/petsc*\nincludedir=\"${prefix}/include\"\natomic_patch -p1 $WORKSPACE/srcdir/patches/petsc_name_mangle.patch\n\nBLAS_LAPACK_LIB=\"${libdir}/libopenblas.${dlext}\"\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    #atomic_patch -p1 $WORKSPACE/srcdir/patches/fix-header-cases.patch\n    MPI_LIBS=\"${libdir}/msmpi.${dlext}\"\nelse\n    MPI_LIBS=\"[${libdir}/libmpi.${dlext},libmpifort.${dlext}]\"\nfi\n\n./configure --prefix=${prefix} \\\n    CC=${CC} \\\n    FC=${FC} \\\n    CXX=${CXX} \\\n    COPTFLAGS='-O3' \\\n    CXXOPTFLAGS='-O3' \\\n    FOPTFLAGS='-O3' \\\n    --with-64-bit-indices=0 \\\n    --with-debugging=0 \\\n    --with-batch \\\n    --PETSC_ARCH=$target \\\n    --with-blaslapack-lib=$BLAS_LAPACK_LIB \\\n    --with-blaslapack-suffix=\"\" \\\n    --known-64-bit-blas-indices=0 \\\n    --with-mpi-lib=\"${MPI_LIBS}\" \\\n    --known-mpi-int64_t=0 \\\n    --with-mpi-include=\"${includedir}\" \\\n    --with-sowing=0\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    export CPPFLAGS=\"-Dpetsc_EXPORTS\"\nelif [[ \"${target}\" == powerpc64le-* ]]; then\n    export CFLAGS=\"-fPIC\"\n    export FFLAGS=\"-fPIC\"\nfi\n\nmake -j${nproc} \\\n    PETSC_DIR=\"${PWD}\" \\\n    PETSC_ARCH=\"${target}\" \\\n    CPPFLAGS=\"${CPPFLAGS}\" \\\n    CFLAGS=\"${CFLAGS}\" \\\n    FFLAGS=\"${FFLAGS}\" \\\n    DEST_DIR=\"${prefix}\" \\\n    all\n\nmake PETSC_DIR=$PWD PETSC_ARCH=$target DEST_DIR=$prefix install\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    # Move library to ${libdir} on Windows,\n    # changing the extension from so to dll.\n    mv ${prefix}/lib/libpetsc.so.*.*.* \"${libdir}/libpetsc.${dlext}\"\n    # Remove useless links\n    rm ${prefix}/lib/libpetsc.*\nfi\n"""
+version = "v3.13.4"
+
+[[dependencies]]
+name = "OpenBLAS32_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "MPICH_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "MicrosoftMPI_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "CompilerSupportLibraries_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libpetsc"]
+type = "lib"
+variable_name = "libpetsc"
+
+[[sources]]
+hash = "2cf8abd70ec332510b17bff7dc8a465bf1eb053e17e2a0451a4a0256385657d8"
+type = "archive"
+unpack_target = ""
+url = "https://www.mcs.anl.gov/petsc/mirror/release-snapshots/petsc-3.13.4.tar.gz"
+[[sources]]
+path = "./bundled"
+target = ""
+type = "directory"

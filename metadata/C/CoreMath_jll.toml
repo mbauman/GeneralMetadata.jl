@@ -5,31 +5,7 @@ registered = 2026-02-17T15:07:10.000Z
     [["0.1.0+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/CoreMath_jll.jl/releases/download/CoreMath-v0.1.0+0/CoreMath.v0.1.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/CoreMath_jll.jl/releases/download/CoreMath-v0.1.0+0/CoreMath.v0.1.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CoreMath_jll.jl/releases/download/CoreMath-v0.1.0+0/CoreMath.v0.1.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CoreMath_jll.jl/releases/download/CoreMath-v0.1.0+0/CoreMath.v0.1.0.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/CoreMath_jll.jl/releases/download/CoreMath-v0.1.0+0/CoreMath.v0.1.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CoreMath_jll.jl/releases/download/CoreMath-v0.1.0+0/CoreMath.v0.1.0.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CoreMath_jll.jl/releases/download/CoreMath-v0.1.0+0/CoreMath.v0.1.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/CoreMath_jll.jl/releases/download/CoreMath-v0.1.0+0/CoreMath.v0.1.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CoreMath_jll.jl/releases/download/CoreMath-v0.1.0+0/CoreMath.v0.1.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CoreMath_jll.jl/releases/download/CoreMath-v0.1.0+0/CoreMath.v0.1.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/CoreMath_jll.jl/releases/download/CoreMath-v0.1.0+0/CoreMath.v0.1.0.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/05ec38c73a783e01fad74cd044004549b0a5c0a9/C/CoreMath/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/c/coremath/build_tarballs.jl/05ec38c73a783e01fad74cd044004549b0a5c0a9.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.6.6"
-
-        ["0.1.0+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        dependencies = []
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "CoreMath"
-        platforms = ["x86_64-linux-gnu", "aarch64-linux-gnu", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "x86_64-linux-musl", "aarch64-linux-musl", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "x86_64-w64-mingw32"]
-        script = """cd $WORKSPACE/srcdir/core-math*/\n\n# Collect source files for each precision\n# binary64: src/binary64/{name}/{name}.c     → cr_{name}(double)\n# binary32: src/binary32/{name}/{name}f.c    → cr_{name}f(float)\n# binary16: src/binary16/{name}/{name}f16.c  → cr_{name}f16(_Float16)\nSRCS=\"\"\nfor d in src/binary64/*/; do\n    fname=$(basename \"$d\")\n    src=\"$d/${fname}.c\"\n    [ -f \"$src\" ] && SRCS=\"$SRCS $src\"\ndone\nfor d in src/binary32/*/; do\n    fname=$(basename \"$d\")\n    src=\"$d/${fname}f.c\"\n    [ -f \"$src\" ] && SRCS=\"$SRCS $src\"\ndone\n# binary16 requires _Float16 support and compiler-rt intrinsics (__truncsfhf2,\n# __extendhfsf2). These are available with GCC >= 12 (Linux) but not with\n# the macOS/FreeBSD Clang cross-compiler or MinGW.\nif [[ \"${target}\" == *-linux-* ]]; then\n    for d in src/binary16/*/; do\n        fname=$(basename \"$d\")\n        src=\"$d/${fname}f16.c\"\n        [ -f \"$src\" ] && SRCS=\"$SRCS $src\"\n    done\nfi\n\n# On x86_64, enable SSE4.1 so that core-math's roundeven_finite() uses the\n# inline roundsd instruction instead of calling roundeven() from libm\n# (which doesn't exist on macOS). SSE4.1 is available on all x86_64 CPUs\n# that Julia supports.\nARCH_CFLAGS=\"\"\nif [[ \"${target}\" == x86_64-* ]]; then\n    ARCH_CFLAGS=\"-msse4.1\"\nfi\n\n# Compile all source files into object files\nmkdir -p build\nfor src in $SRCS; do\n    fname=$(basename \"$src\" .c)\n    # Rename as_compoundf_special in binary16's compoundf16.c to avoid\n    # symbol collision with binary32's compoundf.c (upstream bug: both\n    # define this non-static helper with the same name)\n    EXTRA=\"\"\n    if [[ \"$src\" == *binary16/compound* ]]; then\n        EXTRA=\"-Das_compoundf_special=as_compoundf16_special\"\n    fi\n    ${CC} ${CFLAGS} -fPIC -O2 ${ARCH_CFLAGS} ${EXTRA} -I. -c \"$src\" \\\n        -o \"build/${fname}.o\" || continue\ndone\n\n# Link all object files into a shared library\nmkdir -p ${libdir}\nif [[ \"${target}\" == *-apple-* ]]; then\n    ${CC} -dynamiclib -o ${libdir}/libcoremath.${dlext} build/*.o -lm\nelse\n    ${CC} -shared -o ${libdir}/libcoremath.${dlext} build/*.o -lm\nfi\n"""
-        version = "v0.1.0"
-
-            [["0.1.0+0".artifact_metadata.metadata.products]]
-            dir_paths = []
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libcoremath"]
-            type = "lib"
-            variable_name = "libcoremath"
-
-            [["0.1.0+0".artifact_metadata.metadata.sources]]
-            hash = "9a10f6e246374437d2dfcf0714fce5ce4254f986"
-            type = "git"
-            unpack_target = ""
-            url = "https://gitlab.inria.fr/core-math/core-math.git"

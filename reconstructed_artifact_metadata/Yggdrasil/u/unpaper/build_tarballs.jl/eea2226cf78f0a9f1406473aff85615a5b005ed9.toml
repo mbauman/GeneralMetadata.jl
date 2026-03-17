@@ -1,0 +1,23 @@
+lazy_artifacts = false
+name = "unpaper"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/unpaper-6.1/\napk add libxslt\nif [[ \"${target}\" == *-linux-* ]]; then\n    export LDFLAGS=\"-lstdc++\"\nelif [[ \"${target}\" == *-mingw* ]]; then\n    # FFMPEG_jll installs the pkgconfig files in the wrong directory for Windows\n    export PKG_CONFIG_PATH=\"${PKG_CONFIG_PATH}:${libdir}/pkgconfig\"\n    # Give some hints to the linker\n    export LDFLAGS=\"-L${libdir}\"\n    export LIBAV_LIBS=\"-lavformat -lavutil -lavcodec\"\nfi\nupdate_configure_scripts\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target}\nmake -j${nproc}\nmake install\n"""
+version = "v6.1.0"
+
+[[dependencies]]
+name = "FFMPEG_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["unpaper"]
+type = "exe"
+variable_name = "unpaper"
+
+[[sources]]
+hash = "237c84f5da544b3f7709827f9f12c37c346cdf029b1128fb4633f9bafa5cb930"
+type = "archive"
+unpack_target = ""
+url = "https://www.flameeyes.com/files/unpaper-6.1.tar.xz"

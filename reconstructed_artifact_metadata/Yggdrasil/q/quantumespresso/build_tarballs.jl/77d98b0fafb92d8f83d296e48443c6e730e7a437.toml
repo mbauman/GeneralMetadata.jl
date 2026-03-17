@@ -1,0 +1,80 @@
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "QuantumEspresso"
+platforms = ["i686-linux-gnu-libgfortran3", "i686-linux-gnu-libgfortran4", "i686-linux-gnu-libgfortran5", "x86_64-linux-gnu-libgfortran3", "x86_64-linux-gnu-libgfortran4", "x86_64-linux-gnu-libgfortran5", "aarch64-linux-gnu-libgfortran3", "aarch64-linux-gnu-libgfortran4", "aarch64-linux-gnu-libgfortran5", "armv7l-linux-gnueabihf-libgfortran3", "armv7l-linux-gnueabihf-libgfortran4", "armv7l-linux-gnueabihf-libgfortran5", "powerpc64le-linux-gnu-libgfortran3", "powerpc64le-linux-gnu-libgfortran4", "powerpc64le-linux-gnu-libgfortran5", "i686-linux-musl-libgfortran3", "i686-linux-musl-libgfortran4", "i686-linux-musl-libgfortran5", "x86_64-linux-musl-libgfortran3", "x86_64-linux-musl-libgfortran4", "x86_64-linux-musl-libgfortran5", "aarch64-linux-musl-libgfortran3", "aarch64-linux-musl-libgfortran4", "aarch64-linux-musl-libgfortran5", "armv7l-linux-musleabihf-libgfortran3", "armv7l-linux-musleabihf-libgfortran4", "armv7l-linux-musleabihf-libgfortran5", "x86_64-unknown-freebsd-libgfortran3", "x86_64-unknown-freebsd-libgfortran4", "x86_64-unknown-freebsd-libgfortran5"]
+script = """    cd qe-*\n    atomic_patch -p1 ../patches/0000-pass-host-to-configure.patch\n\n    export BLAS_LIBS=\"-L${libdir} -lopenblas\"\n    export LAPACK_LIBS=\"-L${libdir} -lopenblas\"\n    export FFTW_INCLUDE=${includedir}\n    export FFT_LIBS=\"-L${libdir} -lfftw3\"\n    export FC=mpif90\n    export CC=mpicc\n\n    flags=(--enable-parallel=yes)\n    if [ \"${nbits}\" == 64 ]; then\n        # Enable Libxc support only on 64-bit platforms\n        atomic_patch -p1 ../patches/0001-libxc-prefix.patch\n        flags+=(--with-libxc=yes --with-libxc-prefix=${prefix})\n    fi\n\n    if [[ \"${target}\" == powerpc64le-linux-gnu ]]; then\n        # No scalapack binary available on PowerPC\n        flags+=(--with-scalapack=no)\n    else\n        export SCALAPACK_LIBS=\"-L${libdir} -lscalapack\"\n        flags+=(--with-scalapack=yes)\n    fi\n\n    ./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} ${flags[@]}\n    make all \"${make_args[@]}\" -j $nproc\n    make install\n"""
+version = "v6.7.0"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "FFTW_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Libxc_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MPICH_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenBLAS32_jll"
+type = "dependency"
+uuid = "656ef2d0-ae68-5445-9ca0-591084a874a2"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "SCALAPACK_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["pw.x"]
+type = "exe"
+variable_name = "pwscf"
+[[products]]
+binnames = ["cp.x"]
+type = "exe"
+variable_name = "carparinello"
+[[products]]
+binnames = ["ph.x"]
+type = "exe"
+variable_name = "phonon"
+[[products]]
+binnames = ["hp.x"]
+type = "exe"
+variable_name = "hubbardparams"
+
+[[sources]]
+hash = "8f06ea31ae52ad54e900a2f51afd5c70f78096d9dcf39c86c2b17dccb1ec9c87"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/QEF/q-e/releases/download/qe-6.7.0/qe-6.7-ReleasePack.tgz"
+[[sources]]
+follow_symlinks = false
+path = "bundled"
+target = ""
+type = "directory"

@@ -1,0 +1,58 @@
+augment_platform_block = """using Base.BinaryPlatforms\n\ntry\n    using CUDA_Runtime_jll\ncatch\n    # during initial package installation, CUDA_Runtime_jll may not be available.\n    # in that case, we just won't select an artifact.\nend\n\nfunction cuda_comparison_strategy(a::String, b::String, a_requested::Bool, b_requested::Bool)\n    if a == \"none\" || b == \"none\"\n        return false\n    end\n    a = VersionNumber(a)\n    b = VersionNumber(b)\n\n    # If both b and a requested, then we fall back to equality:\n    if a_requested && b_requested\n        return Base.thisminor(a) == Base.thisminor(b)\n    end\n\n    # Otherwise, do the comparison between the the single version cap and the single version:\n    function is_compatible(artifact::VersionNumber, host::VersionNumber)\n        if host >= v\"11.0\"\n            # enhanced compatibility, semver-style\n            artifact.major == host.major &&\n            Base.thisminor(artifact) <= Base.thisminor(host)\n        else\n            Base.thisminor(artifact) == Base.thisminor(host)\n        end\n    end\n    if a_requested\n        is_compatible(b, a)\n    else\n        is_compatible(a, b)\n    end\nend\n\nfunction augment_platform!(platform::Platform)\n    if !@isdefined(CUDA_Runtime_jll)\n        # don't set to nothing or Pkg will download any artifact\n        platform[\"cuda\"] = \"none\"\n    end\n\n    if !haskey(platform, \"cuda\")\n        CUDA_Runtime_jll.augment_platform!(platform)\n    end\n    BinaryPlatforms.set_compare_strategy!(platform, \"cuda\", cuda_comparison_strategy)\n    return platform\nend"""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = true
+name = "cuQuantum"
+platforms = ["x86_64-linux-gnu-cuda+11.0", "powerpc64le-linux-gnu-cuda+11.0", "aarch64-linux-gnu-cuda+11.0"]
+script = """cd ${WORKSPACE}/srcdir/cuquantum-*\n\nmkdir -p ${prefix}\ncp -var lib/ include/ ${prefix}\ncp -var pkg-config/ ${prefix}/lib\n\n# Fixup pkg-config files\nsed -i \\\n    -e \"s?^cudaroot=.*?cudaroot=${prefix}?\" \\\n    -e \"s?^libdir=.*?libdir=${libdir}?\" \\\n    -e \"s?^includedir=.*?includedir=${includedir}?\" \\\n    ${libdir}/pkg-config/*.pc\n\n# Remove static libraries\nrm ${libdir}/*.a\n\n# Install license files\ninstall_license LICENSE docs/*\n"""
+version = "v0.1.30"
+
+[[dependencies]]
+compat = ""
+name = "CUDA_Runtime_jll"
+platforms = ["any"]
+top_level = false
+type = "runtimedependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CUTENSOR_jll"
+platforms = ["any"]
+top_level = false
+type = "runtimedependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcustatevec"]
+type = "lib"
+variable_name = "libcustatevec"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcutensornet"]
+type = "lib"
+variable_name = "libcutensornet"
+
+[[sources]]
+hash = "8ad8e98f14275ffe0de02574be5c86224af1c657c41baf02c16440301ffe0aae"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum/linux-x86_64/cuquantum-linux-x86_64-0.1.0.30-archive.tar.xz"
+[[sources]]
+hash = "0eb84eef619a1cfab5870fb585200a9869a197866685252e4ca8187322809554"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum/linux-ppc64le/cuquantum-linux-ppc64le-0.1.0.30-archive.tar.xz"
+[[sources]]
+hash = "3dd04cf08f1323318e0e63a7e28bc904c426ced3367aca809fba7e7beef94063"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum/linux-sbsa/cuquantum-linux-sbsa-0.1.0.30-archive.tar.xz"

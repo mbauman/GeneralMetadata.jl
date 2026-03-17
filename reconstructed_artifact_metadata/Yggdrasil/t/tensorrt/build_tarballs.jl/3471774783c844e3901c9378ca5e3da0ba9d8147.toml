@@ -1,0 +1,126 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = true
+name = "TensorRT"
+platforms = ["x86_64-linux-gnu-cuda+10.2", "x86_64-w64-mingw32-cuda+10.2", "aarch64-linux-gnu-cuda+10.2", "x86_64-linux-gnu-cuda+11.0", "x86_64-w64-mingw32-cuda+11.0", "x86_64-linux-gnu-cuda+11.1", "x86_64-w64-mingw32-cuda+11.1", "x86_64-linux-gnu-cuda+11.2", "x86_64-w64-mingw32-cuda+11.2", "x86_64-linux-gnu-cuda+11.3", "powerpc64le-linux-gnu-cuda+11.3", "x86_64-w64-mingw32-cuda+11.3", "aarch64-linux-gnu-cuda+11.3"]
+script = """cd ${WORKSPACE}/srcdir\n\nif [[ ${bb_full_target} == aarch64-linux-gnu*cuda+10.2 ]]; then\n    apk add dpkg\n    ls *.deb | xargs -Ideb_file dpkg-deb -x deb_file tmp\n    mkdir -p $bindir $includedir $libdir\n    install -Dv --mode=755 tmp/usr/src/tensorrt/bin/* $bindir\n    install -Dv --mode=644 tmp/usr/include/$target/* $includedir\n    install -Dv --mode=755 tmp/usr/lib/$target/*.so* $libdir\n    install_license tmp/usr/share/doc/libnvinfer8/copyright\nelse\n    mkdir -p ${bindir} ${libdir} ${includedir}\n    cd TensorRT*\n    mv bin/* ${bindir}\n    mv include/* ${includedir}\n    mv lib/*.${dlext}* ${libdir}\n\n    if [[ ${target} == x86_64-w64-mingw32 ]]; then\n        chmod +x ${bindir}/*.{dll,exe}\n        install_license doc/TensorRT-SLA.pdf \n    else\n        install_license doc/pdf/TensorRT-SLA.pdf \n    fi\nfi\n"""
+version = "v8.0.1"
+
+[[dependencies]]
+compat = "8.2"
+name = "CUDNN_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnvinfer", "nvinfer"]
+type = "lib"
+variable_name = "libnvinfer"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnvinfer_plugin", "nvinfer_plugin"]
+type = "lib"
+variable_name = "libnvinfer_plugin"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnvonnxparser", "nvonnxparser"]
+type = "lib"
+variable_name = "libnvonnxparser"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnvparsers", "nvparsers"]
+type = "lib"
+variable_name = "libnvparsers"
+[[products]]
+binnames = ["trtexec"]
+type = "exe"
+variable_name = "trtexec"
+
+[[sources]]
+hash = "110bbfd69fe27e298e1ad1bc35300569069ffeb8b691f48bcaf34703e1bafb96"
+type = "archive"
+unpack_target = ""
+url = "https://developer.nvidia.com/compute/machine-learning/tensorrt/secure/8.0.1/tars/TensorRT-8.0.1.6.Linux.x86_64-gnu.cuda-10.2.cudnn8.2.tar.gz"
+[[sources]]
+hash = "003cd632d978205de8b3140da743a9d39647ccb9959a1c219d34201d75a0a49e"
+type = "archive"
+unpack_target = ""
+url = "https://developer.nvidia.com/compute/machine-learning/tensorrt/secure/8.0.1/zip/TensorRT-8.0.1.6.Windows10.x86_64.cuda-10.2.cudnn8.2.zip"
+[[sources]]
+filename = "libnvinfer-bin_8.0.1-1+cuda10.2_arm64.deb"
+hash = "f4a98ac9086b4a195bcab26aca176a9db6b5a196ff42d3dfdb28a16d30e8a312"
+type = "file"
+url = "https://repo.download.nvidia.com/jetson/common/pool/main/t/tensorrt/libnvinfer-bin_8.0.1-1+cuda10.2_arm64.deb"
+[[sources]]
+filename = "libnvinfer-dev_8.0.1-1+cuda10.2_arm64.deb"
+hash = "f750c910a23107715dc2510d360725e46e9072079caacf3cec4255dd38bee849"
+type = "file"
+url = "https://repo.download.nvidia.com/jetson/common/pool/main/t/tensorrt/libnvinfer-dev_8.0.1-1+cuda10.2_arm64.deb"
+[[sources]]
+filename = "libnvinfer-plugin-dev_8.0.1-1+cuda10.2_arm64.deb"
+hash = "4dabae4f5ea8f3eb54dbd36cf3dde3d038fae2a857529b869844b05cec77092a"
+type = "file"
+url = "https://repo.download.nvidia.com/jetson/common/pool/main/t/tensorrt/libnvinfer-plugin-dev_8.0.1-1+cuda10.2_arm64.deb"
+[[sources]]
+filename = "libnvinfer-plugin8_8.0.1-1+cuda10.2_arm64.deb"
+hash = "71435b08b97346e2b0f568332c3440b8f6c00b5198f83ab5935f161aae39f8d8"
+type = "file"
+url = "https://repo.download.nvidia.com/jetson/common/pool/main/t/tensorrt/libnvinfer-plugin8_8.0.1-1+cuda10.2_arm64.deb"
+[[sources]]
+filename = "libnvinfer8_8.0.1-1+cuda10.2_arm64.deb"
+hash = "305c4482a315ceb59e514823b359fdeebfbdd5fa2124e277dd176589e2f49aea"
+type = "file"
+url = "https://repo.download.nvidia.com/jetson/common/pool/main/t/tensorrt/libnvinfer8_8.0.1-1+cuda10.2_arm64.deb"
+[[sources]]
+filename = "libnvonnxparsers-dev_8.0.1-1+cuda10.2_arm64.deb"
+hash = "6f477ab54c4fd646ab9f65baed0157dca7ca29de6bc7f992f5285d8baa30b5eb"
+type = "file"
+url = "https://repo.download.nvidia.com/jetson/common/pool/main/t/tensorrt/libnvonnxparsers-dev_8.0.1-1+cuda10.2_arm64.deb"
+[[sources]]
+filename = "libnvonnxparsers8_8.0.1-1+cuda10.2_arm64.deb"
+hash = "8d4b0722515d91592e73dca2c43b798430bef4633b34d912324b53b63acf41ae"
+type = "file"
+url = "https://repo.download.nvidia.com/jetson/common/pool/main/t/tensorrt/libnvonnxparsers8_8.0.1-1+cuda10.2_arm64.deb"
+[[sources]]
+filename = "libnvparsers-dev_8.0.1-1+cuda10.2_arm64.deb"
+hash = "b09864c351aebf2200fb98f48dc68b4a75260bbcd01423bbf1633acdc115b9be"
+type = "file"
+url = "https://repo.download.nvidia.com/jetson/common/pool/main/t/tensorrt/libnvparsers-dev_8.0.1-1+cuda10.2_arm64.deb"
+[[sources]]
+filename = "libnvparsers8_8.0.1-1+cuda10.2_arm64.deb"
+hash = "34040352c9f44611928a7d6aa6a7f885b6506a7b3310a8b9fc0782a9ba42037a"
+type = "file"
+url = "https://repo.download.nvidia.com/jetson/common/pool/main/t/tensorrt/libnvparsers8_8.0.1-1+cuda10.2_arm64.deb"
+[[sources]]
+hash = "def6a5ee50bed25a68a9c9e22ec671a8f29ee5414bde47c5767bd279e5596f88"
+type = "archive"
+unpack_target = ""
+url = "https://developer.nvidia.com/compute/machine-learning/tensorrt/secure/8.0.1/tars/TensorRT-8.0.1.6.Linux.x86_64-gnu.cuda-11.3.cudnn8.2.tar.gz"
+[[sources]]
+hash = "e51b382e931ae9032e431fff218cd2cf2d2b7a7c66c7a6bdf453557612466ae1"
+type = "archive"
+unpack_target = ""
+url = "https://developer.nvidia.com/compute/machine-learning/tensorrt/secure/8.0.1/zip/TensorRT-8.0.1.6.Windows10.x86_64.cuda-11.3.cudnn8.2.zip"
+[[sources]]
+hash = "fd33a32085c468f638505e2603936fa4e3f2a3fa46989570fa0b9e31a9e6914a"
+type = "archive"
+unpack_target = ""
+url = "https://developer.nvidia.com/compute/machine-learning/tensorrt/secure/8.0.1/tars/TensorRT-8.0.1.6.CentOS-8.3.ppc64le-gnu.cuda-11.3.cudnn8.2.tar.gz"
+[[sources]]
+hash = "ea322da72b1b1ca6b8d0715ab14668c54f7d00ad22695d41a85a7055df9f63e1"
+type = "archive"
+unpack_target = ""
+url = "https://developer.nvidia.com/compute/machine-learning/tensorrt/secure/8.0.1/tars/TensorRT-8.0.1.6.Ubuntu-20.04.aarch64-gnu.cuda-11.3.cudnn8.2.tar.gz"

@@ -1,0 +1,27 @@
+dependencies = []
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "FastHadamardStructuredTransforms"
+platforms = ["x86_64-linux-gnu", "x86_64-linux-musl", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/FFHT/\nCFLAGS=\"-O3 -std=c99 -pedantic -Wall -Wshadow -Wpointer-arith -Wcast-qual -Wstrict-prototypes -Wmissing-prototypes\"\nif [[ ${target} == x86_64-* ]] || [[ ${target} == i686-* ]]; then\n    CFLAGS=\"$CFLAGS -msse -msse2 -mno-avx\"\nfi\n\n$CC fht.c -o fht.o -c $CFLAGS -fPIC\n$CC fast_copy.c -o fast_copy.o -c $CFLAGS -fPIC\ncd $WORKSPACE/srcdir/fasttransformsc\n$CC fast_transforms.c -o fast_transforms.o -I$WORKSPACE/srcdir -c $CFLAGS -fPIC -lm\nmkdir -p \"${libdir}\"\n$CC -shared fast_transforms.o ../FFHT/fht.o ../FFHT/fast_copy.o -o \"${libdir}/libfasttransforms.${dlext}\" $CFLAGS -lm\ninstall_license $WORKSPACE/srcdir/fasttransformsc/LICENSE.md\n"""
+version = "v0.0.1"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libfasttransforms"]
+type = "lib"
+variable_name = "libfasttransforms"
+
+[[sources]]
+hash = "5e7c023fbb89dc3c4d1bcaa41a97fc4a7bd37078"
+type = "git"
+unpack_target = ""
+url = "https://gitlab.inria.fr/SketchedLearning/fasttransformsc.git"
+[[sources]]
+hash = "fba727a3ff72c862260460631ae1cc8e3e44e861"
+type = "git"
+unpack_target = ""
+url = "https://github.com/FALCONN-LIB/FFHT.git"

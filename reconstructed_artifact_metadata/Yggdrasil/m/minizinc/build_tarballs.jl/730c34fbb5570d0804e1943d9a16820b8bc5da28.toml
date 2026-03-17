@@ -1,0 +1,34 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "MiniZinc"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd"]
+script = """cd $WORKSPACE/srcdir/libminizinc\n\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/fixes.patch\n\n# Patch for MinGW toolchain\nfind .. -type f -exec sed -i 's/Windows.h/windows.h/g' {} +\n\nmkdir -p build\ncd build\n\ncmake -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    ..\n\nif [[ \"${target}\" == *-linux-* ]]; then\n        make -j ${nproc}\nelse\n    if [[ \"${target}\" == *-mingw* ]]; then\n        cmake --build . --config Release\n    else\n        cmake --build . --config Release --parallel\n    fi\nfi\nmake install\n"""
+version = "v2.7.4"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["minizinc"]
+type = "exe"
+variable_name = "minizinc"
+
+[[sources]]
+hash = "834c8c1da9816322d4dcad52ae067fbf584ac6b9"
+type = "git"
+unpack_target = ""
+url = "https://github.com/MiniZinc/libminizinc.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

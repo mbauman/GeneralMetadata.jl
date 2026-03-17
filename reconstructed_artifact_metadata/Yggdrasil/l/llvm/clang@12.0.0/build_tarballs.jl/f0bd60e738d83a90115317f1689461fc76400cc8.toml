@@ -1,0 +1,37 @@
+init_block = ""
+julia_compat = "1.7"
+lazy_artifacts = false
+name = "Clang"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11", "aarch64-apple-darwin", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11"]
+script = """# First, find (true) LLVM library directory in ~/.artifacts somewhere\nLLVM_ARTIFACT_DIR=$(dirname $(dirname $(realpath ${prefix}/tools/opt${exeext})))\n\n# Clear out our `${prefix}`\nrm -rf ${prefix}/*\n\n# Copy over `clang`, `libclang` and `include`, specifically.\nmkdir -p ${prefix}/include ${prefix}/tools ${libdir} ${prefix}/lib\nmv -v ${LLVM_ARTIFACT_DIR}/include/clang* ${prefix}/include/\nmv -v ${LLVM_ARTIFACT_DIR}/tools/clang* ${prefix}/tools/\nmv -v ${LLVM_ARTIFACT_DIR}/$(basename ${libdir})/libclang*.${dlext}* ${libdir}/\nmv -v ${LLVM_ARTIFACT_DIR}/lib/libclang*.a ${prefix}/lib\nmv -v ${LLVM_ARTIFACT_DIR}/lib/clang ${prefix}/lib/clang\ninstall_license ${LLVM_ARTIFACT_DIR}/share/licenses/LLVM_full*/*\n"""
+sources = []
+version = "v12.0.0"
+
+[[dependencies]]
+compat = ""
+name = "LLVM_full_jll"
+type = "builddependency"
+uuid = "a3ccf953-465e-511d-b87f-60a6490c289d"
+version-major = 12
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "12.0.0"
+name = "libLLVM_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libclang"]
+type = "lib"
+variable_name = "libclang"
+[[products]]
+binnames = ["clang"]
+dir_path = "tools"
+type = "exe"
+variable_name = "clang"

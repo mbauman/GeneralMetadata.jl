@@ -1,0 +1,23 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "fastlowess"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/lowess-project/bindings/julia\n# Use the system linker. On Linux, force BFD to avoid \"lld not built with zlib support\" errors.\nexport RUSTFLAGS=\"-C linker=${CC}\"\nif [[ \"${target}\" == *-linux-* ]]; then\n    RUSTFLAGS=\"${RUSTFLAGS} -C link-arg=-fuse-ld=bfd\"\nfi\n# Build the release library\ncargo build --release --target ${rust_target} --target-dir target\n# Install the shared library\ninstall -Dvm755 target/${rust_target}/release/*fastlowess_jl.${dlext} -t \"${libdir}\"\n# Install licenses\ninstall_license LICENSE-MIT\ninstall_license LICENSE-APACHE\n"""
+version = "v1.2.0"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libfastlowess_jl", "fastlowess_jl"]
+type = "lib"
+variable_name = "libfastlowess_jl"
+
+[[sources]]
+hash = "af37ea7887e858328eb3190ab09623e4525cc02c"
+type = "git"
+unpack_target = ""
+url = "https://github.com/thisisamirv/lowess-project.git"

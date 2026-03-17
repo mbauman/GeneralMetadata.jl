@@ -1,0 +1,41 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "x265"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd ${WORKSPACE}/srcdir/x265_git\n\n# x265 builds for multiple architectures, using `-march` and `-mcpu`\n# options, and then dispatches at run time. To support that, we need to\n# (1) Disable the checks for `-march` and `-mcpu` in the compiler wrappers\n# (2) Don't set `-march` or `-mcpu` in the compiler wrappers\n# We still can't have `-march=native` or `-mpcu=native`.\n\n# Disable `-march` checks in our compiler wrappers\nsed -i 's/\"-march=\"/this_will_never_match/g' $(dirname $(which gcc))/*\n# Don't set a default architecture or cpu in our compiler wrappers, x265 wants to do that\nsed -i 's/-m\\(arch\\|cpu\\)=[-+.0-9A-Za-z_]*//g' $(dirname $(which gcc))/*\n\n# Remove `-march=native` and `-mcpu=native` flags in x265\nsed -i 's/-m\\(arch\\|cpu\\)=native//g' source/CMakeLists.txt source/dynamicHDR10/CMakeLists.txt\n\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/neon.patch\n\ncmake -S source -B build \\\n    -DCMAKE_INSTALL_PREFIX=\"${prefix}\" \\\n    -DCMAKE_TOOLCHAIN_FILE=\"${CMAKE_TARGET_TOOLCHAIN}\" \\\n    -DENABLE_PIC=ON \\\n    -DENABLE_SHARED=ON\ncmake --build build --parallel ${nproc}\ncmake --install build\n# Remove the large static archive\nrm -v ${prefix}/lib/libx265.a\n"""
+version = "v4.1.0"
+
+[[dependencies]]
+compat = ""
+name = "NASM_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["x265"]
+type = "exe"
+variable_name = "x265"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libx265"]
+type = "lib"
+variable_name = "libx265"
+
+[[sources]]
+hash = "32e25ffcf810c5fe284901859b369270824c4596"
+type = "git"
+unpack_target = ""
+url = "https://bitbucket.org/multicoreware/x265_git.git"
+[[sources]]
+follow_symlinks = false
+path = "bundled"
+target = ""
+type = "directory"

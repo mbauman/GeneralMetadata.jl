@@ -1,0 +1,113 @@
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "polymake"
+platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "x86_64-apple-darwin"]
+script = """# the prepared config files for non-native architectures\n# assume a fixed source directory\nmv $WORKSPACE/srcdir/{polymake-*,polymake}\ncd $WORKSPACE/srcdir/polymake\n\nperl_version=5.30.3\n\n# to be able to generate a similiar dependency tree at runtime\n# we prepare a symlink tree for all dependencies\nmkdir -p ${prefix}/deps\nfor dir in FLINT GMP MPFR PPL Perl bliss boost cddlib lrslib normaliz; do\n   ln -s .. ${prefix}/deps/${dir}_jll\ndone\n\n# adjust for hardcoded /workspace dirs\natomic_patch -p1 ../patches/relocatable.patch\n\n# to unbreak ctrl+c in julia\natomic_patch -p1 ../patches/sigint.patch\n\nif [[ $target == *darwin* ]]; then\n  # we cannot run configure and instead provide config files\n  mkdir -p build/Opt\n  mkdir -p build/perlx/$perl_version/apple-darwin14\n  cp ../config/config-$target.ninja build/config.ninja\n  cp ../config/build-Opt-$target.ninja build/Opt/build.ninja\n  cp ../config/targets.ninja build/targets.ninja\n  ln -s ../config.ninja build/Opt/config.ninja\n  cp ../config/perlx-config-$target.ninja build/perlx/$perl_version/apple-darwin14/config.ninja\n  # for a modified pure perl JSON module and to make miniperl find the correct modules\n  export PERL5LIB=$prefix/lib/perl5/$perl_version:$prefix/lib/perl5/$perl_version/darwin-2level:$WORKSPACE/srcdir/patches\n  atomic_patch -p1 ../patches/polymake-cross.patch\n  atomic_patch -p1 ../patches/polymake-cross-build.patch\nelse\n  ./configure CFLAGS=\"-Wno-error\" CC=\"$CC\" CXX=\"$CXX\" \\\n              PERL=${prefix}/deps/Perl_jll/bin/perl \\\n              LDFLAGS=\"$LDFLAGS -L${prefix}/deps/Perl_jll/lib -Wl,-rpath,${prefix}/deps/Perl_jll/lib\" \\\n              --prefix=${prefix} \\\n              --with-flint=${prefix}/deps/FLINT_jll \\\n              --with-gmp=${prefix}/deps/GMP_jll \\\n              --with-mpfr=${prefix}/deps/MPFR_jll \\\n              --with-ppl=${prefix}/deps/PPL_jll \\\n              --with-bliss=${prefix}/deps/bliss_jll \\\n              --with-boost=${prefix}/deps/boost_jll \\\n              --with-cdd=${prefix}/deps/cddlib_jll \\\n              --with-lrs=${prefix}/deps/lrslib_jll \\\n              --with-libnormaliz=${prefix}/deps/normaliz_jll \\\n              --without-singular \\\n              --without-native\nfi\n\nninja -v -C build/Opt -j${nproc}\n\nninja -v -C build/Opt install\n\n# undo patch needed for building\nif [[ $target == *darwin* ]]; then\n  atomic_patch -R -p1 ../patches/polymake-cross-build.patch\nfi\ninstall -m 644 -D support/*.pl $prefix/share/polymake/support/\n\n# replace miniperl\nsed -i -e \"s/miniperl-for-build/perl/\" ${libdir}/polymake/config.ninja ${bindir}/polymake*\n# replace binary path with env\nsed -i -e \"s#$bindir/perl#/usr/bin/env perl#g\" ${libdir}/polymake/config.ninja ${bindir}/polymake*\n# remove target and sysroot\nsed -i -e \"s#--sysroot[ =]\\S\\+##g\" ${libdir}/polymake/config.ninja\nsed -i -e \"s#-target[ =]\\S\\+##g\" ${libdir}/polymake/config.ninja\n\n# copy of build config that has prefix as a variable\nsed -e \"s#${prefix}#\\${prefix}#g\" ${libdir}/polymake/config.ninja > ${libdir}/polymake/config-reloc.ninja\n\n# cleanup symlink tree\nrm -rf ${prefix}/deps\n\n# copy julia script to generate dependency-tree at load time\ncp ../patches/generate_deps_tree.jl $prefix/share/polymake\n\ninstall_license COPYING\n"""
+version = "v4.2.1"
+
+[[dependencies]]
+name = "CompilerSupportLibraries_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "FLINT_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "GMP_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "MPFR_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "PPL_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Perl_jll"
+type = "dependency"
+uuid = "83958c19-0796-5285-893e-a1267f8ec499"
+version-major = 5
+version-minor = 30
+version-patch = 3
+[[dependencies]]
+name = "bliss_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "boost_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "cddlib_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "lrslib_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "normaliz_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libpolymake"]
+type = "lib"
+variable_name = "libpolymake"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libpolymake-apps-rt"]
+type = "lib"
+variable_name = "libpolymake_apps_rt"
+[[products]]
+binnames = ["polymake"]
+type = "exe"
+variable_name = "polymake"
+[[products]]
+binnames = ["polymake-config"]
+type = "exe"
+variable_name = "polymake_config"
+[[products]]
+paths = ["share/polymake/generate_deps_tree.jl"]
+type = "file"
+variable_name = "generate_deps_tree"
+
+[[sources]]
+hash = "d308f551ef4c9f490a3a848d45a1ab41ae6461b1daf5be3deeaebad7df3816d4"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/polymake/polymake/archive/V4.2.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

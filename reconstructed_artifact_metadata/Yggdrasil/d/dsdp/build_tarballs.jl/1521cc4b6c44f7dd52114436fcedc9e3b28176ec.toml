@@ -1,0 +1,38 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "DSDP"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir\nfor f in ${WORKSPACE}/srcdir/patches/*.patch; do\n    atomic_patch -p1 ${f}\ndone\ncd DSDP*\nDSDPROOT=\"${prefix}\"\nDSDPLIB=\"${DSDPROOT}/lib/libdsdp.a\"\nDSDPLIBSO=\"${libdir}/libdsdp.${dlext}\"\n\ncp include/* ${includedir}\nmake CC=${CC} SHELL=\"sh -x\" DSDPROOT=\"${DSDPROOT}\" DSDPLIB=\"${DSDPLIB}\" DSDPLIBSO=\"${DSDPLIBSO}\" DSDPCFLAGS=\"-Wall -fPIC -DPIC\" LAPACKBLAS=\"-L${libdir} -lopenblas\" dsdplibrary\nmake CC=${CC} SHELL=\"sh -x\" DSDPROOT=\"${DSDPROOT}\" DSDPLIB=\"${DSDPLIB}\" DSDPLIBSO=\"${DSDPLIBSO}\" DSDPCFLAGS=\"-Wall\" LAPACKBLAS=\"-L${libdir} -lopenblas\" RM=\"rm -rf\" SH_LD=\"${CC} ${CFLAGS} -Wall -fPIC -DPIC -shared -L${libdir} -lopenblas\" oshared\ninstall_license dsdp-license\n"""
+version = "v0.0.1"
+
+[[dependencies]]
+compat = ""
+name = "OpenBLAS32_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "656ef2d0-ae68-5445-9ca0-591084a874a2"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libdsdp"]
+type = "lib"
+variable_name = "libdsdp"
+
+[[sources]]
+hash = "8915e55456f1a7cc5c970ad157d094a5fb399737cf192dfe79b89c2d94d97a8a"
+type = "archive"
+unpack_target = ""
+url = "https://www.mcs.anl.gov/hs/software/DSDP/DSDP5.8.zip"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

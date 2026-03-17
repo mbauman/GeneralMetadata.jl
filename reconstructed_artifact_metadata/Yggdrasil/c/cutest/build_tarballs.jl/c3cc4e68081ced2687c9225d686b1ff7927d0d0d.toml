@@ -1,0 +1,48 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "CUTEst"
+platforms = ["i686-linux-gnu-libgfortran3", "i686-linux-gnu-libgfortran4", "i686-linux-gnu-libgfortran5", "x86_64-linux-gnu-libgfortran3", "x86_64-linux-gnu-libgfortran4", "x86_64-linux-gnu-libgfortran5", "aarch64-linux-gnu-libgfortran3", "aarch64-linux-gnu-libgfortran4", "aarch64-linux-gnu-libgfortran5", "armv6l-linux-gnueabihf-libgfortran3", "armv6l-linux-gnueabihf-libgfortran4", "armv6l-linux-gnueabihf-libgfortran5", "armv7l-linux-gnueabihf-libgfortran3", "armv7l-linux-gnueabihf-libgfortran4", "armv7l-linux-gnueabihf-libgfortran5", "powerpc64le-linux-gnu-libgfortran3", "powerpc64le-linux-gnu-libgfortran4", "powerpc64le-linux-gnu-libgfortran5", "i686-linux-musl-libgfortran3", "i686-linux-musl-libgfortran4", "i686-linux-musl-libgfortran5", "x86_64-linux-musl-libgfortran3", "x86_64-linux-musl-libgfortran4", "x86_64-linux-musl-libgfortran5", "aarch64-linux-musl-libgfortran3", "aarch64-linux-musl-libgfortran4", "aarch64-linux-musl-libgfortran5", "armv6l-linux-musleabihf-libgfortran3", "armv6l-linux-musleabihf-libgfortran4", "armv6l-linux-musleabihf-libgfortran5", "armv7l-linux-musleabihf-libgfortran3", "armv7l-linux-musleabihf-libgfortran4", "armv7l-linux-musleabihf-libgfortran5", "x86_64-apple-darwin-libgfortran3", "x86_64-apple-darwin-libgfortran4", "x86_64-apple-darwin-libgfortran5", "aarch64-apple-darwin-libgfortran5", "x86_64-unknown-freebsd-libgfortran4", "x86_64-unknown-freebsd-libgfortran5"]
+script = """echo \"building for ${target}\"\n\n# setup\nmkdir -p ${bindir}\nmkdir -p ${libdir}\n\ncp -r ARCHDefs ${prefix}\ncp -r SIFDecode ${prefix}\ncp -r CUTEst ${prefix}\n\nexport ARCHDEFS=${prefix}/ARCHDefs\nexport SIFDECODE=${prefix}/SIFDecode\nexport CUTEST=${prefix}/CUTEst\n\n# ARCHDefs requires tput\napk update\napk add ncurses\n\n# build SIFDecode\ncd $SIFDECODE\nif [[ \"${target}\" == *-linux* || \"${target}\" == *-freebsd* ]]; then\n  echo \"6\" > sifdecode.opts   # PC64\n  echo \"2\" >> sifdecode.opts  # Linux\n  echo \"6\" >> sifdecode.opts  # gfortran\nelif [[ \"${target}\" == *-apple* ]]; then\n  echo \"13\" > sifdecode.opts  # macOS\n  echo \"2\" >> sifdecode.opts  # gfortran\nelif [[ \"${target}\" == *-mingw* ]]; then\n  echo \"6\" > sifdecode.opts   # PC64\n  echo \"1\" >> sifdecode.opts  # Windows\n  echo \"3\" >> sifdecode.opts  # gfortran\nfi\necho \"nny\" >> sifdecode.opts\n./install_sifdecode < sifdecode.opts\n\n# build CUTEst\ncd $CUTEST\nif [[ \"${target}\" == *-linux* || \"${target}\" == *-freebsd* ]]; then\n  echo \"6\" > cutest.opts   # PC64\n  echo \"2\" >> cutest.opts  # Linux\n  echo \"6\" >> cutest.opts  # gfortran\n  echo \"2\" >> cutest.opts  # build all tools except Matlab\n  echo \"8\" >> cutest.opts  # gcc\n  export MYARCH=pc64.lnx.gfo\nelif [[ \"${target}\" == *-apple* ]]; then\n  echo \"13\" > cutest.opts  # macOS\n  echo \"2\" >> cutest.opts  # gfortran\n  echo \"2\" >> cutest.opts  # build all tools except Matlab\n  echo \"5\" >> cutest.opts  # gcc\n  export MYARCH=mac64.osx.gfo\nelif [[ \"${target}\" == *-mingw* ]]; then\n  echo \"5\" > cutest.opts   # PC64\n  echo \"1\" >> cutest.opts  # Windows\n  echo \"3\" >> cutest.opts  # gfortran\n  echo \"2\" >> cutest.opts  # build all tools except Matlab\n  echo \"5\" >> cutest.opts  # gcc\n  export MYARCH=pc64.mgw.gfo\nfi\necho \"nnydy\" >> cutest.opts\n./install_cutest < cutest.opts\n\n# build shared libs\nextra=\"\"\nif [[ \"${target}\" == *-apple-* ]]; then\n  extra=\"-Wl,-undefined -Wl,dynamic_lookup -headerpad_max_install_names\"\nfi\ncd $CUTEST/objects/$MYARCH/single\ngfortran -fPIC -shared ${extra} $(flagon -Wl,--whole-archive) libcutest.a $(flagon -Wl,--no-whole-archive) -o ${libdir}/libcutest_single.${dlext}\ncd $CUTEST/objects/$MYARCH/double\ngfortran -fPIC -shared ${extra} $(flagon -Wl,--whole-archive) libcutest.a $(flagon -Wl,--no-whole-archive) -o ${libdir}/libcutest_double.${dlext}\n\nln -s $ARCHDEFS/bin/helper_functions ${bindir}/\nln -s $SIFDECODE/bin/sifdecoder ${bindir}/\nln -s $SIFDECODE/objects/$MYARCH/double/slct ${bindir}/\nln -s $SIFDECODE/objects/$MYARCH/double/clsf ${bindir}/\ninstall_license $CUTEST/lgpl-3.0.txt\n"""
+version = "v2.0.6"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["sifdecoder"]
+type = "exe"
+variable_name = "sifdecoder"
+[[products]]
+binnames = ["slct"]
+type = "exe"
+variable_name = "slct"
+[[products]]
+binnames = ["clsf"]
+type = "exe"
+variable_name = "clsf"
+
+[[sources]]
+hash = "5ab94bbbe45e13c1d00acdc09b8b7df470b98c29"
+type = "git"
+unpack_target = ""
+url = "https://github.com/ralna/ARCHDefs.git"
+[[sources]]
+hash = "42d3241205dc56e1f943687293e95586755a3c10"
+type = "git"
+unpack_target = ""
+url = "https://github.com/ralna/SIFDecode.git"
+[[sources]]
+hash = "1d2954ef69cfd541d3ec2299d29da7302cb8b6a3"
+type = "git"
+unpack_target = ""
+url = "https://github.com/ralna/CUTEst.git"

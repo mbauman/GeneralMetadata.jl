@@ -1,0 +1,182 @@
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "ODEInterface"
+platforms = ["i686-linux-gnu-libgfortran3", "i686-linux-gnu-libgfortran4", "i686-linux-gnu-libgfortran5", "x86_64-linux-gnu-libgfortran3", "x86_64-linux-gnu-libgfortran4", "x86_64-linux-gnu-libgfortran5", "aarch64-linux-gnu-libgfortran3", "aarch64-linux-gnu-libgfortran4", "aarch64-linux-gnu-libgfortran5", "armv7l-linux-gnueabihf-libgfortran3", "armv7l-linux-gnueabihf-libgfortran4", "armv7l-linux-gnueabihf-libgfortran5", "powerpc64le-linux-gnu-libgfortran3", "powerpc64le-linux-gnu-libgfortran4", "powerpc64le-linux-gnu-libgfortran5", "i686-linux-musl-libgfortran3", "i686-linux-musl-libgfortran4", "i686-linux-musl-libgfortran5", "x86_64-linux-musl-libgfortran3", "x86_64-linux-musl-libgfortran4", "x86_64-linux-musl-libgfortran5", "aarch64-linux-musl-libgfortran3", "aarch64-linux-musl-libgfortran4", "aarch64-linux-musl-libgfortran5", "armv7l-linux-musleabihf-libgfortran3", "armv7l-linux-musleabihf-libgfortran4", "armv7l-linux-musleabihf-libgfortran5", "x86_64-apple-darwin-libgfortran3", "x86_64-apple-darwin-libgfortran4", "x86_64-apple-darwin-libgfortran5", "x86_64-unknown-freebsd-libgfortran3", "x86_64-unknown-freebsd-libgfortran4", "x86_64-unknown-freebsd-libgfortran5", "i686-w64-mingw32-libgfortran3", "i686-w64-mingw32-libgfortran4", "i686-w64-mingw32-libgfortran5", "x86_64-w64-mingw32-libgfortran3", "x86_64-w64-mingw32-libgfortran4", "x86_64-w64-mingw32-libgfortran5"]
+script = """  cd $WORKSPACE/srcdir/ODEInterfac*/src\n  if [[ $target == *mingw* ]] ; then\n  \n  # dopri\n  gfortran -c -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./dopri5.o ./dopri5.f\n  gfortran -c -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./dopri5_i32.o ./dopri5.f\n  gfortran -shared -o ./dopri5.dll ./dopri5.o\n  gfortran -shared -o ./dopri5_i32.dll ./dopri5_i32.o\n  gfortran -c -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./dop853.o ./dop853.f\n  gfortran -c -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./dop853_i32.o ./dop853.f\n  gfortran -shared -o ./dop853.dll ./dop853.o\n  gfortran -shared -o ./dop853_i32.dll ./dop853_i32.o\n  \n  # odex\n  gfortran -c -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./odex.o ./odex.f\n  gfortran -c -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./odex_i32.o ./odex.f\n  gfortran -shared -o ./odex.dll ./odex.o\n  gfortran -shared -o ./odex_i32.dll ./odex_i32.o\n  \n  # lapack\n  gfortran -c -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./dc_lapack.o ./dc_lapack.f\n  gfortran -c -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./dc_lapack_i32.o ./dc_lapack.f\n  gfortran -c -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./lapack.o ./lapack.f\n  gfortran -c -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./lapack_i32.o ./lapack.f\n  gfortran -c -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./lapackc.o ./lapackc.f\n  gfortran -c -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./lapackc_i32.o ./lapackc.f\n  \n  # radau\n  gfortran -c -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./radau5.o ./radau5.f\n  gfortran -c -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./radau5_i32.o ./radau5.f\n  gfortran -shared -o ./radau5.dll ./radau5.o ./dc_lapack.o ./lapack.o ./lapackc.o\n  gfortran -shared -o ./radau5_i32.dll ./radau5_i32.o ./dc_lapack_i32.o ./lapack_i32.o ./lapackc_i32.o\n  gfortran -c -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./radau.o ./radau.f\n  gfortran -c -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./radau_i32.o ./radau.f\n  gfortran -shared -o ./radau.dll ./radau.o ./dc_lapack.o ./lapack.o ./lapackc.o\n  gfortran -shared -o ./radau_i32.dll ./radau_i32.o ./dc_lapack_i32.o ./lapack_i32.o ./lapackc_i32.o\n  \n  # seulex\n  gfortran -c -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./seulex.o ./seulex.f\n  gfortran -c -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./seulex_i32.o ./seulex.f\n  gfortran -shared -o ./seulex.dll ./seulex.o ./dc_lapack.o ./lapack.o ./lapackc.o\n  gfortran -shared -o ./seulex_i32.dll ./seulex_i32.o ./dc_lapack_i32.o ./lapack_i32.o ./lapackc_i32.o\n  \n  # rodas\n  gfortran -c -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./rodas.o ./rodas.f\n  gfortran -c -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./rodas_i32.o ./rodas.f\n  gfortran -shared -o ./rodas.dll ./rodas.o ./dc_lapack.o ./lapack.o ./lapackc.o\n  gfortran -shared -o ./rodas_i32.dll ./rodas_i32.o ./dc_lapack_i32.o ./lapack_i32.o ./lapackc_i32.o\n  \n  # slatec\n  gfortran -c -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./slatec.o ./slatec.f\n  gfortran -c -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./slatec_i32.o ./slatec.f\n  \n  # ddeabm\n  gfortran -c -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./ddeabm.o ./ddeabm.f\n  gfortran -c -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./ddeabm_i32.o ./ddeabm.f\n  gfortran -shared -o ./ddeabm.dll ./ddeabm.o ./slatec.o\n  gfortran -shared -o ./ddeabm_i32.dll ./ddeabm_i32.o ./slatec_i32.o\n  \n  # ddebdf\n  gfortran -c -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./ddebdf.o ./ddebdf.f\n  gfortran -c -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./ddebdf_i32.o ./ddebdf.f\n  gfortran -shared -o ./ddebdf.dll ./ddebdf.o ./slatec.o\n  gfortran -shared -o ./ddebdf_i32.dll ./ddebdf_i32.o ./slatec_i32.o\n  \n  # bvpsol\n  gfortran -c -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./bvpsol.o ./bvpsol.f\n  gfortran -c -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./bvpsol_i32.o ./bvpsol.f\n  gfortran -c -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./linalg_bvpsol.o ./linalg_bvpsol.f\n  gfortran -c -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./linalg_bvpsol_i32.o ./linalg_bvpsol.f\n  gfortran -c -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./zibconst.o ./zibconst.f\n  gfortran -c -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./zibconst_i32.o ./zibconst.f\n  gfortran -c -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./ma28_bvpsol.o ./ma28_bvpsol.f\n  gfortran -c -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./ma28_bvpsol_i32.o ./ma28_bvpsol.f\n  gfortran -shared -o ./bvpsol.dll ./bvpsol.o ./linalg_bvpsol.o ./zibconst.o ./ma28_bvpsol.o\n  gfortran -shared -o ./bvpsol_i32.dll ./bvpsol_i32.o ./linalg_bvpsol_i32.o ./zibconst_i32.o ./ma28_bvpsol_i32.o\n  \n  # colnew\n  gfortran -c -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./colnew.o ./colnew.f\n  gfortran -c -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./colnew_i32.o ./colnew.f\n  gfortran -shared -o ./colnew.dll ./colnew.o\n  gfortran -shared -o ./colnew_i32.dll ./colnew_i32.o\n  \n  # bvpm2\n  gfortran -c -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./bvp_la-2.o ./bvp_la-2.f\n  gfortran -c -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -std=f2008 -o ./bvp_m-2.o ./bvp_m-2.f90\n  gfortran -c -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -Wall -Wextra -Wimplicit-interface -std=f2008ts -o ./bvp_m_proxy.o ./bvp_m_proxy.f90\n  gfortran -shared -o ./bvp_m_proxy.dll ./bvp_m_proxy.o ./bvp_m-2.o ./bvp_la-2.o\n  cp *.dll $libdir\n  \n  \n  \n  elif [[ $target == *apple* ]] ; then\n  \n  # dopri\n  gfortran -c -fPIC -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./dopri5.o ./dopri5.f\n  gfortran -c -fPIC -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./dopri5_i32.o ./dopri5.f\n  gfortran -shared -fPIC -o ./dopri5.dylib ./dopri5.o\n  gfortran -shared -fPIC -o ./dopri5_i32.dylib ./dopri5_i32.o\n  gfortran -c -fPIC -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./dop853.o ./dop853.f\n  gfortran -c -fPIC -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./dop853_i32.o ./dop853.f\n  gfortran -shared -fPIC -o ./dop853.dylib ./dop853.o\n  gfortran -shared -fPIC -o ./dop853_i32.dylib ./dop853_i32.o\n  \n  # odex\n  gfortran -c -fPIC -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./odex.o ./odex.f\n  gfortran -c -fPIC -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./odex_i32.o ./odex.f\n  gfortran -shared -fPIC -o ./odex.dylib ./odex.o\n  gfortran -shared -fPIC -o ./odex_i32.dylib ./odex_i32.o\n  \n  # lapack\n  gfortran -c -fPIC -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./dc_lapack.o ./dc_lapack.f\n  gfortran -c -fPIC -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./dc_lapack_i32.o ./dc_lapack.f\n  gfortran -c -fPIC -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./lapack.o ./lapack.f\n  gfortran -c -fPIC -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./lapack_i32.o ./lapack.f\n  gfortran -c -fPIC -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./lapackc.o ./lapackc.f\n  gfortran -c -fPIC -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./lapackc_i32.o ./lapackc.f\n  \n  # radau\n  gfortran -c -fPIC -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./radau5.o ./radau5.f\n  gfortran -c -fPIC -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./radau5_i32.o ./radau5.f\n  gfortran -shared -fPIC -o ./radau5.dylib ./radau5.o ./dc_lapack.o ./lapack.o ./lapackc.o\n  gfortran -shared -fPIC -o ./radau5_i32.dylib ./radau5_i32.o ./dc_lapack_i32.o ./lapack_i32.o ./lapackc_i32.o\n  gfortran -c -fPIC -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./radau.o ./radau.f\n  gfortran -c -fPIC -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./radau_i32.o ./radau.f\n  gfortran -shared -fPIC -o ./radau.dylib ./radau.o ./dc_lapack.o ./lapack.o ./lapackc.o\n  gfortran -shared -fPIC -o ./radau_i32.dylib ./radau_i32.o ./dc_lapack_i32.o ./lapack_i32.o ./lapackc_i32.o\n  \n  # seulex\n  gfortran -c -fPIC -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./seulex.o ./seulex.f\n  gfortran -c -fPIC -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./seulex_i32.o ./seulex.f\n  gfortran -shared -fPIC -o ./seulex.dylib ./seulex.o ./dc_lapack.o ./lapack.o ./lapackc.o\n  gfortran -shared -fPIC -o ./seulex_i32.dylib ./seulex_i32.o ./dc_lapack_i32.o ./lapack_i32.o ./lapackc_i32.o\n  \n  # rodas\n  gfortran -c -fPIC -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./rodas.o ./rodas.f\n  gfortran -c -fPIC -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./rodas_i32.o ./rodas.f\n  gfortran -shared -fPIC -o ./rodas.dylib ./rodas.o ./dc_lapack.o ./lapack.o ./lapackc.o\n  gfortran -shared -fPIC -o ./rodas_i32.dylib ./rodas_i32.o ./dc_lapack_i32.o ./lapack_i32.o ./lapackc_i32.o\n  \n  # slatec\n  gfortran -c -fPIC -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./slatec.o ./slatec.f\n  gfortran -c -fPIC -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./slatec_i32.o ./slatec.f\n  \n  # ddeabm\n  gfortran -c -fPIC -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./ddeabm.o ./ddeabm.f\n  gfortran -c -fPIC -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./ddeabm_i32.o ./ddeabm.f\n  gfortran -shared -fPIC -o ./ddeabm.dylib ./ddeabm.o ./slatec.o\n  gfortran -shared -fPIC -o ./ddeabm_i32.dylib ./ddeabm_i32.o ./slatec_i32.o\n  \n  # ddebdf\n  gfortran -c -fPIC -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./ddebdf.o ./ddebdf.f\n  gfortran -c -fPIC -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./ddebdf_i32.o ./ddebdf.f\n  gfortran -shared -fPIC -o ./ddebdf.dylib ./ddebdf.o ./slatec.o\n  gfortran -shared -fPIC -o ./ddebdf_i32.dylib ./ddebdf_i32.o ./slatec_i32.o\n  \n  # bvpsol\n  gfortran -c -fPIC -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./bvpsol.o ./bvpsol.f\n  gfortran -c -fPIC -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./bvpsol_i32.o ./bvpsol.f\n  gfortran -c -fPIC -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./linalg_bvpsol.o ./linalg_bvpsol.f\n  gfortran -c -fPIC -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./linalg_bvpsol_i32.o ./linalg_bvpsol.f\n  gfortran -c -fPIC -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./zibconst.o ./zibconst.f\n  gfortran -c -fPIC -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./zibconst_i32.o ./zibconst.f\n  gfortran -c -fPIC -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./ma28_bvpsol.o ./ma28_bvpsol.f\n  gfortran -c -fPIC -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./ma28_bvpsol_i32.o ./ma28_bvpsol.f\n  gfortran -shared -fPIC -o ./bvpsol.dylib ./bvpsol.o ./linalg_bvpsol.o ./zibconst.o ./ma28_bvpsol.o\n  gfortran -shared -fPIC -o ./bvpsol_i32.dylib ./bvpsol_i32.o ./linalg_bvpsol_i32.o ./zibconst_i32.o ./ma28_bvpsol_i32.o\n  \n  # colnew\n  gfortran -c -fPIC -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./colnew.o ./colnew.f\n  gfortran -c -fPIC -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./colnew_i32.o ./colnew.f\n  gfortran -shared -fPIC -o ./colnew.dylib ./colnew.o\n  gfortran -shared -fPIC -o ./colnew_i32.dylib ./colnew_i32.o\n  \n  # bvpm2\n  gfortran -c -fPIC -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./bvp_la-2.o ./bvp_la-2.f\n  gfortran -c -fPIC -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -std=f2008 -o ./bvp_m-2.o ./bvp_m-2.f90\n  gfortran -c -fPIC -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -Wall -Wextra -Wimplicit-interface -std=f2008ts -o ./bvp_m_proxy.o ./bvp_m_proxy.f90\n  gfortran -shared -fPIC -o ./bvp_m_proxy.dylib ./bvp_m_proxy.o ./bvp_m-2.o ./bvp_la-2.o\n  cp *.dylib $libdir\n  \n  \n  \n  else\n  \n  # dopri\n  gfortran -c -fPIC -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./dopri5.o ./dopri5.f\n  gfortran -c -fPIC -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./dopri5_i32.o ./dopri5.f\n  gfortran -shared -fPIC -o ./dopri5.so ./dopri5.o\n  gfortran -shared -fPIC -o ./dopri5_i32.so ./dopri5_i32.o\n  gfortran -c -fPIC -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./dop853.o ./dop853.f\n  gfortran -c -fPIC -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./dop853_i32.o ./dop853.f\n  gfortran -shared -fPIC -o ./dop853.so ./dop853.o\n  gfortran -shared -fPIC -o ./dop853_i32.so ./dop853_i32.o\n  \n  # odex\n  gfortran -c -fPIC -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./odex.o ./odex.f\n  gfortran -c -fPIC -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./odex_i32.o ./odex.f\n  gfortran -shared -fPIC -o ./odex.so ./odex.o\n  gfortran -shared -fPIC -o ./odex_i32.so ./odex_i32.o\n  \n  # lapack\n  gfortran -c -fPIC -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./dc_lapack.o ./dc_lapack.f\n  gfortran -c -fPIC -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./dc_lapack_i32.o ./dc_lapack.f\n  gfortran -c -fPIC -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./lapack.o ./lapack.f\n  gfortran -c -fPIC -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./lapack_i32.o ./lapack.f\n  gfortran -c -fPIC -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./lapackc.o ./lapackc.f\n  gfortran -c -fPIC -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./lapackc_i32.o ./lapackc.f\n  \n  # radau\n  gfortran -c -fPIC -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./radau5.o ./radau5.f\n  gfortran -c -fPIC -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./radau5_i32.o ./radau5.f\n  gfortran -shared -fPIC -o ./radau5.so ./radau5.o ./dc_lapack.o ./lapack.o ./lapackc.o\n  gfortran -shared -fPIC -o ./radau5_i32.so ./radau5_i32.o ./dc_lapack_i32.o ./lapack_i32.o ./lapackc_i32.o\n  gfortran -c -fPIC -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./radau.o ./radau.f\n  gfortran -c -fPIC -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./radau_i32.o ./radau.f\n  gfortran -shared -fPIC -o ./radau.so ./radau.o ./dc_lapack.o ./lapack.o ./lapackc.o\n  gfortran -shared -fPIC -o ./radau_i32.so ./radau_i32.o ./dc_lapack_i32.o ./lapack_i32.o ./lapackc_i32.o\n  \n  # seulex\n  gfortran -c -fPIC -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./seulex.o ./seulex.f\n  gfortran -c -fPIC -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./seulex_i32.o ./seulex.f\n  gfortran -shared -fPIC -o ./seulex.so ./seulex.o ./dc_lapack.o ./lapack.o ./lapackc.o\n  gfortran -shared -fPIC -o ./seulex_i32.so ./seulex_i32.o ./dc_lapack_i32.o ./lapack_i32.o ./lapackc_i32.o\n  \n  # rodas\n  gfortran -c -fPIC -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./rodas.o ./rodas.f\n  gfortran -c -fPIC -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./rodas_i32.o ./rodas.f\n  gfortran -shared -fPIC -o ./rodas.so ./rodas.o ./dc_lapack.o ./lapack.o ./lapackc.o\n  gfortran -shared -fPIC -o ./rodas_i32.so ./rodas_i32.o ./dc_lapack_i32.o ./lapack_i32.o ./lapackc_i32.o\n  \n  # slatec\n  gfortran -c -fPIC -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./slatec.o ./slatec.f\n  gfortran -c -fPIC -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./slatec_i32.o ./slatec.f\n  \n  # ddeabm\n  gfortran -c -fPIC -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./ddeabm.o ./ddeabm.f\n  gfortran -c -fPIC -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./ddeabm_i32.o ./ddeabm.f\n  gfortran -shared -fPIC -o ./ddeabm.so ./ddeabm.o ./slatec.o\n  gfortran -shared -fPIC -o ./ddeabm_i32.so ./ddeabm_i32.o ./slatec_i32.o\n  \n  # ddebdf\n  gfortran -c -fPIC -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./ddebdf.o ./ddebdf.f\n  gfortran -c -fPIC -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./ddebdf_i32.o ./ddebdf.f\n  gfortran -shared -fPIC -o ./ddebdf.so ./ddebdf.o ./slatec.o\n  gfortran -shared -fPIC -o ./ddebdf_i32.so ./ddebdf_i32.o ./slatec_i32.o\n  \n  # bvpsol\n  gfortran -c -fPIC -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./bvpsol.o ./bvpsol.f\n  gfortran -c -fPIC -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./bvpsol_i32.o ./bvpsol.f\n  gfortran -c -fPIC -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./linalg_bvpsol.o ./linalg_bvpsol.f\n  gfortran -c -fPIC -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./linalg_bvpsol_i32.o ./linalg_bvpsol.f\n  gfortran -c -fPIC -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./zibconst.o ./zibconst.f\n  gfortran -c -fPIC -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./zibconst_i32.o ./zibconst.f\n  gfortran -c -fPIC -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./ma28_bvpsol.o ./ma28_bvpsol.f\n  gfortran -c -fPIC -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./ma28_bvpsol_i32.o ./ma28_bvpsol.f\n  gfortran -shared -fPIC -o ./bvpsol.so ./bvpsol.o ./linalg_bvpsol.o ./zibconst.o ./ma28_bvpsol.o\n  gfortran -shared -fPIC -o ./bvpsol_i32.so ./bvpsol_i32.o ./linalg_bvpsol_i32.o ./zibconst_i32.o ./ma28_bvpsol_i32.o\n  \n  # colnew\n  gfortran -c -fPIC -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./colnew.o ./colnew.f\n  gfortran -c -fPIC -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./colnew_i32.o ./colnew.f\n  gfortran -shared -fPIC -o ./colnew.so ./colnew.o\n  gfortran -shared -fPIC -o ./colnew_i32.so ./colnew_i32.o\n  \n  # bvpm2\n  gfortran -c -fPIC -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -w -std=legacy -o ./bvp_la-2.o ./bvp_la-2.f\n  gfortran -c -fPIC -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -std=f2008 -o ./bvp_m-2.o ./bvp_m-2.f90\n  gfortran -c -fPIC -fdefault-integer-8 -fdefault-real-8 -fdefault-double-8 -Wall -Wextra -Wimplicit-interface -std=f2008ts -o ./bvp_m_proxy.o ./bvp_m_proxy.f90\n  gfortran -shared -fPIC -o ./bvp_m_proxy.so ./bvp_m_proxy.o ./bvp_m-2.o ./bvp_la-2.o\n  cp *.so $libdir\n  \n  \n  \n  fi\n"""
+version = "v0.0.1"
+
+[[dependencies]]
+name = "CompilerSupportLibraries_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["dopri5"]
+type = "lib"
+variable_name = "libdopri5"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["dopri5_i32"]
+type = "lib"
+variable_name = "libdopri5_i32"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["dop853"]
+type = "lib"
+variable_name = "libdop853"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["dop853_i32"]
+type = "lib"
+variable_name = "libdop853_i32"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["odex"]
+type = "lib"
+variable_name = "libodex"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["odex_i32"]
+type = "lib"
+variable_name = "libodex_i32"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["radau5"]
+type = "lib"
+variable_name = "libradau5"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["radau5_i32"]
+type = "lib"
+variable_name = "libradau5_i32"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["radau"]
+type = "lib"
+variable_name = "libradau"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["radau_i32"]
+type = "lib"
+variable_name = "libradau_i32"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["seulex"]
+type = "lib"
+variable_name = "libseulex"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["seulex_i32"]
+type = "lib"
+variable_name = "libseulex_i32"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["rodas"]
+type = "lib"
+variable_name = "librodas"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["rodas_i32"]
+type = "lib"
+variable_name = "librodas_i32"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["ddeabm"]
+type = "lib"
+variable_name = "libddeabm"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["ddeabm_i32"]
+type = "lib"
+variable_name = "libddeabm_i32"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["ddebdf"]
+type = "lib"
+variable_name = "libddebdf"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["ddebdf_i32"]
+type = "lib"
+variable_name = "libddebdf_i32"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["bvpsol"]
+type = "lib"
+variable_name = "libbvpsol"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["bvpsol_i32"]
+type = "lib"
+variable_name = "libbvpsol_i32"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["colnew"]
+type = "lib"
+variable_name = "libcolnew"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["colnew_i32"]
+type = "lib"
+variable_name = "libcolnew_i32"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["bvp_m_proxy"]
+type = "lib"
+variable_name = "libbvp_m_proxy"
+
+[[sources]]
+hash = "987d0e2cffd1d7f2fd8e378b7292bed4bf451c06"
+type = "git"
+unpack_target = ""
+url = "https://github.com/luchr/ODEInterface.jl"

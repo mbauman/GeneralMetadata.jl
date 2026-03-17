@@ -1,0 +1,39 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "GEOS"
+platforms = ["i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx11", "riscv64-linux-gnu-cxx11", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir/geos-*/\n\n# We need a newer C++ library\nif [[ \"${target}\" == *-apple-darwin* ]]; then\n    rm -rf /opt/${target}/${target}/sys-root/System\n    rm -rf /opt/${target}/${target}/sys-root/usr/include/libxml2/libxml\n    tar --extract --file=${WORKSPACE}/srcdir/MacOSX11.3.sdk.tar.xz --directory=\"/opt/${target}/${target}/sys-root/.\" --strip-components=1 MacOSX11.3.sdk/System MacOSX11.3.sdk/usr\n    export MACOSX_DEPLOYMENT_TARGET=11.3\nfi\n\nCMAKE_FLAGS=()\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix})\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\nCMAKE_FLAGS+=(-DLLVM_HOST_TRIPLE=${MACHTYPE})\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\nCMAKE_FLAGS+=(-DBUILD_TESTING=OFF)\nCMAKE_FLAGS+=(-S.) # source\n\n# arm complains about duplicate symbols unless we disable inlining\nif [[ ${target} == arm* ]]; then\n    CMAKE_FLAGS+=(-DDISABLE_GEOS_INLINE=true)\nfi\n\ncmake ${CMAKE_FLAGS[@]}\nmake -j${nproc}\nmake install\n"""
+version = "v3.14.1"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgeos_c"]
+type = "lib"
+variable_name = "libgeos"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgeos", "libgeos-3-14"]
+type = "lib"
+variable_name = "libgeos_cpp"
+[[products]]
+binnames = ["geosop"]
+type = "exe"
+variable_name = "geosop"
+
+[[sources]]
+hash = "3c20919cda9a505db07b5216baa980bacdaa0702da715b43f176fb07eff7e716"
+type = "archive"
+unpack_target = ""
+url = "http://download.osgeo.org/geos/geos-3.14.1.tar.bz2"
+[[sources]]
+filename = "MacOSX11.3.sdk.tar.xz"
+hash = "cd4f08a75577145b8f05245a2975f7c81401d75e9535dcffbb879ee1deefcbf4"
+type = "file"
+url = "https://github.com/phracker/MacOSX-SDKs/releases/download/11.3/MacOSX11.3.sdk.tar.xz"

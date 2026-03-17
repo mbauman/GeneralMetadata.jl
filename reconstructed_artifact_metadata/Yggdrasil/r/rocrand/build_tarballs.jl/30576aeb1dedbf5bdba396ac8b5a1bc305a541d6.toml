@@ -1,0 +1,85 @@
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "rocRAND"
+platforms = ["x86_64-linux-gnu-cxx11", "x86_64-linux-musl-cxx11"]
+script = """cd ${WORKSPACE}/srcdir/rocRAND*/\n\namdgpu_targets=\"gfx900,gfx906,gfx908,gfx1010,gfx1011,gfx1012\"\n\nmkdir build && cd build\nln -s ${prefix}/bin/clang ${prefix}/tools/clang\nexport ROCM_PATH=${prefix}\nexport HIP_CLANG_PATH=${prefix}/tools\nexport HIP_CLANG_HCC_COMPAT_MODE=1\nexport HIP_RUNTIME=rocclr\nexport HIP_COMPILER=clang\nexport HIP_PLATFORM=amd\nexport HIP_ROCCLR_HOME=${prefix}/lib\nexport HIPCC_VERBOSE=1\nexport HIP_LIB_PATH=${prefix}/hip/lib\ncmake -DCMAKE_PREFIX_PATH=${prefix} \\\n      -DCMAKE_INSTALL_PREFIX=${prefix} \\\n      -DCMAKE_BUILD_TYPE=Release \\\n      -DCMAKE_CXX_COMPILER=${prefix}/hip/bin/hipcc \\\n      -DAMDGPU_TARGETS=$(echo $amdgpu_targets | tr ',' ';') \\\n      ..\nmake -j${nproc}\nmake install\nrm ${prefix}/tools/clang\n"""
+version = "v4.2.0"
+
+[[dependencies]]
+compat = ""
+name = "ROCmLLVM_jll"
+platforms = ["any"]
+type = "builddependency"
+version-major = 4
+version-minor = 2
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "hsa_rocr_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "ROCmCompilerSupport_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "ROCmOpenCLRuntime_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "4.2.0"
+name = "HIP_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "rocm_cmake_jll"
+platforms = ["any"]
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "rocminfo_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = ["rocrand/lib"]
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["librocrand"]
+type = "lib"
+variable_name = "librocrand"
+[[products]]
+dir_paths = ["hiprand/lib"]
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libhiprand"]
+type = "lib"
+variable_name = "libhiprand"
+
+[[sources]]
+hash = "15725c89e9cc9cc76bd30415fd2c0c5b354078831394ab8b23fe6633497b92c8"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/ROCmSoftwarePlatform/rocRAND/archive/rocm-4.2.0.tar.gz"

@@ -1,0 +1,29 @@
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "Libksba"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/libksba-*/\nexport CPPFLAGS=\"-I${includedir}\"\n./configure --prefix=${prefix} --host=${target} --build=${MACHTYPE} --disable-static\nmake -j${nproc}\nmake install\nif [[ \"${target}\" == x86_64-*-mingw* ]]; then\n    # We have to manually build the shared library for Windows\n    cc -shared -fPIC -o \"${libdir}/libksba-8.${dlext}\" -Wl,$(flagon --whole-archive) \"${prefix}/lib/libksba.a\" -Wl,$(flagon --no-whole-archive)  -lgpg-error\n    rm \"${prefix}/lib/libksba.a\"\nfi\n"""
+version = "v1.5.1"
+
+[[dependencies]]
+compat = ""
+name = "Libgpg_error_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libksba"]
+type = "lib"
+variable_name = "libksba"
+
+[[sources]]
+hash = "b0f4c65e4e447d9a2349f6b8c0e77a28be9531e4548ba02c545d1f46dc7bf921"
+type = "archive"
+unpack_target = ""
+url = "https://gnupg.org/ftp/gcrypt/libksba/libksba-1.5.1.tar.bz2"

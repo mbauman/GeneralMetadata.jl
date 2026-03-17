@@ -1,0 +1,22 @@
+dependencies = []
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "startin"
+platforms = ["x86_64-unknown-freebsd", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "i686-linux-gnu", "powerpc64le-linux-gnu", "x86_64-linux-gnu", "x86_64-apple-darwin", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/startin-c-interface/\nif [[ \"${target}\" == *-darwin* ]] || [[ \"${target}\" == *-freebsd* ]]; then\n    # Fix linker for BSD platforms\n    sed -i \"s/${rust_target}-gcc/${target}-gcc/\" \"${CARGO_HOME}/config\"\nfi\nif [[ \"${target}\" == *-w64-mingw32* ]]; then\n    # Fix from https://github.com/rust-lang/rust/issues/32859#issuecomment-573423629, see https://github.com/rust-lang/rust/issues/47048\n    cp -f /opt/${target}/${target}/sys-root/lib/{,dll}crt2.o `rustc --print sysroot`/lib/rustlib/${rust_target}/lib\nfi\ncargo build --features c_api --release -j${nproc}\nmkdir ${libdir}\nif [[ \"${target}\" == *-w64-mingw32* ]]; then\n    # Windows generates .dlls without the lib prefix\n    cp target/${rust_target}/release/startin.dll ${libdir}/libstartin.dll\nelse\n    cp target/${rust_target}/release/libstartin.${dlext} ${libdir}/libstartin.${dlext}\nfi\n"""
+version = "v0.4.9"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libstartin"]
+type = "lib"
+variable_name = "libstartin"
+
+[[sources]]
+hash = "d3a987e9ab20ee3504c8c79f0940ce22527e23ed8b029e8d12136831fe996c63"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/evetion/startin/archive/c-interface.zip"

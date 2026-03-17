@@ -1,0 +1,36 @@
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "PCRE2"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "aarch64-apple-darwin", "armv6l-linux-gnueabihf", "armv6l-linux-musleabihf"]
+script = """cd $WORKSPACE/srcdir/pcre2-*/\n\n# Update configure scripts\nupdate_configure_scripts\n\n# Force optimization\nexport CFLAGS=\"${CFLAGS} -O3\"\n\n./configure --prefix=${prefix} --host=${target} \\\n    --disable-static \\\n    --enable-jit \\\n    --enable-pcre2-16 \\\n    --enable-pcre2-32\n\nmake -j${nproc}\nmake install\n\n# On windows we need libcpre2-8.dll as well\nif [[ ${target} == *mingw* ]]; then\n    ln -s libpcre2-8-0.dll  ${libdir}/libpcre2-8.dll\n    ln -s libpcre2-16-0.dll ${libdir}/libpcre2-16.dll\n    ln -s libpcre2-32-0.dll ${libdir}/libpcre2-32.dll\nfi\n"""
+version = "v10.35.0"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libpcre2-8"]
+type = "lib"
+variable_name = "libpcre2_8"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libpcre2-16"]
+type = "lib"
+variable_name = "libpcre2_16"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libpcre2-32"]
+type = "lib"
+variable_name = "libpcre2_32"
+
+[[sources]]
+hash = "8fdcef8c8f4cd735169dd0225fd010487970c1bcadd49e9b90e26c7250a33dc9"
+type = "archive"
+unpack_target = ""
+url = "https://ftp.pcre.org/pub/pcre/pcre2-10.35.tar.gz"

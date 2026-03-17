@@ -1,0 +1,28 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Libcerf"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/libcerf-*/\nif [[ \"${target}\" == *-mingw* ]]; then\n    # ref:  https://github.com/msys2/MINGW-packages/commit/b3e9553aa603dc446af4a0610187c23ac8c9d97f\n    # fix wrong dll install path\n    atomic_patch -p1 ../patches/001-fix-install-dest.patch\n\n    # fix windows export symbols\n    LDFLAGS+=\" -Wl,--export-all-symbols\"\n    atomic_patch -p1 ../patches/002-fix-win-export.patch\nfi\n\nmkdir build && cd build\ncmake .. -DCMAKE_INSTALL_PREFIX=$prefix -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} -DCMAKE_BUILD_TYPE=Release\nmake -j${nproc}\nmake install\n"""
+version = "v2.5.0"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcerf"]
+type = "lib"
+variable_name = "libcerf"
+
+[[sources]]
+hash = "b3a5e68a30bdbd3a58e9e7c038bd0aa2586b90bbb1c809f76665e176b2d42cdc"
+type = "archive"
+unpack_target = ""
+url = "https://jugit.fz-juelich.de/mlz/libcerf/-/archive/v2.5/libcerf-v2.5.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

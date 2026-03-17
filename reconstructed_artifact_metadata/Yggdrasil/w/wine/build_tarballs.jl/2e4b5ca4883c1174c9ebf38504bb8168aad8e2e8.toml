@@ -1,0 +1,52 @@
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "Wine"
+platforms = ["x86_64-linux-musl", "x86_64-linux-gnu", "x86_64-apple-darwin"]
+script = """cd $WORKSPACE/srcdir/wine\natomic_patch -p1 $WORKSPACE/srcdir/patches/hwcap2.patch\natomic_patch -p1 $WORKSPACE/srcdir/patches/darwin.patch\n\nif [[ \"${target}\" == *darwin* ]]; then\n    # On macOS, we currently do not support 32-bit wine. It is unclear whether\n    # this is supported in upstream wine (though it is supported in CrossOver,\n    # the commercial wine version). Because of that, we can skip the complicated\n    # boostrap procedure above and just build everything right here. However,\n    # we do have to do a bit of extra work to sucessfully cross-compile for\n    # darwin, since we can't rely on natively running the tools.\n\n    # Go to wine_tools directory\n    mkdir $WORKSPACE/wine_tools\n    cd $WORKSPACE/wine_tools\n\n    # winebuild will use {nm, ld, as} indiscriminately and expect those to be\n    # the host tools, so put those on the PATH.\n    mkdir aliases\n\tln -s $(which x86_64-linux-musl-nm) aliases/nm\n\tln -s $(which x86_64-linux-musl-ld) aliases/ld\n\tln -s $(which x86_64-linux-musl-as) aliases/as\n    export OLD_PATH=$PATH\n    export PATH=$PWD/aliases:$PATH\n    ${WORKSPACE}/srcdir/wine/configure --build=x86_64-linux-musl --host=x86_64-linux-musl CC=x86_64-linux-musl-gcc LD=x86_64-linux-musl-ld AS=x86_64-linux-musl-as --enable-win64 --without-x --without-freetype\n    make -j${nproc} CC=x86_64-linux-musl-gcc LD=x86_64-linux-musl-ld AS=x86_64-linux-musl-as\n    export PATH=$OLD_PATH\n\n    # Ok, now we can actually do the proper build of wine.\n    cd $WORKSPACE/srcdir/wine\n    ./configure --build=${MACHTYPE} --prefix=${prefix} --host=${target} --without-x --without-freetype --with-wine-tools=$WORKSPACE/wine_tools --enable-win64\n    make -j${nproc}\nelse\n    cp -r $WORKSPACE/srcdir/wine32/* ${prefix}/\n    cd $WORKSPACE/srcdir/wine64\nfi\n\nmake -j${nproc} install\ninstall_license $WORKSPACE/srcdir/wine/LICENSE\ninstall_license $WORKSPACE/srcdir/wine/COPYING.LIB\n"""
+version = "v7.0.0-rc1"
+
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "libpng_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "JpegTurbo_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "GnuTLS_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["wine64"]
+type = "exe"
+variable_name = "wine64"
+
+[[sources]]
+hash = "533616d23f9832596e41f839356830c7679df930"
+type = "git"
+unpack_target = ""
+url = "https://github.com/wine-mirror/wine.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

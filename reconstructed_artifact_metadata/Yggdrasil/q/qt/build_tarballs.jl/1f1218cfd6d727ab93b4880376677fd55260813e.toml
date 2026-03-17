@@ -1,0 +1,160 @@
+lazy_artifacts = false
+name = "Qt"
+platforms = ["armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11", "x86_64-apple-darwin14"]
+script = """cd $WORKSPACE/srcdir\nmkdir build\ncd build/\n\ncommonoptions=\" \\\n-opensource -confirm-license \\\n-skip qtactiveqt -skip qtandroidextras -skip qtcanvas3d -skip qtconnectivity -skip qtdatavis3d -skip qtdoc -skip qtgamepad \\\n-skip qtnetworkauth -skip qtpurchasing -skip qtremoteobjects -skip qtscript -skip qtscxml -skip qtsensors -skip qtserialbus \\\n-skip qtserialport -skip qtspeech -skip qtvirtualkeyboard -skip qtlocation -skip qtwayland -skip qtwebchannel -skip qtwebengine \\\n-skip qtwebglplugin -skip qtwebsockets -skip qtwebview  -skip qttools -nomake examples -release \\\n\"\n\ncase \"$target\" in\n\n\t*86*linux*)\n        export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$prefix/share/pkgconfig\n        ../qt-everywhere-src-*/configure -L $prefix/lib -I $prefix/include \\\n            -prefix $prefix $commonoptions \\\n            -skip qtwinextras -fontconfig\n        ln -s /lib64/libc.so.6 /lib64/libc.so\n        ;;\n        \n\t*apple-darwin*)\n        cd $WORKSPACE/srcdir/MacOSX10.14.sdk\n        rm -rf /opt/$target/$target/sys-root/System\n        rsync -a usr/* /opt/$target/$target/sys-root/usr/\n        cp -a System /opt/$target/$target/sys-root/\n        \n        cd $WORKSPACE/srcdir/qt-everywhere-src-*/qtbase\n        \n        cat <<EOT > mkspecs/features/mac/default_pre.prf\nCONFIG = asset_catalogs rez \\$\\$CONFIG\nload(default_pre)\n\nQMAKE_ASSET_CATALOGS_APP_ICON = AppIcon\n\nmacx-xcode:qtConfig(static): \\\\\n    QMAKE_XCODE_DEBUG_INFORMATION_FORMAT = dwarf\n\nQMAKE_XCODE_LIBRARY_SUFFIX_SETTING = QT_LIBRARY_SUFFIX\n\nxcode_copy_phase_strip_setting.name = COPY_PHASE_STRIP\nxcode_copy_phase_strip_setting.value = NO\nQMAKE_MAC_XCODE_SETTINGS += xcode_copy_phase_strip_setting\nEOT\n        \n        sed -i '1s;^;QMAKE_MAC_SDK.macosx.Path = '\"/opt/$target/$target/sys-root\"'\\\n        QMAKE_MAC_SDK.macosx.SDKVersion = '\"10.14\"'\\\n        QMAKE_MAC_SDK.macosx.PlatformPath = '\"/opt/$target\"'\\n;' 'mkspecs/features/mac/sdk.prf'\n        echo \"\" >  mkspecs/features/mac/no_warn_empty_obj_files.prf\n        \n        sed -i 's!-fuse-ld=x86_64-apple-darwin14!-fuse-ld=/opt/bin/x86_64-apple-darwin14-ld!g' /opt/bin/x86_64-apple-darwin14-clang++\n        sed -i 's!-fuse-ld=x86_64-apple-darwin14!-fuse-ld=/opt/bin/x86_64-apple-darwin14-ld!g' /opt/bin/x86_64-apple-darwin14-clang\n        \n        cd $WORKSPACE/srcdir/build\n        apk add g++ linux-headers\n        export PATH=$(echo \"$PATH\" | sed -e 's!/opt/bin:!!')\n        export QT_MAC_SDK_NO_VERSION_CHECK=1\n        ../qt-everywhere-src-*/configure \\\n            QMAKE_CXXFLAGS+=-F/opt/$target/$target/sys-root/System/Library/Frameworks \\\n            QMAKE_RANLIB=/opt/bin/ranlib \\\n            QMAKE_MACOSX_DEPLOYMENT_TARGET=10.14 \\\n            -platform linux-g++ -xplatform macx-clang -device-option CROSS_COMPILE=/opt/bin/$target- \\\n            -prefix $prefix $commonoptions \\\n            -skip qtwinextras\n        ;;\n        \n\t*w64-mingw*)\n        apk add g++ linux-headers\n        export PATH=$(echo \"$PATH\" | sed -e 's!/opt/bin:!!')\n        \n        ../qt-everywhere-src-*/configure -platform linux-g++ -xplatform win32-g++ -device-option CROSS_COMPILE=/opt/bin/$target- \\\n            -prefix $prefix $commonoptions \\\n            -opengl desktop\n\t\t;;\n\n    *arm-linux*)\n        apk add g++ linux-headers\n        export PATH=$(echo \"$PATH\" | sed -e 's!/opt/bin:!!')\n        export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$prefix/share/pkgconfig\n        export PKG_CONFIG_LIBDIR=$prefix/lib/pkgconfig\n        \n        ../qt-everywhere-src-*/configure QMAKE_LFLAGS=-liconv -platform linux-g++ -device linux-rasp-pi3-g++ -device-option CROSS_COMPILE=/opt/bin/$target- \\\n            -extprefix $prefix $commonoptions \\\n            -skip qtwinextras -fontconfig -sysroot /opt/$target/bin/../$target/sys-root\n\t\t;;\nesac\n\nmake -j${nproc}\nmake install\ninstall_license $WORKSPACE/srcdir/qt-everywhere-src-*/LICENSE.LGPLv3\n"""
+version = "v5.15.0"
+
+[[dependencies]]
+name = "Xorg_libX11_jll"
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Xorg_libXext_jll"
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Xorg_glproto_jll"
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Xorg_libxcb_jll"
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Xorg_xcb_util_wm_jll"
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Xorg_xcb_util_image_jll"
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Xorg_xcb_util_keysyms_jll"
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Xorg_xcb_util_renderutil_jll"
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "xkbcommon_jll"
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Libglvnd_jll"
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Fontconfig_jll"
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Glib_jll"
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt5Core", "libQt5Core", "QtCore"]
+type = "lib"
+variable_name = "libqt5core"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt5Quick", "libQt5Quick", "QtQuick"]
+type = "lib"
+variable_name = "libqt5quick"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt5QuickControls2", "libQt5QuickControls2", "QtQuickControls2"]
+type = "lib"
+variable_name = "libqt5quickcontrols2"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt5Svg", "libQt5Svg", "QtSvg"]
+type = "lib"
+variable_name = "libqt5svg"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt5Widgets", "libQt5Widgets", "QtWidgets"]
+type = "lib"
+variable_name = "libqt5widgets"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["QtCore"]
+type = "framework"
+variable_name = "libqt5core"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["QtQuick"]
+type = "framework"
+variable_name = "libqt5quick"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["QtQuickControls2"]
+type = "framework"
+variable_name = "libqt5quickcontrols2"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["QtSvg"]
+type = "framework"
+variable_name = "libqt5svg"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["QtWidgets"]
+type = "framework"
+variable_name = "libqt5widgets"
+
+[[sources]]
+hash = "22b63d7a7a45183865cc4141124f12b673e7a17b1fe2b91e433f6547c5d548c3"
+type = "archive"
+unpack_target = ""
+url = "https://download.qt.io/official_releases/qt/5.15/5.15.0/single/qt-everywhere-src-5.15.0.tar.xz"
+[[sources]]
+hash = "0f03869f72df8705b832910517b47dd5b79eb4e160512602f593ed243b28715f"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.14.sdk.tar.xz"

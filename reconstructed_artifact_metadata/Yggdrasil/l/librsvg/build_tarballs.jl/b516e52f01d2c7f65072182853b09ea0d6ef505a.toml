@@ -1,0 +1,63 @@
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Librsvg"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "x86_64-w64-mingw32", "aarch64-apple-darwin"]
+script = """cd $WORKSPACE/srcdir/librsvg-*/\n\natomic_patch -p1 ../patches/0001-Makefile.am-use-the-correct-EXEEXT-extension-for-the.patch\nautoreconf -fiv\n\n# On most platforms we have to use `${rust_target}` as `host`\nFLAGS=(--host=${rust_target})\n# Our Musl toolchain is missing a symlink `libc.musl-${musl_arch}.so.1` -> `libc.so`, let's\n# create it manually until we fix it directly in the compiler shards.\nif [[ \"${target}\" == *-linux-musl* ]]; then\n    case \"${target}\" in\n        i686*)\n            musl_arch=\"i386\" ;;\n        arm*)\n            musl_arch=\"armhf\" ;;\n        *)\n            musl_arch=\"${target%%-*}\" ;;\n    esac\n    # If this errors out because `libc.musl-${musl_arch}.so.1` already exists it'll mean we\n    # can remove this hack.\n    ln -sv libc.so /opt/${target}/${target}/sys-root/usr/lib/libc.musl-${musl_arch}.so.1\nelif [[ \"${target}\" == *-mingw* ]]; then\n    # On Windows using `${rust_target}` wouldn't work:\n    #\n    #     Invalid configuration `x86_64-pc-windows-gnu': Kernel `windows' not known to work with OS `gnu'.\n    #\n    # Then we have to use `RUST_TARGET` to set the Rust target.  I haven't found\n    # a combination host and RUST_TARGET that would work on all platforms.  If\n    # you do, let me know!\n    FLAGS=(--host=${target} RUST_TARGET=\"${rust_target}\" LIBS=\"-luserenv -lbcrypt\")\nfi\n\n./configure \\\n    --build=${MACHTYPE} \\\n    --prefix=${prefix} \\\n    --disable-static \\\n    --enable-pixbuf-loader \\\n    --disable-introspection \\\n    --disable-gtk-doc-html \\\n    --enable-shared \\\n    \"${FLAGS[@]}\"\nmake\nmake install\ninstall_license COPYING.LIB\n"""
+version = "v2.52.4"
+
+[[dependencies]]
+compat = ""
+name = "gdk_pixbuf_jll"
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_xorgproto_jll"
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "gdk_pixbuf_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.47.0"
+name = "Pango_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["librsvg-2"]
+type = "lib"
+variable_name = "librsvg"
+[[products]]
+paths = ["lib/gdk-pixbuf-2.0/2.10.0/loaders/libpixbufloader-svg.so", "lib/gdk-pixbuf-2.0/2.10.0/loaders/libpixbufloader-svg.dll"]
+type = "file"
+variable_name = "libpixbufloader_svg"
+[[products]]
+binnames = ["rsvg-convert"]
+type = "exe"
+variable_name = "rsvg_convert"
+
+[[sources]]
+hash = "660ec8836a3a91587bc9384920132d4c38d1d1718c67fe160c5213fe4dec2928"
+type = "archive"
+unpack_target = ""
+url = "https://download.gnome.org/sources/librsvg/2.52/librsvg-2.52.4.tar.xz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

@@ -78,18 +78,9 @@ end
                     @test haskey(ainfo, "metadata_version")
                     @test ainfo["metadata_version"] isa String
                     @test haskey(ainfo, "metadata")
-                    @test ainfo["metadata"] isa Dict
-
-                    if haskey(ainfo, "components")
-                        @test ainfo["components"] isa Vector
-                        for component_dict in ainfo["components"]
-                            @test component_dict isa Dict
-                            @test haskey(component_dict, "project")
-                            @test component_dict["project"] isa String
-                            if haskey(component_dict, "version")
-                                @test component_dict["version"] isa String
-                            end
-                        end
+                    @test ainfo["metadata"] isa String
+                    if !contains(ainfo["metadata"], "://")
+                        @test isfile(joinpath(@__DIR__, "..", ainfo["metadata"]))
                     end
                 end
             end

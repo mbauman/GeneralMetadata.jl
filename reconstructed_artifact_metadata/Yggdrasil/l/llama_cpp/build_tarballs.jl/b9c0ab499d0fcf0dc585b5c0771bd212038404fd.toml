@@ -1,0 +1,210 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "llama_cpp"
+platforms = ["i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx11", "riscv64-linux-gnu-cxx11", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx11"]
+script = """macos_sdk_version=10.15\nmacosx_deployment_target=10.15\nif [[ \"${target}\" == x86_64-apple-darwin* ]]; then\n    echo \"Extracting MacOSX${macos_sdk_version}.sdk.tar.xz (this may take a while)\"\n    rm -rf /opt/${target}/${target}/sys-root/System\n    rm -rf /opt/${target}/${target}/sys-root/usr/include/libxml2/libxml\n    # extract the tarball into the sys-root so all compilers pick it up\n    # automatically, and use --warning=no-unknown-keyword to hide harmless\n    # warnings about unsupported pax header keywords like \"SCHILY.fflags\"\n    tar --extract \\\n        --file=${WORKSPACE}/srcdir/MacOSX${macos_sdk_version}.sdk.tar.xz \\\n        --directory=\"/opt/${target}/${target}/sys-root/.\" \\\n        --strip-components=1 \\\n        --warning=no-unknown-keyword \\\n        MacOSX${macos_sdk_version}.sdk/System \\\n        MacOSX${macos_sdk_version}.sdk/usr\n    export MACOSX_DEPLOYMENT_TARGET=${macosx_deployment_target}\nfi\ncd $WORKSPACE/srcdir/llama.cpp*\n\n# remove compiler flags forbidden in BinaryBuilder\nsed -i -e 's/-funsafe-math-optimizations//g' CMakeLists.txt\n\n# Fix missing errno include in gguf.cpp (b7813 CI failure on macOS)\nsed -i '1i#include <cerrno>' ggml/src/gguf.cpp\n# Guard Windows thread power throttling API usage for mingw/older SDKs\nsed -i -e 's/#if _WIN32_WINNT >= 0x0602/#if _WIN32_WINNT >= 0x0602 \\&\\& defined(THREAD_POWER_THROTTLING_CURRENT_VERSION)/' ggml/src/ggml-cpu/ggml-cpu.c\n# Avoid forcing -march on riscv64 (BinaryBuilder disallows explicit -march)\nsed -i -e 's/list(APPEND ARCH_FLAGS \"-march=${MARCH_STR}\" -mabi=lp64d)/list(APPEND ARCH_FLAGS -mabi=lp64d)/' ggml/src/ggml-cpu/CMakeLists.txt\nsed -i -e 's/list(APPEND ARCH_FLAGS -march=rv64gc_v -mabi=lp64d)/list(APPEND ARCH_FLAGS -mabi=lp64d)/' ggml/src/ggml-cpu/CMakeLists.txt\n\nEXTRA_CMAKE_ARGS=()\nif [[ \"${target}\" == *-linux-* ]]; then\n    # otherwise we have undefined reference to `clock_gettime' when\n    # linking the `main' example program\n    EXTRA_CMAKE_ARGS+=(-DCMAKE_EXE_LINKER_FLAGS=\"-lrt\")\nfi\n\n# Disable Metal on Intel Apple platforms\nif [[ \"${target}\" == x86_64-apple-darwin* ]]; then\n    EXTRA_CMAKE_ARGS+=(-DGGML_METAL=OFF)\nfi\n\n# Enable Metal on Apple Silicon\nif [[ \"${target}\" == aarch64-apple-darwin* ]]; then\n    EXTRA_CMAKE_ARGS+=(-DGGML_METAL=ON)\nfi\n\ncmake -Bbuild -GNinja \\\n    -DCMAKE_INSTALL_PREFIX=$prefix \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=RELEASE \\\n    -DCMAKE_SKIP_RPATH=ON \\\n    -DBUILD_SHARED_LIBS=ON \\\n    -DLLAMA_BUILD_TESTS=OFF \\\n    -DLLAMA_BUILD_EXAMPLES=ON \\\n    -DLLAMA_NATIVE=OFF \\\n    -DLLAMA_ACCELERATE=ON \\\n    -DLLAMA_AVX=ON \\\n    -DLLAMA_AVX2=ON \\\n    -DLLAMA_F16C=ON \\\n    -DLLAMA_FMA=ON \\\n    -DLLAMA_BLAS=OFF \\\n    -DLLAMA_CUBLAS=OFF \\\n    -DLLAMA_CLBLAST=OFF \\\n    \"${EXTRA_CMAKE_ARGS[@]}\"\ncmake --build build\ncmake --install build\ninstall_license LICENSE\n"""
+version = "v0.0.19"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["llama-batched"]
+type = "exe"
+variable_name = "llama_batched"
+[[products]]
+binnames = ["llama-batched-bench"]
+type = "exe"
+variable_name = "llama_batched_bench"
+[[products]]
+binnames = ["llama-bench"]
+type = "exe"
+variable_name = "llama_bench"
+[[products]]
+binnames = ["llama-cli"]
+type = "exe"
+variable_name = "llama_cli"
+[[products]]
+binnames = ["llama-convert-llama2c-to-ggml"]
+type = "exe"
+variable_name = "llama_convert_llama2c_to_ggml"
+[[products]]
+binnames = ["llama-cvector-generator"]
+type = "exe"
+variable_name = "llama_cvector_generator"
+[[products]]
+binnames = ["llama-diffusion-cli"]
+type = "exe"
+variable_name = "llama_diffusion_cli"
+[[products]]
+binnames = ["llama-embedding"]
+type = "exe"
+variable_name = "llama_embedding"
+[[products]]
+binnames = ["llama-eval-callback"]
+type = "exe"
+variable_name = "llama_eval_callback"
+[[products]]
+binnames = ["llama-export-lora"]
+type = "exe"
+variable_name = "llama_export_lora"
+[[products]]
+binnames = ["llama-finetune"]
+type = "exe"
+variable_name = "llama_finetune"
+[[products]]
+binnames = ["llama-gen-docs"]
+type = "exe"
+variable_name = "llama_gen_docs"
+[[products]]
+binnames = ["llama-gguf"]
+type = "exe"
+variable_name = "llama_gguf"
+[[products]]
+binnames = ["llama-gguf-hash"]
+type = "exe"
+variable_name = "llama_gguf_hash"
+[[products]]
+binnames = ["llama-gguf-split"]
+type = "exe"
+variable_name = "llama_gguf_split"
+[[products]]
+binnames = ["llama-idle"]
+type = "exe"
+variable_name = "llama_idle"
+[[products]]
+binnames = ["llama-imatrix"]
+type = "exe"
+variable_name = "llama_imatrix"
+[[products]]
+binnames = ["llama-lookahead"]
+type = "exe"
+variable_name = "llama_lookahead"
+[[products]]
+binnames = ["llama-lookup"]
+type = "exe"
+variable_name = "llama_lookup"
+[[products]]
+binnames = ["llama-lookup-create"]
+type = "exe"
+variable_name = "llama_lookup_create"
+[[products]]
+binnames = ["llama-lookup-merge"]
+type = "exe"
+variable_name = "llama_lookup_merge"
+[[products]]
+binnames = ["llama-lookup-stats"]
+type = "exe"
+variable_name = "llama_lookup_stats"
+[[products]]
+binnames = ["llama-mtmd-cli"]
+type = "exe"
+variable_name = "llama_mtmd_cli"
+[[products]]
+binnames = ["llama-parallel"]
+type = "exe"
+variable_name = "llama_parallel"
+[[products]]
+binnames = ["llama-passkey"]
+type = "exe"
+variable_name = "llama_passkey"
+[[products]]
+binnames = ["llama-perplexity"]
+type = "exe"
+variable_name = "llama_perplexity"
+[[products]]
+binnames = ["llama-quantize"]
+type = "exe"
+variable_name = "llama_quantize"
+[[products]]
+binnames = ["llama-retrieval"]
+type = "exe"
+variable_name = "llama_retrieval"
+[[products]]
+binnames = ["llama-save-load-state"]
+type = "exe"
+variable_name = "llama_save_load_state"
+[[products]]
+binnames = ["llama-server"]
+type = "exe"
+variable_name = "llama_server"
+[[products]]
+binnames = ["llama-simple"]
+type = "exe"
+variable_name = "llama_simple"
+[[products]]
+binnames = ["llama-simple-chat"]
+type = "exe"
+variable_name = "llama_simple_chat"
+[[products]]
+binnames = ["llama-speculative"]
+type = "exe"
+variable_name = "llama_speculative"
+[[products]]
+binnames = ["llama-speculative-simple"]
+type = "exe"
+variable_name = "llama_speculative_simple"
+[[products]]
+binnames = ["llama-tokenize"]
+type = "exe"
+variable_name = "llama_tokenize"
+[[products]]
+binnames = ["llama-tts"]
+type = "exe"
+variable_name = "llama_tts"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libggml-base", "ggml-base"]
+type = "lib"
+variable_name = "libggml_base"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libggml-cpu", "ggml-cpu"]
+type = "lib"
+variable_name = "libggml_cpu"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libggml", "ggml"]
+type = "lib"
+variable_name = "libggml"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libllama"]
+type = "lib"
+variable_name = "libllama"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmtmd"]
+type = "lib"
+variable_name = "libmtmd"
+
+[[sources]]
+hash = "51fa458a92d6a3f305f8fd76fc8f702e3e87ddb5"
+type = "git"
+unpack_target = ""
+url = "https://github.com/ggml-org/llama.cpp.git"
+[[sources]]
+filename = "MacOSX10.15.sdk.tar.xz"
+hash = "2408d07df7f324d3beea818585a6d990ba99587c218a3969f924dfcc4de93b62"
+type = "file"
+url = "https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.15.sdk.tar.xz"

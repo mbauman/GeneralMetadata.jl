@@ -1,0 +1,84 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.9"
+lazy_artifacts = false
+name = "Ipopt"
+platforms = ["i686-linux-gnu-libgfortran3-cxx03", "i686-linux-gnu-libgfortran4-cxx03", "i686-linux-gnu-libgfortran5-cxx03", "i686-linux-gnu-libgfortran3-cxx11", "i686-linux-gnu-libgfortran4-cxx11", "i686-linux-gnu-libgfortran5-cxx11", "x86_64-linux-gnu-libgfortran3-cxx03", "x86_64-linux-gnu-libgfortran4-cxx03", "x86_64-linux-gnu-libgfortran5-cxx03", "x86_64-linux-gnu-libgfortran3-cxx11", "x86_64-linux-gnu-libgfortran4-cxx11", "x86_64-linux-gnu-libgfortran5-cxx11", "aarch64-linux-gnu-libgfortran3-cxx03", "aarch64-linux-gnu-libgfortran4-cxx03", "aarch64-linux-gnu-libgfortran5-cxx03", "aarch64-linux-gnu-libgfortran3-cxx11", "aarch64-linux-gnu-libgfortran4-cxx11", "aarch64-linux-gnu-libgfortran5-cxx11", "armv6l-linux-gnueabihf-libgfortran3-cxx03", "armv6l-linux-gnueabihf-libgfortran4-cxx03", "armv6l-linux-gnueabihf-libgfortran5-cxx03", "armv6l-linux-gnueabihf-libgfortran3-cxx11", "armv6l-linux-gnueabihf-libgfortran4-cxx11", "armv6l-linux-gnueabihf-libgfortran5-cxx11", "armv7l-linux-gnueabihf-libgfortran3-cxx03", "armv7l-linux-gnueabihf-libgfortran4-cxx03", "armv7l-linux-gnueabihf-libgfortran5-cxx03", "armv7l-linux-gnueabihf-libgfortran3-cxx11", "armv7l-linux-gnueabihf-libgfortran4-cxx11", "armv7l-linux-gnueabihf-libgfortran5-cxx11", "powerpc64le-linux-gnu-libgfortran3-cxx03", "powerpc64le-linux-gnu-libgfortran4-cxx03", "powerpc64le-linux-gnu-libgfortran5-cxx03", "powerpc64le-linux-gnu-libgfortran3-cxx11", "powerpc64le-linux-gnu-libgfortran4-cxx11", "powerpc64le-linux-gnu-libgfortran5-cxx11", "i686-linux-musl-libgfortran3-cxx03", "i686-linux-musl-libgfortran4-cxx03", "i686-linux-musl-libgfortran5-cxx03", "i686-linux-musl-libgfortran3-cxx11", "i686-linux-musl-libgfortran4-cxx11", "i686-linux-musl-libgfortran5-cxx11", "x86_64-linux-musl-libgfortran3-cxx03", "x86_64-linux-musl-libgfortran4-cxx03", "x86_64-linux-musl-libgfortran5-cxx03", "x86_64-linux-musl-libgfortran3-cxx11", "x86_64-linux-musl-libgfortran4-cxx11", "x86_64-linux-musl-libgfortran5-cxx11", "aarch64-linux-musl-libgfortran3-cxx03", "aarch64-linux-musl-libgfortran4-cxx03", "aarch64-linux-musl-libgfortran5-cxx03", "aarch64-linux-musl-libgfortran3-cxx11", "aarch64-linux-musl-libgfortran4-cxx11", "aarch64-linux-musl-libgfortran5-cxx11", "armv6l-linux-musleabihf-libgfortran3-cxx03", "armv6l-linux-musleabihf-libgfortran4-cxx03", "armv6l-linux-musleabihf-libgfortran5-cxx03", "armv6l-linux-musleabihf-libgfortran3-cxx11", "armv6l-linux-musleabihf-libgfortran4-cxx11", "armv6l-linux-musleabihf-libgfortran5-cxx11", "armv7l-linux-musleabihf-libgfortran3-cxx03", "armv7l-linux-musleabihf-libgfortran4-cxx03", "armv7l-linux-musleabihf-libgfortran5-cxx03", "armv7l-linux-musleabihf-libgfortran3-cxx11", "armv7l-linux-musleabihf-libgfortran4-cxx11", "armv7l-linux-musleabihf-libgfortran5-cxx11", "x86_64-apple-darwin-libgfortran3", "x86_64-apple-darwin-libgfortran4", "x86_64-apple-darwin-libgfortran5", "aarch64-apple-darwin-libgfortran5", "x86_64-unknown-freebsd-libgfortran3", "x86_64-unknown-freebsd-libgfortran4", "x86_64-unknown-freebsd-libgfortran5", "i686-w64-mingw32-libgfortran3-cxx03", "i686-w64-mingw32-libgfortran4-cxx03", "i686-w64-mingw32-libgfortran5-cxx03", "i686-w64-mingw32-libgfortran3-cxx11", "i686-w64-mingw32-libgfortran4-cxx11", "i686-w64-mingw32-libgfortran5-cxx11", "x86_64-w64-mingw32-libgfortran3-cxx03", "x86_64-w64-mingw32-libgfortran4-cxx03", "x86_64-w64-mingw32-libgfortran5-cxx03", "x86_64-w64-mingw32-libgfortran3-cxx11", "x86_64-w64-mingw32-libgfortran4-cxx11", "x86_64-w64-mingw32-libgfortran5-cxx11"]
+script = """cd $WORKSPACE/srcdir/Ipopt*\n\n# Remove misleading libtool files\nrm -f ${prefix}/lib/*.la\n\nLIBASL=\"-lasl\"\nif [[ \"${target}\" == *-linux-* ]]; then\n  LIBASL=\"${LIBASL} -lrt\"\nfi\n\nexport CPPFLAGS=\"${CPPFLAGS} -I${includedir} -I${includedir}/coin\"\n\nif [[ ${target} == *mingw* ]]; then\n    export LDFLAGS=\"-L${libdir}\"\nfi\n\n# BLAS and LAPACK\nif [[ \"${target}\" == *mingw* ]]; then\n  LBT=\"-lblastrampoline-5\"\nelse\n  LBT=\"-lblastrampoline\"\nfi\n\n./configure \\\n    CFLAGS=\"-O3 -DNDEBUG\" \\\n    CXXFLAGS=\"-O3 -DNDEBUG\" \\\n    FFLAGS=\"-O3\" \\\n    FCFLAGS=\"-O3\" \\\n    --prefix=${prefix} \\\n    --build=${MACHTYPE} \\\n    --host=${target} \\\n    --enable-shared \\\n    --with-pic \\\n    --disable-dependency-tracking \\\n    lt_cv_deplibs_check_method=pass_all \\\n    --with-lapack-lflags=\"-L${libdir} ${LBT}\" \\\n    --with-mumps-cflags=\"-I${includedir}/libseq\" \\\n    --with-mumps-lflags=\"-L${libdir} -ldmumps\" \\\n    --with-spral-cflags=\"-I${includedir}\" \\\n    --with-spral-lflags=\"-L${libdir} -lspral\" \\\n    --with-asl-lflags=\"-L${libdir} ${LIBASL}\"\n\nmake -j${nproc}\nmake install\n"""
+version = "v300.1400.1303"
+
+[[dependencies]]
+compat = ""
+name = "ASL_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "ae81ac8f-d209-56e5-92de-9978fef736f9"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "=500.600.200"
+name = "MUMPS_seq_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "d7ed1dd3-d0ae-5e8e-bfb4-87a502085b8d"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "=2023.11.15"
+name = "SPRAL_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "319450e9-13b8-58e8-aa9f-8fd1420848ab"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "5.4.0"
+name = "libblastrampoline_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "8e850b90-86db-534c-a0d3-1478176c7d93"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libipopt"]
+type = "lib"
+variable_name = "libipopt"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libipoptamplinterface"]
+type = "lib"
+variable_name = "libipoptamplinterface"
+[[products]]
+binnames = ["ipopt"]
+type = "exe"
+variable_name = "amplexe"
+
+[[sources]]
+hash = "4262e538feb1909036cecf9d8720454896cdc23c"
+type = "git"
+unpack_target = ""
+url = "https://github.com/coin-or/Ipopt.git"

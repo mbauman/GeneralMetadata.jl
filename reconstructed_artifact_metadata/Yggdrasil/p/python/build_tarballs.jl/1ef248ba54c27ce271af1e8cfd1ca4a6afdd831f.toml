@@ -1,0 +1,80 @@
+augment_platform_block = ""
+init_block = """ENV[\"PYTHONHOME\"] = artifact_dir\n"""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Python"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd"]
+script = """# Having a global `python3` screws things up a bit, so get rid of that\nrm -f $(which python3)\n\n# We need these for the host python build\napk add zlib-dev libffi-dev\n\n# Create fake `arch` command:\necho '#!/bin/bash' >> /usr/bin/arch\nif [[ \"${target}\" == *-apple-* ]]; then\n    echo 'echo i386'  >> /usr/bin/arch\nelse\n    echo 'echo `echo $target | cut -d - -f 1`'  >> /usr/bin/arch\nfi\nchmod +x /usr/bin/arch\n\n# Patch out cross compile limitations\ncd ${WORKSPACE}/srcdir/Python-*/\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/cross_compile_configure_ac.patch\nif [[ \"${target}\" == *-freebsd* || ${target} == *darwin* ]]; then\n    # disable detection of multiarch as it breaks with clang >= 13, which adds a\n    # major.minor version number in -print-multiarch output, confusing Python.\n    # https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=258377\n    sed -i 's|^MULTIARCH=.*|MULTIARCH=|' configure.ac\nfi\nautoreconf -i\n\n# Next, build host version\nmkdir build_host && cd build_host\n\n# Override `bb_target`, `CC`, etc... to give this `./configure` the impression\n# that we are actually targeting `${MACHTYPE}` and not `${target}`\nbb_target=${MACHTYPE} CC=${HOSTCC} CPPFLAGS=-I/usr/include LDFLAGS=\"-L/lib -L/usr/lib\" ../configure --host=\"${MACHTYPE}\" --build=\"${MACHTYPE}\"\nmake -j${nproc} python sharedmods\n\n# Next, build target version\ncd ${WORKSPACE}/srcdir/Python-*/\nmkdir build_target && cd build_target\nexport CPPFLAGS=\"${CPPFLAGS} -I${prefix}/include\"\nexport LDFLAGS=\"${LDFLAGS} -L${prefix}/lib -L${prefix}/lib64\"\nexport PATH=$(echo ${WORKSPACE}/srcdir/Python-*/build_host):$PATH\n../configure --prefix=\"${prefix}\" --host=\"${target}\" --build=\"${MACHTYPE}\" \\\n    --enable-shared \\\n    --disable-ipv6 \\\n    --with-ensurepip=no \\\n    ac_cv_file__dev_ptmx=no \\\n    ac_cv_file__dev_ptc=no \\\n    ac_cv_have_chflags=no\nmake -j${nproc}\nmake install\n"""
+version = "v3.8.8"
+
+[[dependencies]]
+compat = "2.2.10"
+name = "Expat_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.0.8"
+name = "Bzip2_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "~3.2.2"
+name = "Libffi_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "XZ_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenSSL_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["python", "python3"]
+type = "exe"
+variable_name = "python"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libpython3", "libpython3.8"]
+type = "lib"
+variable_name = "libpython"
+
+[[sources]]
+hash = "7c664249ff77e443d6ea0e4cf0e587eae918ca3c48d081d1915fe2a1f1bcc5cc"
+type = "archive"
+unpack_target = ""
+url = "https://www.python.org/ftp/python/3.8.8/Python-3.8.8.tar.xz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

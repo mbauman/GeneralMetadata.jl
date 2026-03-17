@@ -1,0 +1,80 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Qt6WebChannel"
+platforms = ["x86_64-apple-darwin", "aarch64-apple-darwin", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx11", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx11", "x86_64-unknown-freebsd"]
+script = ["""macos_sdk_version=14.0\nmacosx_deployment_target=12\nif [[ \"${target}\" == *-apple-darwin* ]]; then\n    echo \"Extracting MacOSX${macos_sdk_version}.sdk.tar.xz (this may take a while)\"\n    rm -rf /opt/${target}/${target}/sys-root/System\n    rm -rf /opt/${target}/${target}/sys-root/usr/include/libxml2/libxml\n    # extract the tarball into the sys-root so all compilers pick it up\n    # automatically, and use --warning=no-unknown-keyword to hide harmless\n    # warnings about unsupported pax header keywords like \"SCHILY.fflags\"\n    tar --extract \\\n        --file=${WORKSPACE}/srcdir/MacOSX${macos_sdk_version}.sdk.tar.xz \\\n        --directory=\"/opt/${target}/${target}/sys-root/.\" \\\n        --strip-components=1 \\\n        --warning=no-unknown-keyword \\\n        MacOSX${macos_sdk_version}.sdk/System \\\n        MacOSX${macos_sdk_version}.sdk/usr\n    export MACOSX_DEPLOYMENT_TARGET=${macosx_deployment_target}\nfi\ncd $WORKSPACE/srcdir/qt*\n\ncmake -G Ninja \\\n    -DQT_HOST_PATH=$host_prefix \\\n    -DPython_ROOT_DIR=/usr \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_PREFIX_PATH=$host_prefix \\\n    -DCMAKE_FIND_ROOT_PATH=$prefix \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DQT_NO_APPLE_SDK_AND_XCODE_CHECK=ON \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -B build\n\ncmake --build build --parallel ${nproc}\ncmake --install build\n\ninstall_license LICENSES/LGPL-3.0-only.txt\n""", """cd $WORKSPACE/srcdir/qt*\n\ncmake -G Ninja \\\n    -DQT_HOST_PATH=$host_prefix \\\n    -DPython_ROOT_DIR=/usr \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_PREFIX_PATH=$host_prefix \\\n    -DCMAKE_FIND_ROOT_PATH=$prefix \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DQT_NO_APPLE_SDK_AND_XCODE_CHECK=ON \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -B build\n\ncmake --build build --parallel ${nproc}\ncmake --install build\n\ninstall_license LICENSES/LGPL-3.0-only.txt\n"""]
+version = "v6.8.2"
+
+[[dependencies]]
+compat = ""
+name = "Qt6Base_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Qt6Declarative_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "=6.8.2"
+name = "Qt6Base_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "=6.8.2"
+name = "Qt6Declarative_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "=6.8.2"
+name = "Qt6WebSockets_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["QtWebChannel"]
+type = "framework"
+variable_name = "libqt6webchannel"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt6WebChannel", "libQt6WebChannel", "QtWebChannel"]
+type = "lib"
+variable_name = "libqt6webchannel"
+
+[[sources]]
+hash = "869f1e53f44673a57670005b1239cd67b9a5f372c8cae799c1e4af3f1c68b7ac"
+type = "archive"
+unpack_target = ""
+url = "https://download.qt.io/official_releases/qt/6.8/6.8.2/submodules/qtwebchannel-everywhere-src-6.8.2.tar.xz"
+[[sources]]
+filename = "MacOSX14.0.sdk.tar.xz"
+hash = "4a31565fd2644d1aec23da3829977f83632a20985561a2038e198681e7e7bf49"
+type = "file"
+url = "https://github.com/roblabla/MacOSX-SDKs/releases/download/macosx14.0/MacOSX14.0.sdk.tar.xz"

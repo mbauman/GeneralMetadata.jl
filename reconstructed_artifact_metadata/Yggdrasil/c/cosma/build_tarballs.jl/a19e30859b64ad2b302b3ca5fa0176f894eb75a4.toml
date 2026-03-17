@@ -1,0 +1,82 @@
+augment_platform_block = """    using Base.BinaryPlatforms\n        # Can't use Preferences since we might be running this very early with a non-existing Manifest\n    MPIPreferences_UUID = Base.UUID(\"3da0fdf6-3ccc-4f1b-acd9-58baa6c99267\")\n    const preferences = Base.get_preferences(MPIPreferences_UUID)\n\n    # Keep logic in sync with MPIPreferences.jl\n    function augment_mpi!(platform)\n        # Doesn't need to be `const` since we depend on MPIPreferences so we\n        # invalidate the cache when it changes.\n        binary = get(preferences, \"binary\", Sys.iswindows() ? \"MicrosoftMPI_jll\" : \"MPICH_jll\")\n\n        abi = if binary == \"system\"\n            let abi = get(preferences, \"abi\", nothing)\n                if abi === nothing\n                    error(\"MPIPreferences: Inconsistent state detected, binary set to system, but no ABI set.\")\n                else\n                    abi\n                end\n            end\n        elseif binary == \"MicrosoftMPI_jll\"\n            \"MicrosoftMPI\"\n        elseif binary == \"MPICH_jll\"\n            \"MPICH\"\n        elseif binary == \"OpenMPI_jll\"\n            \"OpenMPI\"\n        elseif binary == \"MPItrampoline_jll\"\n            \"MPItrampoline\"\n        else\n            error(\"Unknown binary: $binary\")\n        end\n\n        if !haskey(platform, \"mpi\")\n            platform[\"mpi\"] = abi\n        end\n        return platform\n    end\n\n    augment_platform!(platform::Platform) = augment_mpi!(platform)\n"""
+init_block = ""
+julia_compat = "1.7"
+lazy_artifacts = false
+name = "COSMA"
+platforms = ["i686-linux-gnu-cxx03-mpi+mpich", "i686-linux-gnu-cxx11-mpi+mpich", "x86_64-linux-gnu-cxx03-mpi+mpich", "x86_64-linux-gnu-cxx11-mpi+mpich", "aarch64-linux-gnu-cxx03-mpi+mpich", "aarch64-linux-gnu-cxx11-mpi+mpich", "armv6l-linux-gnueabihf-cxx03-mpi+mpich", "armv6l-linux-gnueabihf-cxx11-mpi+mpich", "armv7l-linux-gnueabihf-cxx03-mpi+mpich", "armv7l-linux-gnueabihf-cxx11-mpi+mpich", "powerpc64le-linux-gnu-cxx03-mpi+mpich", "powerpc64le-linux-gnu-cxx11-mpi+mpich", "i686-linux-musl-cxx03-mpi+mpich", "i686-linux-musl-cxx11-mpi+mpich", "x86_64-linux-musl-cxx03-mpi+mpich", "x86_64-linux-musl-cxx11-mpi+mpich", "aarch64-linux-musl-cxx03-mpi+mpich", "aarch64-linux-musl-cxx11-mpi+mpich", "armv6l-linux-musleabihf-cxx03-mpi+mpich", "armv6l-linux-musleabihf-cxx11-mpi+mpich", "armv7l-linux-musleabihf-cxx03-mpi+mpich", "armv7l-linux-musleabihf-cxx11-mpi+mpich", "x86_64-apple-darwin-mpi+mpich", "x86_64-unknown-freebsd-mpi+mpich", "i686-linux-gnu-cxx03-mpi+openmpi", "i686-linux-gnu-cxx11-mpi+openmpi", "x86_64-linux-gnu-cxx03-mpi+openmpi", "x86_64-linux-gnu-cxx11-mpi+openmpi", "aarch64-linux-gnu-cxx03-mpi+openmpi", "aarch64-linux-gnu-cxx11-mpi+openmpi", "armv7l-linux-gnueabihf-cxx03-mpi+openmpi", "armv7l-linux-gnueabihf-cxx11-mpi+openmpi", "powerpc64le-linux-gnu-cxx03-mpi+openmpi", "powerpc64le-linux-gnu-cxx11-mpi+openmpi", "i686-linux-musl-cxx03-mpi+openmpi", "i686-linux-musl-cxx11-mpi+openmpi", "x86_64-linux-musl-cxx03-mpi+openmpi", "x86_64-linux-musl-cxx11-mpi+openmpi", "aarch64-linux-musl-cxx03-mpi+openmpi", "aarch64-linux-musl-cxx11-mpi+openmpi", "armv6l-linux-musleabihf-cxx03-mpi+openmpi", "armv6l-linux-musleabihf-cxx11-mpi+openmpi", "armv7l-linux-musleabihf-cxx03-mpi+openmpi", "armv7l-linux-musleabihf-cxx11-mpi+openmpi", "x86_64-apple-darwin-mpi+openmpi", "x86_64-unknown-freebsd-mpi+openmpi", "i686-linux-gnu-cxx03-mpi+mpitrampoline", "i686-linux-gnu-cxx11-mpi+mpitrampoline", "x86_64-linux-gnu-cxx03-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-mpi+mpitrampoline", "aarch64-linux-gnu-cxx03-mpi+mpitrampoline", "aarch64-linux-gnu-cxx11-mpi+mpitrampoline", "armv6l-linux-gnueabihf-cxx03-mpi+mpitrampoline", "armv6l-linux-gnueabihf-cxx11-mpi+mpitrampoline", "armv7l-linux-gnueabihf-cxx03-mpi+mpitrampoline", "armv7l-linux-gnueabihf-cxx11-mpi+mpitrampoline", "powerpc64le-linux-gnu-cxx03-mpi+mpitrampoline", "powerpc64le-linux-gnu-cxx11-mpi+mpitrampoline", "x86_64-apple-darwin-mpi+mpitrampoline"]
+script = """cd $WORKSPACE/srcdir\n\nif [[ \"$nbits\" == \"64\" ]]; then\n    BLAS_LAPACK_LIB=\"$libdir/libopenblas64_.$dlext\"\n\n    # Fix suffixes for 64-bit OpenBLAS\n    SYMB_DEFS=()\n    for sym in cblas_sgemm cblas_dgemm cblas_cgemm cblas_zgemm; do\n        SYMB_DEFS+=(\"-D${sym}=${sym}64_\")\n    done\n    export CXXFLAGS=\"${SYMB_DEFS[@]}\"\nelse\n    BLAS_LAPACK_LIB=\"$libdir/libopenblas.$dlext\"\nfi\n\n# We should probably check the compiler instead\nif [[ \"$target\" == x86_64-apple-darwin14 ]] || [[ \"$target\" == x86_64-unknown-freebsd11.1 ]]; then\n    OMP_LIB=`find $libdir -iname 'libgomp.[^0-9]*'`\n    OPENMP_CMAKE_FLAGS=\"-DOpenMP_CXX_FLAGS=-fopenmp=libgomp -DOpenMP_CXX_LIB_NAMES=gomp -DOpenMP_gomp_LIBRARY=$OMP_LIB\"\n    OMP_HEADER=`find / -name omp.h 2>/dev/null | head -n1`\n    mkdir include\n    cp $OMP_HEADER include\n    export CPATH=\"$CPATH:$PWD/include\"\nelse\n    OPENMP_CMAKE_FLAGS=\nfi\n\nMPI_CMAKE_FLAGS=\nif grep -q OMPI_MAJOR_VERSION $prefix/include/mpi.h; then\n    if [[ \"$target\" == *-apple-* ]]; then\n        # MPI_CMAKE_FLAGS=\"-DMPI_C_ADDITIONAL_INCLUDE_DIRS='' -DMPI_C_LIBRARIES='-Wl,-flat_namespace;-Wl,-commons,use_dylibs;-lmpi;-lopen-rte;-lopen-pal;-lm;-lz' -DMPI_C_LIB_NAMES='mpi;open-rte;open-pal' -DMPI_CXX_ADDITIONAL_INCLUDE_DIRS='' -DMPI_CXX_LIBRARIES='-Wl,-flat_namespace;-Wl,-commons,use_dylibs;-lmpi;-lopen-rte;-lopen-pal;-lm;-lz' -DMPI_CXX_LIB_NAMES='mpi;open-rte;open-pal' -DMPI_mpi_LIBRARY=$prefix/lib/libmpi.dylib -DMPI_open-rte_LIBRARY=$prefix/lib/libopen-rte.dylib -DMPI_open-pal_LIBRARY=$prefix/lib/libopen-pal.dylib\"\n        MPI_CMAKE_FLAGS=\"-DMPI_C_ADDITIONAL_INCLUDE_DIRS='' -DMPI_C_LIBRARIES='-Wl,-flat_namespace;-Wl,-commons,use_dylibs' -DMPI_C_LIB_NAMES='mpi' -DMPI_CXX_ADDITIONAL_INCLUDE_DIRS='' -DMPI_CXX_LIBRARIES='-Wl,-flat_namespace;-Wl,-commons,use_dylibs' -DMPI_CXX_LIB_NAMES='mpi' -DMPI_mpi_LIBRARY=$prefix/lib/libmpi.dylib\"\n    # elif [[ \"$target\" == powerpc64le-* ]]; then\n    else\n        # MPI_CMAKE_FLAGS=\"-DMPI_C_ADDITIONAL_INCLUDE_DIRS='' -DMPI_C_LIBRARIES='-Wl,--enable-new-dtags;-lmpi;-lopen-rte;-lopen-pal;-lm;-ldl;-lutil,-lrt' -DMPI_C_LIB_NAMES='mpi;open-rte;open-pal' -DMPI_CXX_ADDITIONAL_INCLUDE_DIRS='' -DMPI_CXX_LIBRARIES='-Wl,--enable-new-dtags;-lmpi;-lopen-rte;-lopen-pal;-lm;-ldl;-lutil,-lrt' -DMPI_CXX_LIB_NAMES='mpi;open-rte;open-pal' -DMPI_mpi_LIBRARY=$prefix/lib/libmpi.so -DMPI_open-rte_LIBRARY=$prefix/lib/libopen-rte.so -DMPI_open-pal_LIBRARY=$prefix/lib/libopen-pal.so\"\n        MPI_CMAKE_FLAGS=\"-DMPI_C_ADDITIONAL_INCLUDE_DIRS='' -DMPI_C_LIBRARIES='-Wl,--enable-new-dtags' -DMPI_C_LIB_NAMES='mpi' -DMPI_CXX_ADDITIONAL_INCLUDE_DIRS='' -DMPI_CXX_LIBRARIES='-Wl,--enable-new-dtags' -DMPI_CXX_LIB_NAMES='mpi' -DMPI_mpi_LIBRARY=$prefix/lib/libmpi.so\"\n    fi\nfi\n\nmkdir build\ncd build\n\ncmake ../COSMA-* \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DCMAKE_INSTALL_PREFIX=$prefix \\\n    -DCOSMA_WITH_TESTS=OFF \\\n    -DCOSMA_WITH_APPS=OFF \\\n    -DCOSMA_WITH_BENCHMARKS=OFF \\\n    -DCOSMA_WITH_INSTALL=ON \\\n    -DCOSMA_WITH_PROFILING=OFF \\\n    -DBUILD_SHARED_LIBS=ON \\\n    -DCOSMA_BLAS=OPENBLAS \\\n    -DCOSMA_SCALAPACK=OFF \\\n    -DMPI_C_COMPILER=$bindir/mpicc \\\n    -DMPI_CXX_COMPILER=$bindir/mpicxx \\\n    -DOPENBLAS_LIBRARIES=$BLAS_LAPACK_LIB \\\n    -DOPENBLAS_INCLUDE_DIR=$includedir \\\n    $OPENMP_CMAKE_FLAGS \\\n    $MPI_CMAKE_FLAGS\n\nmake -j${nproc}\nmake install\n\ninstall_license ../COSMA-*/LICENCE\n"""
+version = "v2.5.1"
+
+[[dependencies]]
+compat = ""
+name = "OpenBLAS_jll"
+platforms = ["any"]
+type = "dependency"
+uuid = "4536629a-c528-5b80-bd46-f80d51c5b363"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MPICH_jll"
+platforms = ["i686-linux-gnu-cxx03-mpi+mpich", "i686-linux-gnu-cxx11-mpi+mpich", "x86_64-linux-gnu-cxx03-mpi+mpich", "x86_64-linux-gnu-cxx11-mpi+mpich", "aarch64-linux-gnu-cxx03-mpi+mpich", "aarch64-linux-gnu-cxx11-mpi+mpich", "armv6l-linux-gnueabihf-cxx03-mpi+mpich", "armv6l-linux-gnueabihf-cxx11-mpi+mpich", "armv7l-linux-gnueabihf-cxx03-mpi+mpich", "armv7l-linux-gnueabihf-cxx11-mpi+mpich", "powerpc64le-linux-gnu-cxx03-mpi+mpich", "powerpc64le-linux-gnu-cxx11-mpi+mpich", "i686-linux-musl-cxx03-mpi+mpich", "i686-linux-musl-cxx11-mpi+mpich", "x86_64-linux-musl-cxx03-mpi+mpich", "x86_64-linux-musl-cxx11-mpi+mpich", "aarch64-linux-musl-cxx03-mpi+mpich", "aarch64-linux-musl-cxx11-mpi+mpich", "armv6l-linux-musleabihf-cxx03-mpi+mpich", "armv6l-linux-musleabihf-cxx11-mpi+mpich", "armv7l-linux-musleabihf-cxx03-mpi+mpich", "armv7l-linux-musleabihf-cxx11-mpi+mpich", "x86_64-apple-darwin-mpi+mpich", "x86_64-unknown-freebsd-mpi+mpich"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenMPI_jll"
+platforms = ["i686-linux-gnu-cxx03-mpi+openmpi", "i686-linux-gnu-cxx11-mpi+openmpi", "x86_64-linux-gnu-cxx03-mpi+openmpi", "x86_64-linux-gnu-cxx11-mpi+openmpi", "aarch64-linux-gnu-cxx03-mpi+openmpi", "aarch64-linux-gnu-cxx11-mpi+openmpi", "armv6l-linux-gnueabihf-cxx03-mpi+openmpi", "armv6l-linux-gnueabihf-cxx11-mpi+openmpi", "armv7l-linux-gnueabihf-cxx03-mpi+openmpi", "armv7l-linux-gnueabihf-cxx11-mpi+openmpi", "powerpc64le-linux-gnu-cxx03-mpi+openmpi", "powerpc64le-linux-gnu-cxx11-mpi+openmpi", "i686-linux-musl-cxx03-mpi+openmpi", "i686-linux-musl-cxx11-mpi+openmpi", "x86_64-linux-musl-cxx03-mpi+openmpi", "x86_64-linux-musl-cxx11-mpi+openmpi", "aarch64-linux-musl-cxx03-mpi+openmpi", "aarch64-linux-musl-cxx11-mpi+openmpi", "armv6l-linux-musleabihf-cxx03-mpi+openmpi", "armv6l-linux-musleabihf-cxx11-mpi+openmpi", "armv7l-linux-musleabihf-cxx03-mpi+openmpi", "armv7l-linux-musleabihf-cxx11-mpi+openmpi", "x86_64-apple-darwin-mpi+openmpi", "x86_64-unknown-freebsd-mpi+openmpi"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MicrosoftMPI_jll"
+platforms = []
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MPItrampoline_jll"
+platforms = ["i686-linux-gnu-cxx03-mpi+mpitrampoline", "i686-linux-gnu-cxx11-mpi+mpitrampoline", "x86_64-linux-gnu-cxx03-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-mpi+mpitrampoline", "aarch64-linux-gnu-cxx03-mpi+mpitrampoline", "aarch64-linux-gnu-cxx11-mpi+mpitrampoline", "armv6l-linux-gnueabihf-cxx03-mpi+mpitrampoline", "armv6l-linux-gnueabihf-cxx11-mpi+mpitrampoline", "armv7l-linux-gnueabihf-cxx03-mpi+mpitrampoline", "armv7l-linux-gnueabihf-cxx11-mpi+mpitrampoline", "powerpc64le-linux-gnu-cxx03-mpi+mpitrampoline", "powerpc64le-linux-gnu-cxx11-mpi+mpitrampoline", "i686-linux-musl-cxx03-mpi+mpitrampoline", "i686-linux-musl-cxx11-mpi+mpitrampoline", "x86_64-linux-musl-cxx03-mpi+mpitrampoline", "x86_64-linux-musl-cxx11-mpi+mpitrampoline", "aarch64-linux-musl-cxx03-mpi+mpitrampoline", "aarch64-linux-musl-cxx11-mpi+mpitrampoline", "armv6l-linux-musleabihf-cxx03-mpi+mpitrampoline", "armv6l-linux-musleabihf-cxx11-mpi+mpitrampoline", "armv7l-linux-musleabihf-cxx03-mpi+mpitrampoline", "armv7l-linux-musleabihf-cxx11-mpi+mpitrampoline", "x86_64-apple-darwin-mpi+mpitrampoline", "x86_64-unknown-freebsd-mpi+mpitrampoline"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "0.1"
+name = "MPIPreferences"
+platforms = ["any"]
+type = "dependency"
+uuid = "3da0fdf6-3ccc-4f1b-acd9-58baa6c99267"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcosma"]
+type = "lib"
+variable_name = "cosma"
+
+[[sources]]
+hash = "085b7787597374244bbb1eb89bc69bf58c35f6c85be805e881e1c0b25166c3ce"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/eth-cscs/COSMA/releases/download/v2.5.1/COSMA-v2.5.1.tar.gz"

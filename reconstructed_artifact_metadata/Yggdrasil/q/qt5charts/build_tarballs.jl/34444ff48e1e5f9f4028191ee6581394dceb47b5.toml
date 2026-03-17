@@ -1,0 +1,40 @@
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "Qt5Charts"
+platforms = ["aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-unknown-freebsd", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-apple-darwin"]
+script = """# We need to make sure qmake is a copy and not a symlink for the Qt installation paths to be correct:\nprefixqmake=$(which qmake)\nrealqmake=$(readlink $prefixqmake)\nrm $prefixqmake\ncp $bindir/$realqmake $prefixqmake\n\ncase \"$target\" in\n    *apple-darwin*)\n        ln -s $libdir/QtCore.framework/Headers $includedir/QtCore\n        export QT_MAC_SDK_NO_VERSION_CHECK=1\n        ;;\nesac\n\ncd $WORKSPACE/srcdir\nmkdir build\ncd build/\n\nqtsrcdir=`ls -d ../qtcharts-*`\n\nqmake $qtsrcdir\nmake -j${nproc}\n\n# It appends the root path here with the qmake dir, which is /workspace/artifacts/blah...\nmake INSTALL_ROOT=$PWD/dummyroot install\nrsync -ua dummyroot/workspace/*/destdir/* $prefix\n\ninstall_license $qtsrcdir/LICENSE.GPL3\n\ncase \"$target\" in\n    *apple-darwin*)\n        rm $includedir/QtCore\n        ;;\nesac\n"""
+version = "v5.15.2"
+
+[[dependencies]]
+compat = ""
+name = "Qt5Declarative_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+paths = ["qml/QtCharts"]
+type = "file"
+variable_name = "charts"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt5Charts", "libQt5Charts", "QtCharts"]
+type = "lib"
+variable_name = "libqt5charts"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["QtCharts"]
+type = "framework"
+variable_name = "libqt5charts"
+
+[[sources]]
+hash = "e0750e4195bd8a8b9758ab4d98d437edbe273cd3d289dd6a8f325df6d13f3d11"
+type = "archive"
+unpack_target = ""
+url = "https://download.qt.io/official_releases/qt/5.15/5.15.2/submodules/qtcharts-everywhere-src-5.15.2.tar.xz"

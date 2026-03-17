@@ -1,0 +1,119 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.9"
+lazy_artifacts = false
+name = "SCIP"
+platforms = ["i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx11"]
+script = """macos_sdk_version=10.13\nmacosx_deployment_target=10.13\nif [[ \"${target}\" == x86_64-apple-darwin* ]]; then\n    echo \"Extracting MacOSX${macos_sdk_version}.sdk.tar.xz (this may take a while)\"\n    rm -rf /opt/${target}/${target}/sys-root/System\n    rm -rf /opt/${target}/${target}/sys-root/usr/include/libxml2/libxml\n    # extract the tarball into the sys-root so all compilers pick it up\n    # automatically, and use --warning=no-unknown-keyword to hide harmless\n    # warnings about unsupported pax header keywords like \"SCHILY.fflags\"\n    tar --extract \\\n        --file=${WORKSPACE}/srcdir/MacOSX${macos_sdk_version}.sdk.tar.xz \\\n        --directory=\"/opt/${target}/${target}/sys-root/.\" \\\n        --strip-components=1 \\\n        --warning=no-unknown-keyword \\\n        MacOSX${macos_sdk_version}.sdk/System \\\n        MacOSX${macos_sdk_version}.sdk/usr\n    export MACOSX_DEPLOYMENT_TARGET=${macosx_deployment_target}\nfi\n# needed for now\n# clock_gettime requires linking to librt -lrt with old glibc\n# remove when CMake accounts for this\nif [[ \"${target}\" == *86*-linux-gnu ]]; then\n   export LDFLAGS=\"-lrt\"\nelif [[ \"${target}\" == *-mingw* ]]; then\n   # this is required to link to bliss on mingw\n   export LDFLAGS=-L${libdir}\nfi\n\ncd scipoptsuite*\n\nmkdir build\ncd build/\ncmake -DCMAKE_INSTALL_PREFIX=$prefix\\\n  -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN}\\\n  -DCMAKE_BUILD_TYPE=Release\\\n  -DPAPILO=0\\\n  -DZIMPL=OFF\\\n  -DGCG=0\\\n  -DUG=0\\\n  -DAMPL=0\\\n  -DBOOST=ON\\\n  -DMPFR=ON\\\n  -DSYM=snauty\\\n  -DTPI=tny\\\n  -DIPOPT_DIR=${prefix} \\\n  -DIPOPT_LIBRARIES=${libdir} \\\n  ..\nmake -j${nproc}\nmake install\n\nmkdir -p ${prefix}/share/licenses/SCIP\nfor dir in scip soplex; do\n    cp $WORKSPACE/srcdir/scipoptsuite*/${dir}/LICENSE ${prefix}/share/licenses/SCIP/LICENSE_${dir}\ndone\n"""
+version = "v1000.0.1"
+
+[[dependencies]]
+compat = "=1.87.0"
+name = "boost_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "28df3c45-c428-5900-9ff8-a3135698ca75"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.0.9"
+name = "Bzip2_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "6e34b625-4abd-537c-b88f-471c36dfa7a0"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "GMP_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "781609d7-10c4-51f6-84f2-b8444358ff6d"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "300.1400.1900"
+name = "Ipopt_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "9cc047cb-c261-5740-88fc-0cf96f7bdcc7"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "4.2.0"
+name = "MPFR_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "3a97d323-0669-5f0c-9066-3539efd106a3"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Readline_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "05236dd9-4125-5232-aa7c-9ec0c9b2c25a"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "83775a58-1f1d-513f-b197-d71354ab007a"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libscip"]
+type = "lib"
+variable_name = "libscip"
+[[products]]
+binnames = ["scip"]
+type = "exe"
+variable_name = "scipexe"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsoplexshared"]
+type = "lib"
+variable_name = "libsoplex"
+
+[[sources]]
+hash = "44877ca34f3d5f7e09dfed4738cf52046a20950417060f844f1ca37a77a60d1c"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/scipopt/scip/releases/download/v10.0.0/scipoptsuite-10.0.0.tgz"
+[[sources]]
+filename = "MacOSX10.13.sdk.tar.xz"
+hash = "a3a077385205039a7c6f9e2c98ecdf2a720b2a819da715e03e0630c75782c1e4"
+type = "file"
+url = "https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.13.sdk.tar.xz"

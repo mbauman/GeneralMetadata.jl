@@ -1,0 +1,59 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Tk"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """if [[ \"${target}\" == *-mingw* ]]; then\n    cd $WORKSPACE/srcdir/tk*/win/\nelse\n    cd $WORKSPACE/srcdir/tk*/unix/\nfi\n\nexport CFLAGS=\"-I${prefix}/include ${CFLAGS}\"\n\nFLAGS=(--enable-threads --disable-rpath)\nif [[ \"${target}\" == x86_64-* ]] || [[ \"${target}\" == aarch64-* ]]; then\n    FLAGS+=(--enable-64bit)\nfi\nif [[ \"${target}\" == *-apple-* ]]; then\n    FLAGS+=(--with-x=no)\n    FLAGS+=(--enable-aqua=yes)\n\n    # The following patch replaces the hard-coded path of Cocoa framework\n    # with the actual path on our system.\n    atomic_patch -p1 \"${WORKSPACE}/srcdir/patches/apple_cocoa_configure.patch\"\nfi\nif [[ \"${target}\" == *mingw* ]]; then\n    FLAGS+=(--with-x=no)\n\n    # `windres` invocations don't get the proper tk include path; just hack it in\n    atomic_patch -p2 \"${WORKSPACE}/srcdir/patches/win_tk_rc_include.patch\"\nfi\n\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \"${FLAGS[@]}\"\nmake -j${nproc}\nmake install\nmake install-private-headers\n\n# Install license file\ninstall_license $WORKSPACE/srcdir/tk*/license.terms\n"""
+version = "v8.6.12"
+
+[[dependencies]]
+compat = ""
+name = "Xorg_xorgproto_jll"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-unknown-freebsd"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "8.6.12"
+name = "Tcl_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_libXft_jll"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-unknown-freebsd"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libtk8.6", "libtk8", "tk86"]
+type = "lib"
+variable_name = "libtk"
+[[products]]
+binnames = ["wish8.6", "wish86"]
+type = "exe"
+variable_name = "wish"
+
+[[sources]]
+hash = "12395c1f3fcb6bed2938689f797ea3cdf41ed5cb6c4766eec8ac949560310630"
+type = "archive"
+unpack_target = ""
+url = "https://downloads.sourceforge.net/sourceforge/tcl/tk8.6.12-src.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

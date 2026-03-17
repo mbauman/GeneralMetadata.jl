@@ -1,0 +1,41 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "perfetto"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "riscv64-linux-gnu-cxx03", "riscv64-linux-gnu-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11", "aarch64-apple-darwin"]
+script = """apk del cmake\ncd $WORKSPACE/srcdir/perfetto\natomic_patch -p1 ../shared_lib.patch\natomic_patch -p1 ../perfetto_mingw.patch\natomic_patch -p1 ../header_mingw.patch\n\nmkdir build && cd build\nmeson setup .. --cross-file=\"${MESON_TARGET_TOOLCHAIN}\" --buildtype=release\nninja -j${nproc}\nninja install\ninstall -Dvm 644 ../sdk/perfetto.h \"${includedir}/perfetto.h\"\ninstall_license ../LICENSE\n"""
+version = "v51.2.0"
+
+[[dependencies]]
+compat = ""
+name = "CMake_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 3
+version-minor = 24
+version-patch = 3
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libperfetto"]
+type = "lib"
+variable_name = "libperfetto"
+[[products]]
+paths = ["include/perfetto.h"]
+type = "file"
+variable_name = "perfetto_h"
+
+[[sources]]
+hash = "7a9a6a0587348bffd1796b66a1da33cc1ea421d8"
+type = "git"
+unpack_target = ""
+url = "https://github.com/google/perfetto"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

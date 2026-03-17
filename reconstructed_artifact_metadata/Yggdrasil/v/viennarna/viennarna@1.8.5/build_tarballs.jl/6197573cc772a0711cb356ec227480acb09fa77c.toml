@@ -1,0 +1,100 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "ViennaRNA"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/ViennaRNA*/\n\n# fixes linking errors\natomic_patch -p1 ../patches/fix-ViennaRNA-1.8.5-compile.patch\n\nupdate_configure_scripts --reconf\n\n./configure \\\n    --prefix=${prefix} --build=${MACHTYPE} --host=${target} \\\n    --without-perl \\\n    --with-cluster \\\n    --without-kinfold --without-forester\n\nmake -j${nproc}\nmake install\n\n# create and install a shared library libRNA\n\"${CC}\" -g -O2 \\\n    -shared -o \"${libdir}/libRNA.${dlext}\" \\\n    -Wl,$(flagon --whole-archive) ./lib/libRNA.a -Wl,$(flagon --no-whole-archive)\n\n# install licenses\n# cp RNAforester/COPYING COPYING-RNAforester\n# install_license COPYING-RNAforester\ninstall_license COPYING\n"""
+version = "v1.8.5"
+
+[[products]]
+binnames = ["AnalyseDists"]
+type = "exe"
+variable_name = "AnalyseDists"
+[[products]]
+binnames = ["AnalyseSeqs"]
+type = "exe"
+variable_name = "AnalyseSeqs"
+[[products]]
+binnames = ["RNAaliduplex"]
+type = "exe"
+variable_name = "RNAaliduplex"
+[[products]]
+binnames = ["RNAalifold"]
+type = "exe"
+variable_name = "RNAalifold"
+[[products]]
+binnames = ["RNAcofold"]
+type = "exe"
+variable_name = "RNAcofold"
+[[products]]
+binnames = ["RNAdistance"]
+type = "exe"
+variable_name = "RNAdistance"
+[[products]]
+binnames = ["RNAduplex"]
+type = "exe"
+variable_name = "RNAduplex"
+[[products]]
+binnames = ["RNAeval"]
+type = "exe"
+variable_name = "RNAeval"
+[[products]]
+binnames = ["RNAfold"]
+type = "exe"
+variable_name = "RNAfold"
+[[products]]
+binnames = ["RNAheat"]
+type = "exe"
+variable_name = "RNAheat"
+[[products]]
+binnames = ["RNAinverse"]
+type = "exe"
+variable_name = "RNAinverse"
+[[products]]
+binnames = ["RNALfold"]
+type = "exe"
+variable_name = "RNALfold"
+[[products]]
+binnames = ["RNApaln"]
+type = "exe"
+variable_name = "RNApaln"
+[[products]]
+binnames = ["RNApdist"]
+type = "exe"
+variable_name = "RNApdist"
+[[products]]
+binnames = ["RNAplfold"]
+type = "exe"
+variable_name = "RNAplfold"
+[[products]]
+binnames = ["RNAplot"]
+type = "exe"
+variable_name = "RNAplot"
+[[products]]
+binnames = ["RNAsubopt"]
+type = "exe"
+variable_name = "RNAsubopt"
+[[products]]
+binnames = ["RNAup"]
+type = "exe"
+variable_name = "RNAup"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libRNA"]
+type = "lib"
+variable_name = "libRNA"
+
+[[sources]]
+hash = "f4e2d94beaf77165e8321758e4ab0ad1c5d49879cefa12e48b07d09ed2d0ecf9"
+type = "archive"
+unpack_target = ""
+url = "https://www.tbi.univie.ac.at/RNA/download/sourcecode/1_8_x/ViennaRNA-1.8.5.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

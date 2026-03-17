@@ -1,0 +1,310 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "nauty"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd"]
+script = """cd ${WORKSPACE}/srcdir/nauty*\n\nfor f in ${WORKSPACE}/srcdir/patches/*.patch; do\n    atomic_patch -p1 ${f}\ndone\n\n# Remove misleading libtool files\nrm -f ${prefix}/lib/*.la\n\nexport CPPFLAGS=\"${CPPFLAGS} -I${prefix}/include\"\nexport LDFLAGS=\"${LDFLAGS} -L${prefix}/lib\"\n\n# Nauty's configure script performs a runtime check to find out whether the\n# `popcnt` CPU instruction is available. This check is not possible during cross-compilation,\n# which causes the entire configure script to fail. We patch `configure.ac` to simply disable\n# `popcnt` while cross-compiling, and generate a new, working configure script with `autoreconf`.\nautoreconf -v\n\n# We use --enable-generic to ensure maximum hardware compatibility and we\n# use --disable-popcnt to disable the `popcnt` CPU instruction on x86.\n./configure --prefix=$prefix \\\n\t    --build=${MACHTYPE} \\\n\t    --host=${target} \\\n\t    --enable-generic \\\n\t    --enable-shared \\\n\t    --disable-popcnt \\\n\t    --libdir=${libdir} \\\n\t    --bindir=${bindir}\n\nmake -j${nproc}\n\n# In addition to the default install, we build thread-local-storage libraries and the programs checks6 and sumlines.\n# These two programs were part of the default install in an older version of nauty and are included for compatibility.\nmake install TLSinstall checks6 sumlines\n\ncp checks6 ${bindir}\ncp sumlines ${bindir}\n\ninstall_license COPYRIGHT\n"""
+version = "v2.8.10"
+
+[[dependencies]]
+compat = ""
+name = "GMP_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnauty"]
+type = "lib"
+variable_name = "libnauty"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnauty1"]
+type = "lib"
+variable_name = "libnauty1"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnautyL"]
+type = "lib"
+variable_name = "libnautyL"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnautyL1"]
+type = "lib"
+variable_name = "libnautyL1"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnautyS"]
+type = "lib"
+variable_name = "libnautyS"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnautyS1"]
+type = "lib"
+variable_name = "libnautyS1"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnautyW"]
+type = "lib"
+variable_name = "libnautyW"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnautyW1"]
+type = "lib"
+variable_name = "libnautyW1"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnautyT"]
+type = "lib"
+variable_name = "libnautyT"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnautyT1"]
+type = "lib"
+variable_name = "libnautyT1"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnautyTL"]
+type = "lib"
+variable_name = "libnautyTL"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnautyTL1"]
+type = "lib"
+variable_name = "libnautyTL1"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnautyTS"]
+type = "lib"
+variable_name = "libnautyTS"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnautyTS1"]
+type = "lib"
+variable_name = "libnautyTS1"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnautyTW"]
+type = "lib"
+variable_name = "libnautyTW"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnautyTW1"]
+type = "lib"
+variable_name = "libnautyTW1"
+[[products]]
+binnames = ["NRswitchg"]
+type = "exe"
+variable_name = "NRswitchg"
+[[products]]
+binnames = ["addedgeg"]
+type = "exe"
+variable_name = "addedgeg"
+[[products]]
+binnames = ["amtog"]
+type = "exe"
+variable_name = "amtog"
+[[products]]
+binnames = ["biplabg"]
+type = "exe"
+variable_name = "biplabg"
+[[products]]
+binnames = ["catg"]
+type = "exe"
+variable_name = "catg"
+[[products]]
+binnames = ["checks6"]
+type = "exe"
+variable_name = "checks6"
+[[products]]
+binnames = ["complg"]
+type = "exe"
+variable_name = "complg"
+[[products]]
+binnames = ["converseg"]
+type = "exe"
+variable_name = "converseg"
+[[products]]
+binnames = ["copyg"]
+type = "exe"
+variable_name = "copyg"
+[[products]]
+binnames = ["countg"]
+type = "exe"
+variable_name = "countg"
+[[products]]
+binnames = ["cubhamg"]
+type = "exe"
+variable_name = "cubhamg"
+[[products]]
+binnames = ["deledgeg"]
+type = "exe"
+variable_name = "deledgeg"
+[[products]]
+binnames = ["delptg"]
+type = "exe"
+variable_name = "delptg"
+[[products]]
+binnames = ["directg"]
+type = "exe"
+variable_name = "directg"
+[[products]]
+binnames = ["dreadnaut"]
+type = "exe"
+variable_name = "dreadnaut"
+[[products]]
+binnames = ["dretodot"]
+type = "exe"
+variable_name = "dretodot"
+[[products]]
+binnames = ["dretog"]
+type = "exe"
+variable_name = "dretog"
+[[products]]
+binnames = ["genbg"]
+type = "exe"
+variable_name = "genbg"
+[[products]]
+binnames = ["genbgL"]
+type = "exe"
+variable_name = "genbgL"
+[[products]]
+binnames = ["geng"]
+type = "exe"
+variable_name = "geng"
+[[products]]
+binnames = ["genquarticg"]
+type = "exe"
+variable_name = "genquarticg"
+[[products]]
+binnames = ["genrang"]
+type = "exe"
+variable_name = "genrang"
+[[products]]
+binnames = ["genspecialg"]
+type = "exe"
+variable_name = "genspecialg"
+[[products]]
+binnames = ["gentourng"]
+type = "exe"
+variable_name = "gentourng"
+[[products]]
+binnames = ["gentreeg"]
+type = "exe"
+variable_name = "gentreeg"
+[[products]]
+binnames = ["hamheuristic"]
+type = "exe"
+variable_name = "hamheuristic"
+[[products]]
+binnames = ["labelg"]
+type = "exe"
+variable_name = "labelg"
+[[products]]
+binnames = ["linegraphg"]
+type = "exe"
+variable_name = "linegraphg"
+[[products]]
+binnames = ["listg"]
+type = "exe"
+variable_name = "listg"
+[[products]]
+binnames = ["multig"]
+type = "exe"
+variable_name = "multig"
+[[products]]
+binnames = ["newedgeg"]
+type = "exe"
+variable_name = "newedgeg"
+[[products]]
+binnames = ["pickg"]
+type = "exe"
+variable_name = "pickg"
+[[products]]
+binnames = ["planarg"]
+type = "exe"
+variable_name = "planarg"
+[[products]]
+binnames = ["ranlabg"]
+type = "exe"
+variable_name = "ranlabg"
+[[products]]
+binnames = ["shortg"]
+type = "exe"
+variable_name = "shortg"
+[[products]]
+binnames = ["showg"]
+type = "exe"
+variable_name = "showg"
+[[products]]
+binnames = ["subdivideg"]
+type = "exe"
+variable_name = "subdivideg"
+[[products]]
+binnames = ["sumlines"]
+type = "exe"
+variable_name = "sumlines"
+[[products]]
+binnames = ["twohamg"]
+type = "exe"
+variable_name = "twohamg"
+[[products]]
+binnames = ["vcolg"]
+type = "exe"
+variable_name = "vcolg"
+[[products]]
+binnames = ["watercluster2"]
+type = "exe"
+variable_name = "watercluster2"
+[[products]]
+binnames = ["uniqg"]
+type = "exe"
+variable_name = "uniqg"
+
+[[sources]]
+hash = "c97ab42bf48796a86a598bce3e9269047ca2b32c14fc23e07208a244fe52c4ee"
+type = "archive"
+unpack_target = ""
+url = "https://pallini.di.uniroma1.it/nauty2_8_9.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

@@ -1,0 +1,64 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "OpenBLASConsistentFPCSR"
+platforms = ["x86_64-linux-gnu-libgfortran3", "x86_64-linux-gnu-libgfortran4", "x86_64-linux-gnu-libgfortran5", "x86_64-linux-musl-libgfortran3", "x86_64-linux-musl-libgfortran4", "x86_64-linux-musl-libgfortran5", "x86_64-apple-darwin-libgfortran3", "x86_64-apple-darwin-libgfortran4", "x86_64-apple-darwin-libgfortran5", "x86_64-unknown-freebsd-libgfortran3", "x86_64-unknown-freebsd-libgfortran4", "x86_64-unknown-freebsd-libgfortran5", "x86_64-w64-mingw32-libgfortran3", "x86_64-w64-mingw32-libgfortran4", "x86_64-w64-mingw32-libgfortran5"]
+script = """NUM_64BIT_THREADS=512\nOPENBLAS32=false\nAARCH64_ILP64=true\nCONSISTENT_FPCSR=true\nversion_patch=21\nif [[ ${bb_full_target} == *-sanitize+memory* ]]; then\n    # For msan, we need to use flang to compile.\n    ## Create flang compiler wrapper\n    cat /opt/bin/${bb_full_target}/${target}-clang | sed 's/clang/flang/g' > /opt/bin/${bb_full_target}/${target}-flang\n    chmod +x /opt/bin/${bb_full_target}/${target}-flang\n    ln -s ${WORKSPACE}/x86_64-linux-musl-cxx11/destdir/bin/flang /opt/x86_64-linux-musl/bin/flang\n    export FC=${target}-flang\n\n    # Install flang rt libraries to sysroot\n    cp ${prefix}/lib/lib{flang*,ompstub*,pgmath*,omp*} /opt/${target}/${target}/sys-root/usr/lib/\n\n    # Install msan runtime (for clang)\n    cp -rL ${prefix}/lib/linux/* /opt/x86_64-linux-musl/lib/clang/13.0.1/lib/linux/\n\n    # Install msan runtime (for flang)\n    mkdir -p $(dirname $(readlink -f $(which flang)))/../lib/clang/13.0.1/lib/linux\n    cp -rL ${prefix}/lib/linux/* $(dirname $(readlink -f $(which flang)))/../lib/clang/13.0.1/lib/linux/\nfi\n\n# We always want threading\nflags=(USE_THREAD=1 GEMM_MULTITHREADING_THRESHOLD=50 NO_AFFINITY=1)\nif [[ \"${CONSISTENT_FPCSR}\" == \"true\" ]]; then\n    flags+=(CONSISTENT_FPCSR=1)\nfi\n\n# We are cross-compiling\nflags+=(CROSS=1 PREFIX=/ \"CROSS_SUFFIX=${target}-\")\n\n# We need to use our basic objconv, not a prefixed one:\nflags+=(OBJCONV=objconv)\n\n# Slim the binaries by not shipping static libs\nflags+=(NO_STATIC=1)\n\nif [[ ${nbits} == 64 ]] && [[ \"${OPENBLAS32}\" != \"true\" ]] && [[ \"${AARCH64_ILP64}${target}\" != \"falseaarch64-\"* ]]; then\n    # We're building an ILP64 BLAS with 64-bit BlasInt\n    LIBPREFIX=libopenblas64_\n    flags+=(INTERFACE64=1 SYMBOLSUFFIX=64_)\nelse\n    LIBPREFIX=libopenblas\nfi\nflags+=(\"LIBPREFIX=${LIBPREFIX}\")\n\n# Set BINARY=32 on 32-bit platforms, use fewer threads on 32-bit arch\nif [[ ${nbits} == 32 ]]; then\n    flags+=(BINARY=32)\n    flags+=(NUM_THREADS=8)\nelse\n    # We parameterize this for the OpenBLASHighThreadCount package\n    flags+=(NUM_THREADS=${NUM_64BIT_THREADS})\nfi\n\n# Set BINARY=64 on x86_64 platforms (but not AArch64 or powerpc64le)\nif [[ ${target} == x86_64-* ]]; then\n    flags+=(BINARY=64)\nfi\n\n# On Intel and most aarch64 architectures, engage DYNAMIC_ARCH.\n# When using DYNAMIC_ARCH the TARGET specifies the minimum architecture requirement.\nif [[ ${bb_full_target} == *-sanitize* ]]; then\n    # Currently, OpenBLAS has no sanitizer annotations around its assembly kernels, so build the\n    # C versions. Once we have those annotations, we can remove this branch.\n    flags+=(TARGET=GENERIC)\nelif [[ ${proc_family} == intel ]]; then\n    flags+=(DYNAMIC_ARCH=1)\n    # Before OpenBLAS 0.3.13, there appears to be a miscompilation bug with `clang` on setting `TARGET=GENERIC`\n    # As that is the case, we're just going to be safe and only use `TARGET=GENERIC` on 0.3.13+\n    if [ ${version_patch} -gt 12 ]; then\n        flags+=(TARGET=GENERIC)\n    else\n        flags+=(TARGET=)\n    fi\nelif [[ ${target} == aarch64-* ]] && [[ ${bb_full_target} != *-libgfortran3* ]]; then\n    flags+=(TARGET=ARMV8 DYNAMIC_ARCH=1)\n# Otherwise, engage a specific target\nelif [[ ${bb_full_target} == aarch64*-libgfortran3* ]]; then\n    # Old GCC versions, with libgfortran3, can't build for newer\n    # microarchitectures, let's just use the generic one\n    flags+=(TARGET=ARMV8)\nelif [[ ${target} == arm-* ]]; then\n    flags+=(TARGET=ARMV7)\nelif [[ ${target} == powerpc64le-* ]]; then\n    flags+=(TARGET=POWER8)\nfi\n\n# If we're building for x86_64 Windows gcc7+, we need to disable usage of\n# certain AVX-512 registers (https://gcc.gnu.org/bugzilla/show_bug.cgi?id=65782)\nif [[ ${target} == x86_64-w64-mingw32 ]] && [[ $(gcc --version | head -1 | awk '{ print $3 }') =~ (7|8).* ]]; then\n    CFLAGS=\"${CFLAGS} -fno-asynchronous-unwind-tables\"\nfi\n\n# Because we use this OpenBLAS within Julia, and often want to bundle our\n# libgfortran and other friends alongside, we need an RPATH of '$ORIGIN',\n# so set it here.\nif [[ ${target} == *linux* ]] || [[ ${target} == *freebsd* ]]; then\n    export LDFLAGS=\"${LDFLAGS} '-Wl,-rpath,\\$\\$ORIGIN' -Wl,-z,origin\"\nelif [[ ${target} == *apple* ]]; then\n    export LDFLAGS=\"${LDFLAGS} -Wl,-rpath,@loader_path/\"\nfi\n\n\n# Enter the fun zone\ncd ${WORKSPACE}/srcdir/OpenBLAS*/\n\n# Apply any patches this version of OpenBLAS requires\nfor f in ${WORKSPACE}/srcdir/patches/*.patch; do\n    atomic_patch -p1 ${f}\ndone\n\n# Build the actual library\nmake \"${flags[@]}\"\n\n# Install the library\nmake \"${flags[@]}\" \"PREFIX=$prefix\" install\n\n# Force the library to be named the same as in Julia-land.\n# Move things around, fix symlinks, and update install names/SONAMEs.\nls -la ${prefix}/lib\n\n# Ensure empty loop when no files match\nshopt -s nullglob\n\nfor f in ${prefix}/lib/libopenblas*p-r0*; do\n    name=${LIBPREFIX}.0.${f#*.}\n\n    # Move this file to a julia-compatible name, that is to say,\n    # from `libopenblas64_p-r0.3.7.a` to `libopenblas64_.0.3.7.a`\n    mv -v ${f} ${prefix}/lib/${name}\n\n    # If there were links that are now broken, fix 'em up\n    for l in $(find ${prefix}/lib -xtype l); do\n        if [[ $(basename $(readlink ${l})) == $(basename ${f}) ]]; then\n            ln -vsf ${name} ${l}\n        fi\n    done\ndone\n\nPATCHELF_FLAGS=()\n\n# ppc64le and aarch64 have 64KB page sizes, don't muck up the ELF section load alignment\nif [[ ${target} == aarch64-* || ${target} == powerpc64le-* ]]; then\n    PATCHELF_FLAGS+=(--page-size 65536)\nfi\n\n# Next, we set the SONAME of the library to a non-versioned name,\n# so that other projects (such as SuiteSparse) can link against us\n# without needing to be built against a particular version.\nif [[ ${target} == *linux* ]] || [[ ${target} == *freebsd* ]]; then\n    patchelf ${PATCHELF_FLAGS[@]} --set-soname ${LIBPREFIX}.${dlext} ${prefix}/lib/${LIBPREFIX}.${dlext}\nelif [[ ${target} == *apple* ]]; then\n    install_name_tool -id ${LIBPREFIX}.${dlext} ${prefix}/lib/${LIBPREFIX}.${dlext}\nfi\n"""
+version = "v0.3.21"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "FlangClassic_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LLVMCompilerRT_jll"
+platforms = []
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "FlangClassic_RTLib_jll"
+platforms = []
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libopenblas", "libopenblas64_"]
+type = "lib"
+variable_name = "libopenblas"
+
+[[sources]]
+hash = "f36ba3d7a60e7c8bcc54cd9aaa9b1223dd42eaf02c811791c37e8ca707c241ca"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/xianyi/OpenBLAS/releases/download/v0.3.21/OpenBLAS-0.3.21.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

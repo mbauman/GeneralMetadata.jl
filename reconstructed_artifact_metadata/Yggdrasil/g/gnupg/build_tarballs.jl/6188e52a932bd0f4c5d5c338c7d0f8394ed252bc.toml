@@ -1,0 +1,162 @@
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "GnuPG"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/gnupg-*/\nif [[ \"${target}\" != ${MACHTYPE} ]]; then\n    # Delete `gpg-error-config` of the host to prevent it from being picked up\n    # when configuring the package\n    rm \"${host_bindir}/gpg-error-config\"\n    # Use Windows LDAP\n    FLAGS=(LDAPLIBS=\"-lwldap32\")\nfi\nif [[ \"${target}\" == *86*-linux-gnu ]]; then\n    # We have an old glibc which doesn't have `IN_EXCL_UNLINK`\n    FLAGS=(ac_cv_func_inotify_init=no)\n    # Add -lrt dependency to fix the error\n    #     undefined reference to `clock_gettime'\n    atomic_patch -p1 ../patches/intel-linux-gnu-add-rt-lib.patch\nfi\n./configure --prefix=${prefix} \\\n    --build=${MACHTYPE} \\\n    --host=${target} \\\n    \"${FLAGS[@]}\"\nmake -j${nproc}\nmake install\n"""
+version = "v2.2.27"
+
+[[dependencies]]
+compat = ""
+name = "Libgpg_error_jll"
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Gettext_jll"
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "GnuTLS_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Libksba_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Libgcrypt_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Libgpg_error_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "nPth_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Libassuan_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenLDAPClient_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Bzip2_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "SQLite_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "libusb_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "~3.4.1"
+name = "Nettle_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["dirmngr"]
+type = "exe"
+variable_name = "dirmngr"
+[[products]]
+binnames = ["dirmngr-client"]
+type = "exe"
+variable_name = "dirmngr_client"
+[[products]]
+binnames = ["gpg"]
+type = "exe"
+variable_name = "gpg"
+[[products]]
+binnames = ["gpg-agent"]
+type = "exe"
+variable_name = "gpg_agent"
+[[products]]
+binnames = ["gpgconf"]
+type = "exe"
+variable_name = "gpgconf"
+[[products]]
+binnames = ["gpg-connect-agent"]
+type = "exe"
+variable_name = "gpg_connect_agent"
+[[products]]
+binnames = ["gpgscm"]
+type = "exe"
+variable_name = "gpgscm"
+[[products]]
+binnames = ["gpgsm"]
+type = "exe"
+variable_name = "gpgsm"
+[[products]]
+binnames = ["gpgtar"]
+type = "exe"
+variable_name = "gpgtar"
+[[products]]
+binnames = ["gpgv"]
+type = "exe"
+variable_name = "gpgv"
+[[products]]
+binnames = ["kbxutil"]
+type = "exe"
+variable_name = "kbxutil"
+
+[[sources]]
+hash = "34e60009014ea16402069136e0a5f63d9b65f90096244975db5cea74b3d02399"
+type = "archive"
+unpack_target = ""
+url = "https://gnupg.org/ftp/gcrypt/gnupg/gnupg-2.2.27.tar.bz2"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

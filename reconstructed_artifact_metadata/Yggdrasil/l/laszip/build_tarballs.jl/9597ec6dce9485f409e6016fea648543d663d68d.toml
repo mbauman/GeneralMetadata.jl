@@ -1,0 +1,23 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "LASzip"
+platforms = ["i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx11", "riscv64-linux-gnu-cxx11", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir\n\nmkdir LASzip/build\ncd LASzip/build/\n\nCMAKE_FLAGS=(\n    -DCMAKE_INSTALL_PREFIX=$prefix\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN}\n    -DCMAKE_BUILD_TYPE=Release\n)\n\n# Prevents Mingw-w64 runtime failure:\n# 32 bit pseudo relocation at 000000006A2417D2 out of range, targeting 00007FF91B307DD0, yielding the value 00007FF8B10C65FA\nif [[ \"${target}\" == *-mingw* ]]; then\n    CMAKE_FLAGS+=(-DCMAKE_CXX_FLAGS=\"-fno-gnu-unique\")\nfi\n\ncmake ${CMAKE_FLAGS[@]} ..\ncmake --build . --parallel ${nproc}\ncmake --install .\n"""
+version = "v3.4.4001"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["liblaszip", "liblaszip3"]
+type = "lib"
+variable_name = "liblaszip"
+
+[[sources]]
+hash = "b6412aa4ac3f1fd44874c862de8e3eb7f672d495"
+type = "git"
+unpack_target = ""
+url = "https://github.com/LASzip/LASzip.git"

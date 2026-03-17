@@ -1,0 +1,215 @@
+dependencies = []
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "CUDA_full"
+platforms = ["x86_64-linux-gnu", "x86_64-apple-darwin", "x86_64-w64-mingw32", "aarch64-linux-gnu"]
+products = []
+script = """if [[ ${target} == aarch64-linux-gnu ]]; then\n    echo \"cuda-license-10-2_10.2.89-1_arm64.deb\ncuda-nvdisasm-10-2_10.2.89-1_arm64.deb\ncuda-cuobjdump-10-2_10.2.89-1_arm64.deb\ncuda-gdb-10-2_10.2.89-1_arm64.deb\ncuda-nvprof-10-2_10.2.89-1_arm64.deb\ncuda-memcheck-10-2_10.2.89-1_arm64.deb\ncuda-cudart-10-2_10.2.89-1_arm64.deb\ncuda-driver-dev-10-2_10.2.89-1_arm64.deb\ncuda-cudart-dev-10-2_10.2.89-1_arm64.deb\ncuda-misc-headers-10-2_10.2.89-1_arm64.deb\ncuda-nvcc-10-2_10.2.89-1_arm64.deb\ncuda-cupti-10-2_10.2.89-1_arm64.deb\ncuda-cupti-dev-10-2_10.2.89-1_arm64.deb\ncuda-nvtx-10-2_10.2.89-1_arm64.deb\ncuda-command-line-tools-10-2_10.2.89-1_arm64.deb\ncuda-nvprune-10-2_10.2.89-1_arm64.deb\ncuda-compiler-10-2_10.2.89-1_arm64.deb\ncuda-cufft-10-2_10.2.89-1_arm64.deb\ncuda-cufft-dev-10-2_10.2.89-1_arm64.deb\ncuda-curand-10-2_10.2.89-1_arm64.deb\ncuda-curand-dev-10-2_10.2.89-1_arm64.deb\ncuda-cusolver-10-2_10.2.89-1_arm64.deb\ncuda-cusolver-dev-10-2_10.2.89-1_arm64.deb\ncuda-cusparse-10-2_10.2.89-1_arm64.deb\ncuda-cusparse-dev-10-2_10.2.89-1_arm64.deb\ncuda-nvrtc-10-2_10.2.89-1_arm64.deb\ncuda-nvrtc-dev-10-2_10.2.89-1_arm64.deb\nlibcublas10_10.2.2.89-1_arm64.deb\nlibcublas-dev_10.2.2.89-1_arm64.deb\ncuda-npp-10-2_10.2.89-1_arm64.deb\ncuda-npp-dev-10-2_10.2.89-1_arm64.deb\ncuda-nvgraph-10-2_10.2.89-1_arm64.deb\ncuda-nvgraph-dev-10-2_10.2.89-1_arm64.deb\ncuda-libraries-10-2_10.2.89-1_arm64.deb\ncuda-libraries-dev-10-2_10.2.89-1_arm64.deb\ncuda-nvml-dev-10-2_10.2.89-1_arm64.deb\ncuda-tools-10-2_10.2.89-1_arm64.deb\ncuda-toolkit-10-2_10.2.89-1_arm64.deb\" >> ${WORKSPACE}/srcdir/aarch64-linux-gnu_install.manifest\nfi\ncd ${WORKSPACE}/srcdir\n\n# use a temporary directory to avoid running out of tmpfs in srcdir on Travis\ntemp=${WORKSPACE}/tmpdir\nmkdir ${temp}\n\napk add p7zip\n\nmkdir ${prefix}/cuda\nif [[ ${target} == x86_64-linux-gnu ]]; then\n    sh installer.run --tmpdir=\"${temp}\" --target \"${temp}\" --noexec\n    cd ${temp}/builds/cuda-toolkit\n    find .\n\n    # clean-up\n    rm -r libnsight libnvvp nsightee_plugins nsight-compute-2019.5.0 nsight-systems-2019.5.2 doc\n\n    mv * ${prefix}/cuda\nelif [[ ${target} == x86_64-apple-darwin* ]]; then\n    7z x installer.dmg 5.hfs -o${temp}\n    cd ${temp}\n    7z x 5.hfs\n    tar -zxf CUDAMacOSXInstaller/CUDAMacOSXInstaller.app/Contents/Resources/payload/cuda_mac_installer_tk.tar.gz\n    cd Developer/NVIDIA/CUDA-*/\n    find .\n\n    # clean-up\n    rm -r libnsight libnvvp nsightee_plugins nsight-compute-2019.5.0 NsightSystems-2019.5.2.16 doc\n\n    mv * ${prefix}/cuda\nelif [[ ${target} == x86_64-w64-mingw32 ]]; then\n    7z x installer.exe -o${temp}\n    cd ${temp}\n    find .\n\n    mv EULA.txt ${prefix}/cuda\n\n    for project in cuobjdump memcheck nvcc cupti nvdisasm curand cusparse npp cufft \\\n                   cublas cudart cusolver nvrtc nvgraph nvprof nvprune; do\n        [[ -d ${project} ]] || { echo \"${project} does not exist!\"; exit 1; }\n        cp -a ${project}/* ${prefix}/cuda\n    done\n\n    # NVIDIA Tools Extension Library\n    7z x \"CUDAVisualStudioIntegration/NVIDIA NVTX Installer.x86_64\".*.msi -o${temp}/nvtx_installer\n    find nvtx_installer\n    for file in nvtx_installer/*.*_*; do\n        mv $file $(echo $file | sed 's/\\.\\(\\w*\\)_.*/.\\1/')\n    done\n    mv nvtx_installer/*.dll ${prefix}/cuda/bin\n    mv nvtx_installer/*64_*.lib ${prefix}/cuda/lib/x64\n    mv nvtx_installer/*32_*.lib ${prefix}/cuda/lib/Win32\n    mv nvtx_installer/*.h ${prefix}/cuda/include\n\n    # fixup\n    chmod +x ${prefix}/cuda/bin/*.{exe,dll}\n\n    # clean-up\n    rm ${prefix}/cuda/*.nvi\nelif [[ ${target} == aarch64-linux-gnu ]]; then\n    apk add dpkg\n    cat ${target}_install.manifest | xargs -t -Ideb_file dpkg-deb -x deb_file $temp\n    find $temp\n    mv $temp/usr/local/cuda-10.2/* ${prefix}/cuda\n\n    mv -nv $temp/usr/include/* ${prefix}/cuda/targets/aarch64-linux/include\n    mv -nv $temp/usr/lib/$target/* ${prefix}/cuda/targets/aarch64-linux/lib\n\n    mv ${prefix}/cuda/doc/EULA.txt ${prefix}/cuda\nfi\n\ncd ${prefix}/cuda\ninstall_license EULA.txt\n"""
+version = "v10.2.89"
+
+[[sources]]
+filename = "installer.run"
+hash = "560d07fdcf4a46717f2242948cd4f92c5f9b6fc7eae10dd996614da913d5ca11"
+type = "file"
+url = "http://developer.download.nvidia.com/compute/cuda/10.2/Prod/local_installers/cuda_10.2.89_440.33.01_linux.run"
+[[sources]]
+filename = "installer.dmg"
+hash = "51193fff427aad0a3a15223b1a202a6c6f0964fcc6fb0e6c77ca7cd5b6944d20"
+type = "file"
+url = "http://developer.download.nvidia.com/compute/cuda/10.2/Prod/local_installers/cuda_10.2.89_mac.dmg"
+[[sources]]
+filename = "installer.exe"
+hash = "b538271c4d9ffce1a8520bf992d9bd23854f0f29cee67f48c6139e4cf301e253"
+type = "file"
+url = "http://developer.download.nvidia.com/compute/cuda/10.2/Prod/local_installers/cuda_10.2.89_441.22_win10.exe"
+[[sources]]
+filename = "cuda-license-10-2_10.2.89-1_arm64.deb"
+hash = "8a862acbff5b33904bfe7ec3e92a553a8312da1db9f651b6cfe14db137a139ce"
+type = "file"
+url = "https://repo.download.nvidia.com/jetson/common/pool/main/c/cuda/cuda-license-10-2_10.2.89-1_arm64.deb"
+[[sources]]
+filename = "cuda-nvdisasm-10-2_10.2.89-1_arm64.deb"
+hash = "9523033692cca5a2b29cd69942d69036deedacb8eb3273395662f6024b2c27f9"
+type = "file"
+url = "https://repo.download.nvidia.com/jetson/common/pool/main/c/cuda/cuda-nvdisasm-10-2_10.2.89-1_arm64.deb"
+[[sources]]
+filename = "cuda-cuobjdump-10-2_10.2.89-1_arm64.deb"
+hash = "719b32f039cd8ed6123e1f9e3fa9badcf4c6ba5ac4a0b24a97d2db88e0764e1e"
+type = "file"
+url = "https://repo.download.nvidia.com/jetson/common/pool/main/c/cuda/cuda-cuobjdump-10-2_10.2.89-1_arm64.deb"
+[[sources]]
+filename = "cuda-gdb-10-2_10.2.89-1_arm64.deb"
+hash = "d3fef316b7d5b215cf11ff0190c69d9e8a2652b9dd37f454c7350110954e3496"
+type = "file"
+url = "https://repo.download.nvidia.com/jetson/common/pool/main/c/cuda/cuda-gdb-10-2_10.2.89-1_arm64.deb"
+[[sources]]
+filename = "cuda-nvprof-10-2_10.2.89-1_arm64.deb"
+hash = "54d96b9cdba5a53da92b2cdaada27ec7a886b3a6a29e7d33b5fdf429ad788681"
+type = "file"
+url = "https://repo.download.nvidia.com/jetson/common/pool/main/c/cuda/cuda-nvprof-10-2_10.2.89-1_arm64.deb"
+[[sources]]
+filename = "cuda-memcheck-10-2_10.2.89-1_arm64.deb"
+hash = "f8f498108e1e4e3fdc40a1cb80cec44bb3da987b2160a3128d3bcf85a8533bbf"
+type = "file"
+url = "https://repo.download.nvidia.com/jetson/common/pool/main/c/cuda/cuda-memcheck-10-2_10.2.89-1_arm64.deb"
+[[sources]]
+filename = "cuda-cudart-10-2_10.2.89-1_arm64.deb"
+hash = "2a718596cf1162bf0076d4ec6db52a5f7c3617b7ab7cd243887376e841a99915"
+type = "file"
+url = "https://repo.download.nvidia.com/jetson/common/pool/main/c/cuda/cuda-cudart-10-2_10.2.89-1_arm64.deb"
+[[sources]]
+filename = "cuda-driver-dev-10-2_10.2.89-1_arm64.deb"
+hash = "c1c55ba59d8a28a7d56800504c65683a4d392893f35d08ec7bddf6b45efda468"
+type = "file"
+url = "https://repo.download.nvidia.com/jetson/common/pool/main/c/cuda/cuda-driver-dev-10-2_10.2.89-1_arm64.deb"
+[[sources]]
+filename = "cuda-cudart-dev-10-2_10.2.89-1_arm64.deb"
+hash = "5aa2bf1e8e9d467dacbff778b0d2d4a7bd31077a443b7a49711cc798562ea37d"
+type = "file"
+url = "https://repo.download.nvidia.com/jetson/common/pool/main/c/cuda/cuda-cudart-dev-10-2_10.2.89-1_arm64.deb"
+[[sources]]
+filename = "cuda-misc-headers-10-2_10.2.89-1_arm64.deb"
+hash = "e92834f576241295c74393b478cb7121d9e20cb3454aed26c464c3523eaeadde"
+type = "file"
+url = "https://repo.download.nvidia.com/jetson/common/pool/main/c/cuda/cuda-misc-headers-10-2_10.2.89-1_arm64.deb"
+[[sources]]
+filename = "cuda-nvcc-10-2_10.2.89-1_arm64.deb"
+hash = "1a0ea57d4c1b1d9394d7e4f6ab94baa2aa49883f4ba2d59a60b750bb88d0fdeb"
+type = "file"
+url = "https://repo.download.nvidia.com/jetson/common/pool/main/c/cuda/cuda-nvcc-10-2_10.2.89-1_arm64.deb"
+[[sources]]
+filename = "cuda-cupti-10-2_10.2.89-1_arm64.deb"
+hash = "319771f42db1d9a4a273bc5ff753148247ece9cf7544d2008d57d9061e6964f9"
+type = "file"
+url = "https://repo.download.nvidia.com/jetson/common/pool/main/c/cuda/cuda-cupti-10-2_10.2.89-1_arm64.deb"
+[[sources]]
+filename = "cuda-cupti-dev-10-2_10.2.89-1_arm64.deb"
+hash = "3bd27507b8eef4ae9d5faf8671e8843ef7bd4cede82dc76a8e6519390e22a5dc"
+type = "file"
+url = "https://repo.download.nvidia.com/jetson/common/pool/main/c/cuda/cuda-cupti-dev-10-2_10.2.89-1_arm64.deb"
+[[sources]]
+filename = "cuda-nvtx-10-2_10.2.89-1_arm64.deb"
+hash = "b4f9dedf0c21dbc75daadbabfde6aa17a73b6bdad0d5a18fae3da6e9717bfc99"
+type = "file"
+url = "https://repo.download.nvidia.com/jetson/common/pool/main/c/cuda/cuda-nvtx-10-2_10.2.89-1_arm64.deb"
+[[sources]]
+filename = "cuda-command-line-tools-10-2_10.2.89-1_arm64.deb"
+hash = "7425afa9751b073b709f969149babb65411e2ab96bbe1744af0d89a517a6f1a2"
+type = "file"
+url = "https://repo.download.nvidia.com/jetson/common/pool/main/c/cuda/cuda-command-line-tools-10-2_10.2.89-1_arm64.deb"
+[[sources]]
+filename = "cuda-nvprune-10-2_10.2.89-1_arm64.deb"
+hash = "1e04820f53fb96b737c6b5d92ae2c1c54414e84a87ae9a55a00fc78c05e4e33f"
+type = "file"
+url = "https://repo.download.nvidia.com/jetson/common/pool/main/c/cuda/cuda-nvprune-10-2_10.2.89-1_arm64.deb"
+[[sources]]
+filename = "cuda-compiler-10-2_10.2.89-1_arm64.deb"
+hash = "cf15fd18669b88dfd9e49be6e8189e03936ce993be47dfc88b99d1b3d86d3a6d"
+type = "file"
+url = "https://repo.download.nvidia.com/jetson/common/pool/main/c/cuda/cuda-compiler-10-2_10.2.89-1_arm64.deb"
+[[sources]]
+filename = "cuda-cufft-10-2_10.2.89-1_arm64.deb"
+hash = "7d06a0bdd16b16c2384de79e488cde5bb580b3bc9ee46bd1e23d17ce6d260e01"
+type = "file"
+url = "https://repo.download.nvidia.com/jetson/common/pool/main/c/cuda/cuda-cufft-10-2_10.2.89-1_arm64.deb"
+[[sources]]
+filename = "cuda-cufft-dev-10-2_10.2.89-1_arm64.deb"
+hash = "239060c552e98511b8a752127c57bd86cd1261af5062b99f85d94a12ef61d876"
+type = "file"
+url = "https://repo.download.nvidia.com/jetson/common/pool/main/c/cuda/cuda-cufft-dev-10-2_10.2.89-1_arm64.deb"
+[[sources]]
+filename = "cuda-curand-10-2_10.2.89-1_arm64.deb"
+hash = "1cf024814383a2ec21e562e1e89809050dbae36bceed6ee276affe03185ca266"
+type = "file"
+url = "https://repo.download.nvidia.com/jetson/common/pool/main/c/cuda/cuda-curand-10-2_10.2.89-1_arm64.deb"
+[[sources]]
+filename = "cuda-curand-dev-10-2_10.2.89-1_arm64.deb"
+hash = "f6594cd55b89a4e45ca3a382cef99c6bd3d2efb7ab222a82f261a79cc9e066ce"
+type = "file"
+url = "https://repo.download.nvidia.com/jetson/common/pool/main/c/cuda/cuda-curand-dev-10-2_10.2.89-1_arm64.deb"
+[[sources]]
+filename = "cuda-cusolver-10-2_10.2.89-1_arm64.deb"
+hash = "ede4930b8a7d8098590b3691785cf225fdbb08e3cb7853ca8f0ffc7313e89b3f"
+type = "file"
+url = "https://repo.download.nvidia.com/jetson/common/pool/main/c/cuda/cuda-cusolver-10-2_10.2.89-1_arm64.deb"
+[[sources]]
+filename = "cuda-cusolver-dev-10-2_10.2.89-1_arm64.deb"
+hash = "e3d786efc6d92e24c2527a2a76685de4cfc92e609a3b6ab1258cc820a5c867e4"
+type = "file"
+url = "https://repo.download.nvidia.com/jetson/common/pool/main/c/cuda/cuda-cusolver-dev-10-2_10.2.89-1_arm64.deb"
+[[sources]]
+filename = "cuda-cusparse-10-2_10.2.89-1_arm64.deb"
+hash = "459f9e41ac458eef3c94ba0a5d367182af83c070454d9e38b3565252c039a827"
+type = "file"
+url = "https://repo.download.nvidia.com/jetson/common/pool/main/c/cuda/cuda-cusparse-10-2_10.2.89-1_arm64.deb"
+[[sources]]
+filename = "cuda-cusparse-dev-10-2_10.2.89-1_arm64.deb"
+hash = "3a9ccd17e6916fda5cede14c206a8199fdba27f1118947a1f31cbf33132241df"
+type = "file"
+url = "https://repo.download.nvidia.com/jetson/common/pool/main/c/cuda/cuda-cusparse-dev-10-2_10.2.89-1_arm64.deb"
+[[sources]]
+filename = "cuda-nvrtc-10-2_10.2.89-1_arm64.deb"
+hash = "fe9cc7cbdab29035371e5f77d190aecd97bbf31ca66b3f62612bf62580417b16"
+type = "file"
+url = "https://repo.download.nvidia.com/jetson/common/pool/main/c/cuda/cuda-nvrtc-10-2_10.2.89-1_arm64.deb"
+[[sources]]
+filename = "cuda-nvrtc-dev-10-2_10.2.89-1_arm64.deb"
+hash = "5c3bd9bc84170ec0c3465444409e7912046e2523e6a18d331b53901c0e57d229"
+type = "file"
+url = "https://repo.download.nvidia.com/jetson/common/pool/main/c/cuda/cuda-nvrtc-dev-10-2_10.2.89-1_arm64.deb"
+[[sources]]
+filename = "libcublas10_10.2.2.89-1_arm64.deb"
+hash = "d0299b139a163136432dfb2c028769944b6c5636ad9238614860c196a1c91aea"
+type = "file"
+url = "https://repo.download.nvidia.com/jetson/common/pool/main/c/cublas/libcublas10_10.2.2.89-1_arm64.deb"
+[[sources]]
+filename = "libcublas-dev_10.2.2.89-1_arm64.deb"
+hash = "5fa7e3e8fe266fdea7e91778610b7e8d3d85d8950875a4915ce3626c9e564365"
+type = "file"
+url = "https://repo.download.nvidia.com/jetson/common/pool/main/c/cublas/libcublas-dev_10.2.2.89-1_arm64.deb"
+[[sources]]
+filename = "cuda-npp-10-2_10.2.89-1_arm64.deb"
+hash = "a01a204e6afefb0072424817c7133c5c18a9f3996fbf48f0b31297cb7c07e1ac"
+type = "file"
+url = "https://repo.download.nvidia.com/jetson/common/pool/main/c/cuda/cuda-npp-10-2_10.2.89-1_arm64.deb"
+[[sources]]
+filename = "cuda-npp-dev-10-2_10.2.89-1_arm64.deb"
+hash = "4d572a2472564f5008c3cfe9b24dbef765a1531a73c43436c66a146b4d16cace"
+type = "file"
+url = "https://repo.download.nvidia.com/jetson/common/pool/main/c/cuda/cuda-npp-dev-10-2_10.2.89-1_arm64.deb"
+[[sources]]
+filename = "cuda-nvgraph-10-2_10.2.89-1_arm64.deb"
+hash = "f800974ac6cb3fb6595a08e613fc0f376d7b91f43eed1b5306b0496f9588e441"
+type = "file"
+url = "https://repo.download.nvidia.com/jetson/common/pool/main/c/cuda/cuda-nvgraph-10-2_10.2.89-1_arm64.deb"
+[[sources]]
+filename = "cuda-nvgraph-dev-10-2_10.2.89-1_arm64.deb"
+hash = "cc2d9897c54f27a20f90bea5df391875b3f8163ec69745fb7546c1ce57e1d718"
+type = "file"
+url = "https://repo.download.nvidia.com/jetson/common/pool/main/c/cuda/cuda-nvgraph-dev-10-2_10.2.89-1_arm64.deb"
+[[sources]]
+filename = "cuda-libraries-10-2_10.2.89-1_arm64.deb"
+hash = "71309637bbc86b3d7f014c5ba5da709b88f69dfc0710aa8caa661b3aa40a51b4"
+type = "file"
+url = "https://repo.download.nvidia.com/jetson/common/pool/main/c/cuda/cuda-libraries-10-2_10.2.89-1_arm64.deb"
+[[sources]]
+filename = "cuda-libraries-dev-10-2_10.2.89-1_arm64.deb"
+hash = "9d3e1e4cf097f6e04c7f881b4af1a54c52552fb2828f73f7ae8fa5b9efe32d29"
+type = "file"
+url = "https://repo.download.nvidia.com/jetson/common/pool/main/c/cuda/cuda-libraries-dev-10-2_10.2.89-1_arm64.deb"
+[[sources]]
+filename = "cuda-nvml-dev-10-2_10.2.89-1_arm64.deb"
+hash = "c8743e69c84a432c5e6dea6edfcacf1bb6b09b028bee61c8aece7a41d0447265"
+type = "file"
+url = "https://repo.download.nvidia.com/jetson/common/pool/main/c/cuda/cuda-nvml-dev-10-2_10.2.89-1_arm64.deb"
+[[sources]]
+filename = "cuda-tools-10-2_10.2.89-1_arm64.deb"
+hash = "eeaae6a103cc5d950bf4e774a277d90286492df0e0815e161f7c12291c9aa5ba"
+type = "file"
+url = "https://repo.download.nvidia.com/jetson/common/pool/main/c/cuda/cuda-tools-10-2_10.2.89-1_arm64.deb"
+[[sources]]
+filename = "cuda-toolkit-10-2_10.2.89-1_arm64.deb"
+hash = "47a1c8c8bde2c763396a68c38cc901217e1606bb536ec5880d4c072c4eee9073"
+type = "file"
+url = "https://repo.download.nvidia.com/jetson/common/pool/main/c/cuda/cuda-toolkit-10-2_10.2.89-1_arm64.deb"

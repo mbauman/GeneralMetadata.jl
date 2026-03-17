@@ -1,0 +1,55 @@
+augment_platform_block = """using Base.BinaryPlatforms\n\ntry\n    using CUDA_Runtime_jll\ncatch\n    # during initial package installation, CUDA_Runtime_jll may not be available.\n    # in that case, we just won't select an artifact.\nend\n\nfunction cuda_comparison_strategy(a::String, b::String, a_requested::Bool, b_requested::Bool)\n    if a == \"none\" || b == \"none\"\n        return a == b\n    end\n    if a == \"local\" || b == \"local\"\n        return a == b\n    end\n    a = VersionNumber(a)\n    b = VersionNumber(b)\n\n    # If both b and a requested, then we fall back to equality:\n    if a_requested && b_requested\n        return Base.thisminor(a) == Base.thisminor(b)\n    end\n\n    # Otherwise, do the comparison between the the single version cap and the single version:\n    function is_compatible(artifact::VersionNumber, host::VersionNumber)\n        if host >= v\"11.0\"\n            # enhanced compatibility, semver-style\n            artifact.major == host.major &&\n            Base.thisminor(artifact) <= Base.thisminor(host)\n        else\n            Base.thisminor(artifact) == Base.thisminor(host)\n        end\n    end\n    if a_requested\n        is_compatible(b, a)\n    else\n        is_compatible(a, b)\n    end\nend\n\nfunction augment_platform!(platform::Platform)\n    if !@isdefined(CUDA_Runtime_jll)\n        # don't set to nothing or Pkg will download any artifact\n        platform[\"cuda\"] = \"none\"\n    end\n\n    if !haskey(platform, \"cuda\")\n        CUDA_Runtime_jll.augment_platform!(platform)\n    end\n    BinaryPlatforms.set_compare_strategy!(platform, \"cuda\", cuda_comparison_strategy)\n    return platform\nend"""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = true
+name = "PAPI"
+platforms = ["x86_64-linux-gnu-cuda+10.2", "powerpc64le-linux-gnu-cuda+10.2", "x86_64-linux-gnu-cuda+11.0", "x86_64-linux-gnu-cuda+none", "aarch64-linux-gnu-cuda+none", "armv7l-linux-gnueabihf-cuda+none", "powerpc64le-linux-gnu-cuda+none", "x86_64-linux-musl-cuda+none", "aarch64-linux-musl-cuda+none", "armv7l-linux-musleabihf-cuda+none"]
+script = ["""export SO_VERSION=\"10.2\"\ncd $WORKSPACE/srcdir/papi\n\n# Apply all our patches\nif [ -d $WORKSPACE/srcdir/patches ]; then\nfor f in $WORKSPACE/srcdir/patches/*.patch; do\n    echo \"Applying patch ${f}\"\n    atomic_patch -p1 ${f}\ndone\nfi\n\ncd src\nif [[ \"${target}\" == *-musl* ]]; then\n    CFLAGS=\"-D_GNU_SOURCE\"\nfi\n\nCOMPONENTS=()\nif [[ -d \"${prefix}/cuda\" ]]; then\n    COMPONENTS+=(cuda nvml)\n    export PAPI_CUDA_ROOT=\"${prefix}/cuda\"\n\n    sed -i -e 's/PAPI_CUDA_RUNTIME = \\\\\\\"\\\\\\\"/PAPI_CUDA_RUNTIME = \\\\\\\"libcudart.so.'\"${SO_VERSION}\"'\\\\\\\"/g' components/cuda/Rules.cuda\n    sed -i -e 's/PAPI_CUDA_CUPTI = \\\\\\\"\\\\\\\"/PAPI_CUDA_CUPTI = \\\\\\\"libcupti.so.'\"${SO_VERSION}\"'\\\\\\\"/g' components/cuda/Rules.cuda\n    sed -i -e 's/PAPI_CUDA_PERFWORKS = \\\\\\\"\\\\\\\"/PAPI_CUDA_PERFWORKS = \\\\\\\"libnvperf_host.so.'\"${SO_VERSION}\"'\\\\\\\"/g' components/cuda/Rules.cuda\n\n    sed -i -e 's/PAPI_CUDA_CUPTI = \\\\\\\"\\\\\\\"/PAPI_CUDA_CUPTI = \\\\\\\"libcupti.so.'\"${SO_VERSION}\"'\\\\\\\"/g' components/nvml/Rules.nvml\n    sed -i -e 's/PAPI_NVML_MAIN = \\\\\\\"\\\\\\\"/PAPI_NVML_MAIN = \\\\\\\"libnvidia-ml.so.'\"${SO_VERSION}\"'\\\\\\\"/g' components/nvml/Rules.nvml\nfi\n\nif [[ ${target} == powerpc64le-* ]]; then\n  CPU=POWER8\nelif [[ ${target} == x86_64-* || ${target} == i686-* ]]; then\n  CPU=x86\nelse\n  CPU=arm\nfi\n\necho \"Building components: ${COMPONENTS[@]}\"\nexport CFLAGS\nbash ./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \\\n    --with-ffsll \\\n    --with-perf-events \\\n    --with-walltimer=gettimeofday \\\n    --with-tls=__thread \\\n    --with-virtualtimer=times \\\n    --with-shared-lib \\\n    --with-nativecc=${CC_FOR_BUILD} \\\n    --with-components=\"${COMPONENTS[@]}\" \\\n    --with-CPU=\"${CPU}\"\n\nmake -j ${nproc}\nmake install\n""", """export SO_VERSION=\"11.0\"\ncd $WORKSPACE/srcdir/papi\n\n# Apply all our patches\nif [ -d $WORKSPACE/srcdir/patches ]; then\nfor f in $WORKSPACE/srcdir/patches/*.patch; do\n    echo \"Applying patch ${f}\"\n    atomic_patch -p1 ${f}\ndone\nfi\n\ncd src\nif [[ \"${target}\" == *-musl* ]]; then\n    CFLAGS=\"-D_GNU_SOURCE\"\nfi\n\nCOMPONENTS=()\nif [[ -d \"${prefix}/cuda\" ]]; then\n    COMPONENTS+=(cuda nvml)\n    export PAPI_CUDA_ROOT=\"${prefix}/cuda\"\n\n    sed -i -e 's/PAPI_CUDA_RUNTIME = \\\\\\\"\\\\\\\"/PAPI_CUDA_RUNTIME = \\\\\\\"libcudart.so.'\"${SO_VERSION}\"'\\\\\\\"/g' components/cuda/Rules.cuda\n    sed -i -e 's/PAPI_CUDA_CUPTI = \\\\\\\"\\\\\\\"/PAPI_CUDA_CUPTI = \\\\\\\"libcupti.so.'\"${SO_VERSION}\"'\\\\\\\"/g' components/cuda/Rules.cuda\n    sed -i -e 's/PAPI_CUDA_PERFWORKS = \\\\\\\"\\\\\\\"/PAPI_CUDA_PERFWORKS = \\\\\\\"libnvperf_host.so.'\"${SO_VERSION}\"'\\\\\\\"/g' components/cuda/Rules.cuda\n\n    sed -i -e 's/PAPI_CUDA_CUPTI = \\\\\\\"\\\\\\\"/PAPI_CUDA_CUPTI = \\\\\\\"libcupti.so.'\"${SO_VERSION}\"'\\\\\\\"/g' components/nvml/Rules.nvml\n    sed -i -e 's/PAPI_NVML_MAIN = \\\\\\\"\\\\\\\"/PAPI_NVML_MAIN = \\\\\\\"libnvidia-ml.so.'\"${SO_VERSION}\"'\\\\\\\"/g' components/nvml/Rules.nvml\nfi\n\nif [[ ${target} == powerpc64le-* ]]; then\n  CPU=POWER8\nelif [[ ${target} == x86_64-* || ${target} == i686-* ]]; then\n  CPU=x86\nelse\n  CPU=arm\nfi\n\necho \"Building components: ${COMPONENTS[@]}\"\nexport CFLAGS\nbash ./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \\\n    --with-ffsll \\\n    --with-perf-events \\\n    --with-walltimer=gettimeofday \\\n    --with-tls=__thread \\\n    --with-virtualtimer=times \\\n    --with-shared-lib \\\n    --with-nativecc=${CC_FOR_BUILD} \\\n    --with-components=\"${COMPONENTS[@]}\" \\\n    --with-CPU=\"${CPU}\"\n\nmake -j ${nproc}\nmake install\n""", """cd $WORKSPACE/srcdir/papi\n\n# Apply all our patches\nif [ -d $WORKSPACE/srcdir/patches ]; then\nfor f in $WORKSPACE/srcdir/patches/*.patch; do\n    echo \"Applying patch ${f}\"\n    atomic_patch -p1 ${f}\ndone\nfi\n\ncd src\nif [[ \"${target}\" == *-musl* ]]; then\n    CFLAGS=\"-D_GNU_SOURCE\"\nfi\n\nCOMPONENTS=()\nif [[ -d \"${prefix}/cuda\" ]]; then\n    COMPONENTS+=(cuda nvml)\n    export PAPI_CUDA_ROOT=\"${prefix}/cuda\"\n\n    sed -i -e 's/PAPI_CUDA_RUNTIME = \\\\\\\"\\\\\\\"/PAPI_CUDA_RUNTIME = \\\\\\\"libcudart.so.'\"${SO_VERSION}\"'\\\\\\\"/g' components/cuda/Rules.cuda\n    sed -i -e 's/PAPI_CUDA_CUPTI = \\\\\\\"\\\\\\\"/PAPI_CUDA_CUPTI = \\\\\\\"libcupti.so.'\"${SO_VERSION}\"'\\\\\\\"/g' components/cuda/Rules.cuda\n    sed -i -e 's/PAPI_CUDA_PERFWORKS = \\\\\\\"\\\\\\\"/PAPI_CUDA_PERFWORKS = \\\\\\\"libnvperf_host.so.'\"${SO_VERSION}\"'\\\\\\\"/g' components/cuda/Rules.cuda\n\n    sed -i -e 's/PAPI_CUDA_CUPTI = \\\\\\\"\\\\\\\"/PAPI_CUDA_CUPTI = \\\\\\\"libcupti.so.'\"${SO_VERSION}\"'\\\\\\\"/g' components/nvml/Rules.nvml\n    sed -i -e 's/PAPI_NVML_MAIN = \\\\\\\"\\\\\\\"/PAPI_NVML_MAIN = \\\\\\\"libnvidia-ml.so.'\"${SO_VERSION}\"'\\\\\\\"/g' components/nvml/Rules.nvml\nfi\n\nif [[ ${target} == powerpc64le-* ]]; then\n  CPU=POWER8\nelif [[ ${target} == x86_64-* || ${target} == i686-* ]]; then\n  CPU=x86\nelse\n  CPU=arm\nfi\n\necho \"Building components: ${COMPONENTS[@]}\"\nexport CFLAGS\nbash ./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \\\n    --with-ffsll \\\n    --with-perf-events \\\n    --with-walltimer=gettimeofday \\\n    --with-tls=__thread \\\n    --with-virtualtimer=times \\\n    --with-shared-lib \\\n    --with-nativecc=${CC_FOR_BUILD} \\\n    --with-components=\"${COMPONENTS[@]}\" \\\n    --with-CPU=\"${CPU}\"\n\nmake -j ${nproc}\nmake install\n"""]
+version = "v7.0.0"
+
+[[dependencies]]
+compat = ""
+name = "CUDA_Runtime_jll"
+platforms = ["any"]
+top_level = false
+type = "runtimedependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CUDA_full_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 10
+version-minor = 2
+version-patch = 89
+[[dependencies]]
+compat = ""
+name = "CUDA_full_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 11
+version-minor = 0
+version-patch = 3
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libpapi"]
+type = "lib"
+variable_name = "libpapi"
+
+[[sources]]
+hash = "de96060998cd9fc77396c5e100e52e0ea1cdc3c3"
+type = "git"
+unpack_target = ""
+url = "https://bitbucket.org/icl/papi.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

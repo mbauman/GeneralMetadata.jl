@@ -1,0 +1,130 @@
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "GR"
+platforms = ["armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11", "x86_64-apple-darwin"]
+script = """cd $WORKSPACE/srcdir/gr\n\nif test -f \"$prefix/lib/cmake/Qt5Gui/Qt5GuiConfigExtras.cmake\"; then\n    sed -i 's/_qt5gui_find_extra_libs.*AGL.framework.*//' $prefix/lib/cmake/Qt5Gui/Qt5GuiConfigExtras.cmake\nfi\n\nupdate_configure_scripts\n\nmake -C 3rdparty/qhull -j${nproc}\n\nif [[ $target == *\"mingw\"* ]]; then\n    winflags=-DCMAKE_C_FLAGS=\"-D_WIN32_WINNT=0x0f00\"\n    tifflags=-DTIFF_LIBRARY=${libdir}/libtiff-5.dll\nelse\n    tifflags=-DTIFF_LIBRARY=${libdir}/libtiff.${dlext}\nfi\n\nif [[ \"${target}\" == *apple* ]]; then\n    make -C 3rdparty/zeromq ZEROMQ_EXTRA_CONFIGURE_FLAGS=\"--host=${target}\"\nfi\n\nif [[ \"${target}\" == arm-* ]]; then\n    export CXXFLAGS=\"-Wl,-rpath-link,/opt/${target}/${target}/lib\"\nfi\n\nmkdir build\ncd build\ncmake $winflags -DCMAKE_INSTALL_PREFIX=$prefix -DCMAKE_FIND_ROOT_PATH=$prefix -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} -DGR_USE_BUNDLED_LIBRARIES=ON $tifflags -DCMAKE_BUILD_TYPE=Release ..\n\nVERBOSE=ON cmake --build . --config Release --target install -- -j${nproc}\ncp ../../gr.js ${libdir}/\n\ninstall_license $WORKSPACE/srcdir/gr/LICENSE.md\n\nif [[ $target == *\"apple-darwin\"* ]]; then\n    cd $prefix/lib\n    ln -s libGR.so libGR.dylib\n    ln -s libGR3.so libGR3.dylib\n    ln -s libGRM.so libGRM.dylib\n    ln -s libGKS.so libGKS.dylib\n    cd ../bin\n    ln -s ../Applications/gksqt.app/Contents/MacOS/gksqt ./\n    ln -s ../Applications/GKSTerm.app/Contents/MacOS/GKSTerm ./\nfi\n"""
+version = "v0.53.0"
+
+[[dependencies]]
+name = "Bzip2_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Cairo_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "FFMPEG_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Fontconfig_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "GLFW_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "JpegTurbo_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "libpng_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Libtiff_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Pixman_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Qt_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Xorg_libX11_jll"
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Xorg_xproto_jll"
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Zlib_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libGR"]
+type = "lib"
+variable_name = "libGR"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libGR3"]
+type = "lib"
+variable_name = "libGR3"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libGRM"]
+type = "lib"
+variable_name = "libGRM"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libGKS"]
+type = "lib"
+variable_name = "libGKS"
+[[products]]
+binnames = ["gksqt"]
+type = "exe"
+variable_name = "gksqt"
+
+[[sources]]
+hash = "b490cbfacc6f4dc08c2a2de52c6f6594e8c7c5f9"
+type = "git"
+unpack_target = ""
+url = "https://github.com/sciapp/gr.git"
+[[sources]]
+filename = "gr.js"
+hash = "60b856b8bb834d30612653da42eebef56e4e329d3a73d52c303684ee42b027f1"
+type = "file"
+url = "https://github.com/sciapp/gr/releases/download/v0.53.0/gr-0.53.0.js"

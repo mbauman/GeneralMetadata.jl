@@ -1,0 +1,22 @@
+dependencies = []
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "Libxc"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/libxc-*/\n\nif [[ \"${target}\" = *-mingw* ]]; then\n    mkdir libxc_build\n    cd libxc_build\n    cmake -DCMAKE_INSTALL_PREFIX=$prefix -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n        -DCMAKE_BUILD_TYPE=Release -DENABLE_FORTRAN=OFF -DENABLE_XHOST=OFF -DBUILD_SHARED_LIBS=ON \\\n        -DDISABLE_VXC=OFF -DDISABLE_FXC=OFF -DDISABLE_KXC=ON -DDISABLE_LXC=ON ..\nelse\n    autoreconf -vi\n    export CFLAGS=\"$CFLAGS -std=c99\"\n    ./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} --disable-fortran \\\n        --disable-static --enable-shared \\\n        --enable-vxc=yes --enable-fxc=yes --enable-kxc=no --enable-lxc=no\nfi\n\nmake -j${nproc}\nmake install\n"""
+version = "v5.1.5"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libxc"]
+type = "lib"
+variable_name = "libxc"
+
+[[sources]]
+hash = "101d6ea9e013006deae074843f0d02ab2813e16734e47ff7b0551babc4497163"
+type = "archive"
+unpack_target = ""
+url = "https://gitlab.com/libxc/libxc/-/archive/5.1.5/libxc-5.1.5.tar.gz"

@@ -1,0 +1,29 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "GAP_pkg_anupq"
+platforms = ["x86_64-linux-gnu", "aarch64-linux-gnu", "powerpc64le-linux-gnu", "x86_64-linux-musl", "aarch64-linux-musl", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd"]
+script = """cd anupq*\n\n# HACK to workaround need to pass --with-gaproot\nmkdir -p $prefix/lib/gap/ # HACK\necho \"GAParch=dummy\" > $prefix/lib/gap/sysinfo.gap # HACK\necho \"GAP_CPPFLAGS=dummy\" >> $prefix/lib/gap/sysinfo.gap # HACK\n\n# HACK: avoid \"undefined reference 'rpl_malloc'\" errors; this is fixed in version 3.3.0\nsed -i -e '/ALLOC/d' configure.ac\n./autogen.sh\n\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} --with-gmp=${prefix} --with-gaproot=${prefix}/lib/gap\nmake -j${nproc}\n\n# copy just the executable\nmkdir -p ${prefix}/bin/\ncp bin/*/pq ${prefix}/bin/\n\ninstall_license LICENSE\n\nrm $prefix/lib/gap/sysinfo.gap\n"""
+version = "v300.300.0"
+
+[[dependencies]]
+compat = ""
+name = "GMP_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["pq"]
+type = "exe"
+variable_name = "pq"
+
+[[sources]]
+hash = "8276e5191308d3a96c968bde53eed2d0a5af3de374d5f82bd378aa608f5e3e23"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/gap-packages/anupq/releases/download/v3.3.0/anupq-3.3.0.tar.gz"

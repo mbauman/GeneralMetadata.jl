@@ -1,0 +1,35 @@
+init_block = ""
+julia_compat = "1.8"
+lazy_artifacts = false
+name = "LibSSH2"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/libssh2*/\n\n# Apply patch to fix v1.10.0 CVE (https://github.com/libssh2/libssh2/issues/649), drop with v1.11\natomic_patch -p1 ../patches/0001-userauth-check-for-too-large-userauth_kybd_auth_name.patch\n\nBUILD_FLAGS=(\n    -DCMAKE_BUILD_TYPE=Release\n    -DCRYPTO_BACKEND=mbedTLS\n    -DBUILD_SHARED_LIBS=ON\n    -DBUILD_EXAMPLES=OFF\n    -DBUILD_TESTING=OFF\n    -DENABLE_ZLIB_COMPRESSION=OFF\n    -DCMAKE_INSTALL_PREFIX=${prefix}\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN}\n)\n\nmkdir build && cd build\n\ncmake .. \"${BUILD_FLAGS[@]}\"\nmake -j${nproc}\nmake install\n"""
+version = "v1.10.2"
+
+[[dependencies]]
+compat = "~2.28.0"
+name = "MbedTLS_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libssh2"]
+type = "lib"
+variable_name = "libssh2"
+
+[[sources]]
+hash = "2d64e90f3ded394b91d3a2e774ca203a4179f69aebee03003e5a6fa621e41d51"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/libssh2/libssh2/releases/download/libssh2-1.10.0/libssh2-1.10.0.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

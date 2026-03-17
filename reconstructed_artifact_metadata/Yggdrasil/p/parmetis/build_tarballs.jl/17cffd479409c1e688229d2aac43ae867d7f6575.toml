@@ -1,0 +1,104 @@
+augment_platform_block = """    using Base.BinaryPlatforms\n    # Can't use Preferences since we might be running this very early with a non-existing Manifest\nMPIPreferences_UUID = Base.UUID(\"3da0fdf6-3ccc-4f1b-acd9-58baa6c99267\")\nconst preferences = Base.get_preferences(MPIPreferences_UUID)\n\n# Keep logic in sync with MPIPreferences.jl\nfunction augment_mpi!(platform)\n    # Doesn't need to be `const` since we depend on MPIPreferences so we\n    # invalidate the cache when it changes.\n    binary = get(preferences, \"binary\", Sys.iswindows() ? \"MicrosoftMPI_jll\" : \"MPICH_jll\")\n\n    abi = if binary == \"system\"\n        let abi = get(preferences, \"abi\", nothing)\n            if abi === nothing\n                error(\"MPIPreferences: Inconsistent state detected, binary set to system, but no ABI set.\")\n            else\n                abi\n            end\n        end\n    elseif binary == \"MicrosoftMPI_jll\"\n        \"MicrosoftMPI\"\n    elseif binary == \"MPICH_jll\"\n        \"MPICH\"\n    elseif binary == \"OpenMPI_jll\"\n        \"OpenMPI\"\n    elseif binary == \"MPItrampoline_jll\"\n        \"MPItrampoline\"\n    else\n        error(\"Unknown binary: $binary\")\n    end\n\n    if !haskey(platform, \"mpi\")\n        platform[\"mpi\"] = abi\n    end\n    return platform\nend\n\n    augment_platform!(platform::Platform) = augment_mpi!(platform)\n"""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = true
+name = "PARMETIS"
+platforms = ["i686-linux-gnu-mpi+mpich", "x86_64-linux-gnu-mpi+mpich", "aarch64-linux-gnu-mpi+mpich", "armv6l-linux-gnueabihf-mpi+mpich", "armv7l-linux-gnueabihf-mpi+mpich", "powerpc64le-linux-gnu-mpi+mpich", "i686-linux-musl-mpi+mpich", "x86_64-linux-musl-mpi+mpich", "aarch64-linux-musl-mpi+mpich", "armv6l-linux-musleabihf-mpi+mpich", "armv7l-linux-musleabihf-mpi+mpich", "x86_64-apple-darwin-mpi+mpich", "aarch64-apple-darwin-mpi+mpich", "x86_64-unknown-freebsd-mpi+mpich", "i686-linux-gnu-mpi+openmpi", "x86_64-linux-gnu-mpi+openmpi", "aarch64-linux-gnu-mpi+openmpi", "armv7l-linux-gnueabihf-mpi+openmpi", "powerpc64le-linux-gnu-mpi+openmpi", "i686-linux-musl-mpi+openmpi", "x86_64-linux-musl-mpi+openmpi", "aarch64-linux-musl-mpi+openmpi", "armv6l-linux-musleabihf-mpi+openmpi", "armv7l-linux-musleabihf-mpi+openmpi", "x86_64-apple-darwin-mpi+openmpi", "aarch64-apple-darwin-mpi+openmpi", "x86_64-unknown-freebsd-mpi+openmpi", "i686-linux-gnu-mpi+mpitrampoline", "x86_64-linux-gnu-mpi+mpitrampoline", "aarch64-linux-gnu-mpi+mpitrampoline", "armv6l-linux-gnueabihf-mpi+mpitrampoline", "armv7l-linux-gnueabihf-mpi+mpitrampoline", "powerpc64le-linux-gnu-mpi+mpitrampoline", "x86_64-apple-darwin-mpi+mpitrampoline", "aarch64-apple-darwin-mpi+mpitrampoline"]
+script = """mkdir -p ${libdir}\ncd $WORKSPACE/srcdir/parmetis-4.0.3\n\nfor f in ${WORKSPACE}/srcdir/patches/*.patch; do\n  atomic_patch -p1 ${f}\ndone\n\ngrep -iq MPICH $prefix/include/mpi.h && mpi_libraries='mpi'\ngrep -iq MPItrampoline $prefix/include/mpi.h && mpi_libraries='mpitrampoline'\ngrep -iq OpenMPI $prefix/include/mpi.h && mpi_libraries='mpi'\n\ncd build\n# {1} is inttype (32 or 64) and {2} is realtype (32 or 64)\nbuild_parmetis()\n{\n    if [ \"${1}\" == \"32\" ] && [ \"${2}\" == \"32\" ]; then\n        PARMETIS_NAME=parmetis\n        METIS_NAME=metis\n        METIS_PATH=\"${prefix}\"\n    else\n        METIS_NAME=\"metis_Int${1}_Real${2}\"\n        PARMETIS_NAME=\"par${METIS_NAME}\"\n        METIS_PATH=\"${libdir}/metis/${METIS_NAME}\"\n    fi\n    cmake .. \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DSHARED=1 \\\n    -DGKLIB_PATH=$(realpath ../metis/GKlib) \\\n    -DMETIS_PATH=\"${METIS_PATH}\" \\\n    -DMPI_INCLUDE_PATH=\"${prefix}/include\" \\\n    -DMPI_LIBRARIES=\"${mpi_libraries}\" \\\n    -DCMAKE_C_FLAGS=\"-DIDXTYPEWIDTH=${1} -DREALTYPEWIDTH=${2}\" \\\n    -DBINARY_NAME=\"${PARMETIS_NAME}\" \\\n    -DMETIS_LIBRARY=\"${METIS_NAME}\"\n    \n    make -j${nproc}\n    make install\n}\n\nbuild_parmetis 32 32\nbuild_parmetis 32 64\nbuild_parmetis 64 32\nbuild_parmetis 64 64\n"""
+version = "v4.0.5"
+
+[[dependencies]]
+compat = "5.1.2"
+name = "METIS_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MPICH_jll"
+platforms = ["i686-linux-gnu-mpi+mpich", "x86_64-linux-gnu-mpi+mpich", "aarch64-linux-gnu-mpi+mpich", "armv6l-linux-gnueabihf-mpi+mpich", "armv7l-linux-gnueabihf-mpi+mpich", "powerpc64le-linux-gnu-mpi+mpich", "i686-linux-musl-mpi+mpich", "x86_64-linux-musl-mpi+mpich", "aarch64-linux-musl-mpi+mpich", "armv6l-linux-musleabihf-mpi+mpich", "armv7l-linux-musleabihf-mpi+mpich", "x86_64-apple-darwin-mpi+mpich", "aarch64-apple-darwin-mpi+mpich", "x86_64-unknown-freebsd-mpi+mpich"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenMPI_jll"
+platforms = ["i686-linux-gnu-mpi+openmpi", "x86_64-linux-gnu-mpi+openmpi", "aarch64-linux-gnu-mpi+openmpi", "armv6l-linux-gnueabihf-mpi+openmpi", "armv7l-linux-gnueabihf-mpi+openmpi", "powerpc64le-linux-gnu-mpi+openmpi", "i686-linux-musl-mpi+openmpi", "x86_64-linux-musl-mpi+openmpi", "aarch64-linux-musl-mpi+openmpi", "armv6l-linux-musleabihf-mpi+openmpi", "armv7l-linux-musleabihf-mpi+openmpi", "x86_64-apple-darwin-mpi+openmpi", "aarch64-apple-darwin-mpi+openmpi", "x86_64-unknown-freebsd-mpi+openmpi"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MicrosoftMPI_jll"
+platforms = []
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "^5.0.1"
+name = "MPItrampoline_jll"
+platforms = ["i686-linux-gnu-mpi+mpitrampoline", "x86_64-linux-gnu-mpi+mpitrampoline", "aarch64-linux-gnu-mpi+mpitrampoline", "armv6l-linux-gnueabihf-mpi+mpitrampoline", "armv7l-linux-gnueabihf-mpi+mpitrampoline", "powerpc64le-linux-gnu-mpi+mpitrampoline", "i686-linux-musl-mpi+mpitrampoline", "x86_64-linux-musl-mpi+mpitrampoline", "aarch64-linux-musl-mpi+mpitrampoline", "armv6l-linux-musleabihf-mpi+mpitrampoline", "armv7l-linux-musleabihf-mpi+mpitrampoline", "x86_64-apple-darwin-mpi+mpitrampoline", "aarch64-apple-darwin-mpi+mpitrampoline", "x86_64-unknown-freebsd-mpi+mpitrampoline"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "0.1"
+name = "MPIPreferences"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "3da0fdf6-3ccc-4f1b-acd9-58baa6c99267"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libparmetis"]
+type = "lib"
+variable_name = "libparmetis"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libparmetis_Int32_Real64"]
+type = "lib"
+variable_name = "libparmetis_Int32_Real64"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libparmetis_Int64_Real32"]
+type = "lib"
+variable_name = "libparmetis_Int64_Real32"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libparmetis_Int64_Real64"]
+type = "lib"
+variable_name = "libparmetis_Int64_Real64"
+
+[[sources]]
+hash = "f2d9a231b7cf97f1fee6e8c9663113ebf6c240d407d3c118c55b3633d6be6e5f"
+type = "archive"
+unpack_target = ""
+url = "http://glaros.dtc.umn.edu/gkhome/fetch/sw/parmetis/parmetis-4.0.3.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

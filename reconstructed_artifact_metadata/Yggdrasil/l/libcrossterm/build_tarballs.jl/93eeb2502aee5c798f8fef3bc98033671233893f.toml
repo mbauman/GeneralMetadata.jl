@@ -1,0 +1,27 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "libcrossterm"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/libcrossterm/\n\ncargo build --release -j${nproc} --target=${rust_target}\n\nif [[ \"${target}\" == *-w64-mingw32* ]]; then\n    # Windows generates .dlls without the lib prefix\n    install -Dvm 0755 \"target/${rust_target}/release/crossterm.${dlext}\" \"${libdir}/libcrossterm.${dlext}\"\nelse\n    install -Dvm 0755 \"target/${rust_target}/release/libcrossterm.${dlext}\" \"${libdir}/libcrossterm.${dlext}\"\nfi\n\ninstall -Dvm 0755 \"include/crossterm.h\" \"${includedir}/crossterm.h\"\n\ninstall_license LICENSE\n"""
+version = "v0.3.3"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcrossterm"]
+type = "lib"
+variable_name = "libcrossterm"
+[[products]]
+paths = ["include/crossterm.h"]
+type = "file"
+variable_name = "crossterm_h"
+
+[[sources]]
+hash = "386d3649b8ef44b7102ded8eec74df032ae61ef5"
+type = "git"
+unpack_target = ""
+url = "https://github.com/kdheepak/libcrossterm.git"

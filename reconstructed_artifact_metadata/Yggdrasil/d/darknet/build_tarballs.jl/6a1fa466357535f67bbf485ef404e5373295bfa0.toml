@@ -1,0 +1,13 @@
+dependencies = []
+name = "Darknet"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "arm-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "arm-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/darknet-*\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    # Fix case of some Windows headers\n    atomic_patch -p1 ../patches/windows_headers_case.patch\n    # Comment out a couple of definitions\n    atomic_patch -p1 ../patches/getopt_windows.patch\n    # Link against ws2_32 on Windows\n    atomic_patch -p1 ../patches/windows_ldflags.patch\n    # This makes it work for 64-bit Windows\n    atomic_patch -p1 ../patches/gemmc_windows_64bit.patch\nfi\n\n# if [[ \"${target}\" = powerpc64le-* ]] || [[ \"${target}\" = arm* ]] || [[ \"${target}\" == aarch* ]] || [[ \"${target}\" == *-mingw* ]] || [[ \"${target}\" == *-apple* ]]; then\n#     # Disable AVX on powerpc, arm, aarch, windows, apple\n#     export AVXENABLE=0\n# else\n#     # Enable everywhere else (linux)\n#     export AVXENABLE=1\n# fi\nexport AVXENABLE=0\n\n# Make sure to have the directories, before building\nmake obj backup results setchmod\nmake -j${nproc} libdarknet.${dlext} \\\n    LIBNAMESO=\"libdarknet.${dlext}\" \\\n    LIBSO=1 \\\n    GPU=0 \\\n    CUDNN=0 \\\n    CUDNN_HALF=0 \\\n    OPENCV=0 \\\n    DEBUG=0 \\\n    OPENMP=0 \\\n    ZED_CAMERA=0 \\\n    AVX=${AVXENABLE}\n\nmkdir -p \"${libdir}\"\ncp libdarknet.${dlext} \"${libdir}\"\n"""
+sources = [{"https://github.com/AlexeyAB/darknet/archive/71e835458904f782a905a06d28b4558d9e9830b4.zip" = "d77017462ae49f9ce2540c3e47589e68b2ce565573bf7d2f011b560bc989fbfa"}, "./bundled"]
+version = "v2019.11.15"
+
+[[products]]
+dir_paths = []
+dont_dlopen = false
+libnames = ["libdarknet"]
+type = "lib"
+variable_name = "libdarknet"

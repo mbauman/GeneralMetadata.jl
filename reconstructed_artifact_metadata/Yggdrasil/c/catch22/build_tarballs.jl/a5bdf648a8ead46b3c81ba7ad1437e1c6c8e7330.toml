@@ -1,0 +1,23 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "catch22"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd ${WORKSPACE}/srcdir\ncd catch22/C/\necho -e 'CC = cc\nCFLAGS = -std=c11 -fPIC -Wall -Wextra -g -O2 -lm\nLDFLAGS = -shared -lm\nRM = rm -f\nTARGET_LIB = \"lib$(SRC_NAME).$(dlext)\"\n\nSRCS := $(shell find ./ -name \"*.c\" ! -name \"main.c\")\n\nOBJS = $(SRCS:.c=.o)\n.PHONY: all;\nall: ${TARGET_LIB}\n$(TARGET_LIB): $(OBJS)\n\t$(CC) -o $@ $^ $(LDFLAGS) $(FLAGS)\n$(SRCS:.c=.d):%.d:%.c\n\t$(CC) $(CFLAGS) $(FLAGS) -MM $< >$@\n\tinclude $(SRCbS:.c=.d)\n.PHONY: clean\nclean:\n\t$(RM) $(TARGET_LIB) $(OBJS) $(SRCS:.c=.d)\n.PHONY: install\ninstall:\n\tinstall -Dvm 755 \"./lib${SRC_NAME}.$(dlext)\" \"$(libdir)/lib$(SRC_NAME).$(dlext)\"\n' >> Makefile\nmake -j${nproc} FLAGS=\"${FLAGS}\"\nmake install\n"""
+version = "v0.5.0"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcatch22"]
+type = "lib"
+variable_name = "libcatch22"
+
+[[sources]]
+hash = "2e1a271c6a7437b6a4a754e1adc7e34d7a224c01"
+type = "git"
+unpack_target = ""
+url = "https://github.com/DynamicsAndNeuralSystems/catch22.git"

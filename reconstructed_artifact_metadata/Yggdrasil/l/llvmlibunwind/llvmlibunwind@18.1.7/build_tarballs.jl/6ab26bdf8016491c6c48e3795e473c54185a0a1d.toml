@@ -1,0 +1,28 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.12"
+lazy_artifacts = false
+name = "LLVMLibUnwind"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd ${WORKSPACE}/srcdir/llvm-project*/\n\nCMAKE_FLAGS=()\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix})\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_INCLUDEDIR=${includedir})\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_BINDIR=${libdir})\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING=True)\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=MinSizeRel)  # Note: Disables debug messages\nCMAKE_FLAGS+=(-DLIBUNWIND_INCLUDE_DOCS=OFF)\nCMAKE_FLAGS+=(-DLIBUNWIND_INCLUDE_TESTS=OFF)\nCMAKE_FLAGS+=(-DLIBUNWIND_INSTALL_HEADERS=ON)\nCMAKE_FLAGS+=(-DLIBUNWIND_ENABLE_PEDANTIC=OFF)\nCMAKE_FLAGS+=(-DLIBUNWIND_ENABLE_ASSERTIONS=OFF)\nCMAKE_FLAGS+=(-DLLVM_ENABLE_RUNTIMES=\"libunwind\")\n\nif [[ ${target} == x86_64-w64-mingw32 ]]; then\n    # Support for threading requires Windows Vista.\n    export CXXFLAGS=\"-D_WIN32_WINNT=0x0600\"\nfi\n\npushd libunwind\n# Apply all our patches\nif [ -d $WORKSPACE/srcdir/patches ]; then\n    for f in $WORKSPACE/srcdir/patches/*.patch; do\n        echo \"Applying patch ${f}\"\n        atomic_patch -p2 ${f}\n    done\nfi\npopd\n\nmkdir build\ncmake -GNinja -S runtimes -B build \"${CMAKE_FLAGS[@]}\" ..\nninja -C build -j${nproc} -vv unwind\nninja -C build install-unwind\n\ninstall_license LICENSE.TXT\n"""
+version = "v18.1.7"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libunwind"]
+type = "lib"
+variable_name = "libunwind"
+
+[[sources]]
+hash = "74446ab6943f686391954cbda0d77ae92e8a60c432eff437b8666e121d748ec4"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/llvm/llvm-project/releases/download/llvmorg-18.1.7/llvm-project-18.1.7.src.tar.xz"
+[[sources]]
+follow_symlinks = true
+path = "./bundled"
+target = ""
+type = "directory"

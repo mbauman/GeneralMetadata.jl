@@ -1,0 +1,47 @@
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Entwine"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """\ncd $WORKSPACE/srcdir/entwine-*\n\nif [[ ${target} == *mingw* ]]; then\n    \n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/mingw-replace-msvc-find-shlwapi.patch\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/mingw-remove-msvc-warning-options.patch\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/mingw-remove-dupenv-branch.patch\nfi\n\nif [[ ${target} == *-linux-musl* ]]; then\n\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/musl-remove-backtrace-detection.patch\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/musl-hardcode-curl-link.patch\n\n    if [[ ${target} == x86_64-* ]]; then\n        # otherwise get \"undefined reference to getrandom\" error message on x86_64\n        rm /usr/lib/libexpat*\n    fi\nfi\n\nmkdir build\ncd build\n\ncmake .. -G Ninja \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_LIBRARY_PATH:FILEPATH=\"${libdir}\" \\\n    -DCMAKE_INCLUDE_PATH:FILEPATH=\"${includedir}\" \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DWITH_TESTS=OFF\n\nninja -j${nproc}\nninja install\n\n"""
+version = "v2.2.0"
+
+[[dependencies]]
+compat = ""
+name = "PDAL_jll"
+type = "dependency"
+uuid = "a8197b14-d70b-5660-b10f-8b1ebb62825c"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenSSL_jll"
+type = "dependency"
+uuid = "458c3c95-2e84-50aa-8efc-19380b2a3a95"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libentwine"]
+type = "lib"
+variable_name = "libentwine"
+[[products]]
+binnames = ["entwine"]
+type = "exe"
+variable_name = "entwine"
+
+[[sources]]
+hash = "c019a88be22c72690b7b608fef6ac2dc2dc2c113611a7a82c85828827801b653"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/connormanning/entwine/archive/refs/tags/2.2.0.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

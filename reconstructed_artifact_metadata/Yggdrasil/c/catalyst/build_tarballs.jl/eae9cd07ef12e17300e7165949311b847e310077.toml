@@ -1,0 +1,36 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Catalyst"
+platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "x86_64-apple-darwin", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd ${WORKSPACE}/srcdir/catalyst*\napk del cmake\ncmake -G Ninja \\\n      -B build \\\n      -DCMAKE_INSTALL_PREFIX=${prefix} \\\n      -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n      -DCMAKE_BUILD_TYPE=Release \\\n      -DCATALYST_BUILD_TESTING=OFF \\\n      .\ncmake --build build --parallel ${nproc}\ncmake --install build\n# install catalyst-replay to bindir\nmkdir -vp $bindir\ninstall -Dvm 755 ./build/bin/catalyst_replay${exeext} -t ${bindir}\n"""
+version = "v2.0.0"
+
+[[dependencies]]
+compat = ""
+name = "CMake_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 3
+version-minor = 30
+version-patch = 2
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcatalyst"]
+type = "lib"
+variable_name = "libcatalyst"
+[[products]]
+binnames = ["catalyst_replay"]
+type = "exe"
+variable_name = "catalyst_replay_exe"
+
+[[sources]]
+hash = "ed6151a298c6bcc888353e2bdf92a40e6ed8de30"
+type = "git"
+unpack_target = ""
+url = "https://gitlab.kitware.com/paraview/catalyst"

@@ -1,0 +1,57 @@
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "libgeotiff"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """\ncd $WORKSPACE/srcdir/libgeotiff-*/\n\n# Who knows why they want to install Windows binaries not build with MSVC to\n# ${prefix} instead of ${prefix}/bin\natomic_patch -p1 ../patches/more-reasonable-default-bin-subdir.patch\n\nmkdir build && cd build\n\n# Hint to find libstc++, required to link against C++ libs when using C compiler\nif [[ \"${target}\" == *-linux-* ]]; then\n    if [[ \"${nbits}\" == 32 ]]; then\n        export CFLAGS=\"-Wl,-rpath-link,/opt/${target}/${target}/lib\"\n    else\n        export CFLAGS=\"-Wl,-rpath-link,/opt/${target}/${target}/lib64\"\n    fi\nfi\n\ncmake -DCMAKE_INSTALL_PREFIX=$prefix \\\n      -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n      -DCMAKE_BUILD_TYPE=Release \\\n      -DBUILD_SHARED_LIBS=ON \\\n      ..\n\nmake -j${nproc}\nmake install\n"""
+version = "v1.6.0"
+
+[[dependencies]]
+name = "PROJ_jll"
+type = "dependency"
+uuid = "58948b4f-47e0-5654-a9ad-f609743f8632"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Libtiff_jll"
+type = "dependency"
+uuid = "89763e89-9b03-5906-acba-b20f662cd828"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgeotiff"]
+type = "lib"
+variable_name = "libgeotiff"
+[[products]]
+binnames = ["makegeo"]
+type = "exe"
+variable_name = "makegeo"
+[[products]]
+binnames = ["geotifcp"]
+type = "exe"
+variable_name = "geotifcp"
+[[products]]
+binnames = ["listgeo"]
+type = "exe"
+variable_name = "listgeo"
+[[products]]
+binnames = ["applygeo"]
+type = "exe"
+variable_name = "applygeo"
+
+[[sources]]
+hash = "9311017e5284cffb86f2c7b7a9df1fb5ebcdc61c30468fb2e6bca36e4272ebca"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/OSGeo/libgeotiff/releases/download/1.6.0/libgeotiff-1.6.0.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

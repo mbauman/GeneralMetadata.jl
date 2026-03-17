@@ -218,6 +218,26 @@ function merge_json_objects(objs::Vector)
     return merged
 end
 
+function separate_reconstructed_artifact_metadata!(jllmeta)
+    jllmeta["metadata"] isa String && return jllmeta # already a string pointing to some location
+    # Extract the metadata blob itself and place it into the reconstructed_artifact_metadata directory
+    repo, commit, path = match(r"^https://github.com/(?:[^/]+)/([^/]+)/tree/([^/]+)/(.*)$", jllmeta["buildscript"])
+    jllmeta_metapath = joinpath("reconstructed_artifact_metadata", repo, lowercase(path), commit * ".toml")
+    jllmeta_file = joinpath(@__DIR__, "..", jllmeta_metapath)
+    if isfile(jllmeta_file) &&
+        replace(sprint((io,x)->TOML.print(io, x, sorted=true), jllmeta["metadata"]), r"\"/tmp/jl_[^/]+/" => "\"") !=
+        replace(sprint((io,x)->TOML.print(io, x, sorted=true), TOML.parsefile(jllmeta_file)), r"\"/tmp/jl_[^/]+/" => "\"")
+        # temp foldernames sometimes get serialized to metadata; ignore those differences
+        error("reconstructing buildscript $(jllmeta["buildscript"]) generated two different metadata blobs")
+    end
+    mkpath(dirname(jllmeta_file))
+    open(jllmeta_file, "w") do f
+        TOML.print(f, jllmeta["metadata"], sorted=true)
+    end
+    jllmeta["metadata"] = jllmeta_metapath
+    return jllmeta
+end
+
 function add_jll_artifact_metadata!(meta_version_entry)
     urls = meta_version_entry["artifact_urls"]
     releases = Dict{Tuple{String,String,String}, Vector{String}}()
@@ -230,6 +250,7 @@ function add_jll_artifact_metadata!(meta_version_entry)
         org == "JuliaBinaryWrappers" || continue
         jllmeta = metadata_for_jll_release(org, repo, tag)
         jllmeta["artifact_urls"] = urls
+        separate_reconstructed_artifact_metadata!(jllmeta)
         push!(get!(meta_version_entry, "artifact_metadata", []), jllmeta)
     end
     return meta_version_entry

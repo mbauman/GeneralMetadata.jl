@@ -1,0 +1,60 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "SLEEF"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/sleef\natomic_patch -p1 ../patches/version.patch\nmkdir build-native\ncd build-native\ncmake \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_HOST_TOOLCHAIN} \\\n    -G Ninja \\\n    -DBUILD_TESTS=OFF \\\n    -DBUILD_DFT=TRUE \\\n    -DBUILD_QUAD=TRUE \\\n    ..\nninja all\n\ncd $WORKSPACE/srcdir/sleef\nif [[ $target == *w64-mingw32* ]]; then\n    atomic_patch -p1 ../patches/lowercase-windows-include.patch\n    atomic_patch -p1 ../patches/cross-compile-mingw-on-unix.patch\nelif [[ $target == arm-* ]]; then\n    atomic_patch -p1 ../patches/arm-neon32vfpv4.patch\nfi\nmkdir build-cross\ncd build-cross\ncmake \\\n    -DCMAKE_INSTALL_PREFIX=$prefix \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -G Ninja \\\n    -DNATIVE_BUILD_DIR=$WORKSPACE/srcdir/sleef/build-native \\\n    -DSLEEF_SHOW_CONFIG=1 \\\n    -DBUILD_TESTS=OFF \\\n    -DBUILD_DFT=TRUE \\\n    -DBUILD_QUAD=TRUE \\\n    ..\nninja all\nninja install\n"""
+version = "v3.4.1"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MPFR_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenSSL_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsleef"]
+type = "lib"
+variable_name = "libsleef"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsleefquad"]
+type = "lib"
+variable_name = "libsleefquad"
+
+[[sources]]
+hash = "233ed22c45b239230bf12a2f81585e857ede5e26"
+type = "git"
+unpack_target = ""
+url = "https://github.com/shibatch/sleef.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

@@ -1,0 +1,23 @@
+dependencies = []
+lazy_artifacts = false
+name = "CUDA_full"
+platforms = ["x86_64-linux-gnu", "x86_64-apple-darwin14", "x86_64-w64-mingw32"]
+products = []
+script = """cd ${WORKSPACE}/srcdir\n\n# use a temporary directory to avoid running out of tmpfs in srcdir on Travis\ntemp=${WORKSPACE}/tmpdir\nmkdir ${temp}\n\napk add p7zip\n\nif [[ ${target} == x86_64-linux-gnu ]]; then\n    sh installer.run --tmpdir=\"${temp}\" --target \"${temp}\" --noexec\n    cd ${temp}/builds/cuda-toolkit\n    find .\n\n    # clean-up\n    rm -r libnsight libnvvp nsightee_plugins nsight-compute-2019.4.0 nsight-systems-2019.3.7.5 doc\n\n    mv * ${prefix}\n    cd ${prefix}\n\n    install_license EULA.txt\nelif [[ ${target} == x86_64-apple-darwin* ]]; then\n    7z x installer.dmg 5.hfs -o${temp}\n    cd ${temp}\n    7z x 5.hfs\n    tar -zxf CUDAMacOSXInstaller/CUDAMacOSXInstaller.app/Contents/Resources/payload/cuda_mac_installer_tk.tar.gz\n    cd Developer/NVIDIA/CUDA-*/\n    find .\n\n    # clean-up\n    rm -r libnsight libnvvp nsightee_plugins nsight-compute-2019.4.0 NsightSystems-2019.3.7.5 doc\n\n    mv * ${prefix}\n    cd ${prefix}\n\n    install_license EULA.txt\nelif [[ ${target} == x86_64-w64-mingw32 ]]; then\n    7z x installer.exe -o${temp}\n    cd ${temp}\n    find .\n\n    for project in cuobjdump memcheck nvcc cupti nvdisasm curand cusparse npp cufft \\\n                   cublas cudart cusolver nvrtc nvgraph nvprof nvprune; do\n        [[ -d ${project} ]] || { echo \"${project} does not exist!\"; exit 1; }\n        cp -a ${project}/* ${prefix}\n    done\n\n    # NVIDIA Tools Extension Library\n    7z x \"CUDAVisualStudioIntegration/NVIDIA NVTX Installer.x86_64\".*.msi -o${temp}/nvtx_installer\n    find nvtx_installer\n    for file in nvtx_installer/*.*_*; do\n        mv $file $(echo $file | sed 's/\\.\\(\\w*\\)_.*/.\\1/')\n    done\n    mv nvtx_installer/*.dll ${prefix}/bin\n    mv nvtx_installer/*64_*.lib ${prefix}/lib/x64\n    mv nvtx_installer/*32_*.lib ${prefix}/lib/Win32\n    mv nvtx_installer/*.h ${prefix}/include\n\n    install_license EULA.txt\n\n    # fixup\n    chmod +x ${prefix}/bin/*.exe\n\n    # clean-up\n    rm ${prefix}/*.nvi\nfi\n"""
+version = "v10.1.243"
+
+[[sources]]
+filename = "installer.run"
+hash = "e7c22dc21278eb1b82f34a60ad7640b41ad3943d929bebda3008b72536855d31"
+type = "file"
+url = "http://developer.download.nvidia.com/compute/cuda/10.1/Prod/local_installers/cuda_10.1.243_418.87.00_linux.run"
+[[sources]]
+filename = "installer.dmg"
+hash = "432a2f07a793f21320edc5d10e7f68a8e4e89465c31e1696290bdb0ca7c8c997"
+type = "file"
+url = "http://developer.download.nvidia.com/compute/cuda/10.1/Prod/local_installers/cuda_10.1.243_mac.dmg"
+[[sources]]
+filename = "installer.exe"
+hash = "35d3c99c58dd601b2a2caa28f44d828cae1eaf8beb70702732585fa001cd8ad7"
+type = "file"
+url = "http://developer.download.nvidia.com/compute/cuda/10.1/Prod/local_installers/cuda_10.1.243_426.00_win10.exe"

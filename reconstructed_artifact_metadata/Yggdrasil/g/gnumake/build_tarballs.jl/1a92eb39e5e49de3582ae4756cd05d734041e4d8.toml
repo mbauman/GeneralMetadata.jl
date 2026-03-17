@@ -1,0 +1,24 @@
+dependencies = []
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "GNUMake"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/make-4.3\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/make-4.3_undef-HAVE_STRUCT_DIRENT_D_TYPE.patch\nif [[ \"${target}\" == *-mingw* ]]; then\n    cp $WORKSPACE/srcdir/Makefile GNUmakefile\n    mkdir -p ${prefix}/lib\n    mkdir -p ${bindir}\n    cp src/config.h.W32 src/config.h\n    cp lib/glob.in.h lib/glob.h\n    cp lib/fnmatch.in.h lib/fnmatch.h\n    \n    make -j${nproc}\nelse\n    ./configure --build=${MACHTYPE} --prefix=$prefix --host=${target}\n    make -j${nproc}\n    make install\nfi\ninstall_license ${WORKSPACE}/srcdir/make-*/COPYING\n"""
+version = "v4.3.0"
+
+[[products]]
+binnames = ["make"]
+type = "exe"
+variable_name = "make"
+
+[[sources]]
+hash = "e05fdde47c5f7ca45cb697e973894ff4f5d79e13b750ed57d7b66d8defc78e19"
+type = "archive"
+unpack_target = ""
+url = "https://ftp.gnu.org/gnu/make/make-4.3.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

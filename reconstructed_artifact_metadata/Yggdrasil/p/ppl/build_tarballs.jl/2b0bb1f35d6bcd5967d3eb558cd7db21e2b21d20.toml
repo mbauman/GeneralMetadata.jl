@@ -1,0 +1,48 @@
+lazy_artifacts = false
+name = "PPL"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin14-cxx03", "x86_64-apple-darwin14-cxx11", "x86_64-unknown-freebsd11.1-cxx03", "x86_64-unknown-freebsd11.1-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd ppl-1.2\natomic_patch -p1 ../patches/patch-v1.2.diff\n# avoid libtool problems (always in lib and not in libdir on mingw)\nrm -f ${prefix}/lib/libgmpxx.la\n# correct powerpc linker option:\nsed -i -e 's/elf64ppc/elf64lppc/g' configure\n./configure --prefix=${prefix} --host=${target} --build=${MACHTYPE} --enable-interfaces=c,cxx --enable-static=no --enable-documentation=no --with-gmp=${prefix} --enable-shared=yes\nmake -j${nproc}\nmake install\n"""
+version = "v1.2.0"
+
+[[dependencies]]
+name = "GMP_jll"
+type = "dependency"
+uuid = "781609d7-10c4-51f6-84f2-b8444358ff6d"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["ppl-config"]
+type = "exe"
+variable_name = "ppl_config"
+[[products]]
+binnames = ["ppl_lcdd"]
+type = "exe"
+variable_name = "ppl_lcdd"
+[[products]]
+binnames = ["ppl_pips"]
+type = "exe"
+variable_name = "ppl_pips"
+[[products]]
+dir_paths = []
+dont_dlopen = false
+libnames = ["libppl"]
+type = "lib"
+variable_name = "libppl"
+[[products]]
+dir_paths = []
+dont_dlopen = false
+libnames = ["libppl_c"]
+type = "lib"
+variable_name = "libppl_c"
+
+[[sources]]
+hash = "2d470b0c262904f190a19eac57fb5c2387b1bfc3510de25a08f3c958df62fdf1"
+type = "archive"
+unpack_target = ""
+url = "http://www.bugseng.com/products/ppl/download/ftp/releases/1.2/ppl-1.2.tar.bz2"
+[[sources]]
+path = "./bundled"
+target = ""
+type = "directory"

@@ -1,0 +1,19 @@
+dependencies = []
+lazy_artifacts = false
+name = "LibUV"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/libuv/\n\n# Touch some files so that the build system doesn't try to re-run `acreconf`:\ntouch -c aclocal.m4\ntouch -c Makefile.in\ntouch -c configure\n\n# `--with-pic` isn't enough; we really really need -fPIC and -DPIC everywhere...\n# everywhere, especially on FreeBSD\n./configure --prefix=$prefix --host=$target --with-pic CFLAGS=\"${CFLAGS} -DPIC -fPIC\" CXXFLAGS=\"${CXXFLAGS} -DPIC -fPIC\"\nmake -j${nproc} V=1\nmake install\n"""
+version = "v2.0.0"
+
+[[products]]
+dir_paths = []
+dont_dlopen = false
+libnames = ["libuv"]
+type = "lib"
+variable_name = "libuv"
+
+[[sources]]
+hash = "35b1504507a7a4168caae3d78db54d1121b121e1"
+type = "git"
+unpack_target = ""
+url = "https://github.com/JuliaLang/libuv.git"

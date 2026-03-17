@@ -1,0 +1,67 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Qt6Svg"
+platforms = ["x86_64-apple-darwin", "aarch64-apple-darwin", "i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir\n\nmkdir build\ncd build/\nqtsrcdir=`ls -d ../qtsvg-*`\n\ncase \"$bb_full_target\" in\n\n    x86_64-linux-musl-libgfortran5-cxx11)\n        cmake -DCMAKE_INSTALL_PREFIX=${prefix} -DCMAKE_FIND_ROOT_PATH=$prefix -DCMAKE_BUILD_TYPE=Release $qtsrcdir\n    ;;\n\n    *apple-darwin*)\n        apple_sdk_root=$WORKSPACE/srcdir/MacOSX11.1.sdk\n        sed -i \"s!/opt/x86_64-apple-darwin14/x86_64-apple-darwin14/sys-root!$apple_sdk_root!\" $CMAKE_TARGET_TOOLCHAIN\n        cmake -DQT_HOST_PATH=$host_prefix \\\n            -DPython_ROOT_DIR=/usr \\\n            -DCMAKE_INSTALL_PREFIX=${prefix} \\\n            -DCMAKE_PREFIX_PATH=$host_prefix \\\n            -DCMAKE_FIND_ROOT_PATH=$prefix \\\n            -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n            -DCMAKE_SYSROOT=$apple_sdk_root -DCMAKE_FRAMEWORK_PATH=$apple_sdk_root/System/Library/Frameworks -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15 \\\n            -DCMAKE_BUILD_TYPE=Release \\\n        $qtsrcdir\n    ;;\n\n    *)\n        cmake -DQT_HOST_PATH=$host_prefix -DCMAKE_INSTALL_PREFIX=${prefix} -DCMAKE_FIND_ROOT_PATH=$prefix -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} -DCMAKE_BUILD_TYPE=Release $qtsrcdir\n    ;;\n\nesac\n\ncmake --build . --parallel ${nproc}\ncmake --install .\ninstall_license $WORKSPACE/srcdir/qt*-src-*/LICENSES/LGPL-3.0-only.txt\n"""
+version = "v6.4.2"
+
+[[dependencies]]
+compat = ""
+name = "Qt6Base_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Qt6Base_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["QtSvg"]
+type = "framework"
+variable_name = "libqt6svg"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["QtSvgWidgets"]
+type = "framework"
+variable_name = "libqt6svgwidgets"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt6Svg", "libQt6Svg", "QtSvg"]
+type = "lib"
+variable_name = "libqt6svg"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["Qt6SvgWidgets", "libQt6SvgWidgets", "QtSvgWidgets"]
+type = "lib"
+variable_name = "libqt6svgwidgets"
+
+[[sources]]
+hash = "b746af3cb1793621d8ed7eae38d9ad5a15541dc2742031069f2ae3fe87590314"
+type = "archive"
+unpack_target = ""
+url = "https://download.qt.io/official_releases/qt/6.4/6.4.2/submodules/qtsvg-everywhere-src-6.4.2.tar.xz"
+[[sources]]
+hash = "9b86eab03176c56bb526de30daa50fa819937c54b280364784ce431885341bf6"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/phracker/MacOSX-SDKs/releases/download/11.0-11.1/MacOSX11.1.sdk.tar.xz"

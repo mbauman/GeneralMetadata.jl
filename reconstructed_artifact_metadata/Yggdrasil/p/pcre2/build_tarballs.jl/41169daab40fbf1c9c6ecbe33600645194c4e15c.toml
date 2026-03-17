@@ -1,0 +1,47 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.9"
+lazy_artifacts = false
+name = "PCRE2"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "x86_64-linux-gnu-sanitize+memory"]
+script = """cd $WORKSPACE/srcdir/pcre2*\n\nif [[ ${bb_full_target} == *-sanitize+memory* ]]; then\n    # Install msan runtime (for clang)\n    cp -rL ${libdir}/linux/* /opt/x86_64-linux-musl/lib/clang/*/lib/linux/\nfi\n\n./autogen.sh\n\n# Update configure scripts\nupdate_configure_scripts\n\n# Force optimization\nexport CFLAGS=\"${CFLAGS} -O3\"\n\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \\\n    --enable-jit \\\n    --enable-pcre2-16 \\\n    --enable-pcre2-32\n\nmake -j${nproc}\nmake install\n\n# On windows we need libcpre2-8.dll as well\nif [[ ${target} == *mingw* ]]; then\n    ln -s libpcre2-8-0.dll  ${libdir}/libpcre2-8.dll\n    ln -s libpcre2-16-0.dll ${libdir}/libpcre2-16.dll\n    ln -s libpcre2-32-0.dll ${libdir}/libpcre2-32.dll\nfi\n"""
+version = "v10.43.0"
+
+[[dependencies]]
+compat = ""
+name = "LLVMCompilerRT_jll"
+platforms = ["x86_64-linux-gnu-sanitize+memory"]
+top_level = false
+type = "builddependency"
+uuid = "4e17d02c-6bf5-513e-be62-445f41c75a11"
+version-major = 13
+version-minor = 0
+version-patch = 1
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libpcre2-8"]
+type = "lib"
+variable_name = "libpcre2_8"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libpcre2-16"]
+type = "lib"
+variable_name = "libpcre2_16"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libpcre2-32"]
+type = "lib"
+variable_name = "libpcre2_32"
+
+[[sources]]
+hash = "3864abdb713f78831dd12d898ab31bbb0fa630b6"
+type = "git"
+unpack_target = ""
+url = "https://github.com/PCRE2Project/pcre2"

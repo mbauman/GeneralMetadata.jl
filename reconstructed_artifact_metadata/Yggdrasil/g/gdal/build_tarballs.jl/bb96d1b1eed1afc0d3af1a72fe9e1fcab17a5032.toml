@@ -1,0 +1,175 @@
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "GDAL"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir/gdal-*/\n\nif [[ ${target} == *mingw* ]]; then\n    export LDFLAGS=\"-L${libdir}\"\n    # Apply patch to customise PROJ library\n    atomic_patch -p1 \"$WORKSPACE/srcdir/patches/configure_ac_proj_libs.patch\"\n    autoreconf -vi\n    export PROJ_LIBS=\"proj_7_0\"\nelif [[ \"${target}\" == *-linux-* ]]; then\n    # Make sure GEOS is linked against libstdc++\n     atomic_patch -p1 \"$WORKSPACE/srcdir/patches/geos-m4-extra-libs.patch\"\n     atomic_patch -p1 \"$WORKSPACE/srcdir/patches/configure_ac_curl_libs.patch\"\n    export EXTRA_GEOS_LIBS=\"-lstdc++\"\n    export EXTRA_CURL_LIBS=\"-lstdc++\"\n    export LDFLAGS=\"$LDFLAGS -lstdc++\"\n    if [[ \"${target}\" == powerpc64le-* ]]; then\n        atomic_patch -p1 \"$WORKSPACE/srcdir/patches/sqlite3-m4-extra-libs.patch\"\n        export EXTRA_GEOS_LIBS=\"${EXTRA_GEOS_LIBS} -lm\"\n        export EXTRA_SQLITE3_LIBS=\"-lm\"\n        # libpthread and libldl are needed for libgdal, so let's always use them\n        export LDFLAGS=\"$LDFLAGS -lpthread -ldl\"\n    fi\n    autoreconf -vi\nfi\n\n# Clear out `.la` files since they're often wrong and screw us up\nrm -f ${prefix}/lib/*.la\n\n./configure --help\n./configure --prefix=$prefix --host=$target \\\n    --with-geos=${bindir}/geos-config \\\n    --with-proj=$prefix \\\n    --with-libz=$prefix \\\n    --with-expat=$prefix \\\n    --with-zstd=$prefix \\\n    --with-webp=$prefix \\\n    --with-sqlite3=$prefix \\\n    --with-curl=${bindir}/curl-config \\\n    --with-openjpeg \\\n    --with-python=no \\\n    --enable-shared \\\n    --disable-static\n# Make sure that some important libraries are found\ngrep \"HAVE_GEOS='yes'\" config.log\ngrep \"HAVE_SQLITE='yes'\" config.log\ngrep \"CURL_SETTING='yes'\" config.log\ngrep \"ZSTD_SETTING='yes'\" config.log\ngrep \"HAVE_EXPAT='yes'\" config.log\n\nmake -j${nproc}\nmake install\n"""
+version = "v3.0.4"
+
+[[dependencies]]
+name = "GEOS_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "PROJ_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Zlib_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "SQLite_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "LibCURL_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "OpenJpeg_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Expat_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Zstd_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "libwebp_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "LibSSH2_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "MbedTLS_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "nghttp2_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgdal"]
+type = "lib"
+variable_name = "libgdal"
+[[products]]
+binnames = ["gdal_contour"]
+type = "exe"
+variable_name = "gdal_contour_path"
+[[products]]
+binnames = ["gdal_grid"]
+type = "exe"
+variable_name = "gdal_grid_path"
+[[products]]
+binnames = ["gdal_rasterize"]
+type = "exe"
+variable_name = "gdal_rasterize_path"
+[[products]]
+binnames = ["gdal_translate"]
+type = "exe"
+variable_name = "gdal_translate_path"
+[[products]]
+binnames = ["gdaladdo"]
+type = "exe"
+variable_name = "gdaladdo_path"
+[[products]]
+binnames = ["gdalbuildvrt"]
+type = "exe"
+variable_name = "gdalbuildvrt_path"
+[[products]]
+binnames = ["gdaldem"]
+type = "exe"
+variable_name = "gdaldem_path"
+[[products]]
+binnames = ["gdalinfo"]
+type = "exe"
+variable_name = "gdalinfo_path"
+[[products]]
+binnames = ["gdallocationinfo"]
+type = "exe"
+variable_name = "gdallocationinfo_path"
+[[products]]
+binnames = ["gdalmanage"]
+type = "exe"
+variable_name = "gdalmanage_path"
+[[products]]
+binnames = ["gdalsrsinfo"]
+type = "exe"
+variable_name = "gdalsrsinfo_path"
+[[products]]
+binnames = ["gdaltindex"]
+type = "exe"
+variable_name = "gdaltindex_path"
+[[products]]
+binnames = ["gdaltransform"]
+type = "exe"
+variable_name = "gdaltransform_path"
+[[products]]
+binnames = ["gdalwarp"]
+type = "exe"
+variable_name = "gdalwarp_path"
+[[products]]
+binnames = ["nearblack"]
+type = "exe"
+variable_name = "nearblack_path"
+[[products]]
+binnames = ["ogr2ogr"]
+type = "exe"
+variable_name = "ogr2ogr_path"
+[[products]]
+binnames = ["ogrinfo"]
+type = "exe"
+variable_name = "ogrinfo_path"
+[[products]]
+binnames = ["ogrlineref"]
+type = "exe"
+variable_name = "ogrlineref_path"
+[[products]]
+binnames = ["ogrtindex"]
+type = "exe"
+variable_name = "ogrtindex_path"
+
+[[sources]]
+hash = "fc15d2b9107b250305a1e0bd8421dd9ec1ba7ac73421e4509267052995af5e83"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/OSGeo/gdal/releases/download/v3.0.4/gdal-3.0.4.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

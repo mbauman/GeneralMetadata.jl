@@ -1,0 +1,77 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Makemsix"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "x86_64-w64-mingw32"]
+script = """    cd $WORKSPACE/srcdir/msix-packaging\n\n    apk del cmake\n\n    # Overriding vendored dependencies\n    cp ../patches/lib/CMakeLists.txt lib/CMakeLists.txt\n\n    # Fix the use of internal OpenSSL APIs\n    sed -i \\\n        -e '/^#include <crypto\\/x509\\.h>$/d' \\\n        -e '/^#include <openssl\\/x509\\.h>$/ a\\\n    // Remove internal header include - use only public headers\\\n    // #include <crypto/x509.h>' \\\n        -e 's/STACK_OF(X509_EXTENSION) \\*exts = cert->cert_info\\.extensions;/const STACK_OF(X509_EXTENSION) *exts = X509_get0_extensions(cert);/g' \\\n        -e 's/STACK_OF(X509_EXTENSION) \\*exts = signingCert->cert_info\\.extensions;/const STACK_OF(X509_EXTENSION) *exts = X509_get0_extensions(signingCert);/g' \\\n        -e 's/ctx->error == X509_V_ERR_CERT_HAS_EXPIRED/X509_STORE_CTX_get_error(ctx) == X509_V_ERR_CERT_HAS_EXPIRED/g' \\\n        -e 's/ctx->error == X509_V_ERR_UNHANDLED_CRITICAL_EXTENSION/X509_STORE_CTX_get_error(ctx) == X509_V_ERR_UNHANDLED_CRITICAL_EXTENSION/g' \\\n        src/msix/PAL/Signature/OpenSSL/SignatureValidator.cpp\n\n    # Fix case-sensitive includes for Windows (upstream bug)\n    find src -type f \\( -name \"*.c\" -o -name \"*.cpp\" -o -name \"*.h\" -o -name \"*.hpp\" \\) \\\n        -exec sed -i -e 's/#include \"UnKnwn.h\"/#include \"unknwn.h\"/g' \\\n                     -e 's/#include \"Unknwn.h\"/#include \"unknwn.h\"/g' \\\n                     -e 's/#include \"Objidl.h\"/#include \"objidl.h\"/g' {} \\;\n\n    # Platform-specific options\n    PLATFORM_OPTIONS=\"\"\n    \n    if [[ \"${target}\" == *\"-apple-darwin\"* ]]; then\n        # macOS-specific options\n        PLATFORM_OPTIONS=\"-DMACOS=on\"\n\n    elif [[ \"${target}\" == *\"-linux-\"* ]] || [[ \"${target}\" == *\"-freebsd\"* ]]; then\n        # Linux-specific options\n        PLATFORM_OPTIONS=\"-DLINUX=on\"\n\n    elif [[ \"${target}\" == *\"-mingw32\" ]]; then\n        # MinGW-specific patches\n        find . -name \"CMakeLists.txt\" -type f -exec sed -i 's/set(CMAKE_CXX_STANDARD 14)/set(CMAKE_CXX_STANDARD 17)/' {} \\;\n      \n        awk -i inplace '/if\\(WIN32\\)/ {count++; if(count==3) { print \"if(FALSE) # Original: if(WIN32) - disabled for MinGW compatibility\" } else { print $0 } next } {print}' src/msix/CMakeLists.txt \n        cat ../patches/src/msix/CMakeLists.txt >> src/msix/CMakeLists.txt\n\n        cp ../patches/src/inc/internal/UnicodeConversion.hpp src/inc/internal/UnicodeConversion.hpp\n        cp ../patches/src/inc/public/MSIXWindows.hpp src/inc/public/MSIXWindows.hpp \n\n        sed -i 's/static constexpr const IID IID_##name/inline constexpr const IID IID_##name/' src/inc/public/AppxPackaging.hpp\n        sed -i 's/#ifdef WIN32/#if defined(WIN32) \\&\\& !defined(__MINGW32__)/' src/inc/public/AppxPackaging.hpp\n        sed -i 's/const PfnDliHook __pfnDliFailureHook2 = MsixDelayLoadFailureHandler;//' src/msix/common/Exceptions.cpp\n\n        sed -i \\\n            -e 's/void WalkDirectory(const std::string& root, WalkOptions options, Lambda& visitor)/void WalkDirectory(const std::string\\& root, WalkOptions options, Lambda visitor)/' \\\n            -e 's/WIN32_FIND_DATA findFileData = {};/WIN32_FIND_DATAW findFileData = {};/' \\\n            -e 's/FindFirstFile(reinterpret_cast<LPCWSTR>(utf16Name\\.c_str()), \\&findFileData)/FindFirstFileW(utf16Name.c_str(), \\&findFileData)/' \\\n            -e 's/while (FindNextFile(find\\.get(), \\&findFileData));/while (FindNextFileW(find.get(), \\&findFileData));/' \\\n            -e 's/if (!CreateDirectory(utf16Name\\.c_str(), nullptr))/if (!CreateDirectoryW(utf16Name.c_str(), nullptr))/' \\\n        src/msix/PAL/FileSystem/Win32/DirectoryObject.cpp\n\n        # Windows-specific compiler flags\n        export LDFLAGS=\"-L${libdir}\"\n        export CXXFLAGS=\"$CXXFLAGS -include windows.h\"\n\n        PLATFORM_OPTIONS=\"-DWIN32=on\"\n    fi\n\n    # Run cmake with common options + platform-specific options\n    cmake -B build \\\n        -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n        -DCMAKE_BUILD_TYPE=MinSizeRel \\\n        -DSKIP_BUNDLES=on \\\n        -DUSE_VALIDATION_PARSER=on \\\n        -DMSIX_PACK=on \\\n        -DMSIX_SAMPLES=on \\\n        -DMSIX_TESTS=off \\\n        -DXML_PARSER=xerces \\\n        -DCRYPTO_LIB=openssl \\\n        -DCMAKE_PREFIX_PATH=${prefix} \\\n        -DBUILD_SHARED_LIBS=ON \\\n        -DUSE_MSIX_SDK_ZLIB=on \\\n        -DOPENSSL_INCLUDE_DIR=\"${prefix}\" \\\n        -DOPENSSL_CRYPTO_LIBRARY=${libdir}/libcrypto.${dlext} \\\n        -DOPENSSL_SSL_LIBRARY=${libdir}/libssl.${dlext} \\\n        ${PLATFORM_OPTIONS} \\\n        .\n    \n    # Build only what we need\n    make -j${nproc} -C build/src\n\n    # Install license and binary\n    install_license LICENSE \n    install -Dvm 755 \"build/bin/makemsix${exeext}\" \"${bindir}/makemsix${exeext}\"\n\n    # Shared library installation\n    if [[ \"${target}\" == *\"-mingw32\" ]]; then\n        install -Dvm 755 \"build/bin/libmsix.${dlext}\" \"${libdir}/libmsix.${dlext}\"\n    else\n        install -Dvm 755 \"build/lib/libmsix.${dlext}\" \"${libdir}/libmsix.${dlext}\"\n    fi\n"""
+version = "v1.7.241"
+
+[[dependencies]]
+compat = "1.2.7"
+name = "fts_jll"
+platforms = ["i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.2.13"
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "3.2.4"
+name = "Xerces_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "3.0.16"
+name = "OpenSSL_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CMake_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 3
+version-minor = 31
+version-patch = 6
+
+[[products]]
+binnames = ["makemsix"]
+type = "exe"
+variable_name = "makemsix"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmsix"]
+type = "lib"
+variable_name = "libmsix"
+
+[[sources]]
+hash = "efeb9dad695a200c2beaddcba54a52c8320bd135"
+type = "git"
+unpack_target = ""
+url = "https://github.com/microsoft/msix-packaging.git"
+[[sources]]
+follow_symlinks = false
+path = "/tmp/jl_LteeYq/M/Makemsix/bundled"
+target = ""
+type = "directory"

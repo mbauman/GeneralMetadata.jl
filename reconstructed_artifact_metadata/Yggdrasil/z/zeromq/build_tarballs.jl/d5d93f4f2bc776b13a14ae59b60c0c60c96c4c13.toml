@@ -1,0 +1,37 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "ZeroMQ"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir/libzmq\nif [[ \"${target}\" == *86*-linux-musl* ]]; then\n    # Fix bug in Musl C library, see\n    # https://github.com/JuliaPackaging/BinaryBuilder.jl/issues/387\n    atomic_patch -d /opt/${target}/lib/gcc/${target}/*/include -p0 $WORKSPACE/srcdir/patches/mm_malloc.patch\nfi\nsh autogen.sh\n./configure --prefix=$prefix \\\n    --build=${MACHTYPE} \\\n    --host=${target} \\\n    --without-docs \\\n    --enable-drafts \\\n    --with-libsodium \\\n    --disable-libunwind \\\n    --disable-perf \\\n    --disable-Werror \\\n    --disable-eventfd \\\n    --without-gcov \\\n    --disable-static \\\n    CXXFLAGS=\"-O2 -fms-extensions\"\nmake -j${nproc}\nmake install\n"""
+version = "v4.3.5"
+
+[[dependencies]]
+compat = ""
+name = "libsodium_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libzmq"]
+type = "lib"
+variable_name = "libzmq"
+
+[[sources]]
+hash = "622fc6dde99ee172ebaa9c8628d85a7a1995a21d"
+type = "git"
+unpack_target = ""
+url = "https://github.com/zeromq/libzmq.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

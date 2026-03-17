@@ -1,0 +1,15 @@
+dependencies = ["CompilerSupportLibraries_jll", "FFTW_jll", "MPFR_jll", "OpenBLAS_jll"]
+name = "FastTransforms"
+platforms = ["i686-linux-gnu-libgfortran3", "i686-linux-gnu-libgfortran4", "i686-linux-gnu-libgfortran5", "x86_64-linux-gnu-libgfortran3", "x86_64-linux-gnu-libgfortran4", "x86_64-linux-gnu-libgfortran5", "i686-linux-musl-libgfortran3", "i686-linux-musl-libgfortran4", "i686-linux-musl-libgfortran5", "x86_64-linux-musl-libgfortran3", "x86_64-linux-musl-libgfortran4", "x86_64-linux-musl-libgfortran5", "x86_64-apple-darwin14-libgfortran3", "x86_64-apple-darwin14-libgfortran4", "x86_64-apple-darwin14-libgfortran5", "x86_64-unknown-freebsd11.1-libgfortran3", "x86_64-unknown-freebsd11.1-libgfortran4", "x86_64-unknown-freebsd11.1-libgfortran5", "i686-w64-mingw32-libgfortran3", "i686-w64-mingw32-libgfortran4", "i686-w64-mingw32-libgfortran5", "x86_64-w64-mingw32-libgfortran3", "x86_64-w64-mingw32-libgfortran4", "x86_64-w64-mingw32-libgfortran5"]
+script = """cd $WORKSPACE/srcdir/FastTransforms-*\nif [[ ${target} == x86_64-w64-mingw32 ]]; then\n    export CFLAGS=\"-mavx -fno-asynchronous-unwind-tables \"\nelse\n    export CFLAGS=\"-mavx \"\nfi\nif [[ ${nbits} == 64 ]]; then\n    SYMBOL_DEFS=()\n    SYMBOLS=(dgemm dtrmm dtrmv dtrsm sgemm strmm strsm)\n    for sym in ${SYMBOLS[@]}; do\n        SYMBOL_DEFS+=(\"-Dcblas_${sym}=cblas_${sym}64_\")\n    done\n    CFLAGS+=${SYMBOL_DEFS[@]}\n    BLAS=openblas64_\nelse\n    BLAS=openblas\nfi\nmake lib CC=gcc FT_PREFIX=${prefix} FT_BLAS=${BLAS} FT_FFTW_WITH_COMBINED_THREADS=1\nmv -f libfasttransforms.${dlext} ${libdir}\n"""
+version = "v0.2.12"
+
+[[products]]
+dir_paths = []
+dont_dlopen = false
+libnames = ["libfasttransforms"]
+type = "lib"
+variable_name = "libfasttransforms"
+
+[[sources]]
+"https://github.com/MikaelSlevinsky/FastTransforms/archive/v0.2.12.tar.gz" = "640c39f148d757760c2658d96ae86e46a568cb3971410c736ce85b0725f28e8a"

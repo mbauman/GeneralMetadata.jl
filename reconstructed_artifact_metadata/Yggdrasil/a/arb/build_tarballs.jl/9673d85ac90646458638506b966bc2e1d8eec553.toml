@@ -1,0 +1,46 @@
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Arb"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "aarch64-apple-darwin", "armv6l-linux-gnueabihf", "armv6l-linux-musleabihf"]
+script = """cd $WORKSPACE/srcdir\ncd arb*/\n\nif [[ ${target} == *musl* ]]; then\n   export CFLAGS=-D_GNU_SOURCE=1\nelif [[ ${target} == *mingw* ]]; then\n   # /lib is hardcoded in many places\n   sed -i -e \"s#/lib\\>#/$(basename ${libdir})#g\" configure\n   # MSYS_NT-6.3 is not detected as MINGW\n   extraflags=--build=MINGW${nbits}\nfi\n\n./configure --prefix=$prefix --disable-static --enable-shared --with-gmp=$prefix --with-mpfr=$prefix --with-flint=$prefix ${extraflags}\nmake -j${nproc}\nmake install LIBDIR=$(basename ${libdir})\n"""
+version = "v200.2100.101"
+
+[[dependencies]]
+compat = "~200.800.101"
+name = "FLINT_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "GMP_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MPFR_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libarb"]
+type = "lib"
+variable_name = "libarb"
+
+[[sources]]
+hash = "aecc9f55eb35a00a2490e9a7536a0babf8ac86bb13d32a4a95e1216f9f5cbfa8"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/fredrik-johansson/arb/archive/refs/tags/2.21.1.tar.gz"

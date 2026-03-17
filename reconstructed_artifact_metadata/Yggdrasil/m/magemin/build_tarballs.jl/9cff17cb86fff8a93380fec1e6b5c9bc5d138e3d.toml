@@ -1,0 +1,102 @@
+augment_platform_block = """    using Base.BinaryPlatforms\n    # Can't use Preferences since we might be running this very early with a non-existing Manifest\nMPIPreferences_UUID = Base.UUID(\"3da0fdf6-3ccc-4f1b-acd9-58baa6c99267\")\nconst preferences = Base.get_preferences(MPIPreferences_UUID)\n\n# Keep logic in sync with MPIPreferences.jl\nfunction augment_mpi!(platform)\n    # Doesn't need to be `const` since we depend on MPIPreferences so we\n    # invalidate the cache when it changes.\n    binary = get(preferences, \"binary\", Sys.iswindows() ? \"MicrosoftMPI_jll\" : \"MPICH_jll\")\n\n    abi = if binary == \"system\"\n        let abi = get(preferences, \"abi\", nothing)\n            if abi === nothing\n                error(\"MPIPreferences: Inconsistent state detected, binary set to system, but no ABI set.\")\n            else\n                abi\n            end\n        end\n    elseif binary == \"MicrosoftMPI_jll\"\n        \"MicrosoftMPI\"\n    elseif binary == \"MPICH_jll\"\n        \"MPICH\"\n    elseif binary == \"OpenMPI_jll\"\n        \"OpenMPI\"\n    elseif binary == \"MPItrampoline_jll\"\n        \"MPItrampoline\"\n    else\n        error(\"Unknown binary: $binary\")\n    end\n\n    if !haskey(platform, \"mpi\")\n        platform[\"mpi\"] = abi\n    end\n    return platform\nend\n\n    augment_platform!(platform::Platform) = augment_mpi!(platform)\n"""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = true
+name = "MAGEMin"
+platforms = ["i686-linux-gnu-libgfortran3-mpi+mpich", "i686-linux-gnu-libgfortran4-mpi+mpich", "i686-linux-gnu-libgfortran5-mpi+mpich", "x86_64-linux-gnu-libgfortran3-mpi+mpich", "x86_64-linux-gnu-libgfortran4-mpi+mpich", "x86_64-linux-gnu-libgfortran5-mpi+mpich", "aarch64-linux-gnu-libgfortran3-mpi+mpich", "aarch64-linux-gnu-libgfortran4-mpi+mpich", "aarch64-linux-gnu-libgfortran5-mpi+mpich", "armv6l-linux-gnueabihf-libgfortran3-mpi+mpich", "armv6l-linux-gnueabihf-libgfortran4-mpi+mpich", "armv6l-linux-gnueabihf-libgfortran5-mpi+mpich", "armv7l-linux-gnueabihf-libgfortran3-mpi+mpich", "armv7l-linux-gnueabihf-libgfortran4-mpi+mpich", "armv7l-linux-gnueabihf-libgfortran5-mpi+mpich", "powerpc64le-linux-gnu-libgfortran3-mpi+mpich", "powerpc64le-linux-gnu-libgfortran4-mpi+mpich", "powerpc64le-linux-gnu-libgfortran5-mpi+mpich", "i686-linux-musl-libgfortran3-mpi+mpich", "i686-linux-musl-libgfortran4-mpi+mpich", "i686-linux-musl-libgfortran5-mpi+mpich", "x86_64-linux-musl-libgfortran3-mpi+mpich", "x86_64-linux-musl-libgfortran4-mpi+mpich", "x86_64-linux-musl-libgfortran5-mpi+mpich", "aarch64-linux-musl-libgfortran3-mpi+mpich", "aarch64-linux-musl-libgfortran4-mpi+mpich", "aarch64-linux-musl-libgfortran5-mpi+mpich", "armv6l-linux-musleabihf-libgfortran3-mpi+mpich", "armv6l-linux-musleabihf-libgfortran4-mpi+mpich", "armv6l-linux-musleabihf-libgfortran5-mpi+mpich", "armv7l-linux-musleabihf-libgfortran3-mpi+mpich", "armv7l-linux-musleabihf-libgfortran4-mpi+mpich", "armv7l-linux-musleabihf-libgfortran5-mpi+mpich", "x86_64-apple-darwin-libgfortran3-mpi+mpich", "x86_64-apple-darwin-libgfortran4-mpi+mpich", "x86_64-apple-darwin-libgfortran5-mpi+mpich", "aarch64-apple-darwin-libgfortran5-mpi+mpich", "x86_64-unknown-freebsd-libgfortran3-mpi+mpich", "x86_64-unknown-freebsd-libgfortran4-mpi+mpich", "x86_64-unknown-freebsd-libgfortran5-mpi+mpich", "i686-linux-gnu-libgfortran3-mpi+openmpi", "i686-linux-gnu-libgfortran4-mpi+openmpi", "i686-linux-gnu-libgfortran5-mpi+openmpi", "x86_64-linux-gnu-libgfortran3-mpi+openmpi", "x86_64-linux-gnu-libgfortran4-mpi+openmpi", "x86_64-linux-gnu-libgfortran5-mpi+openmpi", "aarch64-linux-gnu-libgfortran3-mpi+openmpi", "aarch64-linux-gnu-libgfortran4-mpi+openmpi", "aarch64-linux-gnu-libgfortran5-mpi+openmpi", "armv7l-linux-gnueabihf-libgfortran3-mpi+openmpi", "armv7l-linux-gnueabihf-libgfortran4-mpi+openmpi", "armv7l-linux-gnueabihf-libgfortran5-mpi+openmpi", "powerpc64le-linux-gnu-libgfortran3-mpi+openmpi", "powerpc64le-linux-gnu-libgfortran4-mpi+openmpi", "powerpc64le-linux-gnu-libgfortran5-mpi+openmpi", "i686-linux-musl-libgfortran3-mpi+openmpi", "i686-linux-musl-libgfortran4-mpi+openmpi", "i686-linux-musl-libgfortran5-mpi+openmpi", "x86_64-linux-musl-libgfortran3-mpi+openmpi", "x86_64-linux-musl-libgfortran4-mpi+openmpi", "x86_64-linux-musl-libgfortran5-mpi+openmpi", "aarch64-linux-musl-libgfortran3-mpi+openmpi", "aarch64-linux-musl-libgfortran4-mpi+openmpi", "aarch64-linux-musl-libgfortran5-mpi+openmpi", "armv6l-linux-musleabihf-libgfortran3-mpi+openmpi", "armv6l-linux-musleabihf-libgfortran4-mpi+openmpi", "armv6l-linux-musleabihf-libgfortran5-mpi+openmpi", "armv7l-linux-musleabihf-libgfortran3-mpi+openmpi", "armv7l-linux-musleabihf-libgfortran4-mpi+openmpi", "armv7l-linux-musleabihf-libgfortran5-mpi+openmpi", "x86_64-apple-darwin-libgfortran3-mpi+openmpi", "x86_64-apple-darwin-libgfortran4-mpi+openmpi", "x86_64-apple-darwin-libgfortran5-mpi+openmpi", "aarch64-apple-darwin-libgfortran5-mpi+openmpi", "x86_64-unknown-freebsd-libgfortran3-mpi+openmpi", "x86_64-unknown-freebsd-libgfortran4-mpi+openmpi", "x86_64-unknown-freebsd-libgfortran5-mpi+openmpi", "i686-w64-mingw32-libgfortran3-mpi+microsoftmpi", "i686-w64-mingw32-libgfortran4-mpi+microsoftmpi", "i686-w64-mingw32-libgfortran5-mpi+microsoftmpi", "x86_64-w64-mingw32-libgfortran3-mpi+microsoftmpi", "x86_64-w64-mingw32-libgfortran4-mpi+microsoftmpi", "x86_64-w64-mingw32-libgfortran5-mpi+microsoftmpi", "i686-linux-gnu-libgfortran3-mpi+mpitrampoline", "i686-linux-gnu-libgfortran4-mpi+mpitrampoline", "i686-linux-gnu-libgfortran5-mpi+mpitrampoline", "x86_64-linux-gnu-libgfortran3-mpi+mpitrampoline", "x86_64-linux-gnu-libgfortran4-mpi+mpitrampoline", "x86_64-linux-gnu-libgfortran5-mpi+mpitrampoline", "aarch64-linux-gnu-libgfortran3-mpi+mpitrampoline", "aarch64-linux-gnu-libgfortran4-mpi+mpitrampoline", "aarch64-linux-gnu-libgfortran5-mpi+mpitrampoline", "armv6l-linux-gnueabihf-libgfortran3-mpi+mpitrampoline", "armv6l-linux-gnueabihf-libgfortran4-mpi+mpitrampoline", "armv6l-linux-gnueabihf-libgfortran5-mpi+mpitrampoline", "armv7l-linux-gnueabihf-libgfortran3-mpi+mpitrampoline", "armv7l-linux-gnueabihf-libgfortran4-mpi+mpitrampoline", "armv7l-linux-gnueabihf-libgfortran5-mpi+mpitrampoline", "powerpc64le-linux-gnu-libgfortran3-mpi+mpitrampoline", "powerpc64le-linux-gnu-libgfortran4-mpi+mpitrampoline", "powerpc64le-linux-gnu-libgfortran5-mpi+mpitrampoline", "x86_64-apple-darwin-libgfortran3-mpi+mpitrampoline", "x86_64-apple-darwin-libgfortran4-mpi+mpitrampoline", "x86_64-apple-darwin-libgfortran5-mpi+mpitrampoline", "aarch64-apple-darwin-libgfortran5-mpi+mpitrampoline"]
+script = """cd MAGEMin*\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    MPI_LIBS=\"-lmsmpi\"\nelif grep -q MPICH_NAME $prefix/include/mpi.h; then\n    MPI_LIBS=\"-lmpi\"\nelif grep -q MPItrampoline $prefix/include/mpi.h; then\n    MPI_LIBS=\"-lmpitrampoline\"\nelif grep -q OMPI_MAJOR_VERSION $prefix/include/mpi.h; then\n    MPI_LIBS=\"-lmpi\"\nfi\n\nCCFLAGS=\"-O3 -g -fPIC -std=c99\"\n\nif [[ \"${target}\" == *-apple* ]]; then \n    # Use Accelerate for Lapack dependencies\n    LIBS=\"-L${libdir} -lm -framework Accelerate -lnlopt ${MPI_LIBS}\"\n    INC=\"-I${includedir}\"\nelse\n    LIBS=\"-L${libdir} -lm -lopenblas -lnlopt ${MPI_LIBS}\"\n    INC=\"-I${includedir}\"\nfi\n\n# Compile library:\nmake -j${nproc} CC=\"${CC}\" CCFLAGS=\"${CCFLAGS}\" LIBS=\"${LIBS}\" INC=\"${INC}\" lib\n\n# Compile binary\nmake -j${nproc} EXE_NAME=\"MAGEMin${exeext}\" CC=\"${CC}\" CCFLAGS=\"${CCFLAGS}\" LIBS=\"${LIBS}\" INC=\"${INC}\" all\n\ninstall -Dvm 755 libMAGEMin.dylib \"${libdir}/libMAGEMin.${dlext}\"\ninstall -Dvm 755 MAGEMin${exeext} \"${bindir}/MAGEMin${exeext}\"\n\n# store files\ninstall -vm 644 src/*.h \"${includedir}\"\n\ninstall_license LICENSE\n"""
+version = "v1.3.5"
+
+[[dependencies]]
+compat = ""
+name = "NLopt_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "079eb43e-fd8e-5478-9966-2cf3e3edb778"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenBLAS32_jll"
+platforms = ["i686-linux-gnu-libgfortran3-mpi+mpich", "i686-linux-gnu-libgfortran4-mpi+mpich", "i686-linux-gnu-libgfortran5-mpi+mpich", "x86_64-linux-gnu-libgfortran3-mpi+mpich", "x86_64-linux-gnu-libgfortran4-mpi+mpich", "x86_64-linux-gnu-libgfortran5-mpi+mpich", "aarch64-linux-gnu-libgfortran3-mpi+mpich", "aarch64-linux-gnu-libgfortran4-mpi+mpich", "aarch64-linux-gnu-libgfortran5-mpi+mpich", "armv6l-linux-gnueabihf-libgfortran3-mpi+mpich", "armv6l-linux-gnueabihf-libgfortran4-mpi+mpich", "armv6l-linux-gnueabihf-libgfortran5-mpi+mpich", "armv7l-linux-gnueabihf-libgfortran3-mpi+mpich", "armv7l-linux-gnueabihf-libgfortran4-mpi+mpich", "armv7l-linux-gnueabihf-libgfortran5-mpi+mpich", "powerpc64le-linux-gnu-libgfortran3-mpi+mpich", "powerpc64le-linux-gnu-libgfortran4-mpi+mpich", "powerpc64le-linux-gnu-libgfortran5-mpi+mpich", "i686-linux-musl-libgfortran3-mpi+mpich", "i686-linux-musl-libgfortran4-mpi+mpich", "i686-linux-musl-libgfortran5-mpi+mpich", "x86_64-linux-musl-libgfortran3-mpi+mpich", "x86_64-linux-musl-libgfortran4-mpi+mpich", "x86_64-linux-musl-libgfortran5-mpi+mpich", "aarch64-linux-musl-libgfortran3-mpi+mpich", "aarch64-linux-musl-libgfortran4-mpi+mpich", "aarch64-linux-musl-libgfortran5-mpi+mpich", "armv6l-linux-musleabihf-libgfortran3-mpi+mpich", "armv6l-linux-musleabihf-libgfortran4-mpi+mpich", "armv6l-linux-musleabihf-libgfortran5-mpi+mpich", "armv7l-linux-musleabihf-libgfortran3-mpi+mpich", "armv7l-linux-musleabihf-libgfortran4-mpi+mpich", "armv7l-linux-musleabihf-libgfortran5-mpi+mpich", "x86_64-unknown-freebsd-libgfortran3-mpi+mpich", "x86_64-unknown-freebsd-libgfortran4-mpi+mpich", "x86_64-unknown-freebsd-libgfortran5-mpi+mpich", "i686-linux-gnu-libgfortran3-mpi+openmpi", "i686-linux-gnu-libgfortran4-mpi+openmpi", "i686-linux-gnu-libgfortran5-mpi+openmpi", "x86_64-linux-gnu-libgfortran3-mpi+openmpi", "x86_64-linux-gnu-libgfortran4-mpi+openmpi", "x86_64-linux-gnu-libgfortran5-mpi+openmpi", "aarch64-linux-gnu-libgfortran3-mpi+openmpi", "aarch64-linux-gnu-libgfortran4-mpi+openmpi", "aarch64-linux-gnu-libgfortran5-mpi+openmpi", "armv7l-linux-gnueabihf-libgfortran3-mpi+openmpi", "armv7l-linux-gnueabihf-libgfortran4-mpi+openmpi", "armv7l-linux-gnueabihf-libgfortran5-mpi+openmpi", "powerpc64le-linux-gnu-libgfortran3-mpi+openmpi", "powerpc64le-linux-gnu-libgfortran4-mpi+openmpi", "powerpc64le-linux-gnu-libgfortran5-mpi+openmpi", "i686-linux-musl-libgfortran3-mpi+openmpi", "i686-linux-musl-libgfortran4-mpi+openmpi", "i686-linux-musl-libgfortran5-mpi+openmpi", "x86_64-linux-musl-libgfortran3-mpi+openmpi", "x86_64-linux-musl-libgfortran4-mpi+openmpi", "x86_64-linux-musl-libgfortran5-mpi+openmpi", "aarch64-linux-musl-libgfortran3-mpi+openmpi", "aarch64-linux-musl-libgfortran4-mpi+openmpi", "aarch64-linux-musl-libgfortran5-mpi+openmpi", "armv6l-linux-musleabihf-libgfortran3-mpi+openmpi", "armv6l-linux-musleabihf-libgfortran4-mpi+openmpi", "armv6l-linux-musleabihf-libgfortran5-mpi+openmpi", "armv7l-linux-musleabihf-libgfortran3-mpi+openmpi", "armv7l-linux-musleabihf-libgfortran4-mpi+openmpi", "armv7l-linux-musleabihf-libgfortran5-mpi+openmpi", "x86_64-unknown-freebsd-libgfortran3-mpi+openmpi", "x86_64-unknown-freebsd-libgfortran4-mpi+openmpi", "x86_64-unknown-freebsd-libgfortran5-mpi+openmpi", "i686-w64-mingw32-libgfortran3-mpi+microsoftmpi", "i686-w64-mingw32-libgfortran4-mpi+microsoftmpi", "i686-w64-mingw32-libgfortran5-mpi+microsoftmpi", "x86_64-w64-mingw32-libgfortran3-mpi+microsoftmpi", "x86_64-w64-mingw32-libgfortran4-mpi+microsoftmpi", "x86_64-w64-mingw32-libgfortran5-mpi+microsoftmpi", "i686-linux-gnu-libgfortran3-mpi+mpitrampoline", "i686-linux-gnu-libgfortran4-mpi+mpitrampoline", "i686-linux-gnu-libgfortran5-mpi+mpitrampoline", "x86_64-linux-gnu-libgfortran3-mpi+mpitrampoline", "x86_64-linux-gnu-libgfortran4-mpi+mpitrampoline", "x86_64-linux-gnu-libgfortran5-mpi+mpitrampoline", "aarch64-linux-gnu-libgfortran3-mpi+mpitrampoline", "aarch64-linux-gnu-libgfortran4-mpi+mpitrampoline", "aarch64-linux-gnu-libgfortran5-mpi+mpitrampoline", "armv6l-linux-gnueabihf-libgfortran3-mpi+mpitrampoline", "armv6l-linux-gnueabihf-libgfortran4-mpi+mpitrampoline", "armv6l-linux-gnueabihf-libgfortran5-mpi+mpitrampoline", "armv7l-linux-gnueabihf-libgfortran3-mpi+mpitrampoline", "armv7l-linux-gnueabihf-libgfortran4-mpi+mpitrampoline", "armv7l-linux-gnueabihf-libgfortran5-mpi+mpitrampoline", "powerpc64le-linux-gnu-libgfortran3-mpi+mpitrampoline", "powerpc64le-linux-gnu-libgfortran4-mpi+mpitrampoline", "powerpc64le-linux-gnu-libgfortran5-mpi+mpitrampoline"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MPICH_jll"
+platforms = ["i686-linux-gnu-libgfortran3-mpi+mpich", "i686-linux-gnu-libgfortran4-mpi+mpich", "i686-linux-gnu-libgfortran5-mpi+mpich", "x86_64-linux-gnu-libgfortran3-mpi+mpich", "x86_64-linux-gnu-libgfortran4-mpi+mpich", "x86_64-linux-gnu-libgfortran5-mpi+mpich", "aarch64-linux-gnu-libgfortran3-mpi+mpich", "aarch64-linux-gnu-libgfortran4-mpi+mpich", "aarch64-linux-gnu-libgfortran5-mpi+mpich", "armv6l-linux-gnueabihf-libgfortran3-mpi+mpich", "armv6l-linux-gnueabihf-libgfortran4-mpi+mpich", "armv6l-linux-gnueabihf-libgfortran5-mpi+mpich", "armv7l-linux-gnueabihf-libgfortran3-mpi+mpich", "armv7l-linux-gnueabihf-libgfortran4-mpi+mpich", "armv7l-linux-gnueabihf-libgfortran5-mpi+mpich", "powerpc64le-linux-gnu-libgfortran3-mpi+mpich", "powerpc64le-linux-gnu-libgfortran4-mpi+mpich", "powerpc64le-linux-gnu-libgfortran5-mpi+mpich", "i686-linux-musl-libgfortran3-mpi+mpich", "i686-linux-musl-libgfortran4-mpi+mpich", "i686-linux-musl-libgfortran5-mpi+mpich", "x86_64-linux-musl-libgfortran3-mpi+mpich", "x86_64-linux-musl-libgfortran4-mpi+mpich", "x86_64-linux-musl-libgfortran5-mpi+mpich", "aarch64-linux-musl-libgfortran3-mpi+mpich", "aarch64-linux-musl-libgfortran4-mpi+mpich", "aarch64-linux-musl-libgfortran5-mpi+mpich", "armv6l-linux-musleabihf-libgfortran3-mpi+mpich", "armv6l-linux-musleabihf-libgfortran4-mpi+mpich", "armv6l-linux-musleabihf-libgfortran5-mpi+mpich", "armv7l-linux-musleabihf-libgfortran3-mpi+mpich", "armv7l-linux-musleabihf-libgfortran4-mpi+mpich", "armv7l-linux-musleabihf-libgfortran5-mpi+mpich", "x86_64-apple-darwin-libgfortran3-mpi+mpich", "x86_64-apple-darwin-libgfortran4-mpi+mpich", "x86_64-apple-darwin-libgfortran5-mpi+mpich", "aarch64-apple-darwin-libgfortran5-mpi+mpich", "x86_64-unknown-freebsd-libgfortran3-mpi+mpich", "x86_64-unknown-freebsd-libgfortran4-mpi+mpich", "x86_64-unknown-freebsd-libgfortran5-mpi+mpich"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenMPI_jll"
+platforms = ["i686-linux-gnu-libgfortran3-mpi+openmpi", "i686-linux-gnu-libgfortran4-mpi+openmpi", "i686-linux-gnu-libgfortran5-mpi+openmpi", "x86_64-linux-gnu-libgfortran3-mpi+openmpi", "x86_64-linux-gnu-libgfortran4-mpi+openmpi", "x86_64-linux-gnu-libgfortran5-mpi+openmpi", "aarch64-linux-gnu-libgfortran3-mpi+openmpi", "aarch64-linux-gnu-libgfortran4-mpi+openmpi", "aarch64-linux-gnu-libgfortran5-mpi+openmpi", "armv7l-linux-gnueabihf-libgfortran3-mpi+openmpi", "armv7l-linux-gnueabihf-libgfortran4-mpi+openmpi", "armv7l-linux-gnueabihf-libgfortran5-mpi+openmpi", "powerpc64le-linux-gnu-libgfortran3-mpi+openmpi", "powerpc64le-linux-gnu-libgfortran4-mpi+openmpi", "powerpc64le-linux-gnu-libgfortran5-mpi+openmpi", "i686-linux-musl-libgfortran3-mpi+openmpi", "i686-linux-musl-libgfortran4-mpi+openmpi", "i686-linux-musl-libgfortran5-mpi+openmpi", "x86_64-linux-musl-libgfortran3-mpi+openmpi", "x86_64-linux-musl-libgfortran4-mpi+openmpi", "x86_64-linux-musl-libgfortran5-mpi+openmpi", "aarch64-linux-musl-libgfortran3-mpi+openmpi", "aarch64-linux-musl-libgfortran4-mpi+openmpi", "aarch64-linux-musl-libgfortran5-mpi+openmpi", "armv6l-linux-musleabihf-libgfortran3-mpi+openmpi", "armv6l-linux-musleabihf-libgfortran4-mpi+openmpi", "armv6l-linux-musleabihf-libgfortran5-mpi+openmpi", "armv7l-linux-musleabihf-libgfortran3-mpi+openmpi", "armv7l-linux-musleabihf-libgfortran4-mpi+openmpi", "armv7l-linux-musleabihf-libgfortran5-mpi+openmpi", "x86_64-apple-darwin-libgfortran3-mpi+openmpi", "x86_64-apple-darwin-libgfortran4-mpi+openmpi", "x86_64-apple-darwin-libgfortran5-mpi+openmpi", "aarch64-apple-darwin-libgfortran5-mpi+openmpi", "x86_64-unknown-freebsd-libgfortran3-mpi+openmpi", "x86_64-unknown-freebsd-libgfortran4-mpi+openmpi", "x86_64-unknown-freebsd-libgfortran5-mpi+openmpi"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MicrosoftMPI_jll"
+platforms = ["i686-w64-mingw32-libgfortran3-mpi+microsoftmpi", "i686-w64-mingw32-libgfortran4-mpi+microsoftmpi", "i686-w64-mingw32-libgfortran5-mpi+microsoftmpi", "x86_64-w64-mingw32-libgfortran3-mpi+microsoftmpi", "x86_64-w64-mingw32-libgfortran4-mpi+microsoftmpi", "x86_64-w64-mingw32-libgfortran5-mpi+microsoftmpi"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "5.0.1 - 5"
+name = "MPItrampoline_jll"
+platforms = ["i686-linux-gnu-libgfortran3-mpi+mpitrampoline", "i686-linux-gnu-libgfortran4-mpi+mpitrampoline", "i686-linux-gnu-libgfortran5-mpi+mpitrampoline", "x86_64-linux-gnu-libgfortran3-mpi+mpitrampoline", "x86_64-linux-gnu-libgfortran4-mpi+mpitrampoline", "x86_64-linux-gnu-libgfortran5-mpi+mpitrampoline", "aarch64-linux-gnu-libgfortran3-mpi+mpitrampoline", "aarch64-linux-gnu-libgfortran4-mpi+mpitrampoline", "aarch64-linux-gnu-libgfortran5-mpi+mpitrampoline", "armv6l-linux-gnueabihf-libgfortran3-mpi+mpitrampoline", "armv6l-linux-gnueabihf-libgfortran4-mpi+mpitrampoline", "armv6l-linux-gnueabihf-libgfortran5-mpi+mpitrampoline", "armv7l-linux-gnueabihf-libgfortran3-mpi+mpitrampoline", "armv7l-linux-gnueabihf-libgfortran4-mpi+mpitrampoline", "armv7l-linux-gnueabihf-libgfortran5-mpi+mpitrampoline", "powerpc64le-linux-gnu-libgfortran3-mpi+mpitrampoline", "powerpc64le-linux-gnu-libgfortran4-mpi+mpitrampoline", "powerpc64le-linux-gnu-libgfortran5-mpi+mpitrampoline", "x86_64-apple-darwin-libgfortran3-mpi+mpitrampoline", "x86_64-apple-darwin-libgfortran4-mpi+mpitrampoline", "x86_64-apple-darwin-libgfortran5-mpi+mpitrampoline", "aarch64-apple-darwin-libgfortran5-mpi+mpitrampoline"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "0.1"
+name = "MPIPreferences"
+platforms = ["any"]
+top_level = true
+type = "dependency"
+uuid = "3da0fdf6-3ccc-4f1b-acd9-58baa6c99267"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libMAGEMin"]
+type = "lib"
+variable_name = "libMAGEMin"
+[[products]]
+binnames = ["MAGEMin"]
+type = "exe"
+variable_name = "MAGEMin"
+
+[[sources]]
+hash = "eab44bb6dcc9987e17a9529b550d62e9f3c2e8d6"
+type = "git"
+unpack_target = ""
+url = "https://github.com/ComputationalThermodynamics/MAGEMin"

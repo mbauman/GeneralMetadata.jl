@@ -1,0 +1,38 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "osslsigncode"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """    cd $WORKSPACE/srcdir/osslsigncode\n\n    sed -i 's/Ws2_32/ws2_32/g' CMakeLists.txt\n\n    cmake -B build \\\n        -DCMAKE_INSTALL_PREFIX=${prefix} \\\n        -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n        -DCMAKE_BUILD_TYPE=Release \\\n        -DZLIB_INCLUDE_DIR=${includedir} \\\n        -DZLIB_LIBRARY=\"${libdir}/libz.${dlext}\"\n\n    cmake --build build --parallel ${nproc}\n    \n    install_license LICENSE.txt\n    install -Dvm 755 \"build/osslsigncode${exeext}\" \"${bindir}/osslsigncode${exeext}\"\n"""
+version = "v2.9.0"
+
+[[dependencies]]
+compat = "3.0.16"
+name = "OpenSSL_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["osslsigncode"]
+type = "exe"
+variable_name = "osslsigncode"
+
+[[sources]]
+hash = "76ee550c9d3b9f0e559f044e18136b74c167fef2"
+type = "git"
+unpack_target = ""
+url = "https://github.com/mtrojnar/osslsigncode"

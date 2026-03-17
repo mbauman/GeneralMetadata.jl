@@ -1,0 +1,188 @@
+lazy_artifacts = false
+name = "GTK3"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/gtk+-*/\n\n# We need to run some commands with a native Glib\napk add glib-dev gtk+3.0\n\nif [[ \"${target}\" == *-linux-* ]]; then\n    # We need to run `wayland-scanner` on the build system only when Wayland is\n    # available, i.e. only on Linux\n    apk add wayland-dev\nfi\n\n# This is awful, I know\nln -sf /usr/bin/glib-compile-resources ${prefix}/bin/glib-compile-resources\nln -sf /usr/bin/glib-compile-schemas ${prefix}/bin/glib-compile-schemas\nln -sf /usr/bin/gdk-pixbuf-pixdata ${prefix}/bin/gdk-pixbuf-pixdata\n# Remove wayland-scanner when present, so that we can call the native one\nrm -f ${prefix}/bin/wayland-scanner\n\natomic_patch -p1 $WORKSPACE/srcdir/patches/gdkwindow-quartz_c.patch\natomic_patch -p1 $WORKSPACE/srcdir/patches/meson_build.patch\n\nFLAGS=()\nif [[ \"${target}\" == *-apple-* ]]; then\n    FLAGS+=(-Dx11_backend=false -Dwayland_backend=false)\nelif [[ \"${target}\" == *-freebsd* ]]; then\n    FLAGS+=(-Dwayland_backend=false)\nfi\n\nmkdir build-gtk && cd build-gtk\nmeson .. \\\n    -Dintrospection=false \\\n    -Ddemos=false \\\n    -Dexamples=false \\\n    -Dtests=false \\\n    \"${FLAGS[@]}\" \\\n    --cross-file=\"${MESON_TARGET_TOOLCHAIN}\"\nninja -j${nproc}\nninja install\n\n# Remove temporary links\nrm ${prefix}/bin/gdk-pixbuf-pixdata ${prefix}/bin/glib-compile-{resources,schemas}\n"""
+version = "v3.24.11"
+
+[[dependencies]]
+name = "Xorg_xorgproto_jll"
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Glib_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Cairo_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Pango_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "FriBidi_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "FreeType2_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "gdk_pixbuf_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Libepoxy_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "ATK_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "HarfBuzz_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "xkbcommon_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "iso_codes_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Wayland_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Xorg_libXrandr_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Xorg_libX11_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Xorg_libXrender_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Xorg_libXi_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Xorg_libXext_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Xorg_libXcursor_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Xorg_libXdamage_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Xorg_libXfixes_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Xorg_libXcomposite_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Xorg_libXinerama_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "Fontconfig_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "at_spi2_atk_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgailutil-3"]
+type = "lib"
+variable_name = "libgailutil3"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgdk-3"]
+type = "lib"
+variable_name = "libgdk3"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgtk-3"]
+type = "lib"
+variable_name = "libgtk3"
+
+[[sources]]
+hash = "dba7658d0a2e1bfad8260f5210ca02988f233d1d86edacb95eceed7eca982895"
+type = "archive"
+unpack_target = ""
+url = "http://ftp.gnome.org/pub/gnome/sources/gtk+/3.24/gtk+-3.24.11.tar.xz"
+[[sources]]
+path = "./bundled"
+target = ""
+type = "directory"

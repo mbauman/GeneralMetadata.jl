@@ -1,0 +1,41 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "P11Kit"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd ${WORKSPACE}/srcdir/p11-kit-*\n\n# Update our compiler wrappers.\n# (This prevents compiler warnings that are later treated as errors.)\n# - Only pass linker arguments when linking.\nif [[ ${target} = aarch64-apple-darwin* ]]; then\n    pushd /\n    atomic_patch -p0 ${WORKSPACE}/srcdir/patches/aarch64-apple-clang.patch\n    popd\nfi\nif [[ ${target} = x86_64-apple-darwin* ]]; then\n    pushd /\n    atomic_patch -p0 ${WORKSPACE}/srcdir/patches/x86_64-apple-clang.patch\n    popd\nfi\n\nmeson setup --cross-file=\"${MESON_TARGET_TOOLCHAIN}\" --buildtype=release builddir\nmeson compile -C builddir\nmeson install -C builddir\n"""
+version = "v0.25.5"
+
+[[dependencies]]
+compat = "~3.2.2"
+name = "Libffi_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libp11-kit"]
+type = "lib"
+variable_name = "libp11kit"
+[[products]]
+binnames = ["p11-kit"]
+type = "exe"
+variable_name = "p11kit"
+
+[[sources]]
+hash = "04d0a86450cdb1be018f26af6699857171a188ac6d5b8c90786a60854e1198e5"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/p11-glue/p11-kit/releases/download/0.25.5/p11-kit-0.25.5.tar.xz"
+[[sources]]
+follow_symlinks = false
+path = "bundled"
+target = ""
+type = "directory"

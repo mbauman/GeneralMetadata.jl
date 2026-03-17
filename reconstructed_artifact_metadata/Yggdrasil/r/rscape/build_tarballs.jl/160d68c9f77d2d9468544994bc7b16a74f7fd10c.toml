@@ -1,0 +1,77 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Rscape"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "x86_64-apple-darwin", "x86_64-unknown-freebsd"]
+script = """cd $WORKSPACE/srcdir/rscape*/\n\n# allow using the RSCAPE_HOME, RSCAPE_BIN, RSCAPE_SHARE environment\n# variables to override default directories for finding data params at\n# runtime instead of a hardcoded path (which doesn't work because that\n# is set to the srcdir during build)\n#\n# first convert src/msatree.c to LF line endings (from CRLF),\n# otherwise the patch doesn't apply\ncp src/msatree.c src/msatree.c.bak\ntr -d '\\015' < src/msatree.c.bak > src/msatree.c\n#\n# now apply the patch\natomic_patch -p1 ../patches/allow-env-var-override-of-dirs.patch\n\nupdate_configure_scripts\n./configure \\\n    --prefix=${prefix} --build=${MACHTYPE} --host=${target}\n\nmake -j${nproc}\nmake install\n\n# install data params\nfor f in data/power/*; do\n    install -Dvm 755 \"${f}\" \"${prefix}/${f}\"\ndone\n\ncp ./lib/R2R/R2R-current/r2r-license-text.txt r2r-license-text.txt\ncp ./lib/R2R/R2R-current/NotByZasha/nlopt-*/src/algs/direct/COPYING COPYING-nlopt-direct\ncp ./lib/R2R/R2R-current/NotByZasha/nlopt-*/COPYING COPYING-nlopt\ncp ./lib/hmmer/libdivsufsort/COPYING COPYING-libdivsufsort\ncp ./lib/hmmer/easel/LICENSE LICENSE-easel\ncp ./lib/hmmer/LICENSE LICENSE-hmmer\ncp ./lib/infernal/infernal-current/LICENSE LICENSE-infernal\n\n# Note: Rscape manual says it is GPLv3, LICENSE says it is BSD\necho \"\"\"\nThe R-scape manual (documentation/R-scape_userguide.pdf) says it is\nlicensed under GPLv3:\n\nR-scape is licensed and freely distributed under the GNU General\nPublic License version 3 (GPLv3). For a copy of the License, see\nhttp://www.gnu.org/licenses/.\n\"\"\" > LICENSE-Rscape-note-GPLv3\n\n# Note: license file for R-view is missing, it claims to be GPLv3 but\n#       doesn't contain a full copy of the license.\necho \"\"\"\nThe source code for R-view doesn't include a license file, and the only note in the\nsource code is in lib/R-view/src/rview_config.h which says it is GPLv3.\nThis gets printed as a banner when running the R-view program. The banner is:\n\n# R-view :: R-view - basepairs(RNA) and contacts(RNA/peptides) from a pdb file\n# R-view 0.1 (August 2018)\n# Copyright (C) 2018 Howard Hughes Medical Institute.\n# Freely distributed under the GNU General Public License (GPLv3).\n# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\n\"\"\" > R-view-banner\n\n# Note: license for FastTree only found in source code\nhead -n 42 lib/FastTree/src/FastTree.c > LICENSE-FastTree\n\n# Note: no license for rnaview given in tarball\necho \"\"\"\nNo explicit license in the lib/RNAVIEW directory.\n\nIn the Gentoo package repositories it is listed as public-domain:\n\nhttps://packages.gentoo.org/packages/sci-biology/rnaview\n\"\"\" > LICENSE-rnaview\n\ninstall_license LICENSE\ninstall_license LICENSE-Rscape-note-GPLv3\ninstall_license r2r-license-text.txt\ninstall_license COPYING-nlopt-direct\ninstall_license COPYING-nlopt\ninstall_license COPYING-libdivsufsort\ninstall_license LICENSE-easel\ninstall_license LICENSE-hmmer\ninstall_license LICENSE-infernal\ninstall_license R-view-banner\ninstall_license LICENSE-FastTree\ninstall_license LICENSE-rnaview\n"""
+version = "v2.0.0"
+
+[[products]]
+binnames = ["appcov"]
+type = "exe"
+variable_name = "appcov"
+[[products]]
+binnames = ["esl-afetch"]
+type = "exe"
+variable_name = "esl_afetch"
+[[products]]
+binnames = ["esl-reformat"]
+type = "exe"
+variable_name = "esl_reformat"
+[[products]]
+binnames = ["FastTree"]
+type = "exe"
+variable_name = "FastTree"
+[[products]]
+binnames = ["msafilter"]
+type = "exe"
+variable_name = "msafilter"
+[[products]]
+binnames = ["r2r"]
+type = "exe"
+variable_name = "r2r"
+[[products]]
+binnames = ["rnaview"]
+type = "exe"
+variable_name = "rnaview"
+[[products]]
+binnames = ["R-scape"]
+type = "exe"
+variable_name = "R_scape"
+[[products]]
+binnames = ["R-scape-sim"]
+type = "exe"
+variable_name = "R_scape_sim"
+[[products]]
+binnames = ["R-scape-sim-nobps"]
+type = "exe"
+variable_name = "R_scape_sim_nobps"
+[[products]]
+binnames = ["R-view"]
+type = "exe"
+variable_name = "R_view"
+[[products]]
+paths = ["bin/pdb_parse.pl"]
+type = "file"
+variable_name = "pdb_parse_pl"
+[[products]]
+paths = ["bin/r2r_msa_comply.pl"]
+type = "file"
+variable_name = "r2r_msa_comply_pl"
+[[products]]
+paths = ["bin/SelectSubFamilyFromStockholm.pl"]
+type = "file"
+variable_name = "SelectSubFamilyFromStockholm_pl"
+
+[[sources]]
+hash = "b4d76d7e4d875564ba5b97c9e96a9a1ef2c1fd7a5ad390850b04fd5eb7efc8b9"
+type = "archive"
+unpack_target = ""
+url = "http://rivaslab.org/software/rscape/rscape_v2.0.0.k.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

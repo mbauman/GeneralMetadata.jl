@@ -1,0 +1,137 @@
+augment_platform_block = """using Base.BinaryPlatforms\n\nfunction augment_llvm!(platform::Platform)\n    haskey(platform, \"llvm_version\") && return platform\n\n    llvm_version = Base.libllvm_version\n    # does our LLVM build use assertions?\n    llvm_assertions = try\n        cglobal((:_ZN4llvm24DisableABIBreakingChecksE, Base.libllvm_path()), Cvoid)\n        false\n    catch\n        true\n    end\n    platform[\"llvm_version\"] = if llvm_assertions\n        \"$(llvm_version.major).asserts\"\n    else\n        \"$(llvm_version.major)\"\n    end\n    return platform\nend\n\n\nfunction augment_platform!(platform::Platform)\n    augment_llvm!(platform)\nend"""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = true
+name = "SPIRV_LLVM_Translator_unified"
+platforms = ["i686-linux-gnu-cxx03-llvm_version+13", "i686-linux-gnu-cxx11-llvm_version+13", "x86_64-linux-gnu-cxx03-llvm_version+13", "x86_64-linux-gnu-cxx11-llvm_version+13", "aarch64-linux-gnu-cxx03-llvm_version+13", "aarch64-linux-gnu-cxx11-llvm_version+13", "armv6l-linux-gnueabihf-cxx03-llvm_version+13", "armv6l-linux-gnueabihf-cxx11-llvm_version+13", "armv7l-linux-gnueabihf-cxx03-llvm_version+13", "armv7l-linux-gnueabihf-cxx11-llvm_version+13", "powerpc64le-linux-gnu-cxx03-llvm_version+13", "powerpc64le-linux-gnu-cxx11-llvm_version+13", "x86_64-apple-darwin-llvm_version+13", "aarch64-apple-darwin-llvm_version+13", "x86_64-unknown-freebsd-llvm_version+13", "i686-w64-mingw32-cxx03-llvm_version+13", "i686-w64-mingw32-cxx11-llvm_version+13", "x86_64-w64-mingw32-cxx03-llvm_version+13", "x86_64-w64-mingw32-cxx11-llvm_version+13", "i686-linux-gnu-cxx03-llvm_version+13.asserts", "i686-linux-gnu-cxx11-llvm_version+13.asserts", "x86_64-linux-gnu-cxx03-llvm_version+13.asserts", "x86_64-linux-gnu-cxx11-llvm_version+13.asserts", "aarch64-linux-gnu-cxx03-llvm_version+13.asserts", "aarch64-linux-gnu-cxx11-llvm_version+13.asserts", "armv6l-linux-gnueabihf-cxx03-llvm_version+13.asserts", "armv6l-linux-gnueabihf-cxx11-llvm_version+13.asserts", "armv7l-linux-gnueabihf-cxx03-llvm_version+13.asserts", "armv7l-linux-gnueabihf-cxx11-llvm_version+13.asserts", "powerpc64le-linux-gnu-cxx03-llvm_version+13.asserts", "powerpc64le-linux-gnu-cxx11-llvm_version+13.asserts", "x86_64-apple-darwin-llvm_version+13.asserts", "aarch64-apple-darwin-llvm_version+13.asserts", "x86_64-unknown-freebsd-llvm_version+13.asserts", "i686-w64-mingw32-cxx03-llvm_version+13.asserts", "i686-w64-mingw32-cxx11-llvm_version+13.asserts", "x86_64-w64-mingw32-cxx03-llvm_version+13.asserts", "x86_64-w64-mingw32-cxx11-llvm_version+13.asserts", "i686-linux-gnu-cxx03-llvm_version+14", "i686-linux-gnu-cxx11-llvm_version+14", "x86_64-linux-gnu-cxx03-llvm_version+14", "x86_64-linux-gnu-cxx11-llvm_version+14", "aarch64-linux-gnu-cxx03-llvm_version+14", "aarch64-linux-gnu-cxx11-llvm_version+14", "armv6l-linux-gnueabihf-cxx03-llvm_version+14", "armv6l-linux-gnueabihf-cxx11-llvm_version+14", "armv7l-linux-gnueabihf-cxx03-llvm_version+14", "armv7l-linux-gnueabihf-cxx11-llvm_version+14", "powerpc64le-linux-gnu-cxx03-llvm_version+14", "powerpc64le-linux-gnu-cxx11-llvm_version+14", "x86_64-apple-darwin-llvm_version+14", "aarch64-apple-darwin-llvm_version+14", "x86_64-unknown-freebsd-llvm_version+14", "i686-w64-mingw32-cxx03-llvm_version+14", "i686-w64-mingw32-cxx11-llvm_version+14", "x86_64-w64-mingw32-cxx03-llvm_version+14", "x86_64-w64-mingw32-cxx11-llvm_version+14", "i686-linux-gnu-cxx03-llvm_version+14.asserts", "i686-linux-gnu-cxx11-llvm_version+14.asserts", "x86_64-linux-gnu-cxx03-llvm_version+14.asserts", "x86_64-linux-gnu-cxx11-llvm_version+14.asserts", "aarch64-linux-gnu-cxx03-llvm_version+14.asserts", "aarch64-linux-gnu-cxx11-llvm_version+14.asserts", "armv6l-linux-gnueabihf-cxx03-llvm_version+14.asserts", "armv6l-linux-gnueabihf-cxx11-llvm_version+14.asserts", "armv7l-linux-gnueabihf-cxx03-llvm_version+14.asserts", "armv7l-linux-gnueabihf-cxx11-llvm_version+14.asserts", "powerpc64le-linux-gnu-cxx03-llvm_version+14.asserts", "powerpc64le-linux-gnu-cxx11-llvm_version+14.asserts", "x86_64-apple-darwin-llvm_version+14.asserts", "aarch64-apple-darwin-llvm_version+14.asserts", "x86_64-unknown-freebsd-llvm_version+14.asserts", "i686-w64-mingw32-cxx03-llvm_version+14.asserts", "i686-w64-mingw32-cxx11-llvm_version+14.asserts", "x86_64-w64-mingw32-cxx03-llvm_version+14.asserts", "x86_64-w64-mingw32-cxx11-llvm_version+14.asserts", "i686-linux-gnu-cxx03-llvm_version+15", "i686-linux-gnu-cxx11-llvm_version+15", "x86_64-linux-gnu-cxx03-llvm_version+15", "x86_64-linux-gnu-cxx11-llvm_version+15", "aarch64-linux-gnu-cxx03-llvm_version+15", "aarch64-linux-gnu-cxx11-llvm_version+15", "armv6l-linux-gnueabihf-cxx03-llvm_version+15", "armv6l-linux-gnueabihf-cxx11-llvm_version+15", "armv7l-linux-gnueabihf-cxx03-llvm_version+15", "armv7l-linux-gnueabihf-cxx11-llvm_version+15", "powerpc64le-linux-gnu-cxx03-llvm_version+15", "powerpc64le-linux-gnu-cxx11-llvm_version+15", "x86_64-apple-darwin-llvm_version+15", "aarch64-apple-darwin-llvm_version+15", "x86_64-unknown-freebsd-llvm_version+15", "i686-w64-mingw32-cxx03-llvm_version+15", "i686-w64-mingw32-cxx11-llvm_version+15", "x86_64-w64-mingw32-cxx03-llvm_version+15", "x86_64-w64-mingw32-cxx11-llvm_version+15", "i686-linux-gnu-cxx03-llvm_version+15.asserts", "i686-linux-gnu-cxx11-llvm_version+15.asserts", "x86_64-linux-gnu-cxx03-llvm_version+15.asserts", "x86_64-linux-gnu-cxx11-llvm_version+15.asserts", "aarch64-linux-gnu-cxx03-llvm_version+15.asserts", "aarch64-linux-gnu-cxx11-llvm_version+15.asserts", "armv6l-linux-gnueabihf-cxx03-llvm_version+15.asserts", "armv6l-linux-gnueabihf-cxx11-llvm_version+15.asserts", "armv7l-linux-gnueabihf-cxx03-llvm_version+15.asserts", "armv7l-linux-gnueabihf-cxx11-llvm_version+15.asserts", "powerpc64le-linux-gnu-cxx03-llvm_version+15.asserts", "powerpc64le-linux-gnu-cxx11-llvm_version+15.asserts", "x86_64-apple-darwin-llvm_version+15.asserts", "aarch64-apple-darwin-llvm_version+15.asserts", "x86_64-unknown-freebsd-llvm_version+15.asserts", "i686-w64-mingw32-cxx03-llvm_version+15.asserts", "i686-w64-mingw32-cxx11-llvm_version+15.asserts", "x86_64-w64-mingw32-cxx03-llvm_version+15.asserts", "x86_64-w64-mingw32-cxx11-llvm_version+15.asserts", "i686-linux-gnu-cxx03-llvm_version+16", "i686-linux-gnu-cxx11-llvm_version+16", "x86_64-linux-gnu-cxx03-llvm_version+16", "x86_64-linux-gnu-cxx11-llvm_version+16", "aarch64-linux-gnu-cxx03-llvm_version+16", "aarch64-linux-gnu-cxx11-llvm_version+16", "armv6l-linux-gnueabihf-cxx03-llvm_version+16", "armv6l-linux-gnueabihf-cxx11-llvm_version+16", "armv7l-linux-gnueabihf-cxx03-llvm_version+16", "armv7l-linux-gnueabihf-cxx11-llvm_version+16", "powerpc64le-linux-gnu-cxx03-llvm_version+16", "powerpc64le-linux-gnu-cxx11-llvm_version+16", "x86_64-apple-darwin-llvm_version+16", "aarch64-apple-darwin-llvm_version+16", "x86_64-unknown-freebsd-llvm_version+16", "i686-w64-mingw32-cxx03-llvm_version+16", "i686-w64-mingw32-cxx11-llvm_version+16", "x86_64-w64-mingw32-cxx03-llvm_version+16", "x86_64-w64-mingw32-cxx11-llvm_version+16", "i686-linux-gnu-cxx03-llvm_version+16.asserts", "i686-linux-gnu-cxx11-llvm_version+16.asserts", "x86_64-linux-gnu-cxx03-llvm_version+16.asserts", "x86_64-linux-gnu-cxx11-llvm_version+16.asserts", "aarch64-linux-gnu-cxx03-llvm_version+16.asserts", "aarch64-linux-gnu-cxx11-llvm_version+16.asserts", "armv6l-linux-gnueabihf-cxx03-llvm_version+16.asserts", "armv6l-linux-gnueabihf-cxx11-llvm_version+16.asserts", "armv7l-linux-gnueabihf-cxx03-llvm_version+16.asserts", "armv7l-linux-gnueabihf-cxx11-llvm_version+16.asserts", "powerpc64le-linux-gnu-cxx03-llvm_version+16.asserts", "powerpc64le-linux-gnu-cxx11-llvm_version+16.asserts", "x86_64-apple-darwin-llvm_version+16.asserts", "aarch64-apple-darwin-llvm_version+16.asserts", "x86_64-unknown-freebsd-llvm_version+16.asserts", "i686-w64-mingw32-cxx03-llvm_version+16.asserts", "i686-w64-mingw32-cxx11-llvm_version+16.asserts", "x86_64-w64-mingw32-cxx03-llvm_version+16.asserts", "x86_64-w64-mingw32-cxx11-llvm_version+16.asserts", "i686-linux-gnu-cxx03-llvm_version+17", "i686-linux-gnu-cxx11-llvm_version+17", "x86_64-linux-gnu-cxx03-llvm_version+17", "x86_64-linux-gnu-cxx11-llvm_version+17", "aarch64-linux-gnu-cxx03-llvm_version+17", "aarch64-linux-gnu-cxx11-llvm_version+17", "armv6l-linux-gnueabihf-cxx03-llvm_version+17", "armv6l-linux-gnueabihf-cxx11-llvm_version+17", "armv7l-linux-gnueabihf-cxx03-llvm_version+17", "armv7l-linux-gnueabihf-cxx11-llvm_version+17", "powerpc64le-linux-gnu-cxx03-llvm_version+17", "powerpc64le-linux-gnu-cxx11-llvm_version+17", "x86_64-apple-darwin-llvm_version+17", "aarch64-apple-darwin-llvm_version+17", "x86_64-unknown-freebsd-llvm_version+17", "i686-w64-mingw32-cxx03-llvm_version+17", "i686-w64-mingw32-cxx11-llvm_version+17", "x86_64-w64-mingw32-cxx03-llvm_version+17", "x86_64-w64-mingw32-cxx11-llvm_version+17", "i686-linux-gnu-cxx03-llvm_version+17.asserts", "i686-linux-gnu-cxx11-llvm_version+17.asserts", "x86_64-linux-gnu-cxx03-llvm_version+17.asserts", "x86_64-linux-gnu-cxx11-llvm_version+17.asserts", "aarch64-linux-gnu-cxx03-llvm_version+17.asserts", "aarch64-linux-gnu-cxx11-llvm_version+17.asserts", "armv6l-linux-gnueabihf-cxx03-llvm_version+17.asserts", "armv6l-linux-gnueabihf-cxx11-llvm_version+17.asserts", "armv7l-linux-gnueabihf-cxx03-llvm_version+17.asserts", "armv7l-linux-gnueabihf-cxx11-llvm_version+17.asserts", "powerpc64le-linux-gnu-cxx03-llvm_version+17.asserts", "powerpc64le-linux-gnu-cxx11-llvm_version+17.asserts", "x86_64-apple-darwin-llvm_version+17.asserts", "aarch64-apple-darwin-llvm_version+17.asserts", "x86_64-unknown-freebsd-llvm_version+17.asserts", "i686-w64-mingw32-cxx03-llvm_version+17.asserts", "i686-w64-mingw32-cxx11-llvm_version+17.asserts", "x86_64-w64-mingw32-cxx03-llvm_version+17.asserts", "x86_64-w64-mingw32-cxx11-llvm_version+17.asserts"]
+script = ["""cd SPIRV-LLVM-Translator\ninstall_license LICENSE.TXT\n\nCMAKE_FLAGS=()\n\n# Release build for best performance\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\n\n# Install things into $prefix\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix})\n\n# Explicitly use our cmake toolchain file and tell CMake we're cross-compiling\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING:BOOL=ON)\n\n# Tell CMake where LLVM is\nCMAKE_FLAGS+=(-DLLVM_DIR=\"${prefix}/lib/cmake/llvm\")\n\n# Build the library\nCMAKE_FLAGS+=(-DBUILD_SHARED_LIBS=ON)\n\n# Use our LLVM version\nCMAKE_FLAGS+=(-DBASE_LLVM_VERSION=13.0.0)\n\n# Suppress certain errors\nCMAKE_FLAGS+=(-DCMAKE_CXX_FLAGS=\"-Wno-enum-constexpr-conversion\")\n\ncmake -B build -S . -GNinja ${CMAKE_FLAGS[@]}\nninja -C build -j ${nproc} llvm-spirv install\ninstall -Dm755 build/tools/llvm-spirv/llvm-spirv${exeext} -t ${bindir}\n""", """cd SPIRV-LLVM-Translator\ninstall_license LICENSE.TXT\n\nCMAKE_FLAGS=()\n\n# Release build for best performance\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\n\n# Install things into $prefix\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix})\n\n# Explicitly use our cmake toolchain file and tell CMake we're cross-compiling\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING:BOOL=ON)\n\n# Tell CMake where LLVM is\nCMAKE_FLAGS+=(-DLLVM_DIR=\"${prefix}/lib/cmake/llvm\")\n\n# Build the library\nCMAKE_FLAGS+=(-DBUILD_SHARED_LIBS=ON)\n\n# Use our LLVM version\nCMAKE_FLAGS+=(-DBASE_LLVM_VERSION=14.0.0)\n\n# Suppress certain errors\nCMAKE_FLAGS+=(-DCMAKE_CXX_FLAGS=\"-Wno-enum-constexpr-conversion\")\n\ncmake -B build -S . -GNinja ${CMAKE_FLAGS[@]}\nninja -C build -j ${nproc} llvm-spirv install\ninstall -Dm755 build/tools/llvm-spirv/llvm-spirv${exeext} -t ${bindir}\n""", """cd SPIRV-LLVM-Translator\ninstall_license LICENSE.TXT\n\nCMAKE_FLAGS=()\n\n# Release build for best performance\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\n\n# Install things into $prefix\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix})\n\n# Explicitly use our cmake toolchain file and tell CMake we're cross-compiling\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING:BOOL=ON)\n\n# Tell CMake where LLVM is\nCMAKE_FLAGS+=(-DLLVM_DIR=\"${prefix}/lib/cmake/llvm\")\n\n# Build the library\nCMAKE_FLAGS+=(-DBUILD_SHARED_LIBS=ON)\n\n# Use our LLVM version\nCMAKE_FLAGS+=(-DBASE_LLVM_VERSION=15.0.0)\n\n# Suppress certain errors\nCMAKE_FLAGS+=(-DCMAKE_CXX_FLAGS=\"-Wno-enum-constexpr-conversion\")\n\ncmake -B build -S . -GNinja ${CMAKE_FLAGS[@]}\nninja -C build -j ${nproc} llvm-spirv install\ninstall -Dm755 build/tools/llvm-spirv/llvm-spirv${exeext} -t ${bindir}\n""", """cd SPIRV-LLVM-Translator\ninstall_license LICENSE.TXT\n\nCMAKE_FLAGS=()\n\n# Release build for best performance\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\n\n# Install things into $prefix\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix})\n\n# Explicitly use our cmake toolchain file and tell CMake we're cross-compiling\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING:BOOL=ON)\n\n# Tell CMake where LLVM is\nCMAKE_FLAGS+=(-DLLVM_DIR=\"${prefix}/lib/cmake/llvm\")\n\n# Build the library\nCMAKE_FLAGS+=(-DBUILD_SHARED_LIBS=ON)\n\n# Use our LLVM version\nCMAKE_FLAGS+=(-DBASE_LLVM_VERSION=16.0.0)\n\n# Suppress certain errors\nCMAKE_FLAGS+=(-DCMAKE_CXX_FLAGS=\"-Wno-enum-constexpr-conversion\")\n\ncmake -B build -S . -GNinja ${CMAKE_FLAGS[@]}\nninja -C build -j ${nproc} llvm-spirv install\ninstall -Dm755 build/tools/llvm-spirv/llvm-spirv${exeext} -t ${bindir}\n""", """cd SPIRV-LLVM-Translator\ninstall_license LICENSE.TXT\n\nCMAKE_FLAGS=()\n\n# Release build for best performance\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\n\n# Install things into $prefix\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix})\n\n# Explicitly use our cmake toolchain file and tell CMake we're cross-compiling\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING:BOOL=ON)\n\n# Tell CMake where LLVM is\nCMAKE_FLAGS+=(-DLLVM_DIR=\"${prefix}/lib/cmake/llvm\")\n\n# Build the library\nCMAKE_FLAGS+=(-DBUILD_SHARED_LIBS=ON)\n\n# Use our LLVM version\nCMAKE_FLAGS+=(-DBASE_LLVM_VERSION=17.0.0)\n\n# Suppress certain errors\nCMAKE_FLAGS+=(-DCMAKE_CXX_FLAGS=\"-Wno-enum-constexpr-conversion\")\n\ncmake -B build -S . -GNinja ${CMAKE_FLAGS[@]}\nninja -C build -j ${nproc} llvm-spirv install\ninstall -Dm755 build/tools/llvm-spirv/llvm-spirv${exeext} -t ${bindir}\n"""]
+version = "v0.5.0"
+
+[[dependencies]]
+compat = ""
+name = "LLVM_full_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 13
+version-minor = 0
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "LLVM_full_assert_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 13
+version-minor = 0
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "LLVM_full_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 14
+version-minor = 0
+version-patch = 6
+[[dependencies]]
+compat = ""
+name = "LLVM_full_assert_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 14
+version-minor = 0
+version-patch = 6
+[[dependencies]]
+compat = ""
+name = "LLVM_full_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 15
+version-minor = 0
+version-patch = 7
+[[dependencies]]
+compat = ""
+name = "LLVM_full_assert_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 15
+version-minor = 0
+version-patch = 7
+[[dependencies]]
+compat = ""
+name = "LLVM_full_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 16
+version-minor = 0
+version-patch = 6
+[[dependencies]]
+compat = ""
+name = "LLVM_full_assert_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 16
+version-minor = 0
+version-patch = 6
+[[dependencies]]
+compat = ""
+name = "LLVM_full_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 17
+version-minor = 0
+version-patch = 6
+[[dependencies]]
+compat = ""
+name = "LLVM_full_assert_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 17
+version-minor = 0
+version-patch = 6
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libLLVMSPIRVLib", "LLVMSPIRVLib"]
+type = "lib"
+variable_name = "libLLVMSPIRV"
+[[products]]
+binnames = ["llvm-spirv"]
+type = "exe"
+variable_name = "llvm_spirv"
+
+[[sources]]
+hash = "093cf279cad6f12bb22abf0a94eae9aca938aaea"
+type = "git"
+unpack_target = ""
+url = "https://github.com/KhronosGroup/SPIRV-LLVM-Translator.git"
+[[sources]]
+hash = "62f5b09b11b1da42274371b1f7535f6f2ab11485"
+type = "git"
+unpack_target = ""
+url = "https://github.com/KhronosGroup/SPIRV-LLVM-Translator.git"
+[[sources]]
+hash = "0f9ad6622b1bf308facf35073c91c738b34081ba"
+type = "git"
+unpack_target = ""
+url = "https://github.com/KhronosGroup/SPIRV-LLVM-Translator.git"
+[[sources]]
+hash = "0b107dbf421593ed6f201ea2b7976e9456bc6bd3"
+type = "git"
+unpack_target = ""
+url = "https://github.com/KhronosGroup/SPIRV-LLVM-Translator.git"
+[[sources]]
+hash = "38e0a0dda82ab2807d7064b34bd7e81034ef3837"
+type = "git"
+unpack_target = ""
+url = "https://github.com/KhronosGroup/SPIRV-LLVM-Translator.git"

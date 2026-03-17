@@ -5,24 +5,10 @@ registered = 2020-01-17T01:09:30.000Z
     [["3.1.6+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.1.6+0/MariaDB_Connector_C.v3.1.6.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.1.6+0/MariaDB_Connector_C.v3.1.6.arm-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.1.6+0/MariaDB_Connector_C.v3.1.6.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.1.6+0/MariaDB_Connector_C.v3.1.6.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.1.6+0/MariaDB_Connector_C.v3.1.6.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.1.6+0/MariaDB_Connector_C.v3.1.6.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.1.6+0/MariaDB_Connector_C.v3.1.6.x86_64-apple-darwin14.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.1.6+0/MariaDB_Connector_C.v3.1.6.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.1.6+0/MariaDB_Connector_C.v3.1.6.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.1.6+0/MariaDB_Connector_C.v3.1.6.x86_64-unknown-freebsd11.1.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.1.6+0/MariaDB_Connector_C.v3.1.6.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/4482eabf0843fd609eb50161d94d498b90b3831d/M/MariaDB_Connector_C/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/m/mariadb_connector_c/build_tarballs.jl/4482eabf0843fd609eb50161d94d498b90b3831d.toml"
     metadata_source = "retrospective (by timestamp)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.2.2"
-
-        ["3.1.6+0".artifact_metadata.metadata]
-        dependencies = ["LibCURL_jll", "Libiconv_jll", "OpenSSL_jll", "Zlib_jll"]
-        name = "MariaDB_Connector_C"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "arm-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd $WORKSPACE/srcdir/mariadb-*/\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    for p in ../patches/*.patch; do\n        atomic_patch -p1 \"${p}\"\n    done\n    export CFLAGS=\"-std=c99\"\n    # Minimum version of Windows supported by MariaDB is 7,\n    # see tables in https://docs.microsoft.com/en-us/windows/win32/winprog/using-the-windows-headers\n    if [[ \"${nbits}\" == 32 ]]; then\n        export CFLAGS=\"${CFLAGS} -D_WIN32_WINNT=0x0601\"\n    elif [[ \"${nbits}\" == 64 ]]; then\n        export CFLAGS=\"${CFLAGS} -DNTDDI_VERSION=0x06010000\"\n    fi\nelif [[ \"${target}\" == *-apple-* ]]; then\n    # Nuke header files in the sysroot\n    # to avoid they'll be picked up by CMake\n    rm -rf /opt/${target}/${target}/sys-root/usr/include/openssl\n    rm -rf /opt/${target}/${target}/sys-root/usr/include/{iconv.h,libcharset.h,localcharset.h}\n\n    SYMBS_DEFS=()\n    for sym in iconv iconv_close iconv_open; do\n        SYMBS_DEFS+=(-D${sym}=lib${sym})\n    done\n    export CFLAGS=\"${SYMBS_DEFS[@]}\"\nfi\n\nmkdir build && cd build\ncmake .. -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DWITH_MYSQLCOMPAT=OFF \\\n    -DWITH_EXTERNAL_ZLIB=ON \\\n    -DZLIB_FOUND=ON \\\n    -DZLIB_INCLUDE_DIR=${prefix}/include \\\n    -DZLIB_LIBRARY=${libdir}/libz.${dlext} \\\n    -DOPENSSL_FOUND=ON \\\n    -DOPENSSL_CRYPTO_LIBRARY=${libdir}/libcrypto.${dlext} \\\n    -DOPENSSL_SSL_LIBRARY=${libdir}/libssl.${dlext} \\\n    -DICONV_LIBRARIES=${libdir}/libiconv.${dlext} \\\n    -DICONV_INCLUDE_DIR=${prefix}/include\nmake -j${nproc}\nmake install\ninstall_license ../COPYING.LIB\n"""
-        sources = [{"https://github.com/mariadb-corporation/mariadb-connector-c.git" = "63df45ce3df3fbc04d8fab9bceb77f9d1cccd4aa"}, "./bundled"]
-        version = "v3.1.6"
-
-            [["3.1.6+0".artifact_metadata.metadata.products]]
-            dir_paths = ["lib/mariadb"]
-            dont_dlopen = false
-            libnames = ["libmariadb"]
-            type = "lib"
-            variable_name = "libmariadb"
 
 ["3.1.12+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.1.12+0/MariaDB_Connector_C.v3.1.12.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.1.12+0/MariaDB_Connector_C.v3.1.12.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.1.12+0/MariaDB_Connector_C.v3.1.12.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.1.12+0/MariaDB_Connector_C.v3.1.12.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.1.12+0/MariaDB_Connector_C.v3.1.12.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.1.12+0/MariaDB_Connector_C.v3.1.12.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.1.12+0/MariaDB_Connector_C.v3.1.12.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.1.12+0/MariaDB_Connector_C.v3.1.12.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.1.12+0/MariaDB_Connector_C.v3.1.12.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.1.12+0/MariaDB_Connector_C.v3.1.12.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.1.12+0/MariaDB_Connector_C.v3.1.12.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.1.12+0/MariaDB_Connector_C.v3.1.12.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.1.12+0/MariaDB_Connector_C.v3.1.12.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.1.12+0/MariaDB_Connector_C.v3.1.12.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.1.12+0/MariaDB_Connector_C.v3.1.12.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.1.12+0/MariaDB_Connector_C.v3.1.12.x86_64-w64-mingw32.tar.gz"]
@@ -31,70 +17,10 @@ registered = 2022-01-20T16:13:15.000Z
     [["3.1.12+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.1.12+0/MariaDB_Connector_C.v3.1.12.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.1.12+0/MariaDB_Connector_C.v3.1.12.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.1.12+0/MariaDB_Connector_C.v3.1.12.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.1.12+0/MariaDB_Connector_C.v3.1.12.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.1.12+0/MariaDB_Connector_C.v3.1.12.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.1.12+0/MariaDB_Connector_C.v3.1.12.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.1.12+0/MariaDB_Connector_C.v3.1.12.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.1.12+0/MariaDB_Connector_C.v3.1.12.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.1.12+0/MariaDB_Connector_C.v3.1.12.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.1.12+0/MariaDB_Connector_C.v3.1.12.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.1.12+0/MariaDB_Connector_C.v3.1.12.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.1.12+0/MariaDB_Connector_C.v3.1.12.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.1.12+0/MariaDB_Connector_C.v3.1.12.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.1.12+0/MariaDB_Connector_C.v3.1.12.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.1.12+0/MariaDB_Connector_C.v3.1.12.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.1.12+0/MariaDB_Connector_C.v3.1.12.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/f16b91e37fa7043a0847177e88a2bde10545d31f/M/MariaDB_Connector_C/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/m/mariadb_connector_c/build_tarballs.jl/f16b91e37fa7043a0847177e88a2bde10545d31f.toml"
     metadata_source = "retrospective (by timestamp)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.5.0"
-
-        ["3.1.12+0".artifact_metadata.metadata]
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "MariaDB_Connector_C"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd $WORKSPACE/srcdir/mariadb-*/\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    for p in ../patches/*.patch; do\n        atomic_patch -p1 \"${p}\"\n    done\n    export CFLAGS=\"-std=c99\"\n    # Minimum version of Windows supported by MariaDB is 7,\n    # see tables in https://docs.microsoft.com/en-us/windows/win32/winprog/using-the-windows-headers\n    if [[ \"${nbits}\" == 32 ]]; then\n        export CFLAGS=\"${CFLAGS} -D_WIN32_WINNT=0x0601\"\n    elif [[ \"${nbits}\" == 64 ]]; then\n        export CFLAGS=\"${CFLAGS} -DNTDDI_VERSION=0x06010000\"\n    fi\nelif [[ \"${target}\" == *-apple-* ]]; then\n    # Nuke header files in the sysroot\n    # to avoid they'll be picked up by CMake\n    rm -rf /opt/${target}/${target}/sys-root/usr/include/openssl\n    rm -rf /opt/${target}/${target}/sys-root/usr/include/{iconv.h,libcharset.h,localcharset.h}\n\n    SYMBS_DEFS=()\n    for sym in iconv iconv_close iconv_open; do\n        SYMBS_DEFS+=(-D${sym}=lib${sym})\n    done\n    export CFLAGS=\"${SYMBS_DEFS[@]}\"\nfi\n\nmkdir build && cd build\ncmake .. -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DWITH_MYSQLCOMPAT=OFF \\\n    -DWITH_EXTERNAL_ZLIB=ON \\\n    -DZLIB_FOUND=ON \\\n    -DZLIB_INCLUDE_DIR=${includedir} \\\n    -DZLIB_LIBRARY=${libdir}/libz.${dlext} \\\n    -DOPENSSL_FOUND=ON \\\n    -DOPENSSL_CRYPTO_LIBRARY=${libdir}/libcrypto.${dlext} \\\n    -DOPENSSL_SSL_LIBRARY=${libdir}/libssl.${dlext} \\\n    -DICONV_LIBRARIES=${libdir}/libiconv.${dlext} \\\n    -DICONV_INCLUDE_DIR=${includedir}\nmake -j${nproc}\nmake install\ninstall_license ../COPYING.LIB\n"""
-        version = "v3.1.12"
-
-            [["3.1.12+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LibCURL_jll"
-            platforms = ["any"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["3.1.12+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Libiconv_jll"
-            platforms = ["any"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["3.1.12+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "OpenSSL_jll"
-            platforms = ["any"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["3.1.12+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Zlib_jll"
-            platforms = ["any"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["3.1.12+0".artifact_metadata.metadata.products]]
-            dir_paths = ["lib/mariadb"]
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libmariadb"]
-            type = "lib"
-            variable_name = "libmariadb"
-
-            [["3.1.12+0".artifact_metadata.metadata.sources]]
-            hash = "7d304d26c787a3f0430624db977b615aba56e4bb"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/mariadb-corporation/mariadb-connector-c.git"
-            [["3.1.12+0".artifact_metadata.metadata.sources]]
-            follow_symlinks = false
-            path = "./bundled"
-            target = ""
-            type = "directory"
 
 ["3.3.2+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.2+0/MariaDB_Connector_C.v3.3.2.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.2+0/MariaDB_Connector_C.v3.3.2.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.2+0/MariaDB_Connector_C.v3.3.2.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.2+0/MariaDB_Connector_C.v3.3.2.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.2+0/MariaDB_Connector_C.v3.3.2.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.2+0/MariaDB_Connector_C.v3.3.2.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.2+0/MariaDB_Connector_C.v3.3.2.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.2+0/MariaDB_Connector_C.v3.3.2.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.2+0/MariaDB_Connector_C.v3.3.2.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.2+0/MariaDB_Connector_C.v3.3.2.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.2+0/MariaDB_Connector_C.v3.3.2.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.2+0/MariaDB_Connector_C.v3.3.2.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.2+0/MariaDB_Connector_C.v3.3.2.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.2+0/MariaDB_Connector_C.v3.3.2.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.2+0/MariaDB_Connector_C.v3.3.2.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.2+0/MariaDB_Connector_C.v3.3.2.x86_64-w64-mingw32.tar.gz"]
@@ -103,71 +29,10 @@ registered = 2022-08-24T00:17:39.000Z
     [["3.3.2+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.2+0/MariaDB_Connector_C.v3.3.2.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.2+0/MariaDB_Connector_C.v3.3.2.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.2+0/MariaDB_Connector_C.v3.3.2.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.2+0/MariaDB_Connector_C.v3.3.2.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.2+0/MariaDB_Connector_C.v3.3.2.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.2+0/MariaDB_Connector_C.v3.3.2.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.2+0/MariaDB_Connector_C.v3.3.2.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.2+0/MariaDB_Connector_C.v3.3.2.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.2+0/MariaDB_Connector_C.v3.3.2.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.2+0/MariaDB_Connector_C.v3.3.2.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.2+0/MariaDB_Connector_C.v3.3.2.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.2+0/MariaDB_Connector_C.v3.3.2.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.2+0/MariaDB_Connector_C.v3.3.2.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.2+0/MariaDB_Connector_C.v3.3.2.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.2+0/MariaDB_Connector_C.v3.3.2.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.2+0/MariaDB_Connector_C.v3.3.2.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/2cfa5d9640978c405973effbfcf7b9af3287413f/M/MariaDB_Connector_C/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/m/mariadb_connector_c/build_tarballs.jl/2cfa5d9640978c405973effbfcf7b9af3287413f.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.5.5"
-
-        ["3.3.2+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "MariaDB_Connector_C"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd $WORKSPACE/srcdir/mariadb-*/\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    for p in ../patches/*.patch; do\n        atomic_patch -p1 \"${p}\"\n    done\n    export CFLAGS=\"-std=c99\"\n    # Minimum version of Windows supported by MariaDB is 7,\n    # see tables in https://docs.microsoft.com/en-us/windows/win32/winprog/using-the-windows-headers\n    if [[ \"${nbits}\" == 32 ]]; then\n        export CFLAGS=\"${CFLAGS} -D_WIN32_WINNT=0x0601\"\n    elif [[ \"${nbits}\" == 64 ]]; then\n        export CFLAGS=\"${CFLAGS} -DNTDDI_VERSION=0x06010000\"\n    fi\nelif [[ \"${target}\" == *-apple-* ]]; then\n    # Nuke header files in the sysroot\n    # to avoid they'll be picked up by CMake\n    rm -rf /opt/${target}/${target}/sys-root/usr/include/openssl\n    rm -rf /opt/${target}/${target}/sys-root/usr/include/{iconv.h,libcharset.h,localcharset.h}\n\n    SYMBS_DEFS=()\n    for sym in iconv iconv_close iconv_open; do\n        SYMBS_DEFS+=(-D${sym}=lib${sym})\n    done\n    export CFLAGS=\"${SYMBS_DEFS[@]}\"\nfi\n\nmkdir build && cd build\ncmake .. -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DWITH_MYSQLCOMPAT=OFF \\\n    -DWITH_EXTERNAL_ZLIB=ON \\\n    -DZLIB_FOUND=ON \\\n    -DZLIB_INCLUDE_DIR=${includedir} \\\n    -DZLIB_LIBRARY=${libdir}/libz.${dlext} \\\n    -DOPENSSL_FOUND=ON \\\n    -DOPENSSL_CRYPTO_LIBRARY=${libdir}/libcrypto.${dlext} \\\n    -DOPENSSL_SSL_LIBRARY=${libdir}/libssl.${dlext} \\\n    -DICONV_LIBRARIES=${libdir}/libiconv.${dlext} \\\n    -DICONV_INCLUDE_DIR=${includedir}\nmake -j${nproc}\nmake install\ninstall_license ../COPYING.LIB\n"""
-        version = "v3.3.2"
-
-            [["3.3.2+0".artifact_metadata.metadata.dependencies]]
-            compat = "7.73.0"
-            name = "LibCURL_jll"
-            platforms = ["any"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["3.3.2+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Libiconv_jll"
-            platforms = ["any"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["3.3.2+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "OpenSSL_jll"
-            platforms = ["any"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["3.3.2+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Zlib_jll"
-            platforms = ["any"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["3.3.2+0".artifact_metadata.metadata.products]]
-            dir_paths = ["lib/mariadb"]
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libmariadb"]
-            type = "lib"
-            variable_name = "libmariadb"
-
-            [["3.3.2+0".artifact_metadata.metadata.sources]]
-            hash = "1bd8c8bf39c259a1b1713974684e24d168a09d13"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/mariadb-corporation/mariadb-connector-c.git"
-            [["3.3.2+0".artifact_metadata.metadata.sources]]
-            follow_symlinks = false
-            path = "./bundled"
-            target = ""
-            type = "directory"
 
 ["3.3.9+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.9+0/MariaDB_Connector_C.v3.3.9.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.9+0/MariaDB_Connector_C.v3.3.9.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.9+0/MariaDB_Connector_C.v3.3.9.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.9+0/MariaDB_Connector_C.v3.3.9.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.9+0/MariaDB_Connector_C.v3.3.9.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.9+0/MariaDB_Connector_C.v3.3.9.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.9+0/MariaDB_Connector_C.v3.3.9.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.9+0/MariaDB_Connector_C.v3.3.9.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.9+0/MariaDB_Connector_C.v3.3.9.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.9+0/MariaDB_Connector_C.v3.3.9.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.9+0/MariaDB_Connector_C.v3.3.9.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.9+0/MariaDB_Connector_C.v3.3.9.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.9+0/MariaDB_Connector_C.v3.3.9.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.9+0/MariaDB_Connector_C.v3.3.9.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.9+0/MariaDB_Connector_C.v3.3.9.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.9+0/MariaDB_Connector_C.v3.3.9.x86_64-w64-mingw32.tar.gz"]
@@ -176,75 +41,10 @@ registered = 2024-04-03T21:54:09.000Z
     [["3.3.9+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.9+0/MariaDB_Connector_C.v3.3.9.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.9+0/MariaDB_Connector_C.v3.3.9.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.9+0/MariaDB_Connector_C.v3.3.9.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.9+0/MariaDB_Connector_C.v3.3.9.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.9+0/MariaDB_Connector_C.v3.3.9.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.9+0/MariaDB_Connector_C.v3.3.9.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.9+0/MariaDB_Connector_C.v3.3.9.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.9+0/MariaDB_Connector_C.v3.3.9.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.9+0/MariaDB_Connector_C.v3.3.9.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.9+0/MariaDB_Connector_C.v3.3.9.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.9+0/MariaDB_Connector_C.v3.3.9.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.9+0/MariaDB_Connector_C.v3.3.9.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.9+0/MariaDB_Connector_C.v3.3.9.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.9+0/MariaDB_Connector_C.v3.3.9.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.9+0/MariaDB_Connector_C.v3.3.9.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.3.9+0/MariaDB_Connector_C.v3.3.9.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/3c473d42dfaa220190d511c8532089929aa50b7a/M/MariaDB_Connector_C/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/m/mariadb_connector_c/build_tarballs.jl/3c473d42dfaa220190d511c8532089929aa50b7a.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.5.8"
-
-        ["3.3.9+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "MariaDB_Connector_C"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd $WORKSPACE/srcdir/mariadb-*/\n\n# https://github.com/mariadb-corporation/mariadb-connector-c/pull/244\natomic_patch -p1 ../patches/sys-poll.patch\n# There are warnings on 32-bit systems, but they hardcode `-Werror`.  Also, issues are closed, so we can't even report it.\natomic_patch -p1 ../patches/no-werror.patch\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    for p in ../patches/{0004-Add-ws2_32-to-remoteio-libraries,001-mingw-build,002-fix-prototype,003-gcc-fix-use_VA_ARGS,005-Add-definition-of-macros-and-structs-missing-in-MinG,fix-undefined-sec-e-invalid-parameter}.patch; do\n        atomic_patch -p1 \"${p}\"\n    done\n    export CFLAGS=\"-std=c99\"\n    # Minimum version of Windows supported by MariaDB is 7,\n    # see tables in https://docs.microsoft.com/en-us/windows/win32/winprog/using-the-windows-headers\n    if [[ \"${nbits}\" == 64 ]]; then\n        export CFLAGS=\"${CFLAGS} -DNTDDI_VERSION=0x06010000\"\n    fi\nelif [[ \"${target}\" == *-apple-* ]]; then\n    # Nuke header files in the sysroot\n    # to avoid they'll be picked up by CMake\n    rm -rf /opt/${target}/${target}/sys-root/usr/include/openssl\n    rm -rf /opt/${target}/${target}/sys-root/usr/include/{iconv.h,libcharset.h,localcharset.h}\n\n    SYMBS_DEFS=()\n    for sym in iconv iconv_close iconv_open; do\n        SYMBS_DEFS+=(-D${sym}=lib${sym})\n    done\n    export CFLAGS=\"${SYMBS_DEFS[@]}\"\nfi\n\nif [[ \"${target}\" == x86_64-linux-* ]] || [[ \"${target}\" == x86_64-*-mingw* ]]; then\n   # You can avoid this in the future when targeting OpenSSL_jll@v3.0.13+.\n   OPENSSL_CRYPTO_LIBRARY=${libdir}64/libcrypto.${dlext}\n   OPENSSL_SSL_LIBRARY=${libdir}64/libssl.${dlext}\nelse\n   OPENSSL_CRYPTO_LIBRARY=${libdir}/libcrypto.${dlext}\n   OPENSSL_SSL_LIBRARY=${libdir}/libssl.${dlext}\nfi\n\nmkdir build && cd build\ncmake .. -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DWITH_MYSQLCOMPAT=OFF \\\n    -DWITH_EXTERNAL_ZLIB=ON \\\n    -DZLIB_FOUND=ON \\\n    -DZLIB_INCLUDE_DIR=${includedir} \\\n    -DZLIB_LIBRARY=${libdir}/libz.${dlext} \\\n    -DOPENSSL_FOUND=ON \\\n    -DOPENSSL_CRYPTO_LIBRARY=\"${OPENSSL_CRYPTO_LIBRARY}\" \\\n    -DOPENSSL_SSL_LIBRARY=\"${OPENSSL_SSL_LIBRARY}\"\nmake -j${nproc}\nmake install\ninstall_license ../COPYING.LIB\n"""
-        version = "v3.3.9"
-
-            [["3.3.9+0".artifact_metadata.metadata.dependencies]]
-            compat = "7.73.0,8"
-            name = "LibCURL_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["3.3.9+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Libiconv_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["3.3.9+0".artifact_metadata.metadata.dependencies]]
-            compat = "3.0.8"
-            name = "OpenSSL_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["3.3.9+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Zlib_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["3.3.9+0".artifact_metadata.metadata.products]]
-            dir_paths = ["lib/mariadb"]
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libmariadb"]
-            type = "lib"
-            variable_name = "libmariadb"
-
-            [["3.3.9+0".artifact_metadata.metadata.sources]]
-            hash = "e714a674827fbb8373dd71da634dd04736d7b5a6"
-            type = "git"
-            unpack_target = ""
-            url = "https://github.com/mariadb-corporation/mariadb-connector-c.git"
-            [["3.3.9+0".artifact_metadata.metadata.sources]]
-            follow_symlinks = false
-            path = "./bundled"
-            target = ""
-            type = "directory"
 
 ["3.4.8+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.4.8+0/MariaDB_Connector_C.v3.4.8.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.4.8+0/MariaDB_Connector_C.v3.4.8.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.4.8+0/MariaDB_Connector_C.v3.4.8.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.4.8+0/MariaDB_Connector_C.v3.4.8.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.4.8+0/MariaDB_Connector_C.v3.4.8.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.4.8+0/MariaDB_Connector_C.v3.4.8.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.4.8+0/MariaDB_Connector_C.v3.4.8.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.4.8+0/MariaDB_Connector_C.v3.4.8.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.4.8+0/MariaDB_Connector_C.v3.4.8.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.4.8+0/MariaDB_Connector_C.v3.4.8.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.4.8+0/MariaDB_Connector_C.v3.4.8.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.4.8+0/MariaDB_Connector_C.v3.4.8.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.4.8+0/MariaDB_Connector_C.v3.4.8.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.4.8+0/MariaDB_Connector_C.v3.4.8.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.4.8+0/MariaDB_Connector_C.v3.4.8.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.4.8+0/MariaDB_Connector_C.v3.4.8.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.4.8+0/MariaDB_Connector_C.v3.4.8.x86_64-w64-mingw32.tar.gz"]
@@ -253,72 +53,7 @@ registered = 2026-01-15T20:09:15.000Z
     [["3.4.8+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.4.8+0/MariaDB_Connector_C.v3.4.8.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.4.8+0/MariaDB_Connector_C.v3.4.8.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.4.8+0/MariaDB_Connector_C.v3.4.8.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.4.8+0/MariaDB_Connector_C.v3.4.8.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.4.8+0/MariaDB_Connector_C.v3.4.8.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.4.8+0/MariaDB_Connector_C.v3.4.8.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.4.8+0/MariaDB_Connector_C.v3.4.8.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.4.8+0/MariaDB_Connector_C.v3.4.8.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.4.8+0/MariaDB_Connector_C.v3.4.8.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.4.8+0/MariaDB_Connector_C.v3.4.8.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.4.8+0/MariaDB_Connector_C.v3.4.8.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.4.8+0/MariaDB_Connector_C.v3.4.8.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.4.8+0/MariaDB_Connector_C.v3.4.8.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.4.8+0/MariaDB_Connector_C.v3.4.8.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.4.8+0/MariaDB_Connector_C.v3.4.8.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.4.8+0/MariaDB_Connector_C.v3.4.8.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/MariaDB_Connector_C_jll.jl/releases/download/MariaDB_Connector_C-v3.4.8+0/MariaDB_Connector_C.v3.4.8.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/c582205b59df38f8ffb6a026367db5a18535641d/M/MariaDB_Connector_C/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/m/mariadb_connector_c/build_tarballs.jl/c582205b59df38f8ffb6a026367db5a18535641d.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.6.5"
-
-        ["3.4.8+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.6"
-        lazy_artifacts = false
-        name = "MariaDB_Connector_C"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """cd $WORKSPACE/srcdir/mariadb-*/\n\n# There are warnings on 32-bit systems, but they hardcode `-Werror`.  Also, issues are closed, so we can't even report it.\natomic_patch -p1 ../patches/no-werror.patch\n\n# GCC 14+ has stricter type checking that causes errors with MariaDB 3.4\n# See https://gcc.gnu.org/gcc-14/porting_to.html\n# -Wno-error: disable all warnings-as-errors\n# -Wno-incompatible-pointer-types: needed for some platforms (e.g., riscv64)\n# Both flags require GCC 6+ (ensured by preferred_gcc_version below)\nexport CFLAGS=\"${CFLAGS} -Wno-error -Wno-incompatible-pointer-types\"\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    for p in ../patches/{0004-Add-ws2_32-to-remoteio-libraries,001-mingw-build,002-fix-prototype,003-gcc-fix-use_VA_ARGS,005-Add-definition-of-macros-and-structs-missing-in-MinG,fix-undefined-sec-e-invalid-parameter}.patch; do\n        atomic_patch -p1 \"${p}\"\n    done\n    export CFLAGS=\"${CFLAGS} -std=c99\"\n    # Minimum version of Windows supported by MariaDB is 7,\n    # see tables in https://docs.microsoft.com/en-us/windows/win32/winprog/using-the-windows-headers\n    if [[ \"${nbits}\" == 64 ]]; then\n        export CFLAGS=\"${CFLAGS} -DNTDDI_VERSION=0x06010000\"\n    fi\nelif [[ \"${target}\" == *-apple-* ]]; then\n    # Nuke header files in the sysroot\n    # to avoid they'll be picked up by CMake\n    rm -rf /opt/${target}/${target}/sys-root/usr/include/openssl\n    rm -rf /opt/${target}/${target}/sys-root/usr/include/{iconv.h,libcharset.h,localcharset.h}\n\n    SYMBS_DEFS=()\n    for sym in iconv iconv_close iconv_open; do\n        SYMBS_DEFS+=(-D${sym}=lib${sym})\n    done\n    export CFLAGS=\"${CFLAGS} ${SYMBS_DEFS[@]}\"\nfi\n\n# OpenSSL 3.0.13+ installs libraries in lib (not lib64)\nOPENSSL_CRYPTO_LIBRARY=${libdir}/libcrypto.${dlext}\nOPENSSL_SSL_LIBRARY=${libdir}/libssl.${dlext}\n\nmkdir build && cd build\ncmake .. -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DCMAKE_COMPILE_WARNING_AS_ERROR=OFF \\\n    -DCMAKE_C_FLAGS=\"${CFLAGS}\" \\\n    -DWITH_MYSQLCOMPAT=OFF \\\n    -DWITH_EXTERNAL_ZLIB=ON \\\n    -DZLIB_FOUND=ON \\\n    -DZLIB_INCLUDE_DIR=${includedir} \\\n    -DZLIB_LIBRARY=${libdir}/libz.${dlext} \\\n    -DOPENSSL_FOUND=ON \\\n    -DOPENSSL_CRYPTO_LIBRARY=\"${OPENSSL_CRYPTO_LIBRARY}\" \\\n    -DOPENSSL_SSL_LIBRARY=\"${OPENSSL_SSL_LIBRARY}\"\nmake -j${nproc}\nmake install\ninstall_license ../COPYING.LIB\n"""
-        version = "v3.4.8"
-
-            [["3.4.8+0".artifact_metadata.metadata.dependencies]]
-            compat = "7.73.0,8"
-            name = "LibCURL_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["3.4.8+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Libiconv_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["3.4.8+0".artifact_metadata.metadata.dependencies]]
-            compat = "3.0.16"
-            name = "OpenSSL_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["3.4.8+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Zlib_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["3.4.8+0".artifact_metadata.metadata.products]]
-            dir_paths = ["lib/mariadb"]
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["libmariadb"]
-            type = "lib"
-            variable_name = "libmariadb"
-
-            [["3.4.8+0".artifact_metadata.metadata.sources]]
-            hash = "156aed3b49f857d0ac74fb76f1982968bcbfd8382da3f5b6ae71f616729920d7"
-            type = "archive"
-            unpack_target = ""
-            url = "https://archive.mariadb.org/connector-c-3.4.8/mariadb-connector-c-3.4.8-src.tar.gz"
-            [["3.4.8+0".artifact_metadata.metadata.sources]]
-            follow_symlinks = false
-            path = "./bundled"
-            target = ""
-            type = "directory"

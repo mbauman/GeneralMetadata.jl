@@ -1,0 +1,101 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "AWSCRT"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin"]
+script = """# Only need aws-lc and s2n-tls on linux and freebsd. macos and windows don't need it.\nif [[ \"${target}\" =~ \"linux\" || \"${target}\" =~ \"freebsd\" ]]; then\n\tcd $WORKSPACE/srcdir/aws-lc\n\n\t# Patch for finding definition of AT_HWCAP2 for PowerPC\n\tatomic_patch -p1 \"${WORKSPACE}/srcdir/patches/auxvec.patch\"\n\n\tmkdir build && cd build\n\tcmake -DCMAKE_INSTALL_PREFIX=${prefix} \\\n\t\t-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n\t\t-DBUILD_TESTING=OFF \\\n\t\t-DCMAKE_BUILD_TYPE=Release \\\n\t\t-DBUILD_SHARED_LIBS=OFF \\\n\t\t-GNinja \\\n\t\t..\n\tninja -j${nproc}\n\tninja install\n\n\tcd $WORKSPACE/srcdir/s2n-tls\n\tmkdir build && cd build\n\tcmake -DCMAKE_INSTALL_PREFIX=${prefix} \\\n\t\t-DCMAKE_PREFIX_PATH=${prefix} \\\n\t\t-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n\t\t-DBUILD_TESTING=OFF \\\n\t\t-DCMAKE_BUILD_TYPE=Release \\\n\t\t-DBUILD_SHARED_LIBS=OFF \\\n\t\t-GNinja \\\n\t\t..\n\tninja -j${nproc}\n\tninja install\nfi\n\ncd $WORKSPACE/srcdir/aws-c-common\n\n# Patch for MinGW toolchain\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/aws-c-common.patch\"\nfind . -type f -exec sed -i 's/Windows.h/windows.h/g' {} +\nfind . -type f -exec sed -i 's/Shlwapi.h/shlwapi.h/g' {} +\n\nmkdir build && cd build\nif [[ \"${target}\" =~ \"mingw\" ]]; then\n\twinflags=\"-D_WIN32_WINNT=0x0601\"\nfi\ncmake -DCMAKE_INSTALL_PREFIX=${prefix} \\\n\t-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n\t-DBUILD_TESTING=OFF \\\n\t-DCMAKE_BUILD_TYPE=Release \\\n\t-DBUILD_SHARED_LIBS=OFF \\\n\t${winflags} \\\n\t..\ncmake --build . -j${nproc} --target install\n\ncd $WORKSPACE/srcdir/aws-c-cal\nmkdir build && cd build\ncmake -DCMAKE_INSTALL_PREFIX=${prefix} \\\n\t-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n\t-DCMAKE_PREFIX_PATH=${prefix} \\\n\t-DBUILD_TESTING=OFF \\\n\t-DCMAKE_BUILD_TYPE=Release \\\n\t-DBUILD_SHARED_LIBS=OFF \\\n\t..\ncmake --build . -j${nproc} --target install\n\ncd $WORKSPACE/srcdir/aws-c-io\n\n# Patch for MinGW toolchain\nfind . -type f -exec sed -i 's/Windows.h/windows.h/g' {} +\n\nmkdir build && cd build\ncmake -DCMAKE_INSTALL_PREFIX=${prefix} \\\n\t-DCMAKE_PREFIX_PATH=${prefix} \\\n\t-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n\t-DBUILD_TESTING=OFF \\\n\t-DCMAKE_BUILD_TYPE=Release \\\n\t-DBUILD_SHARED_LIBS=OFF \\\n\t..\ncmake --build . -j${nproc} --target install\n\ncd $WORKSPACE/srcdir/aws-c-compression\nmkdir build && cd build\ncmake -DCMAKE_INSTALL_PREFIX=${prefix} \\\n\t-DCMAKE_PREFIX_PATH=${prefix} \\\n\t-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n\t-DBUILD_TESTING=OFF \\\n\t-DCMAKE_BUILD_TYPE=Release \\\n\t-DBUILD_SHARED_LIBS=OFF \\\n\t..\ncmake --build . -j${nproc} --target install\n\ncd $WORKSPACE/srcdir/aws-c-http\nmkdir build && cd build\ncmake -DCMAKE_INSTALL_PREFIX=${prefix} \\\n\t-DCMAKE_PREFIX_PATH=${prefix} \\\n\t-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n\t-DBUILD_TESTING=OFF \\\n\t-DCMAKE_BUILD_TYPE=Release \\\n\t-DBUILD_SHARED_LIBS=OFF \\\n\t..\ncmake --build . -j${nproc} --target install\n\ncd $WORKSPACE/srcdir/aws-c-mqtt\nmkdir build && cd build\ncmake -DCMAKE_INSTALL_PREFIX=${prefix} \\\n\t-DCMAKE_PREFIX_PATH=${prefix} \\\n\t-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n\t-DBUILD_TESTING=OFF \\\n\t-DCMAKE_BUILD_TYPE=Release \\\n\t-DBUILD_SHARED_LIBS=OFF \\\n\t..\ncmake --build . -j${nproc} --target install\n\ncd $WORKSPACE/srcdir/aws-c-sdkutils\nmkdir build && cd build\ncmake -DCMAKE_INSTALL_PREFIX=${prefix} \\\n\t-DCMAKE_PREFIX_PATH=${prefix} \\\n\t-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n\t-DBUILD_TESTING=OFF \\\n\t-DCMAKE_BUILD_TYPE=Release \\\n\t-DBUILD_SHARED_LIBS=OFF \\\n\t..\n\tcmake --build . -j${nproc} --target install\n\ncd $WORKSPACE/srcdir/aws-c-auth\nmkdir build && cd build\ncmake -DCMAKE_INSTALL_PREFIX=${prefix} \\\n\t-DCMAKE_PREFIX_PATH=${prefix} \\\n\t-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n\t-DBUILD_TESTING=OFF \\\n\t-DCMAKE_BUILD_TYPE=Release \\\n\t-DBUILD_SHARED_LIBS=OFF \\\n\t..\n\tcmake --build . -j${nproc} --target install\n\ncd $WORKSPACE/srcdir/aws-checksums\nmkdir build && cd build\ncmake -DCMAKE_INSTALL_PREFIX=${prefix} \\\n\t-DCMAKE_PREFIX_PATH=${prefix} \\\n\t-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n\t-DBUILD_TESTING=OFF \\\n\t-DCMAKE_BUILD_TYPE=Release \\\n\t-DBUILD_SHARED_LIBS=OFF \\\n\t..\n\tcmake --build . -j${nproc} --target install\n\ncd $WORKSPACE/srcdir/aws-c-event-stream\nmkdir build && cd build\ncmake -DCMAKE_INSTALL_PREFIX=${prefix} \\\n\t-DCMAKE_PREFIX_PATH=${prefix} \\\n\t-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n\t-DBUILD_TESTING=OFF \\\n\t-DCMAKE_BUILD_TYPE=Release \\\n\t-DBUILD_SHARED_LIBS=OFF \\\n\t..\ncmake --build . -j${nproc} --target install\n\ncd $WORKSPACE/srcdir/aws-c-s3\nmkdir build && cd build\ncmake -DCMAKE_INSTALL_PREFIX=${prefix} \\\n\t-DCMAKE_PREFIX_PATH=${prefix} \\\n\t-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n\t-DBUILD_TESTING=OFF \\\n\t-DCMAKE_BUILD_TYPE=Release \\\n\t-DBUILD_SHARED_LIBS=OFF \\\n\t..\ncmake --build . -j${nproc} --target install\n\ncd $WORKSPACE/srcdir/aws-c-iot\nmkdir build && cd build\ncmake -DCMAKE_INSTALL_PREFIX=${prefix} \\\n\t-DCMAKE_PREFIX_PATH=${prefix} \\\n\t-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n\t-DBUILD_TESTING=OFF \\\n\t-DCMAKE_BUILD_TYPE=Release \\\n\t-DBUILD_SHARED_LIBS=OFF \\\n\t..\ncmake --build . -j${nproc} --target install\n\ncd $WORKSPACE/srcdir/awscrt\nmkdir build && cd build\ncmake -DCMAKE_INSTALL_PREFIX=${prefix} \\\n\t-DCMAKE_PREFIX_PATH=${prefix} \\\n\t-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n\t-DCMAKE_BUILD_TYPE=Release \\\n\t..\ncmake --build . -j${nproc} --target install\n\ninstall_license ${WORKSPACE}/srcdir/license/LICENSE\n"""
+version = "v0.1.1"
+
+[[dependencies]]
+compat = ""
+name = "NASM_jll"
+platforms = ["any"]
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libawscrt"]
+type = "lib"
+variable_name = "libawscrt"
+
+[[sources]]
+hash = "6168e32bf9f745dec40df633b78baa03420b7f83"
+type = "git"
+unpack_target = ""
+url = "https://github.com/awslabs/aws-c-mqtt.git"
+[[sources]]
+hash = "11b50d39cf2378703a4ca6b6fee9d76a2e9852d1"
+type = "git"
+unpack_target = ""
+url = "https://github.com/awslabs/aws-lc.git"
+[[sources]]
+hash = "0d41122bd2ca62a5de384b79c524dd48852b2071"
+type = "git"
+unpack_target = ""
+url = "https://github.com/aws/s2n-tls.git"
+[[sources]]
+hash = "68f28f8df258390744f3c5b460250f8809161041"
+type = "git"
+unpack_target = ""
+url = "https://github.com/awslabs/aws-c-common.git"
+[[sources]]
+hash = "001007e36dddc5da47b8c56d41bb63e5fa9328d7"
+type = "git"
+unpack_target = ""
+url = "https://github.com/awslabs/aws-c-cal.git"
+[[sources]]
+hash = "59b4225bb87021d44d7fd2509b54d7038f11b7e7"
+type = "git"
+unpack_target = ""
+url = "https://github.com/awslabs/aws-c-io.git"
+[[sources]]
+hash = "5fab8bc5ab5321d86f6d153b06062419080820ec"
+type = "git"
+unpack_target = ""
+url = "https://github.com/awslabs/aws-c-compression.git"
+[[sources]]
+hash = "3f8ffda541eab815646f739cef2b350d6e7d5406"
+type = "git"
+unpack_target = ""
+url = "https://github.com/awslabs/aws-c-http.git"
+[[sources]]
+hash = "e3c23f4aca31d9e66df25827645f72cbcbfb657a"
+type = "git"
+unpack_target = ""
+url = "https://github.com/awslabs/aws-c-sdkutils.git"
+[[sources]]
+hash = "e1b95cca6f2248c28b66ddb40bcccd35a59cb8b5"
+type = "git"
+unpack_target = ""
+url = "https://github.com/awslabs/aws-c-auth.git"
+[[sources]]
+hash = "92067b1f44523e70337e0c5eb00b80c9cf10b941"
+type = "git"
+unpack_target = ""
+url = "https://github.com/awslabs/aws-c-s3.git"
+[[sources]]
+hash = "41df3031b92120b6d8127b7b7122391d5ac6f33f"
+type = "git"
+unpack_target = ""
+url = "https://github.com/awslabs/aws-checksums.git"
+[[sources]]
+hash = "e87537be561d753ec82e783bc0929b1979c585f8"
+type = "git"
+unpack_target = ""
+url = "https://github.com/awslabs/aws-c-event-stream.git"
+[[sources]]
+hash = "e3ea832b032cd9db252822e3f2f9aeeeb8ad9a1d"
+type = "git"
+unpack_target = ""
+url = "https://github.com/awslabs/aws-c-iot.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

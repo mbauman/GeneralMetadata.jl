@@ -1,0 +1,30 @@
+lazy_artifacts = false
+name = "Popt"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir\ncd popt-1.16/\nupdate_configure_scripts\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/0001-nl_langinfo.mingw32.patch\"\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/197416.all.patch\"\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/217602.all.patch\"\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/278402-manpage.all.patch\"\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/318833.all.patch\"\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/356669.all.patch\"\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/367153-manpage.all.patch\"\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/get-w32-console-maxcols.mingw32.patch\"\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/no-uid-stuff-on.mingw32.patch\"\n\nif [[ \"${target}\" == powerpc64le-* || \"${target}\" == *-freebsd* ]]; then\n    atomic_patch -p1 \"${WORKSPACE}/srcdir/patches/fix-old-configure-macros.patch\"\n    autoreconf -vi\nfi\n\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} --disable-static\nmake -j${nproc}\nmake install\ninstall_license COPYING\n"""
+version = "v1.16.0"
+
+[[dependencies]]
+name = "Libiconv_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libpopt"]
+type = "lib"
+variable_name = "libpopt"
+
+[[sources]]
+hash = "e728ed296fe9f069a0e005003c3d6b2dde3d9cad453422a10d6558616d304cc8"
+type = "archive"
+unpack_target = ""
+url = "http://archive.ubuntu.com/ubuntu/pool/main/p/popt/popt_1.16.orig.tar.gz"
+[[sources]]
+path = "./bundled"
+target = ""
+type = "directory"

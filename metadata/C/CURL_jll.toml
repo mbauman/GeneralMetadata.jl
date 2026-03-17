@@ -5,70 +5,10 @@ registered = 2022-02-25T13:00:30.000Z
     [["7.81.0+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v7.81.0+0/CURL.v7.81.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v7.81.0+0/CURL.v7.81.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v7.81.0+0/CURL.v7.81.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v7.81.0+0/CURL.v7.81.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v7.81.0+0/CURL.v7.81.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v7.81.0+0/CURL.v7.81.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v7.81.0+0/CURL.v7.81.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v7.81.0+0/CURL.v7.81.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v7.81.0+0/CURL.v7.81.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v7.81.0+0/CURL.v7.81.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v7.81.0+0/CURL.v7.81.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v7.81.0+0/CURL.v7.81.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v7.81.0+0/CURL.v7.81.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v7.81.0+0/CURL.v7.81.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v7.81.0+0/CURL.v7.81.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v7.81.0+0/CURL.v7.81.0.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/7cfae68ed423f01868b734e1986e6aad35f21d5b/L/LibCURL/CURL/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/l/libcurl/curl/build_tarballs.jl/7cfae68ed423f01868b734e1986e6aad35f21d5b.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.5.2"
-
-        ["7.81.0+0".artifact_metadata.metadata]
-        init_block = ""
-        julia_compat = "1.8"
-        lazy_artifacts = false
-        name = "CURL"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
-        script = """THIS_IS_CURL=true\ncd $WORKSPACE/srcdir/curl-*\n\n# Holy crow we really configure the bitlets out of this thing\nFLAGS=(\n    # Disable....almost everything\n    --without-ssl --without-gnutls --without-gssapi\n    --without-libidn --without-libidn2 --without-librtmp\n    --without-nss --without-polarssl\n    --without-spnego --without-libpsl --disable-ares --disable-manual\n    --disable-ldap --disable-ldaps --without-zsh-functions-dir\n    --disable-static --without-libgsasl\n\n    # A few things we actually enable\n    --with-libssh2=${prefix} --with-zlib=${prefix} --with-nghttp2=${prefix}\n    --enable-versioned-symbols\n)\n\n\nif [[ ${target} == *mingw* ]]; then\n    # We need to tell it where to find libssh2 on windows\n    FLAGS+=(LDFLAGS=\"${LDFLAGS} -L${prefix}/bin\")\n\n    # We also need to tell it to link against schannel (native TLS library)\n    FLAGS+=(--with-schannel)\nelif [[ ${target} == *darwin* ]]; then\n    # On Darwin, we need to use SecureTransport (native TLS library)\n    FLAGS+=(--with-secure-transport)\n\n    # We need to explicitly request a higher `-mmacosx-version-min` here, so that it doesn't\n    # complain about: `Symbol not found: ___isOSVersionAtLeast`\n    if [[ \"${target}\" == *x86_64* ]]; then\n        export CFLAGS=-mmacosx-version-min=10.11\n    fi\nelse\n    # On all other systems, we use MbedTLS\n    FLAGS+=(--with-mbedtls=${prefix})\nfi\n\n./configure --prefix=$prefix --host=$target --build=${MACHTYPE} \"${FLAGS[@]}\"\nmake -j${nproc}\nif [[ \"${THIS_IS_CURL}\" == true ]]; then\n    # Manually install only `curl`\n    install -Dm 755 \"src/.libs/curl${exeext}\" \"${bindir}/curl${exeext}\"\nelse\n    # Install everything...\n    make install\n    # ...but remove `curl`\n    rm \"${bindir}/curl${exeext}\"\nfi\ninstall_license COPYING\n"""
-        version = "v7.81.0"
-
-            [["7.81.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LibSSH2_jll"
-            platforms = ["any"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["7.81.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Zlib_jll"
-            platforms = ["any"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["7.81.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "nghttp2_jll"
-            platforms = ["any"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["7.81.0+0".artifact_metadata.metadata.dependencies]]
-            compat = "~2.28.0"
-            name = "MbedTLS_jll"
-            platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-unknown-freebsd"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["7.81.0+0".artifact_metadata.metadata.dependencies]]
-            compat = "7.81.0"
-            name = "LibCURL_jll"
-            platforms = ["any"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["7.81.0+0".artifact_metadata.metadata.products]]
-            binnames = ["curl"]
-            type = "exe"
-            variable_name = "curl"
-
-            [["7.81.0+0".artifact_metadata.metadata.sources]]
-            hash = "ac8e1087711084548d788ef18b9b732c8de887457b81f616fc681d1044b32f98"
-            type = "archive"
-            unpack_target = ""
-            url = "https://curl.se/download/curl-7.81.0.tar.gz"
 
 ["8.5.0+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.5.0+0/CURL.v8.5.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.5.0+0/CURL.v8.5.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.5.0+0/CURL.v8.5.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.5.0+0/CURL.v8.5.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.5.0+0/CURL.v8.5.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.5.0+0/CURL.v8.5.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.5.0+0/CURL.v8.5.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.5.0+0/CURL.v8.5.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.5.0+0/CURL.v8.5.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.5.0+0/CURL.v8.5.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.5.0+0/CURL.v8.5.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.5.0+0/CURL.v8.5.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.5.0+0/CURL.v8.5.0.x86_64-linux-gnu-sanitize+memory.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.5.0+0/CURL.v8.5.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.5.0+0/CURL.v8.5.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.5.0+0/CURL.v8.5.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.5.0+0/CURL.v8.5.0.x86_64-w64-mingw32.tar.gz"]
@@ -77,86 +17,10 @@ registered = 2023-12-22T14:19:50.000Z
     [["8.5.0+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.5.0+0/CURL.v8.5.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.5.0+0/CURL.v8.5.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.5.0+0/CURL.v8.5.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.5.0+0/CURL.v8.5.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.5.0+0/CURL.v8.5.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.5.0+0/CURL.v8.5.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.5.0+0/CURL.v8.5.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.5.0+0/CURL.v8.5.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.5.0+0/CURL.v8.5.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.5.0+0/CURL.v8.5.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.5.0+0/CURL.v8.5.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.5.0+0/CURL.v8.5.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.5.0+0/CURL.v8.5.0.x86_64-linux-gnu-sanitize+memory.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.5.0+0/CURL.v8.5.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.5.0+0/CURL.v8.5.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.5.0+0/CURL.v8.5.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.5.0+0/CURL.v8.5.0.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/c3f5c0ce1e1c2a275a3785022b08dcda1de56a0a/L/LibCURL/CURL/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/l/libcurl/curl/build_tarballs.jl/c3f5c0ce1e1c2a275a3785022b08dcda1de56a0a.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.5.6"
-
-        ["8.5.0+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.8"
-        lazy_artifacts = false
-        name = "CURL"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "x86_64-linux-gnu-sanitize+memory"]
-        script = """THIS_IS_CURL=true\ncd $WORKSPACE/srcdir/curl-*\n\n# Holy crow we really configure the bitlets out of this thing\nFLAGS=(\n    # Disable....almost everything\n    --without-gnutls\n    --without-libidn2 --without-librtmp\n    --without-nss --without-libpsl\n    --disable-ares --disable-manual\n    --disable-ldap --disable-ldaps --without-zsh-functions-dir\n    --disable-static --without-libgsasl\n    --without-brotli\n\n    # A few things we actually enable\n    --with-libssh2=${prefix} --with-zlib=${prefix} --with-nghttp2=${prefix}\n    --enable-versioned-symbols\n)\n\nif [[ ${bb_full_target} == *-sanitize+memory* ]]; then\n# Install msan runtime (for clang)\n    cp -rL ${libdir}/linux/* /opt/x86_64-linux-musl/lib/clang/*/lib/linux/\nfi\n\nif [[ ${target} == *mingw* ]]; then\n    # We need to tell it where to find libssh2 on windows\n    FLAGS+=(LDFLAGS=\"${LDFLAGS} -L${prefix}/bin\")\n\n    # We also need to tell it to link against schannel (native TLS library)\n    FLAGS+=(--with-schannel)\nelif [[ ${target} == *darwin* ]]; then\n    # On Darwin, we need to use SecureTransport (native TLS library)\n    FLAGS+=(--with-secure-transport)\n\n    # We need to explicitly request a higher `-mmacosx-version-min` here, so that it doesn't\n    # complain about: `Symbol not found: ___isOSVersionAtLeast`\n    if [[ \"${target}\" == *x86_64* ]]; then\n        export CFLAGS=-mmacosx-version-min=10.11\n    fi\nelse\n    # On all other systems, we use MbedTLS\n    FLAGS+=(--with-mbedtls=${prefix})\nfi\n\nif false; then\n    # Use gssapi on Linux and FreeBSD\n    FLAGS+=(--with-gssapi=${prefix})\n    if [[ \"${target}\" == *-freebsd* ]]; then\n        # Only for FreeBSD we need to hint that we need to link to libkrb5 and\n        # libcom_err to resolve some undefined symbols.\n        export LIBS=\"-lkrb5 -lcom_err\"\n    fi\nelse\n    FLAGS+=(--without-gssapi)\nfi\n\n./configure --prefix=$prefix --host=$target --build=${MACHTYPE} \"${FLAGS[@]}\"\nmake -j${nproc}\nif [[ \"${THIS_IS_CURL}\" == true ]]; then\n    # Manually install only `curl`\n    install -Dm 755 \"src/.libs/curl${exeext}\" \"${bindir}/curl${exeext}\"\nelse\n    # Install everything...\n    make install\n    # ...but remove `curl`\n    rm \"${bindir}/curl${exeext}\"\nfi\ninstall_license COPYING\n"""
-        version = "v8.5.0"
-
-            [["8.5.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LibSSH2_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["8.5.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Zlib_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["8.5.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "nghttp2_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["8.5.0+0".artifact_metadata.metadata.dependencies]]
-            compat = "~2.28.0"
-            name = "MbedTLS_jll"
-            platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-unknown-freebsd", "x86_64-linux-gnu-sanitize+memory"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["8.5.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVMCompilerRT_jll"
-            platforms = ["x86_64-linux-gnu-sanitize+memory"]
-            top_level = false
-            type = "builddependency"
-            uuid = "4e17d02c-6bf5-513e-be62-445f41c75a11"
-            version-major = 13
-            version-minor = 0
-            version-patch = 1
-            [["8.5.0+0".artifact_metadata.metadata.dependencies]]
-            compat = "8.5.0"
-            name = "LibCURL_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["8.5.0+0".artifact_metadata.metadata.products]]
-            binnames = ["curl"]
-            type = "exe"
-            variable_name = "curl"
-
-            [["8.5.0+0".artifact_metadata.metadata.sources]]
-            hash = "05fc17ff25b793a437a0906e0484b82172a9f4de02be5ed447e0cab8c3475add"
-            type = "archive"
-            unpack_target = ""
-            url = "https://curl.se/download/curl-8.5.0.tar.gz"
 
 ["8.6.0+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.6.0+0/CURL.v8.6.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.6.0+0/CURL.v8.6.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.6.0+0/CURL.v8.6.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.6.0+0/CURL.v8.6.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.6.0+0/CURL.v8.6.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.6.0+0/CURL.v8.6.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.6.0+0/CURL.v8.6.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.6.0+0/CURL.v8.6.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.6.0+0/CURL.v8.6.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.6.0+0/CURL.v8.6.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.6.0+0/CURL.v8.6.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.6.0+0/CURL.v8.6.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.6.0+0/CURL.v8.6.0.x86_64-linux-gnu-sanitize+memory.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.6.0+0/CURL.v8.6.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.6.0+0/CURL.v8.6.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.6.0+0/CURL.v8.6.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.6.0+0/CURL.v8.6.0.x86_64-w64-mingw32.tar.gz"]
@@ -165,91 +29,10 @@ registered = 2024-03-11T10:53:30.000Z
     [["8.6.0+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.6.0+0/CURL.v8.6.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.6.0+0/CURL.v8.6.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.6.0+0/CURL.v8.6.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.6.0+0/CURL.v8.6.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.6.0+0/CURL.v8.6.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.6.0+0/CURL.v8.6.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.6.0+0/CURL.v8.6.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.6.0+0/CURL.v8.6.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.6.0+0/CURL.v8.6.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.6.0+0/CURL.v8.6.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.6.0+0/CURL.v8.6.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.6.0+0/CURL.v8.6.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.6.0+0/CURL.v8.6.0.x86_64-linux-gnu-sanitize+memory.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.6.0+0/CURL.v8.6.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.6.0+0/CURL.v8.6.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.6.0+0/CURL.v8.6.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.6.0+0/CURL.v8.6.0.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/5b03f7d9f17ba18a3de06eb1d64b0d88366d0946/L/LibCURL/CURL/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/l/libcurl/curl/build_tarballs.jl/5b03f7d9f17ba18a3de06eb1d64b0d88366d0946.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.5.7"
-
-        ["8.6.0+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.8"
-        lazy_artifacts = false
-        name = "CURL"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "x86_64-linux-gnu-sanitize+memory"]
-        script = """THIS_IS_CURL=true\ncd $WORKSPACE/srcdir/curl-*\n\n# Address <https://github.com/curl/curl/issues/12849>\natomic_patch -p1 $WORKSPACE/srcdir/memdup.patch\n\n# Holy crow we really configure the bitlets out of this thing\nFLAGS=(\n    # Disable....almost everything\n    --without-gnutls\n    --without-libidn2 --without-librtmp\n    --without-nss --without-libpsl\n    --disable-ares --disable-manual\n    --disable-ldap --disable-ldaps --without-zsh-functions-dir\n    --disable-static --without-libgsasl\n    --without-brotli\n\n    # A few things we actually enable\n    --with-libssh2=${prefix} --with-zlib=${prefix} --with-nghttp2=${prefix}\n    --enable-versioned-symbols\n)\n\nif [[ ${bb_full_target} == *-sanitize+memory* ]]; then\n# Install msan runtime (for clang)\n    cp -rL ${libdir}/linux/* /opt/x86_64-linux-musl/lib/clang/*/lib/linux/\nfi\n\nif [[ ${target} == *mingw* ]]; then\n    # We need to tell it where to find libssh2 on windows\n    FLAGS+=(LDFLAGS=\"${LDFLAGS} -L${prefix}/bin\")\n\n    # We also need to tell it to link against schannel (native TLS library)\n    FLAGS+=(--with-schannel)\nelif [[ ${target} == *darwin* ]]; then\n    # On Darwin, we need to use SecureTransport (native TLS library)\n    FLAGS+=(--with-secure-transport)\n\n    # We need to explicitly request a higher `-mmacosx-version-min` here, so that it doesn't\n    # complain about: `Symbol not found: ___isOSVersionAtLeast`\n    if [[ \"${target}\" == *x86_64* ]]; then\n        export CFLAGS=-mmacosx-version-min=10.11\n    fi\nelse\n    # On all other systems, we use MbedTLS\n    FLAGS+=(--with-mbedtls=${prefix})\nfi\n\nif false; then\n    # Use gssapi on Linux and FreeBSD\n    FLAGS+=(--with-gssapi=${prefix})\n    if [[ \"${target}\" == *-freebsd* ]]; then\n        # Only for FreeBSD we need to hint that we need to link to libkrb5 and\n        # libcom_err to resolve some undefined symbols.\n        export LIBS=\"-lkrb5 -lcom_err\"\n    fi\nelse\n    FLAGS+=(--without-gssapi)\nfi\n\n./configure --prefix=$prefix --host=$target --build=${MACHTYPE} \"${FLAGS[@]}\"\nmake -j${nproc}\nif [[ \"${THIS_IS_CURL}\" == true ]]; then\n    # Manually install only `curl`\n    install -Dm 755 \"src/.libs/curl${exeext}\" \"${bindir}/curl${exeext}\"\nelse\n    # Install everything...\n    make install\n    # ...but remove `curl`\n    rm \"${bindir}/curl${exeext}\"\nfi\ninstall_license COPYING\n"""
-        version = "v8.6.0"
-
-            [["8.6.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LibSSH2_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["8.6.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Zlib_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["8.6.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "nghttp2_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["8.6.0+0".artifact_metadata.metadata.dependencies]]
-            compat = "~2.28.0"
-            name = "MbedTLS_jll"
-            platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-unknown-freebsd", "x86_64-linux-gnu-sanitize+memory"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["8.6.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVMCompilerRT_jll"
-            platforms = ["x86_64-linux-gnu-sanitize+memory"]
-            top_level = false
-            type = "builddependency"
-            uuid = "4e17d02c-6bf5-513e-be62-445f41c75a11"
-            version-major = 13
-            version-minor = 0
-            version-patch = 1
-            [["8.6.0+0".artifact_metadata.metadata.dependencies]]
-            compat = "8.6.0"
-            name = "LibCURL_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["8.6.0+0".artifact_metadata.metadata.products]]
-            binnames = ["curl"]
-            type = "exe"
-            variable_name = "curl"
-
-            [["8.6.0+0".artifact_metadata.metadata.sources]]
-            hash = "9c6db808160015f30f3c656c0dec125feb9dc00753596bf858a272b5dd8dc398"
-            type = "archive"
-            unpack_target = ""
-            url = "https://curl.se/download/curl-8.6.0.tar.gz"
-            [["8.6.0+0".artifact_metadata.metadata.sources]]
-            follow_symlinks = false
-            path = "../patches"
-            target = ""
-            type = "directory"
 
 ["8.9.0+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.0+0/CURL.v8.9.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.0+0/CURL.v8.9.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.0+0/CURL.v8.9.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.0+0/CURL.v8.9.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.0+0/CURL.v8.9.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.0+0/CURL.v8.9.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.0+0/CURL.v8.9.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.0+0/CURL.v8.9.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.0+0/CURL.v8.9.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.0+0/CURL.v8.9.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.0+0/CURL.v8.9.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.0+0/CURL.v8.9.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.0+0/CURL.v8.9.0.x86_64-linux-gnu-sanitize+memory.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.0+0/CURL.v8.9.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.0+0/CURL.v8.9.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.0+0/CURL.v8.9.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.0+0/CURL.v8.9.0.x86_64-w64-mingw32.tar.gz"]
@@ -258,91 +41,10 @@ registered = 2024-08-24T21:45:40.000Z
     [["8.9.0+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.0+0/CURL.v8.9.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.0+0/CURL.v8.9.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.0+0/CURL.v8.9.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.0+0/CURL.v8.9.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.0+0/CURL.v8.9.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.0+0/CURL.v8.9.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.0+0/CURL.v8.9.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.0+0/CURL.v8.9.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.0+0/CURL.v8.9.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.0+0/CURL.v8.9.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.0+0/CURL.v8.9.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.0+0/CURL.v8.9.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.0+0/CURL.v8.9.0.x86_64-linux-gnu-sanitize+memory.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.0+0/CURL.v8.9.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.0+0/CURL.v8.9.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.0+0/CURL.v8.9.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.0+0/CURL.v8.9.0.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/4818ad3004700709d71de1f51f639001451a473a/L/LibCURL/CURL/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/l/libcurl/curl/build_tarballs.jl/4818ad3004700709d71de1f51f639001451a473a.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.5.8"
-
-        ["8.9.0+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.8"
-        lazy_artifacts = false
-        name = "CURL"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "x86_64-linux-gnu-sanitize+memory"]
-        script = """THIS_IS_CURL=true\ncd $WORKSPACE/srcdir/curl-*\n\n# Address <https://github.com/curl/curl/issues/12849>\natomic_patch -p1 $WORKSPACE/srcdir/memdup.patch\n\n# Holy crow we really configure the bitlets out of this thing\nFLAGS=(\n    # Disable....almost everything\n    --without-gnutls\n    --without-libidn2 --without-librtmp\n    --without-nss --without-libpsl\n    --disable-ares --disable-manual\n    --disable-ldap --disable-ldaps --without-zsh-functions-dir\n    --disable-static --without-libgsasl\n    --without-brotli\n\n    # A few things we actually enable\n    --with-libssh2=${prefix} --with-zlib=${prefix} --with-nghttp2=${prefix}\n    --enable-versioned-symbols\n)\n\nif [[ ${bb_full_target} == *-sanitize+memory* ]]; then\n# Install msan runtime (for clang)\n    cp -rL ${libdir}/linux/* /opt/x86_64-linux-musl/lib/clang/*/lib/linux/\nfi\n\nif [[ ${target} == *mingw* ]]; then\n    # We need to tell it where to find libssh2 on windows\n    FLAGS+=(LDFLAGS=\"${LDFLAGS} -L${prefix}/bin\")\n\n    # We also need to tell it to link against schannel (native TLS library)\n    FLAGS+=(--with-schannel)\nelif [[ ${target} == *darwin* ]]; then\n    # On Darwin, we need to use SecureTransport (native TLS library)\n    FLAGS+=(--with-secure-transport)\n\n    # We need to explicitly request a higher `-mmacosx-version-min` here, so that it doesn't\n    # complain about: `Symbol not found: ___isOSVersionAtLeast`\n    if [[ \"${target}\" == *x86_64* ]]; then\n        export CFLAGS=-mmacosx-version-min=10.11\n    fi\nelse\n    # On all other systems, we use OpenSSL\n    FLAGS+=(--with-openssl)\nfi\n\nif false; then\n    # Use gssapi on Linux and FreeBSD\n    FLAGS+=(--with-gssapi=${prefix})\n    if [[ \"${target}\" == *-freebsd* ]]; then\n        # Only for FreeBSD we need to hint that we need to link to libkrb5 and\n        # libcom_err to resolve some undefined symbols.\n        export LIBS=\"-lkrb5 -lcom_err\"\n    fi\nelse\n    FLAGS+=(--without-gssapi)\nfi\n\n./configure --prefix=$prefix --host=$target --build=${MACHTYPE} \"${FLAGS[@]}\"\nmake -j${nproc}\nif [[ \"${THIS_IS_CURL}\" == true ]]; then\n    # Manually install only `curl`\n    install -Dm 755 \"src/.libs/curl${exeext}\" \"${bindir}/curl${exeext}\"\nelse\n    # Install everything...\n    make install\n    # ...but remove `curl`\n    rm \"${bindir}/curl${exeext}\"\nfi\ninstall_license COPYING\n"""
-        version = "v8.9.0"
-
-            [["8.9.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LibSSH2_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["8.9.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Zlib_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["8.9.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "nghttp2_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["8.9.0+0".artifact_metadata.metadata.dependencies]]
-            compat = "3.0.8"
-            name = "OpenSSL_jll"
-            platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-unknown-freebsd", "x86_64-linux-gnu-sanitize+memory"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["8.9.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVMCompilerRT_jll"
-            platforms = ["x86_64-linux-gnu-sanitize+memory"]
-            top_level = false
-            type = "builddependency"
-            uuid = "4e17d02c-6bf5-513e-be62-445f41c75a11"
-            version-major = 13
-            version-minor = 0
-            version-patch = 1
-            [["8.9.0+0".artifact_metadata.metadata.dependencies]]
-            compat = "8.9.0"
-            name = "LibCURL_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["8.9.0+0".artifact_metadata.metadata.products]]
-            binnames = ["curl"]
-            type = "exe"
-            variable_name = "curl"
-
-            [["8.9.0+0".artifact_metadata.metadata.sources]]
-            hash = "14d931fa98a329310dca7b190d047c3d4987674b1f466481f5490e4e12067ba4"
-            type = "archive"
-            unpack_target = ""
-            url = "https://curl.se/download/curl-8.9.0.tar.gz"
-            [["8.9.0+0".artifact_metadata.metadata.sources]]
-            follow_symlinks = false
-            path = "../patches"
-            target = ""
-            type = "directory"
 
 ["8.9.1+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.1+0/CURL.v8.9.1.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.1+0/CURL.v8.9.1.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.1+0/CURL.v8.9.1.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.1+0/CURL.v8.9.1.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.1+0/CURL.v8.9.1.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.1+0/CURL.v8.9.1.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.1+0/CURL.v8.9.1.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.1+0/CURL.v8.9.1.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.1+0/CURL.v8.9.1.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.1+0/CURL.v8.9.1.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.1+0/CURL.v8.9.1.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.1+0/CURL.v8.9.1.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.1+0/CURL.v8.9.1.x86_64-linux-gnu-sanitize+memory.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.1+0/CURL.v8.9.1.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.1+0/CURL.v8.9.1.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.1+0/CURL.v8.9.1.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.1+0/CURL.v8.9.1.x86_64-w64-mingw32.tar.gz"]
@@ -351,91 +53,10 @@ registered = 2024-08-24T22:10:13.000Z
     [["8.9.1+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.1+0/CURL.v8.9.1.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.1+0/CURL.v8.9.1.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.1+0/CURL.v8.9.1.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.1+0/CURL.v8.9.1.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.1+0/CURL.v8.9.1.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.1+0/CURL.v8.9.1.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.1+0/CURL.v8.9.1.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.1+0/CURL.v8.9.1.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.1+0/CURL.v8.9.1.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.1+0/CURL.v8.9.1.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.1+0/CURL.v8.9.1.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.1+0/CURL.v8.9.1.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.1+0/CURL.v8.9.1.x86_64-linux-gnu-sanitize+memory.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.1+0/CURL.v8.9.1.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.1+0/CURL.v8.9.1.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.1+0/CURL.v8.9.1.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.9.1+0/CURL.v8.9.1.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/a7db056cea9a2da2f9509f053028da177568e301/L/LibCURL/CURL/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/l/libcurl/curl/build_tarballs.jl/a7db056cea9a2da2f9509f053028da177568e301.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.5.8"
-
-        ["8.9.1+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.8"
-        lazy_artifacts = false
-        name = "CURL"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "x86_64-linux-gnu-sanitize+memory"]
-        script = """THIS_IS_CURL=true\ncd $WORKSPACE/srcdir/curl-*\n\n# Address <https://github.com/curl/curl/issues/12849>\natomic_patch -p1 $WORKSPACE/srcdir/memdup.patch\n\n# Holy crow we really configure the bitlets out of this thing\nFLAGS=(\n    # Disable....almost everything\n    --without-gnutls\n    --without-libidn2 --without-librtmp\n    --without-nss --without-libpsl\n    --disable-ares --disable-manual\n    --disable-ldap --disable-ldaps --without-zsh-functions-dir\n    --disable-static --without-libgsasl\n    --without-brotli\n\n    # A few things we actually enable\n    --with-libssh2=${prefix} --with-zlib=${prefix} --with-nghttp2=${prefix}\n    --enable-versioned-symbols\n)\n\nif [[ ${bb_full_target} == *-sanitize+memory* ]]; then\n# Install msan runtime (for clang)\n    cp -rL ${libdir}/linux/* /opt/x86_64-linux-musl/lib/clang/*/lib/linux/\nfi\n\nif [[ ${target} == *mingw* ]]; then\n    # We need to tell it where to find libssh2 on windows\n    FLAGS+=(LDFLAGS=\"${LDFLAGS} -L${prefix}/bin\")\n\n    # We also need to tell it to link against schannel (native TLS library)\n    FLAGS+=(--with-schannel)\nelif [[ ${target} == *darwin* ]]; then\n    # On Darwin, we need to use SecureTransport (native TLS library)\n    FLAGS+=(--with-secure-transport)\n\n    # We need to explicitly request a higher `-mmacosx-version-min` here, so that it doesn't\n    # complain about: `Symbol not found: ___isOSVersionAtLeast`\n    if [[ \"${target}\" == *x86_64* ]]; then\n        export CFLAGS=-mmacosx-version-min=10.11\n    fi\nelse\n    # On all other systems, we use OpenSSL\n    FLAGS+=(--with-openssl)\nfi\n\nif false; then\n    # Use gssapi on Linux and FreeBSD\n    FLAGS+=(--with-gssapi=${prefix})\n    if [[ \"${target}\" == *-freebsd* ]]; then\n        # Only for FreeBSD we need to hint that we need to link to libkrb5 and\n        # libcom_err to resolve some undefined symbols.\n        export LIBS=\"-lkrb5 -lcom_err\"\n    fi\nelse\n    FLAGS+=(--without-gssapi)\nfi\n\n./configure --prefix=$prefix --host=$target --build=${MACHTYPE} \"${FLAGS[@]}\"\nmake -j${nproc}\nif [[ \"${THIS_IS_CURL}\" == true ]]; then\n    # Manually install only `curl`\n    install -Dm 755 \"src/.libs/curl${exeext}\" \"${bindir}/curl${exeext}\"\nelse\n    # Install everything...\n    make install\n    # ...but remove `curl`\n    rm \"${bindir}/curl${exeext}\"\nfi\ninstall_license COPYING\n"""
-        version = "v8.9.1"
-
-            [["8.9.1+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LibSSH2_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["8.9.1+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Zlib_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["8.9.1+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "nghttp2_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["8.9.1+0".artifact_metadata.metadata.dependencies]]
-            compat = "3.0.8"
-            name = "OpenSSL_jll"
-            platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-unknown-freebsd", "x86_64-linux-gnu-sanitize+memory"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["8.9.1+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVMCompilerRT_jll"
-            platforms = ["x86_64-linux-gnu-sanitize+memory"]
-            top_level = false
-            type = "builddependency"
-            uuid = "4e17d02c-6bf5-513e-be62-445f41c75a11"
-            version-major = 13
-            version-minor = 0
-            version-patch = 1
-            [["8.9.1+0".artifact_metadata.metadata.dependencies]]
-            compat = "8.9.1"
-            name = "LibCURL_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["8.9.1+0".artifact_metadata.metadata.products]]
-            binnames = ["curl"]
-            type = "exe"
-            variable_name = "curl"
-
-            [["8.9.1+0".artifact_metadata.metadata.sources]]
-            hash = "291124a007ee5111997825940b3876b3048f7d31e73e9caa681b80fe48b2dcd5"
-            type = "archive"
-            unpack_target = ""
-            url = "https://curl.se/download/curl-8.9.1.tar.gz"
-            [["8.9.1+0".artifact_metadata.metadata.sources]]
-            follow_symlinks = false
-            path = "../patches"
-            target = ""
-            type = "directory"
 
 ["8.11.0+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.0+0/CURL.v8.11.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.0+0/CURL.v8.11.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.0+0/CURL.v8.11.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.0+0/CURL.v8.11.0.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.0+0/CURL.v8.11.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.0+0/CURL.v8.11.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.0+0/CURL.v8.11.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.0+0/CURL.v8.11.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.0+0/CURL.v8.11.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.0+0/CURL.v8.11.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.0+0/CURL.v8.11.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.0+0/CURL.v8.11.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.0+0/CURL.v8.11.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.0+0/CURL.v8.11.0.x86_64-linux-gnu-sanitize+memory.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.0+0/CURL.v8.11.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.0+0/CURL.v8.11.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.0+0/CURL.v8.11.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.0+0/CURL.v8.11.0.x86_64-w64-mingw32.tar.gz"]
@@ -444,91 +65,10 @@ registered = 2024-12-08T19:41:41.000Z
     [["8.11.0+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.0+0/CURL.v8.11.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.0+0/CURL.v8.11.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.0+0/CURL.v8.11.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.0+0/CURL.v8.11.0.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.0+0/CURL.v8.11.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.0+0/CURL.v8.11.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.0+0/CURL.v8.11.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.0+0/CURL.v8.11.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.0+0/CURL.v8.11.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.0+0/CURL.v8.11.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.0+0/CURL.v8.11.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.0+0/CURL.v8.11.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.0+0/CURL.v8.11.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.0+0/CURL.v8.11.0.x86_64-linux-gnu-sanitize+memory.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.0+0/CURL.v8.11.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.0+0/CURL.v8.11.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.0+0/CURL.v8.11.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.0+0/CURL.v8.11.0.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/384213c6dfaf96f9497973f6ef77aaead94e9fb5/L/LibCURL/CURL/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/l/libcurl/curl/build_tarballs.jl/384213c6dfaf96f9497973f6ef77aaead94e9fb5.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.6.0"
-
-        ["8.11.0+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.8"
-        lazy_artifacts = false
-        name = "CURL"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "x86_64-linux-gnu-sanitize+memory"]
-        script = """THIS_IS_CURL=true\ncd $WORKSPACE/srcdir/curl-*\n\n# Address <https://github.com/curl/curl/issues/12849>\natomic_patch -p1 $WORKSPACE/srcdir/memdup.patch\n\n# Holy crow we really configure the bitlets out of this thing\nFLAGS=(\n    # Disable....almost everything\n    --without-gnutls\n    --without-libidn2 --without-librtmp\n    --without-nss --without-libpsl\n    --disable-ares --disable-manual\n    --disable-ldap --disable-ldaps --without-zsh-functions-dir\n    --disable-static --without-libgsasl\n    --without-brotli\n\n    # A few things we actually enable\n    --with-libssh2=${prefix} --with-zlib=${prefix} --with-nghttp2=${prefix}\n    --enable-versioned-symbols\n)\n\nif [[ ${bb_full_target} == *-sanitize+memory* ]]; then\n# Install msan runtime (for clang)\n    cp -rL ${libdir}/linux/* /opt/x86_64-linux-musl/lib/clang/*/lib/linux/\nfi\n\nif [[ ${target} == *mingw* ]]; then\n    # We need to tell it where to find libssh2 on windows\n    FLAGS+=(LDFLAGS=\"${LDFLAGS} -L${prefix}/bin\")\n\n    # We also need to tell it to link against schannel (native TLS library)\n    FLAGS+=(--with-schannel)\nelif [[ ${target} == *darwin* ]]; then\n    # On Darwin, we need to use SecureTransport (native TLS library)\n    FLAGS+=(--with-secure-transport)\n\n    # We need to explicitly request a higher `-mmacosx-version-min` here, so that it doesn't\n    # complain about: `Symbol not found: ___isOSVersionAtLeast`\n    if [[ \"${target}\" == *x86_64* ]]; then\n        export CFLAGS=-mmacosx-version-min=10.11\n    fi\nelse\n    # On all other systems, we use OpenSSL\n    FLAGS+=(--with-openssl)\nfi\n\nif false; then\n    # Use gssapi on Linux and FreeBSD\n    FLAGS+=(--with-gssapi=${prefix})\n    if [[ \"${target}\" == *-freebsd* ]]; then\n        # Only for FreeBSD we need to hint that we need to link to libkrb5 and\n        # libcom_err to resolve some undefined symbols.\n        export LIBS=\"-lkrb5 -lcom_err\"\n    fi\nelse\n    FLAGS+=(--without-gssapi)\nfi\n\n./configure --prefix=$prefix --host=$target --build=${MACHTYPE} \"${FLAGS[@]}\"\nmake -j${nproc}\nif [[ \"${THIS_IS_CURL}\" == true ]]; then\n    # Manually install only `curl`\n    install -Dm 755 \"src/.libs/curl${exeext}\" \"${bindir}/curl${exeext}\"\nelse\n    # Install everything...\n    make install\n    # ...but remove `curl`\n    rm \"${bindir}/curl${exeext}\"\nfi\ninstall_license COPYING\n"""
-        version = "v8.11.0"
-
-            [["8.11.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LibSSH2_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["8.11.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Zlib_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["8.11.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "nghttp2_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["8.11.0+0".artifact_metadata.metadata.dependencies]]
-            compat = "3.0.15"
-            name = "OpenSSL_jll"
-            platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "x86_64-linux-gnu-sanitize+memory"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["8.11.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVMCompilerRT_jll"
-            platforms = ["x86_64-linux-gnu-sanitize+memory"]
-            top_level = false
-            type = "builddependency"
-            uuid = "4e17d02c-6bf5-513e-be62-445f41c75a11"
-            version-major = 13
-            version-minor = 0
-            version-patch = 1
-            [["8.11.0+0".artifact_metadata.metadata.dependencies]]
-            compat = "8.11.0"
-            name = "LibCURL_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["8.11.0+0".artifact_metadata.metadata.products]]
-            binnames = ["curl"]
-            type = "exe"
-            variable_name = "curl"
-
-            [["8.11.0+0".artifact_metadata.metadata.sources]]
-            hash = "264537d90e58d2b09dddc50944baf3c38e7089151c8986715e2aaeaaf2b8118f"
-            type = "archive"
-            unpack_target = ""
-            url = "https://curl.se/download/curl-8.11.0.tar.gz"
-            [["8.11.0+0".artifact_metadata.metadata.sources]]
-            follow_symlinks = false
-            path = "../patches"
-            target = ""
-            type = "directory"
 
 ["8.11.1+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.1+0/CURL.v8.11.1.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.1+0/CURL.v8.11.1.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.1+0/CURL.v8.11.1.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.1+0/CURL.v8.11.1.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.1+0/CURL.v8.11.1.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.1+0/CURL.v8.11.1.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.1+0/CURL.v8.11.1.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.1+0/CURL.v8.11.1.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.1+0/CURL.v8.11.1.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.1+0/CURL.v8.11.1.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.1+0/CURL.v8.11.1.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.1+0/CURL.v8.11.1.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.1+0/CURL.v8.11.1.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.1+0/CURL.v8.11.1.x86_64-linux-gnu-sanitize+memory.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.1+0/CURL.v8.11.1.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.1+0/CURL.v8.11.1.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.1+0/CURL.v8.11.1.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.1+0/CURL.v8.11.1.x86_64-w64-mingw32.tar.gz"]
@@ -537,91 +77,10 @@ registered = 2024-12-17T13:56:01.000Z
     [["8.11.1+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.1+0/CURL.v8.11.1.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.1+0/CURL.v8.11.1.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.1+0/CURL.v8.11.1.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.1+0/CURL.v8.11.1.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.1+0/CURL.v8.11.1.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.1+0/CURL.v8.11.1.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.1+0/CURL.v8.11.1.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.1+0/CURL.v8.11.1.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.1+0/CURL.v8.11.1.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.1+0/CURL.v8.11.1.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.1+0/CURL.v8.11.1.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.1+0/CURL.v8.11.1.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.1+0/CURL.v8.11.1.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.1+0/CURL.v8.11.1.x86_64-linux-gnu-sanitize+memory.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.1+0/CURL.v8.11.1.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.1+0/CURL.v8.11.1.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.1+0/CURL.v8.11.1.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.11.1+0/CURL.v8.11.1.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/28c37099e59605eae010eea3376aeb10d8ec5d7a/L/LibCURL/CURL/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/l/libcurl/curl/build_tarballs.jl/28c37099e59605eae010eea3376aeb10d8ec5d7a.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.6.0"
-
-        ["8.11.1+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.8"
-        lazy_artifacts = false
-        name = "CURL"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "x86_64-linux-gnu-sanitize+memory"]
-        script = """THIS_IS_CURL=true\ncd $WORKSPACE/srcdir/curl-*\n\n# Address <https://github.com/curl/curl/issues/12849>\natomic_patch -p1 $WORKSPACE/srcdir/memdup.patch\n\n# Holy crow we really configure the bitlets out of this thing\nFLAGS=(\n    # Disable....almost everything\n    --without-gnutls\n    --without-libidn2 --without-librtmp\n    --without-nss --without-libpsl\n    --disable-ares --disable-manual\n    --disable-ldap --disable-ldaps --without-zsh-functions-dir\n    --disable-static --without-libgsasl\n    --without-brotli\n\n    # A few things we actually enable\n    --with-libssh2=${prefix} --with-zlib=${prefix} --with-nghttp2=${prefix}\n    --enable-versioned-symbols\n)\n\nif [[ ${bb_full_target} == *-sanitize+memory* ]]; then\n# Install msan runtime (for clang)\n    cp -rL ${libdir}/linux/* /opt/x86_64-linux-musl/lib/clang/*/lib/linux/\nfi\n\nif [[ ${target} == *mingw* ]]; then\n    # We need to tell it where to find libssh2 on windows\n    FLAGS+=(LDFLAGS=\"${LDFLAGS} -L${prefix}/bin\")\n\n    # We also need to tell it to link against schannel (native TLS library)\n    FLAGS+=(--with-schannel)\nelif [[ ${target} == *darwin* ]]; then\n    # On Darwin, we need to use SecureTransport (native TLS library)\n    FLAGS+=(--with-secure-transport)\n\n    # We need to explicitly request a higher `-mmacosx-version-min` here, so that it doesn't\n    # complain about: `Symbol not found: ___isOSVersionAtLeast`\n    if [[ \"${target}\" == *x86_64* ]]; then\n        export CFLAGS=-mmacosx-version-min=10.11\n    fi\nelse\n    # On all other systems, we use OpenSSL\n    FLAGS+=(--with-openssl)\nfi\n\nif false; then\n    # Use gssapi on Linux and FreeBSD\n    FLAGS+=(--with-gssapi=${prefix})\n    if [[ \"${target}\" == *-freebsd* ]]; then\n        # Only for FreeBSD we need to hint that we need to link to libkrb5 and\n        # libcom_err to resolve some undefined symbols.\n        export LIBS=\"-lkrb5 -lcom_err\"\n    fi\nelse\n    FLAGS+=(--without-gssapi)\nfi\n\n./configure --prefix=$prefix --host=$target --build=${MACHTYPE} \"${FLAGS[@]}\"\nmake -j${nproc}\nif [[ \"${THIS_IS_CURL}\" == true ]]; then\n    # Manually install only `curl`\n    install -Dm 755 \"src/.libs/curl${exeext}\" \"${bindir}/curl${exeext}\"\nelse\n    # Install everything...\n    make install\n    # ...but remove `curl`\n    rm \"${bindir}/curl${exeext}\"\nfi\ninstall_license COPYING\n"""
-        version = "v8.11.1"
-
-            [["8.11.1+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LibSSH2_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["8.11.1+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Zlib_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["8.11.1+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "nghttp2_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["8.11.1+0".artifact_metadata.metadata.dependencies]]
-            compat = "3.0.15"
-            name = "OpenSSL_jll"
-            platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "x86_64-linux-gnu-sanitize+memory"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["8.11.1+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVMCompilerRT_jll"
-            platforms = ["x86_64-linux-gnu-sanitize+memory"]
-            top_level = false
-            type = "builddependency"
-            uuid = "4e17d02c-6bf5-513e-be62-445f41c75a11"
-            version-major = 13
-            version-minor = 0
-            version-patch = 1
-            [["8.11.1+0".artifact_metadata.metadata.dependencies]]
-            compat = "8.11.1"
-            name = "LibCURL_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["8.11.1+0".artifact_metadata.metadata.products]]
-            binnames = ["curl"]
-            type = "exe"
-            variable_name = "curl"
-
-            [["8.11.1+0".artifact_metadata.metadata.sources]]
-            hash = "a889ac9dbba3644271bd9d1302b5c22a088893719b72be3487bc3d401e5c4e80"
-            type = "archive"
-            unpack_target = ""
-            url = "https://curl.se/download/curl-8.11.1.tar.gz"
-            [["8.11.1+0".artifact_metadata.metadata.sources]]
-            follow_symlinks = false
-            path = "../patches"
-            target = ""
-            type = "directory"
 
 ["8.13.0+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.13.0+0/CURL.v8.13.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.13.0+0/CURL.v8.13.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.13.0+0/CURL.v8.13.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.13.0+0/CURL.v8.13.0.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.13.0+0/CURL.v8.13.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.13.0+0/CURL.v8.13.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.13.0+0/CURL.v8.13.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.13.0+0/CURL.v8.13.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.13.0+0/CURL.v8.13.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.13.0+0/CURL.v8.13.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.13.0+0/CURL.v8.13.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.13.0+0/CURL.v8.13.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.13.0+0/CURL.v8.13.0.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.13.0+0/CURL.v8.13.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.13.0+0/CURL.v8.13.0.x86_64-linux-gnu-sanitize+memory.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.13.0+0/CURL.v8.13.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.13.0+0/CURL.v8.13.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.13.0+0/CURL.v8.13.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.13.0+0/CURL.v8.13.0.x86_64-w64-mingw32.tar.gz"]
@@ -630,96 +89,10 @@ registered = 2025-04-13T15:42:37.000Z
     [["8.13.0+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.13.0+0/CURL.v8.13.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.13.0+0/CURL.v8.13.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.13.0+0/CURL.v8.13.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.13.0+0/CURL.v8.13.0.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.13.0+0/CURL.v8.13.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.13.0+0/CURL.v8.13.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.13.0+0/CURL.v8.13.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.13.0+0/CURL.v8.13.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.13.0+0/CURL.v8.13.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.13.0+0/CURL.v8.13.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.13.0+0/CURL.v8.13.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.13.0+0/CURL.v8.13.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.13.0+0/CURL.v8.13.0.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.13.0+0/CURL.v8.13.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.13.0+0/CURL.v8.13.0.x86_64-linux-gnu-sanitize+memory.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.13.0+0/CURL.v8.13.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.13.0+0/CURL.v8.13.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.13.0+0/CURL.v8.13.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.13.0+0/CURL.v8.13.0.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/00da19a377b92d16a7e2f55faf227597796cf836/L/LibCURL/CURL/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/l/libcurl/curl/build_tarballs.jl/00da19a377b92d16a7e2f55faf227597796cf836.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.6.4"
-
-        ["8.13.0+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.8"
-        lazy_artifacts = false
-        name = "CURL"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "x86_64-linux-gnu-sanitize+memory"]
-        script = """THIS_IS_CURL=true\nif [[ \"${target}\" == x86_64-apple-darwin* ]]; then\n    export MACOSX_DEPLOYMENT_TARGET=10.13\n    pushd ${WORKSPACE}/srcdir/MacOSX10.*.sdk\n    rm -rf /opt/${target}/${target}/sys-root/System\n    cp -a usr/* \"/opt/${target}/${target}/sys-root/usr/\"\n    cp -a System \"/opt/${target}/${target}/sys-root/\"\n    popd\nfi\ncd $WORKSPACE/srcdir/curl-*\n\n# Address <https://github.com/curl/curl/issues/12849>\natomic_patch -p1 $WORKSPACE/srcdir/memdup.patch\n\n# Holy crow we really configure the bitlets out of this thing\nFLAGS=(\n    # Disable....almost everything\n    --without-gnutls\n    --without-libidn2 --without-librtmp\n    --without-nss --without-libpsl\n    --disable-ares --disable-manual\n    --disable-ldap --disable-ldaps --without-zsh-functions-dir\n    --disable-static --without-libgsasl\n    --without-brotli\n\n    # A few things we actually enable\n    --with-libssh2=${prefix} --with-zlib=${prefix} --with-nghttp2=${prefix}\n    --enable-versioned-symbols\n)\n\nif [[ ${bb_full_target} == *-sanitize+memory* ]]; then\n# Install msan runtime (for clang)\n    cp -rL ${libdir}/linux/* /opt/x86_64-linux-musl/lib/clang/*/lib/linux/\nfi\n\nif [[ ${target} == *mingw* ]]; then\n    # We need to tell it where to find libssh2 on windows\n    FLAGS+=(LDFLAGS=\"${LDFLAGS} -L${prefix}/bin\")\n\n    # We also need to tell it to link against schannel (native TLS library)\n    FLAGS+=(--with-schannel)\nelif [[ ${target} == *darwin* ]]; then\n    # On Darwin, we need to use SecureTransport (native TLS library)\n    FLAGS+=(--with-secure-transport)\n\n    # We need to explicitly request a higher `-mmacosx-version-min` here, so that it doesn't\n    # complain about: `Symbol not found: ___isOSVersionAtLeast`\n    if [[ \"${target}\" == *x86_64* ]]; then\n        export CFLAGS=-mmacosx-version-min=10.11\n    fi\nelse\n    # On all other systems, we use OpenSSL\n    FLAGS+=(--with-openssl)\nfi\n\nif false; then\n    # Use gssapi on Linux and FreeBSD\n    FLAGS+=(--with-gssapi=${prefix})\n    if [[ \"${target}\" == *-freebsd* ]]; then\n        # Only for FreeBSD we need to hint that we need to link to libkrb5 and\n        # libcom_err to resolve some undefined symbols.\n        export LIBS=\"-lkrb5 -lcom_err\"\n    fi\nelse\n    FLAGS+=(--without-gssapi)\nfi\n\n./configure --prefix=$prefix --host=$target --build=${MACHTYPE} \"${FLAGS[@]}\"\nmake -j${nproc}\nif [[ \"${THIS_IS_CURL}\" == true ]]; then\n    # Manually install only `curl`\n    install -Dm 755 \"src/.libs/curl${exeext}\" \"${bindir}/curl${exeext}\"\nelse\n    # Install everything...\n    make install\n    # ...but remove `curl`\n    rm \"${bindir}/curl${exeext}\"\nfi\ninstall_license COPYING\n"""
-        version = "v8.13.0"
-
-            [["8.13.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LibSSH2_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["8.13.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Zlib_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["8.13.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "nghttp2_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["8.13.0+0".artifact_metadata.metadata.dependencies]]
-            compat = "3.0.16"
-            name = "OpenSSL_jll"
-            platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "x86_64-linux-gnu-sanitize+memory"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["8.13.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVMCompilerRT_jll"
-            platforms = ["x86_64-linux-gnu-sanitize+memory"]
-            top_level = false
-            type = "builddependency"
-            uuid = "4e17d02c-6bf5-513e-be62-445f41c75a11"
-            version-major = 13
-            version-minor = 0
-            version-patch = 1
-            [["8.13.0+0".artifact_metadata.metadata.dependencies]]
-            compat = "8.13.0"
-            name = "LibCURL_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["8.13.0+0".artifact_metadata.metadata.products]]
-            binnames = ["curl"]
-            type = "exe"
-            variable_name = "curl"
-
-            [["8.13.0+0".artifact_metadata.metadata.sources]]
-            hash = "c261a4db579b289a7501565497658bbd52d3138fdbaccf1490fa918129ab45bc"
-            type = "archive"
-            unpack_target = ""
-            url = "https://curl.se/download/curl-8.13.0.tar.gz"
-            [["8.13.0+0".artifact_metadata.metadata.sources]]
-            follow_symlinks = false
-            path = "../patches"
-            target = ""
-            type = "directory"
-            [["8.13.0+0".artifact_metadata.metadata.sources]]
-            hash = "a3a077385205039a7c6f9e2c98ecdf2a720b2a819da715e03e0630c75782c1e4"
-            type = "archive"
-            unpack_target = ""
-            url = "https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.13.sdk.tar.xz"
 
 ["8.14.1+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.14.1+0/CURL.v8.14.1.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.14.1+0/CURL.v8.14.1.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.14.1+0/CURL.v8.14.1.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.14.1+0/CURL.v8.14.1.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.14.1+0/CURL.v8.14.1.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.14.1+0/CURL.v8.14.1.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.14.1+0/CURL.v8.14.1.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.14.1+0/CURL.v8.14.1.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.14.1+0/CURL.v8.14.1.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.14.1+0/CURL.v8.14.1.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.14.1+0/CURL.v8.14.1.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.14.1+0/CURL.v8.14.1.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.14.1+0/CURL.v8.14.1.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.14.1+0/CURL.v8.14.1.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.14.1+0/CURL.v8.14.1.x86_64-linux-gnu-sanitize+memory.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.14.1+0/CURL.v8.14.1.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.14.1+0/CURL.v8.14.1.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.14.1+0/CURL.v8.14.1.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.14.1+0/CURL.v8.14.1.x86_64-w64-mingw32.tar.gz"]
@@ -728,96 +101,10 @@ registered = 2025-06-09T15:19:52.000Z
     [["8.14.1+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.14.1+0/CURL.v8.14.1.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.14.1+0/CURL.v8.14.1.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.14.1+0/CURL.v8.14.1.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.14.1+0/CURL.v8.14.1.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.14.1+0/CURL.v8.14.1.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.14.1+0/CURL.v8.14.1.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.14.1+0/CURL.v8.14.1.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.14.1+0/CURL.v8.14.1.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.14.1+0/CURL.v8.14.1.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.14.1+0/CURL.v8.14.1.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.14.1+0/CURL.v8.14.1.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.14.1+0/CURL.v8.14.1.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.14.1+0/CURL.v8.14.1.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.14.1+0/CURL.v8.14.1.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.14.1+0/CURL.v8.14.1.x86_64-linux-gnu-sanitize+memory.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.14.1+0/CURL.v8.14.1.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.14.1+0/CURL.v8.14.1.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.14.1+0/CURL.v8.14.1.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.14.1+0/CURL.v8.14.1.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/afa459b8f0270e629c1a8335efc06047409850c3/L/LibCURL/CURL/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/l/libcurl/curl/build_tarballs.jl/afa459b8f0270e629c1a8335efc06047409850c3.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.6.4"
-
-        ["8.14.1+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.8"
-        lazy_artifacts = false
-        name = "CURL"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "x86_64-linux-gnu-sanitize+memory"]
-        script = """THIS_IS_CURL=true\nif [[ \"${target}\" == x86_64-apple-darwin* ]]; then\n    export MACOSX_DEPLOYMENT_TARGET=10.13\n    pushd ${WORKSPACE}/srcdir/MacOSX10.*.sdk\n    rm -rf /opt/${target}/${target}/sys-root/System\n    cp -a usr/* \"/opt/${target}/${target}/sys-root/usr/\"\n    cp -a System \"/opt/${target}/${target}/sys-root/\"\n    popd\nfi\ncd $WORKSPACE/srcdir/curl-*\n\n# Address <https://github.com/curl/curl/issues/12849>\natomic_patch -p1 $WORKSPACE/srcdir/memdup.patch\n\n# Holy crow we really configure the bitlets out of this thing\nFLAGS=(\n    # Disable....almost everything\n    --without-gnutls\n    --without-libidn2 --without-librtmp\n    --without-nss --without-libpsl\n    --disable-ares --disable-manual\n    --disable-ldap --disable-ldaps --without-zsh-functions-dir\n    --disable-static --without-libgsasl\n    --without-brotli\n\n    # A few things we actually enable\n    --with-libssh2=${prefix} --with-zlib=${prefix} --with-nghttp2=${prefix}\n    --enable-versioned-symbols\n)\n\nif [[ ${bb_full_target} == *-sanitize+memory* ]]; then\n    # Install msan runtime (for clang)\n    cp -rL ${libdir}/linux/* /opt/x86_64-linux-musl/lib/clang/*/lib/linux/\nfi\n\nif [[ ${target} == *mingw* ]]; then\n    # We need to tell it where to find libssh2 on windows\n    FLAGS+=(LDFLAGS=\"${LDFLAGS} -L${prefix}/bin\")\n\n    # We also need to tell it to link against schannel (native TLS library)\n    FLAGS+=(--with-schannel)\nelif [[ ${target} == *darwin* ]]; then\n    # On Darwin, we need to use SecureTransport (native TLS library)\n    FLAGS+=(--with-secure-transport)\n\n    # We need to explicitly request a higher `-mmacosx-version-min` here, so that it doesn't\n    # complain about: `Symbol not found: ___isOSVersionAtLeast`\n    if [[ \"${target}\" == *x86_64* ]]; then\n        export CFLAGS=-mmacosx-version-min=10.11\n    fi\nelse\n    # On all other systems, we use OpenSSL\n    FLAGS+=(--with-openssl)\nfi\n\nif false; then\n    # Use gssapi on Linux and FreeBSD\n    FLAGS+=(--with-gssapi=${prefix})\n    if [[ \"${target}\" == *-freebsd* ]]; then\n        # Only for FreeBSD we need to hint that we need to link to libkrb5 and\n        # libcom_err to resolve some undefined symbols.\n        export LIBS=\"-lkrb5 -lcom_err\"\n    fi\nelse\n    FLAGS+=(--without-gssapi)\nfi\n\n./configure --prefix=$prefix --host=$target --build=${MACHTYPE} \"${FLAGS[@]}\"\nmake -j${nproc}\nif [[ \"${THIS_IS_CURL}\" == true ]]; then\n    # Manually install only `curl`\n    install -Dm 755 \"src/.libs/curl${exeext}\" \"${bindir}/curl${exeext}\"\nelse\n    # Install everything...\n    make install\n    # ...but remove `curl`\n    rm \"${bindir}/curl${exeext}\"\nfi\ninstall_license COPYING\n"""
-        version = "v8.14.1"
-
-            [["8.14.1+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LibSSH2_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["8.14.1+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Zlib_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["8.14.1+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "nghttp2_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["8.14.1+0".artifact_metadata.metadata.dependencies]]
-            compat = "3.0.16"
-            name = "OpenSSL_jll"
-            platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "x86_64-linux-gnu-sanitize+memory"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["8.14.1+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVMCompilerRT_jll"
-            platforms = ["x86_64-linux-gnu-sanitize+memory"]
-            top_level = false
-            type = "builddependency"
-            uuid = "4e17d02c-6bf5-513e-be62-445f41c75a11"
-            version-major = 13
-            version-minor = 0
-            version-patch = 1
-            [["8.14.1+0".artifact_metadata.metadata.dependencies]]
-            compat = "8.14.1"
-            name = "LibCURL_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["8.14.1+0".artifact_metadata.metadata.products]]
-            binnames = ["curl"]
-            type = "exe"
-            variable_name = "curl"
-
-            [["8.14.1+0".artifact_metadata.metadata.sources]]
-            hash = "6766ada7101d292b42b8b15681120acd68effa4a9660935853cf6d61f0d984d4"
-            type = "archive"
-            unpack_target = ""
-            url = "https://curl.se/download/curl-8.14.1.tar.gz"
-            [["8.14.1+0".artifact_metadata.metadata.sources]]
-            follow_symlinks = false
-            path = "../patches"
-            target = ""
-            type = "directory"
-            [["8.14.1+0".artifact_metadata.metadata.sources]]
-            hash = "a3a077385205039a7c6f9e2c98ecdf2a720b2a819da715e03e0630c75782c1e4"
-            type = "archive"
-            unpack_target = ""
-            url = "https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.13.sdk.tar.xz"
 
 ["8.16.0+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.16.0+0/CURL.v8.16.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.16.0+0/CURL.v8.16.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.16.0+0/CURL.v8.16.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.16.0+0/CURL.v8.16.0.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.16.0+0/CURL.v8.16.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.16.0+0/CURL.v8.16.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.16.0+0/CURL.v8.16.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.16.0+0/CURL.v8.16.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.16.0+0/CURL.v8.16.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.16.0+0/CURL.v8.16.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.16.0+0/CURL.v8.16.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.16.0+0/CURL.v8.16.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.16.0+0/CURL.v8.16.0.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.16.0+0/CURL.v8.16.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.16.0+0/CURL.v8.16.0.x86_64-linux-gnu-sanitize+memory.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.16.0+0/CURL.v8.16.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.16.0+0/CURL.v8.16.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.16.0+0/CURL.v8.16.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.16.0+0/CURL.v8.16.0.x86_64-w64-mingw32.tar.gz"]
@@ -826,91 +113,10 @@ registered = 2025-09-19T13:51:53.000Z
     [["8.16.0+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.16.0+0/CURL.v8.16.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.16.0+0/CURL.v8.16.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.16.0+0/CURL.v8.16.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.16.0+0/CURL.v8.16.0.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.16.0+0/CURL.v8.16.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.16.0+0/CURL.v8.16.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.16.0+0/CURL.v8.16.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.16.0+0/CURL.v8.16.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.16.0+0/CURL.v8.16.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.16.0+0/CURL.v8.16.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.16.0+0/CURL.v8.16.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.16.0+0/CURL.v8.16.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.16.0+0/CURL.v8.16.0.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.16.0+0/CURL.v8.16.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.16.0+0/CURL.v8.16.0.x86_64-linux-gnu-sanitize+memory.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.16.0+0/CURL.v8.16.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.16.0+0/CURL.v8.16.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.16.0+0/CURL.v8.16.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.16.0+0/CURL.v8.16.0.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/53a491288f3407c6109c9fb37a557812ce7e8f12/L/LibCURL/CURL/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/l/libcurl/curl/build_tarballs.jl/53a491288f3407c6109c9fb37a557812ce7e8f12.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.6.5"
-
-        ["8.16.0+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.8"
-        lazy_artifacts = false
-        name = "CURL"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "x86_64-linux-gnu-sanitize+memory"]
-        script = """THIS_IS_CURL=true\nMACOS_USE_OPENSSL=true\n    cd $WORKSPACE/srcdir/curl-*\n\n    # Address <https://github.com/curl/curl/issues/12849>\n    atomic_patch -p1 $WORKSPACE/srcdir/memdup.patch\n\n    # Holy crow we really configure the bitlets out of this thing\n    FLAGS=(\n        # Disable....almost everything\n        --without-gnutls\n        --without-libidn2 --without-librtmp\n        --without-libpsl\n        --disable-ares --disable-manual\n        --disable-ldap --disable-ldaps --without-zsh-functions-dir\n        --disable-static --without-libgsasl\n        --without-brotli\n\n        # A few things we actually enable\n\t--with-libssh2=${prefix} --with-zlib=${prefix} --with-nghttp2=${prefix}\n        --enable-versioned-symbols\n    )\n\n    if [[ ${HAVE_ZSTD} == true ]]; then\n        FLAGS+=(--with-zstd=${prefix})\n    fi\n\n    if [[ ${WITHOUT_NSS} == true ]]; then\n        FLAGS+=(--without-nss)\n    fi\n\n    if [[ ${bb_full_target} == *-sanitize+memory* ]]; then\n        # Install msan runtime (for clang)\n        cp -rL ${libdir}/linux/* /opt/x86_64-linux-musl/lib/clang/*/lib/linux/\n    fi\n\n    if [[ ${target} == *mingw* ]]; then\n        # We need to tell it where to find libssh2 on windows\n        FLAGS+=(LDFLAGS=\"${LDFLAGS} -L${prefix}/bin\")\n\n        # We also need to tell it to link against schannel (native TLS library)\n        FLAGS+=(--with-schannel)\n    elif [[ ${MACOS_USE_OPENSSL} == false && ${target} == *darwin* ]]; then\n        # On Darwin, we need to use SecureTransport (native TLS library) for pre-8.15 versions of CURL\n        FLAGS+=(--with-secure-transport)\n\n        # We need to explicitly request a higher `-mmacosx-version-min` here, so that it doesn't\n        # complain about: `Symbol not found: ___isOSVersionAtLeast`\n        if [[ \"${target}\" == *x86_64* ]]; then\n            export CFLAGS=-mmacosx-version-min=10.11\n        fi\n    else\n        # On all other systems, we use OpenSSL\n        FLAGS+=(--with-openssl)\n    fi\n\n    if false; then\n        # Use gssapi on Linux and FreeBSD\n        FLAGS+=(--with-gssapi=${prefix})\n        if [[ \"${target}\" == *-freebsd* ]]; then\n            # Only for FreeBSD we need to hint that we need to link to libkrb5 and\n            # libcom_err to resolve some undefined symbols.\n            export LIBS=\"-lkrb5 -lcom_err\"\n        fi\n    else\n        FLAGS+=(--without-gssapi)\n    fi\n\n    ./configure --prefix=$prefix --host=$target --build=${MACHTYPE} \"${FLAGS[@]}\"\n    make -j${nproc}\n    if [[ \"${THIS_IS_CURL}\" == true ]]; then\n        # Manually install only `curl`\n        install -Dm 755 \"src/.libs/curl${exeext}\" \"${bindir}/curl${exeext}\"\n    else\n        # Install everything...\n        make install\n        # ...but remove `curl`\n        rm \"${bindir}/curl${exeext}\"\n    fi\n    install_license COPYING\n    """
-        version = "v8.16.0"
-
-            [["8.16.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LibSSH2_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["8.16.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Zlib_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["8.16.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "nghttp2_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["8.16.0+0".artifact_metadata.metadata.dependencies]]
-            compat = "3.0.16"
-            name = "OpenSSL_jll"
-            platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "x86_64-linux-gnu-sanitize+memory"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["8.16.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVMCompilerRT_jll"
-            platforms = ["x86_64-linux-gnu-sanitize+memory"]
-            top_level = false
-            type = "builddependency"
-            uuid = "4e17d02c-6bf5-513e-be62-445f41c75a11"
-            version-major = 13
-            version-minor = 0
-            version-patch = 1
-            [["8.16.0+0".artifact_metadata.metadata.dependencies]]
-            compat = "8.16.0"
-            name = "LibCURL_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["8.16.0+0".artifact_metadata.metadata.products]]
-            binnames = ["curl"]
-            type = "exe"
-            variable_name = "curl"
-
-            [["8.16.0+0".artifact_metadata.metadata.sources]]
-            hash = "a21e20476e39eca5a4fc5cfb00acf84bbc1f5d8443ec3853ad14c26b3c85b970"
-            type = "archive"
-            unpack_target = ""
-            url = "https://curl.se/download/curl-8.16.0.tar.gz"
-            [["8.16.0+0".artifact_metadata.metadata.sources]]
-            follow_symlinks = false
-            path = "../patches"
-            target = ""
-            type = "directory"
 
 ["8.17.0+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.17.0+0/CURL.v8.17.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.17.0+0/CURL.v8.17.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.17.0+0/CURL.v8.17.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.17.0+0/CURL.v8.17.0.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.17.0+0/CURL.v8.17.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.17.0+0/CURL.v8.17.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.17.0+0/CURL.v8.17.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.17.0+0/CURL.v8.17.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.17.0+0/CURL.v8.17.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.17.0+0/CURL.v8.17.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.17.0+0/CURL.v8.17.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.17.0+0/CURL.v8.17.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.17.0+0/CURL.v8.17.0.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.17.0+0/CURL.v8.17.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.17.0+0/CURL.v8.17.0.x86_64-linux-gnu-sanitize+memory.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.17.0+0/CURL.v8.17.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.17.0+0/CURL.v8.17.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.17.0+0/CURL.v8.17.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.17.0+0/CURL.v8.17.0.x86_64-w64-mingw32.tar.gz"]
@@ -919,88 +125,7 @@ registered = 2025-12-05T23:14:33.000Z
     [["8.17.0+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.17.0+0/CURL.v8.17.0.aarch64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.17.0+0/CURL.v8.17.0.aarch64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.17.0+0/CURL.v8.17.0.aarch64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.17.0+0/CURL.v8.17.0.aarch64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.17.0+0/CURL.v8.17.0.armv6l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.17.0+0/CURL.v8.17.0.armv6l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.17.0+0/CURL.v8.17.0.armv7l-linux-gnueabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.17.0+0/CURL.v8.17.0.armv7l-linux-musleabihf.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.17.0+0/CURL.v8.17.0.i686-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.17.0+0/CURL.v8.17.0.i686-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.17.0+0/CURL.v8.17.0.i686-w64-mingw32.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.17.0+0/CURL.v8.17.0.powerpc64le-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.17.0+0/CURL.v8.17.0.riscv64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.17.0+0/CURL.v8.17.0.x86_64-apple-darwin.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.17.0+0/CURL.v8.17.0.x86_64-linux-gnu-sanitize+memory.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.17.0+0/CURL.v8.17.0.x86_64-linux-gnu.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.17.0+0/CURL.v8.17.0.x86_64-linux-musl.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.17.0+0/CURL.v8.17.0.x86_64-unknown-freebsd.tar.gz", "https://github.com/JuliaBinaryWrappers/CURL_jll.jl/releases/download/CURL-v8.17.0+0/CURL.v8.17.0.x86_64-w64-mingw32.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/cdb16ff7672ce22cb25c9eb10ebd267a6e5368a1/L/LibCURL/CURL/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/l/libcurl/curl/build_tarballs.jl/cdb16ff7672ce22cb25c9eb10ebd267a6e5368a1.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.6.5"
-
-        ["8.17.0+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.8"
-        lazy_artifacts = false
-        name = "CURL"
-        platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "x86_64-linux-gnu-sanitize+memory"]
-        script = """THIS_IS_CURL=true\nMACOS_USE_OPENSSL=true\n    cd $WORKSPACE/srcdir/curl-*\n\n    # Address <https://github.com/curl/curl/issues/12849>\n    atomic_patch -p1 $WORKSPACE/srcdir/memdup.patch\n\n    # Holy crow we really configure the bitlets out of this thing\n    FLAGS=(\n        # Disable....almost everything\n        --without-gnutls\n        --without-libidn2 --without-librtmp\n        --without-libpsl\n        --disable-ares --disable-manual\n        --disable-ldap --disable-ldaps --without-zsh-functions-dir\n        --disable-static --without-libgsasl\n        --without-brotli\n\n        # A few things we actually enable\n\t--with-libssh2=${prefix} --with-zlib=${prefix} --with-nghttp2=${prefix}\n        --enable-versioned-symbols\n    )\n\n    if [[ ${HAVE_ZSTD} == true ]]; then\n        FLAGS+=(--with-zstd=${prefix})\n    fi\n\n    if [[ ${WITHOUT_NSS} == true ]]; then\n        FLAGS+=(--without-nss)\n    fi\n\n    if [[ ${bb_full_target} == *-sanitize+memory* ]]; then\n        # Install msan runtime (for clang)\n        cp -rL ${libdir}/linux/* /opt/x86_64-linux-musl/lib/clang/*/lib/linux/\n    fi\n\n    if [[ ${target} == *mingw* ]]; then\n        # We need to tell it where to find libssh2 on windows\n        FLAGS+=(LDFLAGS=\"${LDFLAGS} -L${prefix}/bin\")\n\n        # We also need to tell it to link against schannel (native TLS library)\n        FLAGS+=(--with-schannel)\n    elif [[ ${MACOS_USE_OPENSSL} == false && ${target} == *darwin* ]]; then\n        # On Darwin, we need to use SecureTransport (native TLS library) for pre-8.15 versions of CURL\n        FLAGS+=(--with-secure-transport)\n\n        # We need to explicitly request a higher `-mmacosx-version-min` here, so that it doesn't\n        # complain about: `Symbol not found: ___isOSVersionAtLeast`\n        if [[ \"${target}\" == *x86_64* ]]; then\n            export CFLAGS=-mmacosx-version-min=10.11\n        fi\n    else\n        # On all other systems, we use OpenSSL\n        FLAGS+=(--with-openssl)\n    fi\n\n    if false; then\n        # Use gssapi on Linux and FreeBSD\n        FLAGS+=(--with-gssapi=${prefix})\n        if [[ \"${target}\" == *-freebsd* ]]; then\n            # Only for FreeBSD we need to hint that we need to link to libkrb5 and\n            # libcom_err to resolve some undefined symbols.\n            export LIBS=\"-lkrb5 -lcom_err\"\n        fi\n    else\n        FLAGS+=(--without-gssapi)\n    fi\n\n    ./configure --prefix=$prefix --host=$target --build=${MACHTYPE} \"${FLAGS[@]}\"\n    make -j${nproc}\n    if [[ \"${THIS_IS_CURL}\" == true ]]; then\n        # Manually install only `curl`\n        install -Dm 755 \"src/.libs/curl${exeext}\" \"${bindir}/curl${exeext}\"\n    else\n        # Install everything...\n        make install\n        # ...but remove `curl`\n        rm \"${bindir}/curl${exeext}\"\n    fi\n    install_license COPYING\n    """
-        version = "v8.17.0"
-
-            [["8.17.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LibSSH2_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["8.17.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "Zlib_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["8.17.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "nghttp2_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["8.17.0+0".artifact_metadata.metadata.dependencies]]
-            compat = "3.0.16"
-            name = "OpenSSL_jll"
-            platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "x86_64-linux-gnu-sanitize+memory"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["8.17.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "LLVMCompilerRT_jll"
-            platforms = ["x86_64-linux-gnu-sanitize+memory"]
-            top_level = false
-            type = "builddependency"
-            uuid = "4e17d02c-6bf5-513e-be62-445f41c75a11"
-            version-major = 13
-            version-minor = 0
-            version-patch = 1
-            [["8.17.0+0".artifact_metadata.metadata.dependencies]]
-            compat = "8.17.0"
-            name = "LibCURL_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["8.17.0+0".artifact_metadata.metadata.products]]
-            binnames = ["curl"]
-            type = "exe"
-            variable_name = "curl"
-
-            [["8.17.0+0".artifact_metadata.metadata.sources]]
-            hash = "e8e74cdeefe5fb78b3ae6e90cd542babf788fa9480029cfcee6fd9ced42b7910"
-            type = "archive"
-            unpack_target = ""
-            url = "https://curl.se/download/curl-8.17.0.tar.gz"
-            [["8.17.0+0".artifact_metadata.metadata.sources]]
-            follow_symlinks = false
-            path = "../patches"
-            target = ""
-            type = "directory"

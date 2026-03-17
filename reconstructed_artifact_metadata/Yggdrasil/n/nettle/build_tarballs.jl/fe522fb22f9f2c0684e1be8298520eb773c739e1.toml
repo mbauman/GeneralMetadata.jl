@@ -1,0 +1,48 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Nettle"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/nettle-*\n# Include patch for finding definition of `AT_HWCAP2` within the Linux\n# kernel headers, rather than the glibc headers, since our glibc is too old\natomic_patch -p1 ../patches/AT_HWCAP2-linux_headers.patch\n\n# Force c99 mode\nexport CFLAGS=\"${CFLAGS} -std=c99\"\n\nupdate_configure_scripts\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} --with-include-path=${includedir}\nmake -j${nproc} SUBDIRS=\"tools\"\nmake install    SUBDIRS=\"tools\"\ninstall_license COPYING*\n"""
+version = "v3.10.0"
+
+[[dependencies]]
+compat = ""
+name = "GMP_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnettle"]
+type = "lib"
+variable_name = "libnettle"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libhogweed"]
+type = "lib"
+variable_name = "libhogweed"
+[[products]]
+binnames = ["nettle-hash"]
+type = "exe"
+variable_name = "nettle_hash"
+
+[[sources]]
+hash = "b4c518adb174e484cb4acea54118f02380c7133771e7e9beb98a0787194ee47c"
+type = "archive"
+unpack_target = ""
+url = "https://ftp.gnu.org/gnu/nettle/nettle-3.10.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

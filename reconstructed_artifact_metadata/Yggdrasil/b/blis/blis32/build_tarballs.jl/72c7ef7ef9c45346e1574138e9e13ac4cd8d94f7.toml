@@ -1,0 +1,48 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "blis32"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """BLIS32=true\ncd $WORKSPACE/srcdir/blis\n\nfor i in ./config/*/*.mk; do\n\n    # Building in container forbids -march options <<< Settings overriden.\n    # sed -i \"s/-march[^ ]*//g\" $i\n\n    # Building in container forbids unsafe optimization.\n    sed -i \"s/-ffast-math//g\" $i\n    sed -i \"s/-funsafe-math-optimizations//g\" $i\n\ndone\n\ncase ${target} in\n\n    *\"x86_64\"*\"linux\"*)\n        export BLI_CONFIG=x86_64\n        export BLI_THREAD=openmp\n        ;;\n    *\"aarch64\"*\"linux\"*)\n        export BLI_CONFIG=arm64\n        export BLI_THREAD=openmp\n        ;;\n    *\"arm\"*\"linux\"*)\n        export BLI_CONFIG=arm32\n        export BLI_THREAD=none\n        ;;\n    *\"x86_64\"*\"w64\"*)\n        # MinGW doesn't support savexmm instructions\n        # Build only for AMD processors.\n        export BLI_CONFIG=amd64\n        export BLI_THREAD=openmp\n        ;;\n    *\"x86_64\"*\"apple\"*)\n        export BLI_CONFIG=x86_64\n        export BLI_THREAD=openmp\n        ;;\n    *\"aarch64\"*\"apple\"*)\n        export BLI_CONFIG=arm64\n        export BLI_THREAD=openmp\n        ;;\n    *\"x86_64\"*\"freebsd\"*)\n        export BLI_CONFIG=x86_64\n        export BLI_THREAD=openmp\n        ;;\n    *\"aarch64\"*\"freebsd\"*)\n        export BLI_CONFIG=arm64\n        export BLI_THREAD=openmp\n        ;;\n   *\"powerpc64le\"*)\n        export BLI_CONFIG=power\n        export BLI_THREAD=openmp\n        ;;\n   *)\n        # Default (Generic) configuration without optimized kernel.\n        # For now, RISC-V uses the generic kernels here until upstream implements a meta target: https://github.com/flame/blis/issues/902\n        export BLI_CONFIG=generic\n        export BLI_THREAD=none\n        ;;\n\nesac\n\n# For 64-bit builds, add _64 suffix to exported BLAS routines.\n# This corresponds to ILP64 handling of OpenBLAS thus Julia.\nif [[ ${nbits} == 64 ]] && [[ \"${BLIS32}\" != \"true\" ]]; then\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/bli_macro_defs.h.f77suffix64.patch\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/cblas_f77suffix64.patch\nfi\n\n# Include A64FX in Arm64 metaconfig.\nif [ ${BLI_CONFIG} = arm64 ]; then\n    # Add A64FX to the registry.\n    patch config_registry ${WORKSPACE}/srcdir/patches/config_registry.metaconfig+a64fx.patch\n\n    # Unscreen Arm SVE code for metaconfig.\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/armsve_kernels_unscreen_arm_sve_h.patch\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/armsve_kernels_unscreen_armsve512_int_12xk.patch\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/armsve_kernels_unscreen_armsve256_int_8x10.patch\n\n    # Screen out A64FX sector cache.\n    patch config/a64fx/bli_cntx_init_a64fx.c ${WORKSPACE}/srcdir/patches/a64fx_config_screen_sector_cache.patch\nfi\n\n# Import libblastrampoline-style nthreads setter.\ncp ${WORKSPACE}/srcdir/nthreads64_.c frame/compat/nthreads64_.c\n\nif [[ \"${BLIS32}\" == \"true\" ]]; then\n    export BLI_F77BITS=32\nelse\n    export BLI_F77BITS=${nbits}\nfi\n./configure --enable-cblas -p ${prefix} -t ${BLI_THREAD} -b ${BLI_F77BITS} ${BLI_CONFIG}\nmake -j${nproc}\nmake install\n\n# Static library is not needed.\nrm -f ${prefix}/lib/libblis.a\n\n# Rename .dll for Windows targets.\nif [[ \"${target}\" == *mingw* ]]; then\n    mkdir -p ${libdir}\n    mv ${prefix}/lib/libblis.4.dll ${libdir}/libblis.dll\nfi\n\nif [[ \"${BLIS32}\" == \"true\" ]]; then\n    # Rename libblis.${dlext} into libblis32.${dlext}\n    mv -v ${libdir}/libblis.${dlext} ${libdir}/libblis32.${dlext}\n\n    # If there were links that are now broken, fix 'em up\n    for l in $(find ${prefix}/lib -xtype l); do\n      if [[ $(basename $(readlink ${l})) == libblis ]]; then\n        ln -vsf libblis32.${dlext} ${l}\n      fi\n    done\n\n    PATCHELF_FLAGS=()\n\n    # ppc64le and aarch64 have 64 kB page sizes, don't muck up the ELF section load alignment\n    if [[ ${target} == aarch64-* || ${target} == powerpc64le-* ]]; then\n      PATCHELF_FLAGS+=(--page-size 65536)\n    fi\n\n    if [[ ${target} == *linux* ]] || [[ ${target} == *freebsd* ]]; then\n      patchelf ${PATCHELF_FLAGS[@]} --set-soname libblis32.${dlext} ${libdir}/libblis32.${dlext}\n    elif [[ ${target} == *apple* ]]; then\n      install_name_tool -id libblis32.${dlext} ${libdir}/libblis32.${dlext}\n    fi\nfi\n\ninstall_license LICENSE\n"""
+version = "v2.0.0"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LLVMOpenMP_jll"
+platforms = ["x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd"]
+top_level = false
+type = "dependency"
+uuid = "1d63c593-3942-5779-bab2-d838dc0a180e"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libblis32"]
+type = "lib"
+variable_name = "blis32"
+
+[[sources]]
+hash = "e8566eb3e773fb54d11b33e371d13f22d2941e50"
+type = "git"
+unpack_target = ""
+url = "https://github.com/flame/blis.git"
+[[sources]]
+follow_symlinks = false
+path = "../bundled"
+target = ""
+type = "directory"

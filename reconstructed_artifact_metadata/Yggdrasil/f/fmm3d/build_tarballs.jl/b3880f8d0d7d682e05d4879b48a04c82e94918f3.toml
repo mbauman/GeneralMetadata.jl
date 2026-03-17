@@ -1,0 +1,32 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "FMM3D"
+platforms = ["i686-linux-gnu-libgfortran3", "i686-linux-gnu-libgfortran4", "i686-linux-gnu-libgfortran5", "x86_64-linux-gnu-libgfortran3", "x86_64-linux-gnu-libgfortran4", "x86_64-linux-gnu-libgfortran5", "aarch64-linux-gnu-libgfortran3", "aarch64-linux-gnu-libgfortran4", "aarch64-linux-gnu-libgfortran5", "armv6l-linux-gnueabihf-libgfortran3", "armv6l-linux-gnueabihf-libgfortran4", "armv6l-linux-gnueabihf-libgfortran5", "armv7l-linux-gnueabihf-libgfortran3", "armv7l-linux-gnueabihf-libgfortran4", "armv7l-linux-gnueabihf-libgfortran5", "powerpc64le-linux-gnu-libgfortran3", "powerpc64le-linux-gnu-libgfortran4", "powerpc64le-linux-gnu-libgfortran5", "i686-linux-musl-libgfortran3", "i686-linux-musl-libgfortran4", "i686-linux-musl-libgfortran5", "x86_64-linux-musl-libgfortran3", "x86_64-linux-musl-libgfortran4", "x86_64-linux-musl-libgfortran5", "aarch64-linux-musl-libgfortran3", "aarch64-linux-musl-libgfortran4", "aarch64-linux-musl-libgfortran5", "armv6l-linux-musleabihf-libgfortran3", "armv6l-linux-musleabihf-libgfortran4", "armv6l-linux-musleabihf-libgfortran5", "armv7l-linux-musleabihf-libgfortran3", "armv7l-linux-musleabihf-libgfortran4", "armv7l-linux-musleabihf-libgfortran5", "x86_64-apple-darwin-libgfortran3", "x86_64-apple-darwin-libgfortran4", "x86_64-apple-darwin-libgfortran5", "aarch64-apple-darwin-libgfortran5", "x86_64-unknown-freebsd-libgfortran3", "x86_64-unknown-freebsd-libgfortran4", "x86_64-unknown-freebsd-libgfortran5", "i686-w64-mingw32-libgfortran3", "i686-w64-mingw32-libgfortran4", "i686-w64-mingw32-libgfortran5", "x86_64-w64-mingw32-libgfortran3", "x86_64-w64-mingw32-libgfortran4", "x86_64-w64-mingw32-libgfortran5"]
+script = """cd $WORKSPACE/srcdir/FMM3D/\n\nOMPFLAGS=\"-fopenmp\"\nOMPLIBS=\"-lgomp\"\n\nFFLAGS=\"-fPIC -O3 -funroll-loops -std=legacy\"\nif [[ ${target} = *mingw* ]]; then\n    FFLAGS=\"${FFLAGS} -fno-asynchronous-unwind-tables\"\nfi\nLIBS=\"-lm\"\n\necho \"CC=${CC}\" >> make.inc\necho \"CXX=${CXX}\" >> make.inc\necho \"FC=${FC}\" >> make.inc\necho \"FFLAGS= ${FFLAGS}\" >> make.inc\necho \"OMPFLAGS= ${OMPFLAGS}\" >> make.inc\necho \"OMPLIBS= ${OMPLIBS}\" >> make.inc\necho \"LIBS = ${LIBS}\" >> make.inc\n\nmake -j${nproc} lib OMP=ON\n\n# build the correct type of dynamic library for\n# current target\nSHAREFLAGS=\"-shared -fPIC\"\n\ncd lib-static\nar x libfmm3d.a\n${FC} ${SHAREFLAGS} ${OMPFLAGS} *.o -o \"${libdir}/libfmm3d.${dlext}\" ${LIBS} ${OMPLIBS}\n\ninstall_license ${WORKSPACE}/srcdir/FMM3D/LICENSE\n"""
+version = "v1.0.1"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libfmm3d"]
+type = "lib"
+variable_name = "libfmm3d"
+
+[[sources]]
+hash = "9228240c090d1b8386617728ffa14372fe967b1a"
+type = "git"
+unpack_target = ""
+url = "https://github.com/flatironinstitute/FMM3D.git"

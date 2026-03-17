@@ -1,0 +1,27 @@
+dependencies = []
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "CRlibm"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/crlibm*/\n\nfor p in ../patches/*.patch; do\n    atomic_patch -p1 \"${p}\"\ndone\n\nupdate_configure_scripts \nexport CFLAGS=\"-fPIC\"\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target}\nmake -C scs_lib\nmake -j${nproc} libcrlibm.a\nmkdir -p ${libdir}\ncc -L. -shared -o ${libdir}/libcrlibm.${dlext} *.o scs_lib/*.o\n"""
+version = "v1.0.0"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcrlibm"]
+type = "lib"
+variable_name = "libcrlibm"
+
+[[sources]]
+hash = "6836b4299f9421c99da2bdcd5e04a8d35577db4eb61161a401aa93751a96375d"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/JuliaIntervals/CRlibm.jl/raw/368ccdebd57e7a7cc96d47ab6b08e7a597495ff2/deps/src/crlibm-1.0beta4.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

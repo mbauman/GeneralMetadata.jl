@@ -1,0 +1,428 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "GDAL"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir/gdal\n\natomic_patch -p1 ../patches/bsd-environ-undefined-fix.patch\n\nif [[ \"${target}\" == *-freebsd* ]]; then\n    # Our FreeBSD libc has `environ` as undefined symbol, so the linker will\n    # complain if this symbol is used in the built library, even if this won't\n    # be a problem at runtime. The flag `-undefined` allows having undefined symbols.\n    # The flag `-lexecinfo` fixes \"undefined reference to `backtrace'\".\n    export LDFLAGS=\"-lexecinfo -undefined\"\nfi\n\nif [[ \"${target}\" == x86_64-apple-darwin* ]]; then\n    # Work around the issue\n    # /opt/x86_64-apple-darwin14/x86_64-apple-darwin14/sys-root/usr/local/include/arrow/type.h:1745:36: error: 'get<arrow::FieldPath, arrow::FieldPath, std::basic_string<char>, std::vector<arrow::FieldRef>>' is unavailable: introduced in macOS 10.14\n    #     if (IsFieldPath()) return std::get<FieldPath>(impl_).indices().size() > 1;\n    #                                    ^\n    # /opt/x86_64-apple-darwin14/x86_64-apple-darwin14/sys-root/usr/include/c++/v1/variant:1394:22: note: 'get<arrow::FieldPath, arrow::FieldPath, std::basic_string<char>, std::vector<arrow::FieldRef>>' has been explicitly marked unavailable here\n    export MACOSX_DEPLOYMENT_TARGET=10.15\n    # ...and install a newer SDK\n    pushd $WORKSPACE/srcdir/MacOSX10.*.sdk\n    rm -rf /opt/${target}/${target}/sys-root/System\n    cp -ra usr/* \"/opt/${target}/${target}/sys-root/usr/.\"\n    cp -ra System \"/opt/${target}/${target}/sys-root/.\"\n    popd\nfi\n\nmkdir build && cd build\n\nCMAKE_FLAGS=(-DCMAKE_INSTALL_PREFIX=${prefix}\n    -DCMAKE_BUILD_TYPE=Release\n    -DCMAKE_FIND_ROOT_PATH=${prefix}\n    -DCMAKE_PREFIX_PATH=${prefix}\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN}\n    -DBUILD_CSHARP_BINDINGS=OFF\n    -DBUILD_JAVA_BINDINGS=OFF\n    -DBUILD_PYTHON_BINDINGS=OFF\n    -DGDAL_USE_ARROW=ON\n    -DGDAL_USE_BLOSC=ON\n    -DGDAL_USE_CURL=ON\n    -DGDAL_USE_EXPAT=ON\n    -DGDAL_USE_GEOS=ON\n    -DGDAL_USE_GEOTIFF=ON\n    -DGDAL_USE_GIF=OFF  # Breaks GDAL on Windows as of Giflib_jll v5.2.2 (#8781)\n    -DGDAL_USE_LIBLZMA=ON\n    -DGDAL_USE_LIBXML2=ON\n    -DGDAL_USE_LZ4=ON\n    -DGDAL_USE_OPENJPEG=ON\n    -DGDAL_USE_PARQUET=ON\n    -DGDAL_USE_PNG=ON\n    -DGDAL_USE_POSTGRESQL=ON\n    -DGDAL_USE_QHULL=ON\n    -DGDAL_USE_SQLITE3=ON\n    -DGDAL_USE_TIFF=ON\n    -DGDAL_USE_WEBP=ON\n    -DGDAL_USE_ZLIB=ON\n    -DGDAL_USE_ZSTD=ON\n    -DGIF_LIBRARY=${libdir}/libgif.${dlext}\n    -DPCRE2-8_LIBRARY=${libdir}/libpcre2-8.${dlext}\n    -DPCRE2_INCLUDE_DIR=${includedir}\n    -DPostgreSQL_INCLUDE_DIR=${includedir}\n    -DPostgreSQL_LIBRARY=${libdir}/libpq.${dlext}\n)\n\n# NetCDF is the most restrictive dependency as far as platform availability, so we'll use it where applicable but disable it otherwise\nif ! find ${libdir} -name \"libnetcdf*.${dlext}\" -exec false '{}' +; then\n    CMAKE_FLAGS+=(-DGDAL_USE_NETCDF=ON)\nelse\n    echo \"Disabling NetCDF support\"\n    CMAKE_FLAGS+=(-DGDAL_USE_NETCDF=OFF)\nfi\n\n# HDF5 is also a restrictive dependency as far as platform availability, so we'll use it where applicable but disable it otherwise\nif ! find ${libdir} -name \"libhdf5*.${dlext}\" -exec false '{}' +; then\n    CMAKE_FLAGS+=(-DGDAL_USE_HDF5=ON)\nelse\n    echo \"Disabling HDF5 support\"\n    CMAKE_FLAGS+=(-DGDAL_USE_HDF5=OFF)\nfi\n\ncmake .. ${CMAKE_FLAGS[@]}\ncmake --build . -j${nproc}\ncmake --build . -j${nproc} --target install\n\ninstall_license ../LICENSE.TXT\n"""
+version = "v301.901.101"
+
+[[dependencies]]
+compat = ""
+name = "OpenMPI_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11"]
+top_level = false
+type = "builddependency"
+version-major = 4
+version-minor = 1
+version-patch = 6
+[[dependencies]]
+compat = "10"
+name = "Arrow_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.21.1"
+name = "Blosc_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "2.2.10"
+name = "Expat_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "3.11.2"
+name = "GEOS_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "~1.14.3"
+name = "HDF5_jll"
+platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "7.73,8"
+name = "LibCURL_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LibPQ_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "4.5.1"
+name = "Libtiff_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.9.3"
+name = "Lz4_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "400.902.210"
+name = "NetCDF_jll"
+platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenJpeg_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "10.35.0"
+name = "PCRE2_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "901.300.0"
+name = "PROJ_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "8.0.999"
+name = "Qhull_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "SQLite_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "2.9.11"
+name = "XML2_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "5.2.5"
+name = "XZ_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.2.12"
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.5.6"
+name = "Zstd_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "100.701.100"
+name = "libgeotiff_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.6.38"
+name = "libpng_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.2.4"
+name = "libwebp_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgdal"]
+type = "lib"
+variable_name = "libgdal"
+[[products]]
+binnames = ["gdal_contour"]
+type = "exe"
+variable_name = "gdal_contour_exe"
+[[products]]
+binnames = ["gdal_create"]
+type = "exe"
+variable_name = "gdal_create_exe"
+[[products]]
+binnames = ["gdal_footprint"]
+type = "exe"
+variable_name = "gdal_footprint_exe"
+[[products]]
+binnames = ["gdal_grid"]
+type = "exe"
+variable_name = "gdal_grid_exe"
+[[products]]
+binnames = ["gdal_rasterize"]
+type = "exe"
+variable_name = "gdal_rasterize_exe"
+[[products]]
+binnames = ["gdal_translate"]
+type = "exe"
+variable_name = "gdal_translate_exe"
+[[products]]
+binnames = ["gdal_viewshed"]
+type = "exe"
+variable_name = "gdal_viewshed_exe"
+[[products]]
+binnames = ["gdaladdo"]
+type = "exe"
+variable_name = "gdaladdo_exe"
+[[products]]
+binnames = ["gdalbuildvrt"]
+type = "exe"
+variable_name = "gdalbuildvrt_exe"
+[[products]]
+binnames = ["gdaldem"]
+type = "exe"
+variable_name = "gdaldem_exe"
+[[products]]
+binnames = ["gdalenhance"]
+type = "exe"
+variable_name = "gdalenhance_exe"
+[[products]]
+binnames = ["gdalinfo"]
+type = "exe"
+variable_name = "gdalinfo_exe"
+[[products]]
+binnames = ["gdallocationinfo"]
+type = "exe"
+variable_name = "gdallocationinfo_exe"
+[[products]]
+binnames = ["gdalmanage"]
+type = "exe"
+variable_name = "gdalmanage_exe"
+[[products]]
+binnames = ["gdalmdiminfo"]
+type = "exe"
+variable_name = "gdalmdiminfo_exe"
+[[products]]
+binnames = ["gdalmdimtranslate"]
+type = "exe"
+variable_name = "gdalmdimtranslate_exe"
+[[products]]
+binnames = ["gdalsrsinfo"]
+type = "exe"
+variable_name = "gdalsrsinfo_exe"
+[[products]]
+binnames = ["gdaltindex"]
+type = "exe"
+variable_name = "gdaltindex_exe"
+[[products]]
+binnames = ["gdaltransform"]
+type = "exe"
+variable_name = "gdaltransform_exe"
+[[products]]
+binnames = ["gdalwarp"]
+type = "exe"
+variable_name = "gdalwarp_exe"
+[[products]]
+binnames = ["gnmanalyse"]
+type = "exe"
+variable_name = "gnmanalyse_exe"
+[[products]]
+binnames = ["gnmmanage"]
+type = "exe"
+variable_name = "gnmmanage_exe"
+[[products]]
+binnames = ["nearblack"]
+type = "exe"
+variable_name = "nearblack_exe"
+[[products]]
+binnames = ["ogr2ogr"]
+type = "exe"
+variable_name = "ogr2ogr_exe"
+[[products]]
+binnames = ["ogrinfo"]
+type = "exe"
+variable_name = "ogrinfo_exe"
+[[products]]
+binnames = ["ogrlineref"]
+type = "exe"
+variable_name = "ogrlineref_exe"
+[[products]]
+binnames = ["ogrtindex"]
+type = "exe"
+variable_name = "ogrtindex_exe"
+[[products]]
+binnames = ["sozip"]
+type = "exe"
+variable_name = "sozip_exe"
+[[products]]
+binnames = ["gdal_contour"]
+type = "exe"
+variable_name = "gdal_contour_path"
+[[products]]
+binnames = ["gdal_grid"]
+type = "exe"
+variable_name = "gdal_grid_path"
+[[products]]
+binnames = ["gdal_rasterize"]
+type = "exe"
+variable_name = "gdal_rasterize_path"
+[[products]]
+binnames = ["gdal_translate"]
+type = "exe"
+variable_name = "gdal_translate_path"
+[[products]]
+binnames = ["gdaladdo"]
+type = "exe"
+variable_name = "gdaladdo_path"
+[[products]]
+binnames = ["gdalbuildvrt"]
+type = "exe"
+variable_name = "gdalbuildvrt_path"
+[[products]]
+binnames = ["gdaldem"]
+type = "exe"
+variable_name = "gdaldem_path"
+[[products]]
+binnames = ["gdalinfo"]
+type = "exe"
+variable_name = "gdalinfo_path"
+[[products]]
+binnames = ["gdallocationinfo"]
+type = "exe"
+variable_name = "gdallocationinfo_path"
+[[products]]
+binnames = ["gdalmanage"]
+type = "exe"
+variable_name = "gdalmanage_path"
+[[products]]
+binnames = ["gdalsrsinfo"]
+type = "exe"
+variable_name = "gdalsrsinfo_path"
+[[products]]
+binnames = ["gdaltindex"]
+type = "exe"
+variable_name = "gdaltindex_path"
+[[products]]
+binnames = ["gdaltransform"]
+type = "exe"
+variable_name = "gdaltransform_path"
+[[products]]
+binnames = ["gdalwarp"]
+type = "exe"
+variable_name = "gdalwarp_path"
+[[products]]
+binnames = ["nearblack"]
+type = "exe"
+variable_name = "nearblack_path"
+[[products]]
+binnames = ["ogr2ogr"]
+type = "exe"
+variable_name = "ogr2ogr_path"
+[[products]]
+binnames = ["ogrinfo"]
+type = "exe"
+variable_name = "ogrinfo_path"
+[[products]]
+binnames = ["ogrlineref"]
+type = "exe"
+variable_name = "ogrlineref_path"
+[[products]]
+binnames = ["ogrtindex"]
+type = "exe"
+variable_name = "ogrtindex_path"
+
+[[sources]]
+hash = "01ac70772b997ab87d2312e2036eb66faf6b0508"
+type = "git"
+unpack_target = ""
+url = "https://github.com/OSGeo/gdal.git"
+[[sources]]
+hash = "2408d07df7f324d3beea818585a6d990ba99587c218a3969f924dfcc4de93b62"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.15.sdk.tar.xz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

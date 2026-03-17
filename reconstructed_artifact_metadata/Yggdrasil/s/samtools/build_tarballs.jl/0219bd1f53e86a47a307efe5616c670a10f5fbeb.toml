@@ -1,0 +1,40 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "samtools"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd"]
+script = """cd $WORKSPACE/srcdir/samtools/\nautoheader\nautoconf -Wno-syntax\nif [[ \"${target}\" == x86_64-linux-musl ]]; then\n    # Need to pass `-lcurl -lnghttp2` because it's needed by libhts\n    # TODO: find a way to avoid this.\n    export LIBS=\"-lcurl -lnghttp2\"\nelif [[ \"${target}\" == *-freebsd* ]]; then\n     export CPPFLAGS=\"-I${includedir}\"\nfi\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target}\nmake -j${nproc}\nmake install\n"""
+version = "v1.19.2"
+
+[[dependencies]]
+compat = ""
+name = "Ncurses_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "68e3532b-a499-55ff-9963-d1c0c0748b3a"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.19.1"
+name = "htslib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "f06fe41e-9474-5571-8c61-5634d2b2700c"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["samtools"]
+type = "exe"
+variable_name = "samtools"
+
+[[sources]]
+hash = "66830a3178c7dca941ec0f3b699477464bd44b76"
+type = "git"
+unpack_target = ""
+url = "https://github.com/samtools/samtools.git"

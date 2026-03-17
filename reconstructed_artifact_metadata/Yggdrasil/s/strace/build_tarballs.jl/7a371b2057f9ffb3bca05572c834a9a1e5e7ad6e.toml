@@ -1,0 +1,29 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "strace"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf"]
+script = """cd $WORKSPACE/srcdir/strace\n\n# Install GNU date so that bootstrap works\ncp ${host_bindir}/date /usr/local/bin/\n./bootstrap\n\n# Disable multiple personalities as our 64-bit compilers do not have 32-bit capabilities\n# Disable -Werror\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \\\n            --enable-mpers=no \\\n            --disable-gcc-Werror\nmake -j${nproc}\nmake install\n"""
+version = "v6.7.0"
+
+[[dependencies]]
+compat = ""
+name = "coreutils_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["strace"]
+type = "exe"
+variable_name = "strace"
+
+[[sources]]
+hash = "091ed4fda1f8ab86b79b52790d4ebc41c333bc49"
+type = "git"
+unpack_target = ""
+url = "https://github.com/strace/strace.git"

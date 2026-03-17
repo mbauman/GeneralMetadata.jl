@@ -1,0 +1,30 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "GANAK"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin"]
+script = """cd ganak/\n\nmkdir build; cd build\n\nif [[ ${target} != x86_64-linux* ]]; then\n  # clhash only works on x86_64 linux platforms\n  disablepcc=-DDOPCC=OFF\nfi\n\ncmake $disablepcc \\\n      -DCMAKE_INSTALL_PREFIX=$prefix \\\n      -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n      -DCMAKE_SKIP_BUILD_RPATH=TRUE \\\n      ..\nmake -j${nproc}\ninstall -v ganak -Dt $bindir \ninstall -v src/libganak* -Dt $libdir\ncp -d src/libganak.${dlext} $libdir\ninstall -v src/clhash/libclhash* -Dt $libdir\ninstall -v src/component_types/libcomponent_types* -Dt $libdir\n"""
+version = "v1.0.0"
+
+[[dependencies]]
+compat = "6.2.0"
+name = "GMP_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "781609d7-10c4-51f6-84f2-b8444358ff6d"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["ganak"]
+type = "exe"
+variable_name = "ganak"
+
+[[sources]]
+hash = "1aa12a37aa2e65043948a986abe55911aaa5d2fb"
+type = "git"
+unpack_target = ""
+url = "https://github.com/meelgroup/ganak.git"

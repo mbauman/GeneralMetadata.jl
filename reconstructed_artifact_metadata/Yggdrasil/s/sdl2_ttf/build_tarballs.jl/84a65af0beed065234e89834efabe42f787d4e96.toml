@@ -1,0 +1,84 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "SDL2_ttf"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/SDL2_ttf-*/\n\natomic_patch -p1 ../patches/configure_in-v2.0.15.patch\natomic_patch -p1 ../patches/Makefile_in_dont_build_programs.patch\ntouch NEWS README AUTHORS ChangeLog\n# For some reasons, the first time `autoreconf` may fail,\n# but with some encouragement it can do it\nautoreconf -vi || autoreconf -vi\nexport CPPFLAGS=\"-I${prefix}/include/SDL2\"\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \\\n    --enable-shared \\\n    --disable-static \\\n    \"${FLAGS[@]}\"\nmake -j${nproc}\nmake install\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    # As usual, build system for Windows is wrecked\n    # and the shared library is not built at all\n    cd ${prefix}/lib\n    ar x libSDL2_ttf.a\n    cc -shared -o ${libdir}/SDL2_ttf.dll SDL_ttf.o ${libdir}/libfreetype-6.dll ${libdir}/SDL2.dll\n    rm SDL_ttf.o\nfi\n"""
+version = "v2.0.16"
+
+[[dependencies]]
+compat = "1.0.8"
+name = "Bzip2_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "FreeType2_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "2.68.1"
+name = "Glib_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Graphite2_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "libpng_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "PCRE_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "SDL2_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libSDL2_ttf", "SDL2_ttf"]
+type = "lib"
+variable_name = "libsdl2_ttf"
+
+[[sources]]
+hash = "a9eceb1ad88c1f1545cd7bd28e7cbc0b2c14191d40238f531a15b01b1b22cd33"
+type = "archive"
+unpack_target = ""
+url = "https://www.libsdl.org/projects/SDL_ttf/release/SDL2_ttf-2.0.15.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

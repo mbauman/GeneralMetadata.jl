@@ -1,0 +1,334 @@
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = true
+name = "CUDA_loader"
+platforms = ["x86_64-linux-gnu-cuda+9.0", "x86_64-apple-darwin-cuda+9.0", "x86_64-w64-mingw32-cuda+9.0", "x86_64-linux-gnu-cuda+9.2", "x86_64-apple-darwin-cuda+9.2", "x86_64-w64-mingw32-cuda+9.2", "x86_64-linux-gnu-cuda+10.0", "x86_64-apple-darwin-cuda+10.0", "x86_64-w64-mingw32-cuda+10.0", "x86_64-linux-gnu-cuda+10.1", "x86_64-apple-darwin-cuda+10.1", "x86_64-w64-mingw32-cuda+10.1", "x86_64-linux-gnu-cuda+10.2", "x86_64-w64-mingw32-cuda+10.2", "x86_64-linux-gnu-cuda+11.0", "powerpc64le-linux-gnu-cuda+11.0", "x86_64-w64-mingw32-cuda+11.0", "x86_64-linux-gnu-cuda+11.1", "powerpc64le-linux-gnu-cuda+11.1", "x86_64-w64-mingw32-cuda+11.1", "x86_64-linux-gnu-cuda+11.2", "powerpc64le-linux-gnu-cuda+11.2", "x86_64-w64-mingw32-cuda+11.2", "x86_64-linux-gnu-cuda+11.3", "powerpc64le-linux-gnu-cuda+11.3", "x86_64-w64-mingw32-cuda+11.3"]
+script = ["""# First, find (true) CUDA toolkit directory in ~/.artifacts somewhere\nCUDA_ARTIFACT_DIR=$(dirname $(dirname $(realpath $prefix/cuda/bin/ptxas${exeext})))\ncd ${CUDA_ARTIFACT_DIR}\n\n# Clear out our prefix\nrm -rf ${prefix}/*\n\n# license\ninstall_license EULA.txt\n\n# headers\nmkdir -p ${prefix}/include\nmv include/* ${prefix}/include\nrm -rf ${prefix}/include/thrust\n\n# binaries\nmkdir -p ${bindir} ${libdir} ${prefix}/lib ${prefix}/share\nif [[ ${target} == x86_64-linux-gnu ]]; then\n    # CUDA Runtime\n    mv lib64/libcudart.so* lib64/libcudadevrt.a ${libdir}\n\n    # CUDA FFT Library\n    mv lib64/libcufft.so* lib64/libcufftw.so* ${libdir}\n\n    # CUDA BLAS Library\n    mv lib64/libcublas.so* ${libdir}\n\n    # NVIDIA \"Drop-in\" BLAS Library\n    mv lib64/libnvblas.so* ${libdir}\n\n    # CUDA Sparse Matrix Library\n    mv lib64/libcusparse.so* ${libdir}\n\n    # CUDA Linear Solver Library\n    mv lib64/libcusolver.so* ${libdir}\n\n    # CUDA Random Number Generation Library\n    mv lib64/libcurand.so* ${libdir}\n\n    # CUDA Accelerated Graph Library\n    mv lib64/libnvgraph.so* ${libdir}\n\n    # NVIDIA Performance Primitives Library\n    mv lib64/libnpp*.so* ${libdir}\n\n    # NVIDIA Optimizing Compiler Library\n    mv nvvm/lib64/libnvvm.so* ${libdir}\n\n    # NVIDIA Common Device Math Functions Library\n    mkdir ${prefix}/share/libdevice\n    mv nvvm/libdevice/libdevice.10.bc ${prefix}/share/libdevice\n\n    # CUDA Profiling Tools Interface (CUPTI) Library\n    mv extras/CUPTI/lib64/libcupti.so* ${libdir}\n\n    # NVIDIA Tools Extension Library\n    mv lib64/libnvToolsExt.so* ${libdir}\n\n    # Additional binaries\n    mv bin/nvdisasm ${bindir}\n    mv bin/cuda-memcheck ${bindir}\nelif [[ ${target} == x86_64-apple-darwin* ]]; then\n    # CUDA Runtime\n    mv lib/libcudart.*dylib lib/libcudadevrt.a ${libdir}\n\n    # CUDA FFT Library\n    mv lib/libcufft.*dylib lib/libcufftw.*dylib ${libdir}\n\n    # CUDA BLAS Library\n    mv lib/libcublas.*dylib ${libdir}\n\n    # NVIDIA \"Drop-in\" BLAS Library\n    mv lib/libnvblas.*dylib ${libdir}\n\n    # CUDA Sparse Matrix Library\n    mv lib/libcusparse.*dylib ${libdir}\n\n    # CUDA Linear Solver Library\n    mv lib/libcusolver.*dylib ${libdir}\n\n    # CUDA Random Number Generation Library\n    mv lib/libcurand.*dylib ${libdir}\n\n    # CUDA Accelerated Graph Library\n    mv lib/libnvgraph.*dylib ${libdir}\n\n    # NVIDIA Performance Primitives Library\n    mv lib/libnpp*.*dylib ${libdir}\n\n    # NVIDIA Optimizing Compiler Library\n    mv nvvm/lib/libnvvm.*dylib ${libdir}\n\n    # NVIDIA Common Device Math Functions Library\n    mkdir ${prefix}/share/libdevice\n    mv nvvm/libdevice/libdevice.10.bc ${prefix}/share/libdevice\n\n    # CUDA Profiling Tools Interface (CUPTI) Library\n    mv extras/CUPTI/lib/libcupti.*dylib ${libdir}\n\n    # NVIDIA Tools Extension Library\n    mv lib/libnvToolsExt.*dylib ${libdir}\n\n    # Additional binaries\n    mv bin/nvdisasm ${bindir}\n    mv bin/cuda-memcheck ${bindir}\nelif [[ ${target} == x86_64-w64-mingw32 ]]; then\n    # CUDA Runtime\n    mv bin/cudart64_*.dll ${bindir}\n    mv lib/x64/cudadevrt.lib ${prefix}/lib\n\n    # CUDA FFT Library\n    mv bin/cufft64_*.dll bin/cufftw64_*.dll ${bindir}\n\n    # CUDA BLAS Library\n    mv bin/cublas64_*.dll ${bindir}\n\n    # NVIDIA \"Drop-in\" BLAS Library\n    mv bin/nvblas64_*.dll ${bindir}\n\n    # CUDA Sparse Matrix Library\n    mv bin/cusparse64_*.dll ${bindir}\n\n    # CUDA Linear Solver Library\n    mv bin/cusolver64_*.dll ${bindir}\n\n    # CUDA Random Number Generation Library\n    mv bin/curand64_*.dll ${bindir}\n\n    # CUDA Accelerated Graph Library\n    mv bin/nvgraph64_*.dll ${bindir}\n\n    # NVIDIA Performance Primitives Library\n    mv bin/npp*64_*.dll ${bindir}\n\n    # NVIDIA Optimizing Compiler Library\n    mv nvvm/bin/nvvm64_*.dll ${bindir}\n\n    # NVIDIA Common Device Math Functions Library\n    mkdir ${prefix}/share/libdevice\n    mv nvvm/libdevice/libdevice.10.bc ${prefix}/share/libdevice\n\n    # CUDA Profiling Tools Interface (CUPTI) Library\n    mv extras/CUPTI/libx64/cupti64_*.dll ${bindir}\n\n    # NVIDIA Tools Extension Library\n    mv bin/nvToolsExt64_1.dll ${bindir}\n\n    # Additional binaries\n    mv bin/nvdisasm.exe ${bindir}\n    mv bin/cuda-memcheck.exe ${bindir}\n\n    # Fix permissions\n    chmod +x ${bindir}/*.{exe,dll}\nfi\n""", """# First, find (true) CUDA toolkit directory in ~/.artifacts somewhere\nCUDA_ARTIFACT_DIR=$(dirname $(dirname $(realpath $prefix/cuda/bin/ptxas${exeext})))\ncd ${CUDA_ARTIFACT_DIR}\n\n# Clear out our prefix\nrm -rf ${prefix}/*\n\n# license\ninstall_license EULA.txt\n\n# headers\nmkdir -p ${prefix}/include\nmv include/* ${prefix}/include\nrm -rf ${prefix}/include/thrust\n\n# binaries\nmkdir -p ${bindir} ${libdir} ${prefix}/lib ${prefix}/share\nif [[ ${target} == x86_64-linux-gnu ]]; then\n    # CUDA Runtime\n    mv lib64/libcudart.so* lib64/libcudadevrt.a ${libdir}\n\n    # CUDA FFT Library\n    mv lib64/libcufft.so* lib64/libcufftw.so* ${libdir}\n\n    # CUDA BLAS Library\n    mv lib64/libcublas.so* lib64/libcublasLt.so* ${libdir}\n\n    # NVIDIA \"Drop-in\" BLAS Library\n    mv lib64/libnvblas.so* ${libdir}\n\n    # CUDA Sparse Matrix Library\n    mv lib64/libcusparse.so* ${libdir}\n\n    # CUDA Linear Solver Library\n    mv lib64/libcusolver.so* ${libdir}\n\n    # CUDA Linear Solver Multi GPU Library\n    mv lib64/libcusolverMg.so* ${libdir}\n\n    # CUDA Random Number Generation Library\n    mv lib64/libcurand.so* ${libdir}\n\n    # CUDA Accelerated Graph Library\n    mv lib64/libnvgraph.so* ${libdir}\n\n    # NVIDIA Performance Primitives Library\n    mv lib64/libnpp*.so* ${libdir}\n\n    # NVIDIA Optimizing Compiler Library\n    mv nvvm/lib64/libnvvm.so* ${libdir}\n\n    # NVIDIA Common Device Math Functions Library\n    mkdir ${prefix}/share/libdevice\n    mv nvvm/libdevice/libdevice.10.bc ${prefix}/share/libdevice\n\n    # CUDA Profiling Tools Interface (CUPTI) Library\n    mv extras/CUPTI/lib64/libcupti.so* ${libdir}\n\n    # NVIDIA Tools Extension Library\n    mv lib64/libnvToolsExt.so* ${libdir}\n\n    # Additional binaries\n    mv bin/nvdisasm ${bindir}\n    mv bin/cuda-memcheck ${bindir}\nelif [[ ${target} == x86_64-apple-darwin* ]]; then\n    # CUDA Runtime\n    mv lib/libcudart.*dylib lib/libcudadevrt.a ${libdir}\n\n    # CUDA FFT Library\n    mv lib/libcufft.*dylib lib/libcufftw.*dylib ${libdir}\n\n    # CUDA BLAS Library\n    mv lib/libcublas.*dylib lib/libcublasLt.*dylib ${libdir}\n\n    # NVIDIA \"Drop-in\" BLAS Library\n    mv lib/libnvblas.*dylib ${libdir}\n\n    # CUDA Sparse Matrix Library\n    mv lib/libcusparse.*dylib ${libdir}\n\n    # CUDA Linear Solver Library\n    mv lib/libcusolver.*dylib ${libdir}\n\n    # CUDA Linear Solver Multi GPU Library\n    mv lib/libcusolverMg.*dylib ${libdir}\n\n    # CUDA Random Number Generation Library\n    mv lib/libcurand.*dylib ${libdir}\n\n    # CUDA Accelerated Graph Library\n    mv lib/libnvgraph.*dylib ${libdir}\n\n    # NVIDIA Performance Primitives Library\n    mv lib/libnpp*.*dylib ${libdir}\n\n    # NVIDIA Optimizing Compiler Library\n    mv nvvm/lib/libnvvm.*dylib ${libdir}\n\n    # NVIDIA Common Device Math Functions Library\n    mkdir ${prefix}/share/libdevice\n    mv nvvm/libdevice/libdevice.10.bc ${prefix}/share/libdevice\n\n    # CUDA Profiling Tools Interface (CUPTI) Library\n    mv extras/CUPTI/lib/libcupti.*dylib ${libdir}\n\n    # NVIDIA Tools Extension Library\n    mv lib/libnvToolsExt.*dylib ${libdir}\n\n    # Additional binaries\n    mv bin/nvdisasm ${bindir}\n    mv bin/cuda-memcheck ${bindir}\nelif [[ ${target} == x86_64-w64-mingw32 ]]; then\n    # CUDA Runtime\n    mv bin/cudart64_*.dll ${bindir}\n    mv lib/x64/cudadevrt.lib ${prefix}/lib\n\n    # CUDA FFT Library\n    mv bin/cufft64_*.dll bin/cufftw64_*.dll ${bindir}\n\n    # CUDA BLAS Library\n    mv bin/cublas64_*.dll bin/cublasLt64_*.dll ${bindir}\n\n    # NVIDIA \"Drop-in\" BLAS Library\n    mv bin/nvblas64_*.dll ${bindir}\n\n    # CUDA Sparse Matrix Library\n    mv bin/cusparse64_*.dll ${bindir}\n\n    # CUDA Linear Solver Library\n    mv bin/cusolver64_*.dll ${bindir}\n\n    # CUDA Linear Solver Multi GPU Library\n    mv bin/cusolverMg64_*.dll ${bindir}\n\n    # CUDA Random Number Generation Library\n    mv bin/curand64_*.dll ${bindir}\n\n    # CUDA Accelerated Graph Library\n    mv bin/nvgraph64_*.dll ${bindir}\n\n    # NVIDIA Performance Primitives Library\n    mv bin/npp*64_*.dll ${bindir}\n\n    # NVIDIA Optimizing Compiler Library\n    mv nvvm/bin/nvvm64_*.dll ${bindir}\n\n    # NVIDIA Common Device Math Functions Library\n    mkdir ${prefix}/share/libdevice\n    mv nvvm/libdevice/libdevice.10.bc ${prefix}/share/libdevice\n\n    # CUDA Profiling Tools Interface (CUPTI) Library\n    mv extras/CUPTI/lib64/cupti64_*.dll ${bindir}\n\n    # NVIDIA Tools Extension Library\n    mv bin/nvToolsExt64_1.dll ${bindir}\n\n    # Additional binaries\n    mv bin/nvdisasm.exe ${bindir}\n    mv bin/cuda-memcheck.exe ${bindir}\n\n    # Fix permissions\n    chmod +x ${bindir}/*.{exe,dll}\nfi\n""", """# First, find (true) CUDA toolkit directory in ~/.artifacts somewhere\nCUDA_ARTIFACT_DIR=$(dirname $(dirname $(realpath $prefix/cuda/bin/ptxas${exeext})))\ncd ${CUDA_ARTIFACT_DIR}\n\n# Clear out our prefix\nrm -rf ${prefix}/*\n\n# license\ninstall_license EULA.txt\n\n# headers\nmkdir -p ${prefix}/include\nmv include/* ${prefix}/include\nrm -rf ${prefix}/include/thrust\n\n# binaries\nmkdir -p ${bindir} ${libdir} ${prefix}/lib ${prefix}/share\nif [[ ${target} == x86_64-linux-gnu ]]; then\n    # CUDA Runtime\n    mv lib64/libcudart.so* lib64/libcudadevrt.a ${libdir}\n\n    # CUDA FFT Library\n    mv lib64/libcufft.so* lib64/libcufftw.so* ${libdir}\n\n    # CUDA BLAS Library\n    mv lib64/libcublas.so* lib64/libcublasLt.so* ${libdir}\n\n    # NVIDIA \"Drop-in\" BLAS Library\n    mv lib64/libnvblas.so* ${libdir}\n\n    # CUDA Sparse Matrix Library\n    mv lib64/libcusparse.so* ${libdir}\n\n    # CUDA Linear Solver Library\n    mv lib64/libcusolver.so* ${libdir}\n\n    # CUDA Linear Solver Multi GPU Library\n    mv lib64/libcusolverMg.so* ${libdir}\n\n    # CUDA Random Number Generation Library\n    mv lib64/libcurand.so* ${libdir}\n\n    # CUDA Accelerated Graph Library\n    mv lib64/libnvgraph.so* ${libdir}\n\n    # NVIDIA Performance Primitives Library\n    mv lib64/libnpp*.so* ${libdir}\n\n    # NVIDIA Optimizing Compiler Library\n    mv nvvm/lib64/libnvvm.so* ${libdir}\n\n    # NVIDIA Common Device Math Functions Library\n    mkdir ${prefix}/share/libdevice\n    mv nvvm/libdevice/libdevice.10.bc ${prefix}/share/libdevice\n\n    # CUDA Profiling Tools Interface (CUPTI) Library\n    mv extras/CUPTI/lib64/libcupti.so* ${libdir}\n\n    # NVIDIA Tools Extension Library\n    mv lib64/libnvToolsExt.so* ${libdir}\n\n    # Additional binaries\n    mv bin/nvdisasm ${bindir}\n    mv bin/cuda-memcheck ${bindir}\nelif [[ ${target} == x86_64-w64-mingw32 ]]; then\n    # CUDA Runtime\n    mv bin/cudart64_*.dll ${bindir}\n    mv lib/x64/cudadevrt.lib ${prefix}/lib\n\n    # CUDA FFT Library\n    mv bin/cufft64_*.dll bin/cufftw64_*.dll ${bindir}\n\n    # CUDA BLAS Library\n    mv bin/cublas64_*.dll bin/cublasLt64_*.dll ${bindir}\n\n    # NVIDIA \"Drop-in\" BLAS Library\n    mv bin/nvblas64_*.dll ${bindir}\n\n    # CUDA Sparse Matrix Library\n    mv bin/cusparse64_*.dll ${bindir}\n\n    # CUDA Linear Solver Library\n    mv bin/cusolver64_*.dll ${bindir}\n\n    # CUDA Linear Solver Nulti GPU Library\n    mv bin/cusolverMg64_*.dll ${bindir}\n\n    # CUDA Random Number Generation Library\n    mv bin/curand64_*.dll ${bindir}\n\n    # CUDA Accelerated Graph Library\n    mv bin/nvgraph64_*.dll ${bindir}\n\n    # NVIDIA Performance Primitives Library\n    mv bin/npp*64_*.dll ${bindir}\n\n    # NVIDIA Optimizing Compiler Library\n    mv nvvm/bin/nvvm64_*.dll ${bindir}\n\n    # NVIDIA Common Device Math Functions Library\n    mkdir ${prefix}/share/libdevice\n    mv nvvm/libdevice/libdevice.10.bc ${prefix}/share/libdevice\n\n    # CUDA Profiling Tools Interface (CUPTI) Library\n    mv extras/CUPTI/lib64/cupti64_*.dll ${bindir}\n\n    # NVIDIA Tools Extension Library\n    mv bin/nvToolsExt64_1.dll ${bindir}\n\n    # Additional binaries\n    mv bin/nvdisasm.exe ${bindir}\n    mv bin/cuda-memcheck.exe ${bindir}\n\n    # Fix permissions\n    chmod +x ${bindir}/*.{exe,dll}\nfi\n""", """# First, find (true) CUDA toolkit directory in ~/.artifacts somewhere\nCUDA_ARTIFACT_DIR=$(dirname $(dirname $(realpath $prefix/cuda/bin/ptxas${exeext})))\ncd ${CUDA_ARTIFACT_DIR}\n\n# Clear out our prefix\nrm -rf ${prefix}/*\n\n# license\ninstall_license EULA.txt\n\n# headers\nmkdir -p ${prefix}/include\nmv include/* ${prefix}/include\nrm -rf ${prefix}/include/thrust\n\n# binaries\nmkdir -p ${bindir} ${libdir} ${prefix}/lib ${prefix}/share\nif [[ ${target} == *-linux-gnu ]]; then\n    # CUDA Runtime\n    mv lib64/libcudart.so* lib64/libcudadevrt.a ${libdir}\n\n    # CUDA FFT Library\n    mv lib64/libcufft.so* lib64/libcufftw.so* ${libdir}\n\n    # CUDA BLAS Library\n    mv lib64/libcublas.so* lib64/libcublasLt.so* ${libdir}\n\n    # NVIDIA \"Drop-in\" BLAS Library\n    mv lib64/libnvblas.so* ${libdir}\n\n    # CUDA Sparse Matrix Library\n    mv lib64/libcusparse.so* ${libdir}\n\n    # CUDA Linear Solver Library\n    mv lib64/libcusolver.so* ${libdir}\n\n    # CUDA Linear Solver Multi GPU Library\n    mv lib64/libcusolverMg.so* ${libdir}\n\n    # CUDA Random Number Generation Library\n    mv lib64/libcurand.so* ${libdir}\n\n    # NVIDIA Performance Primitives Library\n    mv lib64/libnpp*.so* ${libdir}\n\n    # NVIDIA Optimizing Compiler Library\n    mv nvvm/lib64/libnvvm.so* ${libdir}\n\n    # NVIDIA Common Device Math Functions Library\n    mkdir ${prefix}/share/libdevice\n    mv nvvm/libdevice/libdevice.10.bc ${prefix}/share/libdevice\n\n    # CUDA Profiling Tools Interface (CUPTI) Library\n    mv extras/CUPTI/lib64/libcupti.so* ${libdir}\n\n    # NVIDIA Tools Extension Library\n    mv lib64/libnvToolsExt.so* ${libdir}\n\n    # Compute Sanitizer\n    rm -r Sanitizer/{docs,include}\n    mv Sanitizer/* ${bindir}\n\n    # Additional binaries\n    mv bin/nvdisasm ${bindir}\n    mv bin/cuda-memcheck ${bindir}\nelif [[ ${target} == x86_64-w64-mingw32 ]]; then\n    # CUDA Runtime\n    mv bin/cudart64_*.dll ${bindir}\n    mv lib/x64/cudadevrt.lib ${prefix}/lib\n\n    # CUDA FFT Library\n    mv bin/cufft64_*.dll bin/cufftw64_*.dll ${bindir}\n\n    # CUDA BLAS Library\n    mv bin/cublas64_*.dll bin/cublasLt64_*.dll ${bindir}\n\n    # NVIDIA \"Drop-in\" BLAS Library\n    mv bin/nvblas64_*.dll ${bindir}\n\n    # CUDA Sparse Matrix Library\n    mv bin/cusparse64_*.dll ${bindir}\n\n    # CUDA Linear Solver Library\n    mv bin/cusolver64_*.dll ${bindir}\n\n    # CUDA Linear Solver Multi GPU Library\n    mv bin/cusolverMg64_*.dll ${bindir}\n\n    # CUDA Random Number Generation Library\n    mv bin/curand64_*.dll ${bindir}\n\n    # NVIDIA Performance Primitives Library\n    mv bin/npp*64_*.dll ${bindir}\n\n    # NVIDIA Optimizing Compiler Library\n    mv nvvm/bin/nvvm64_*.dll ${bindir}\n\n    # NVIDIA Common Device Math Functions Library\n    mkdir ${prefix}/share/libdevice\n    mv nvvm/libdevice/libdevice.10.bc ${prefix}/share/libdevice\n\n    # CUDA Profiling Tools Interface (CUPTI) Library\n    mv extras/CUPTI/lib64/cupti64_*.dll ${bindir}\n\n    # NVIDIA Tools Extension Library\n    mv bin/nvToolsExt64_1.dll ${bindir}\n\n    # Compute Sanitizer\n    rm -r Sanitizer/{docs,include}\n    mv Sanitizer/* ${bindir}\n\n    # Additional binaries\n    mv bin/nvdisasm.exe ${bindir}\n    mv bin/cuda-memcheck.exe ${bindir}\n\n    # Fix permissions\n    chmod +x ${bindir}/*.{exe,dll}\nfi\n""", """# First, find (true) CUDA toolkit directory in ~/.artifacts somewhere\nCUDA_ARTIFACT_DIR=$(dirname $(dirname $(realpath $prefix/cuda/bin/ptxas${exeext})))\ncd ${CUDA_ARTIFACT_DIR}\n\n# Clear out our prefix\nrm -rf ${prefix}/*\n\n# license\ninstall_license EULA.txt\n\n# headers\nmkdir -p ${prefix}/include\nmv include/* ${prefix}/include\nrm -rf ${prefix}/include/thrust\n\n# binaries\nmkdir -p ${bindir} ${libdir} ${prefix}/lib ${prefix}/share\nif [[ ${target} == *-linux-gnu ]]; then\n    # CUDA Runtime\n    mv lib64/libcudart.so* lib64/libcudadevrt.a ${libdir}\n\n    # CUDA FFT Library\n    mv lib64/libcufft.so* lib64/libcufftw.so* ${libdir}\n\n    # CUDA BLAS Library\n    mv lib64/libcublas.so* lib64/libcublasLt.so* ${libdir}\n\n    # NVIDIA \"Drop-in\" BLAS Library\n    mv lib64/libnvblas.so* ${libdir}\n\n    # CUDA Sparse Matrix Library\n    mv lib64/libcusparse.so* ${libdir}\n\n    # CUDA Linear Solver Library\n    mv lib64/libcusolver.so* ${libdir}\n\n    # CUDA Linear Solver Multi GPU Library\n    mv lib64/libcusolverMg.so* ${libdir}\n\n    # CUDA Random Number Generation Library\n    mv lib64/libcurand.so* ${libdir}\n\n    # NVIDIA Performance Primitives Library\n    mv lib64/libnpp*.so* ${libdir}\n\n    # NVIDIA Optimizing Compiler Library\n    mv nvvm/lib64/libnvvm.so* ${libdir}\n\n    # NVIDIA Common Device Math Functions Library\n    mkdir ${prefix}/share/libdevice\n    mv nvvm/libdevice/libdevice.10.bc ${prefix}/share/libdevice\n\n    # CUDA Profiling Tools Interface (CUPTI) Library\n    mv extras/CUPTI/lib64/libcupti.so* ${libdir}\n\n    # NVIDIA Tools Extension Library\n    mv lib64/libnvToolsExt.so* ${libdir}\n\n    # Compute Sanitizer\n    rm -r compute-sanitizer/{docs,include}\n    mv compute-sanitizer/* ${bindir}\n\n    # Additional binaries\n    mv bin/nvdisasm ${bindir}\n    mv bin/cuda-memcheck ${bindir}\nelif [[ ${target} == x86_64-w64-mingw32 ]]; then\n    # CUDA Runtime\n    mv bin/cudart64_*.dll ${bindir}\n    mv lib/x64/cudadevrt.lib ${prefix}/lib\n\n    # CUDA FFT Library\n    mv bin/cufft64_*.dll bin/cufftw64_*.dll ${bindir}\n\n    # CUDA BLAS Library\n    mv bin/cublas64_*.dll bin/cublasLt64_*.dll ${bindir}\n\n    # NVIDIA \"Drop-in\" BLAS Library\n    mv bin/nvblas64_*.dll ${bindir}\n\n    # CUDA Sparse Matrix Library\n    mv bin/cusparse64_*.dll ${bindir}\n\n    # CUDA Linear Solver Library\n    mv bin/cusolver64_*.dll ${bindir}\n\n    # CUDA Linear Solver Multi GPU Library\n    mv bin/cusolverMg64_*.dll ${bindir}\n\n    # CUDA Random Number Generation Library\n    mv bin/curand64_*.dll ${bindir}\n\n    # NVIDIA Performance Primitives Library\n    mv bin/npp*64_*.dll ${bindir}\n\n    # NVIDIA Optimizing Compiler Library\n    mv nvvm/bin/nvvm64_*.dll ${bindir}\n\n    # NVIDIA Common Device Math Functions Library\n    mkdir ${prefix}/share/libdevice\n    mv nvvm/libdevice/libdevice.10.bc ${prefix}/share/libdevice\n\n    # CUDA Profiling Tools Interface (CUPTI) Library\n    mv extras/CUPTI/lib64/cupti64_*.dll ${bindir}\n\n    # NVIDIA Tools Extension Library\n    mv bin/nvToolsExt64_1.dll ${bindir}\n\n    # Compute Sanitizer\n    rm -r compute-sanitizer/{docs,include}\n    mv compute-sanitizer/* ${bindir}\n\n    # Additional binaries\n    mv bin/nvdisasm.exe ${bindir}\n    mv bin/cuda-memcheck.exe ${bindir}\n\n    # Fix permissions\n    chmod +x ${bindir}/*.{exe,dll}\nfi\n"""]
+sources = []
+version = "v0.1.0"
+
+[[dependencies]]
+compat = ""
+name = "CUDA_full_jll"
+type = "builddependency"
+version-major = 9
+version-minor = 0
+version-patch = 176
+[[dependencies]]
+compat = ""
+name = "CUDA_full_jll"
+type = "builddependency"
+version-major = 9
+version-minor = 2
+version-patch = 148
+[[dependencies]]
+compat = ""
+name = "CUDA_full_jll"
+type = "builddependency"
+version-major = 10
+version-minor = 0
+version-patch = 130
+[[dependencies]]
+compat = ""
+name = "CUDA_full_jll"
+type = "builddependency"
+version-major = 10
+version-minor = 1
+version-patch = 243
+[[dependencies]]
+compat = ""
+name = "CUDA_full_jll"
+type = "builddependency"
+version-major = 10
+version-minor = 2
+version-patch = 89
+[[dependencies]]
+compat = ""
+name = "CUDA_full_jll"
+type = "builddependency"
+version-major = 11
+version-minor = 0
+version-patch = 3
+[[dependencies]]
+compat = ""
+name = "CUDA_full_jll"
+type = "builddependency"
+version-major = 11
+version-minor = 1
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_full_jll"
+type = "builddependency"
+version-major = 11
+version-minor = 2
+version-patch = 2
+[[dependencies]]
+compat = ""
+name = "CUDA_full_jll"
+type = "builddependency"
+version-major = 11
+version-minor = 3
+version-patch = 0
+
+[[products]]
+binnames = ["nvdisasm"]
+type = "exe"
+variable_name = "nvdisasm"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcufft", "cufft64_90"]
+type = "lib"
+variable_name = "libcufft"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcublas", "cublas64_90"]
+type = "lib"
+variable_name = "libcublas"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcusparse", "cusparse64_90"]
+type = "lib"
+variable_name = "libcusparse"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcusolver", "cusolver64_90"]
+type = "lib"
+variable_name = "libcusolver"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcurand", "curand64_90"]
+type = "lib"
+variable_name = "libcurand"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcupti", "cupti64_90"]
+type = "lib"
+variable_name = "libcupti"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnvToolsExt", "nvToolsExt64_1"]
+type = "lib"
+variable_name = "libnvtoolsext"
+[[products]]
+paths = ["lib/libcudadevrt.a", "lib/cudadevrt.lib"]
+type = "file"
+variable_name = "libcudadevrt"
+[[products]]
+paths = ["share/libdevice/libdevice.10.bc"]
+type = "file"
+variable_name = "libdevice"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcufft", "cufft64_92"]
+type = "lib"
+variable_name = "libcufft"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcublas", "cublas64_92"]
+type = "lib"
+variable_name = "libcublas"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcusparse", "cusparse64_92"]
+type = "lib"
+variable_name = "libcusparse"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcusolver", "cusolver64_92"]
+type = "lib"
+variable_name = "libcusolver"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcurand", "curand64_92"]
+type = "lib"
+variable_name = "libcurand"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcupti", "cupti64_92"]
+type = "lib"
+variable_name = "libcupti"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcufft", "cufft64_100"]
+type = "lib"
+variable_name = "libcufft"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcublas", "cublas64_100"]
+type = "lib"
+variable_name = "libcublas"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcusparse", "cusparse64_100"]
+type = "lib"
+variable_name = "libcusparse"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcusolver", "cusolver64_100"]
+type = "lib"
+variable_name = "libcusolver"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcurand", "curand64_100"]
+type = "lib"
+variable_name = "libcurand"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcupti", "cupti64_100"]
+type = "lib"
+variable_name = "libcupti"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcufft", "cufft64_10"]
+type = "lib"
+variable_name = "libcufft"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcublas", "cublas64_10"]
+type = "lib"
+variable_name = "libcublas"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcusparse", "cusparse64_10"]
+type = "lib"
+variable_name = "libcusparse"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcusolver", "cusolver64_10"]
+type = "lib"
+variable_name = "libcusolver"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcusolverMg", "cusolverMg64_10"]
+type = "lib"
+variable_name = "libcusolverMg"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcurand", "curand64_10"]
+type = "lib"
+variable_name = "libcurand"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcupti", "cupti64_101"]
+type = "lib"
+variable_name = "libcupti"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcupti", "cupti64_102"]
+type = "lib"
+variable_name = "libcupti"
+[[products]]
+binnames = ["compute-sanitizer"]
+type = "exe"
+variable_name = "compute_sanitizer"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcublas", "cublas64_11"]
+type = "lib"
+variable_name = "libcublas"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcusparse", "cusparse64_11"]
+type = "lib"
+variable_name = "libcusparse"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcupti", "cupti64_2020.1.1"]
+type = "lib"
+variable_name = "libcupti"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcusolver", "cusolver64_11"]
+type = "lib"
+variable_name = "libcusolver"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcusolverMg", "cusolverMg64_11"]
+type = "lib"
+variable_name = "libcusolverMg"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcupti", "cupti64_2020.2.1"]
+type = "lib"
+variable_name = "libcupti"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcupti", "cupti64_2020.3.1"]
+type = "lib"
+variable_name = "libcupti"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcupti", "cupti64_2021.1.0"]
+type = "lib"
+variable_name = "libcupti"

@@ -1,0 +1,25 @@
+dependencies = []
+name = "CUTEst"
+platforms = ["i686-linux-gnu-libgfortran3", "i686-linux-gnu-libgfortran4", "i686-linux-gnu-libgfortran5", "x86_64-linux-gnu-libgfortran3", "x86_64-linux-gnu-libgfortran4", "x86_64-linux-gnu-libgfortran5", "aarch64-linux-gnu-libgfortran3", "aarch64-linux-gnu-libgfortran4", "aarch64-linux-gnu-libgfortran5", "arm-linux-gnueabihf-libgfortran3", "arm-linux-gnueabihf-libgfortran4", "arm-linux-gnueabihf-libgfortran5", "powerpc64le-linux-gnu-libgfortran3", "powerpc64le-linux-gnu-libgfortran4", "powerpc64le-linux-gnu-libgfortran5", "i686-linux-musl-libgfortran3", "i686-linux-musl-libgfortran4", "i686-linux-musl-libgfortran5", "x86_64-linux-musl-libgfortran3", "x86_64-linux-musl-libgfortran4", "x86_64-linux-musl-libgfortran5", "aarch64-linux-musl-libgfortran3", "aarch64-linux-musl-libgfortran4", "aarch64-linux-musl-libgfortran5", "arm-linux-musleabihf-libgfortran3", "arm-linux-musleabihf-libgfortran4", "arm-linux-musleabihf-libgfortran5", "x86_64-apple-darwin14-libgfortran3", "x86_64-apple-darwin14-libgfortran4", "x86_64-apple-darwin14-libgfortran5", "x86_64-unknown-freebsd11.1-libgfortran3", "x86_64-unknown-freebsd11.1-libgfortran4", "x86_64-unknown-freebsd11.1-libgfortran5"]
+script = """echo \"building for ${target}\"\n\n# setup\nmkdir -p ${prefix}/libexec\nmkdir -p ${bindir}\nmkdir -p ${libdir}\ncp -r ARCHDefs-2.0.3x ${prefix}/libexec/\ncp -r SIFDecode-2.0.2 ${prefix}/libexec/\ncp -r CUTEst-2.0.3 ${prefix}/libexec/\nexport ARCHDEFS=${prefix}/libexec/ARCHDefs-2.0.3x\nexport SIFDECODE=${prefix}/libexec/SIFDecode-2.0.2\nexport CUTEST=${prefix}/libexec/CUTEst-2.0.3\n\n# build SIFDecode\ncd $SIFDECODE\n\nif [[ \"${target}\" == *-linux* || \"${target}\" == *-freebsd* ]]; then\n  echo \"5\" > sifdecode.opts   # PC\n  echo \"2\" >> sifdecode.opts  # Linux\n  echo \"5\" >> sifdecode.opts  # gfortran\nelif [[ \"${target}\" == *-apple* ]]; then\n  echo \"13\" > sifdecode.opts  # macOS\n  echo \"2\" >> sifdecode.opts  # gfortran\nelif [[ \"${target}\" == *-mingw* ]]; then\n  cd $ARCHDEFS\n  cp compiler.pc64.msys2.gfo compiler.pc.mgw.gfo\n  cd $SIFDECODE\n  echo \"5\" > sifdecode.opts   # PC\n  echo \"1\" >> sifdecode.opts  # Windows\n  echo \"3\" >> sifdecode.opts  # gfortran\nfi\necho \"nny\" >> sifdecode.opts\n./install_sifdecode < sifdecode.opts\n\n# build CUTEst\ncd $CUTEST\nif [[ \"${target}\" == *-linux* || \"${target}\" == *-freebsd* ]]; then\n  echo \"5\" > cutest.opts   # PC\n  echo \"2\" >> cutest.opts  # Linux\n  echo \"5\" >> cutest.opts  # gfortran\n  echo \"2\" >> cutest.opts  # build all tools except Matlab\n  echo \"7\" >> cutest.opts  # gcc\n  export MYARCH=pc.lnx.gfo\nelif [[ \"${target}\" == *-apple* ]]; then\n  echo \"13\" > cutest.opts  # macOS\n  echo \"2\" >> cutest.opts  # gfortran\n  echo \"2\" >> cutest.opts  # build all tools except Matlab\n  echo \"5\" >> cutest.opts  # gcc\n  export MYARCH=mac64.osx.gfo\nelif [[ \"${target}\" == *-mingw* ]]; then\n  echo \"5\" > cutest.opts   # PC\n  echo \"1\" >> cutest.opts  # Windows\n  echo \"3\" >> cutest.opts  # gfortran\n  echo \"2\" >> cutest.opts  # build all tools except Matlab\n  echo \"5\" >> cutest.opts  # gcc\n  export MYARCH=pc.mgw.gfo\nfi\necho \"nnydy\" >> cutest.opts\n./install_cutest < cutest.opts\n\n# build shared libs\nall_load=\"--whole-archive\"\nnoall_load=\"--no-whole-archive\"\nextra=\"\"\nif [[ \"${target}\" == *-apple-* ]]; then\n    all_load=\"-all_load\"\n    noall_load=\"-noall_load\"\n    extra=\"-Wl,-undefined -Wl,dynamic_lookup -headerpad_max_install_names\"\nfi\ncd $CUTEST/objects/$MYARCH/double\necho \"gfortran -fPIC -shared ${extra} -Wl,${all_load} libcutest.a -Wl,${noall_load} -o libcutest_double.${dlext}\"\ngfortran -fPIC -shared ${extra} -Wl,${all_load} libcutest.a -Wl,${noall_load} -o libcutest_double.${dlext}\ncd $CUTEST/objects/$MYARCH/single\ngfortran -fPIC -shared ${extra} -Wl,${all_load} libcutest.a -Wl,${noall_load} -o libcutest_single.${dlext}\n\nln -s $SIFDECODE/bin/sifdecoder ${bindir}/\nln -s $SIFDECODE/objects/$MYARCH/double/slct ${bindir}/\nln -s $SIFDECODE/objects/$MYARCH/double/clsf ${bindir}/\n"""
+version = "v0.1.0"
+
+[[products]]
+binnames = ["sifdecoder"]
+type = "exe"
+variable_name = "sifdecoder"
+[[products]]
+binnames = ["slct"]
+type = "exe"
+variable_name = "slct"
+[[products]]
+binnames = ["clsf"]
+type = "exe"
+variable_name = "clsf"
+
+[[sources]]
+"https://github.com/ralna/ARCHDefs/archive/v2.0.3x.tar.gz" = "6583e27f84338447767bbdf4335514c8836ae4ad54f5e66280307e8b57189cff"
+[[sources]]
+"https://github.com/ralna/SIFDecode/archive/v2.0.2.tar.gz" = "72936047dbea3695af6a15f9193412c22c119a3bc21d925750abf610c5df181b"
+[[sources]]
+"https://github.com/ralna/CUTEst/archive/v2.0.3.tar.gz" = "d21a65c975302296f9856c09034cf46edc5da34b6efd96eed6cc94af6d2c8a55"

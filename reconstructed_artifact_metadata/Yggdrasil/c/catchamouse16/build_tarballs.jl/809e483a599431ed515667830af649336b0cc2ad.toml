@@ -1,0 +1,42 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "catchaMouse16"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd ${WORKSPACE}/srcdir\ncd catchaMouse16/C/src/\necho -e 'CC = cc\nCFLAGS = -std=c11 -fPIC -Wall -Wextra -g -O2 -lm -lgsl -lgslcblas\nLDFLAGS = -shared -lm -lgsl -lgslcblas\nRM = rm -f\nTARGET_LIB = \"lib$(SRC_NAME).$(dlext)\"\n\nSRCS := $(shell find ./ -name \"*.c\")\n\nOBJS = $(SRCS:.c=.o)\n.PHONY: all;\nall: ${TARGET_LIB}\n$(TARGET_LIB): $(OBJS)\n\t$(CC) -o $@ $^ $(LDFLAGS) $(FLAGS)\n$(SRCS:.c=.d):%.d:%.c\n\t$(CC) $(CFLAGS) $(FLAGS) -MM $< >$@\n\tinclude $(SRCS:.c=.d)\n.PHONY: clean\nclean:\n\t$(RM) $(TARGET_LIB) $(OBJS) $(SRCS:.c=.d)\n.PHONY: install\ninstall:\n\tinstall -Dvm 755 \"./lib${SRC_NAME}.$(dlext)\" \"$(libdir)/lib$(SRC_NAME).$(dlext)\"\n' >> Makefile\nif [[ ${target} == aarch64-apple-* ]]; then\n    FLAGS=\"-L${libdir}/darwin -lclang_rt.osx\"\nfi\nmake -j${nproc} FLAGS=\"${FLAGS}\"\nmake install\n"""
+version = "v0.1.0"
+
+[[dependencies]]
+compat = "~2.7.2"
+name = "GSL_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LLVMCompilerRT_jll"
+platforms = ["aarch64-apple-darwin"]
+top_level = false
+type = "builddependency"
+uuid = "4e17d02c-6bf5-513e-be62-445f41c75a11"
+version-major = 17
+version-minor = 0
+version-patch = 6
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcatchaMouse16"]
+type = "lib"
+variable_name = "libcatchaMouse16"
+
+[[sources]]
+hash = "2a952451acf6114de562da6007e37ff6e013b157"
+type = "git"
+unpack_target = ""
+url = "https://github.com/DynamicsAndNeuralSystems/catchaMouse16.git"

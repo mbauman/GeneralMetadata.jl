@@ -1,0 +1,79 @@
+augment_platform_block = """    using Base.BinaryPlatforms\n    # Can't use Preferences since we might be running this very early with a non-existing Manifest\nMPIPreferences_UUID = Base.UUID(\"3da0fdf6-3ccc-4f1b-acd9-58baa6c99267\")\nconst preferences = Base.get_preferences(MPIPreferences_UUID)\n\n# Keep logic in sync with MPIPreferences.jl\nfunction augment_mpi!(platform)\n    # Doesn't need to be `const` since we depend on MPIPreferences so we\n    # invalidate the cache when it changes.\n    # Note: MPIPreferences uses `Sys.iswindows()` without the `platform` argument.\n    binary = get(preferences, \"binary\", Sys.iswindows(platform) ? \"MicrosoftMPI_jll\" : \"MPICH_jll\")\n\n    abi = if binary == \"system\"\n        let abi = get(preferences, \"abi\", nothing)\n            if abi === nothing\n                error(\"MPIPreferences: Inconsistent state detected, binary set to system, but no ABI set.\")\n            else\n                abi\n            end\n        end\n    elseif binary == \"MicrosoftMPI_jll\"\n        \"MicrosoftMPI\"\n    elseif binary == \"MPICH_jll\"\n        \"MPICH\"\n    elseif binary == \"OpenMPI_jll\"\n        \"OpenMPI\"\n    elseif binary == \"MPItrampoline_jll\"\n        \"MPItrampoline\"\n    else\n        error(\"Unknown binary: $binary\")\n    end\n\n    if !haskey(platform, \"mpi\")\n        platform[\"mpi\"] = abi\n    end\n    return platform\nend\n\n    augment_platform!(platform::Platform) = augment_mpi!(platform)\n"""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = true
+name = "libcircle"
+platforms = ["i686-linux-gnu-mpi+mpich", "x86_64-linux-gnu-mpi+mpich", "aarch64-linux-gnu-mpi+mpich", "armv6l-linux-gnueabihf-mpi+mpich", "armv7l-linux-gnueabihf-mpi+mpich", "powerpc64le-linux-gnu-mpi+mpich", "riscv64-linux-gnu-mpi+mpich", "i686-linux-musl-mpi+mpich", "x86_64-linux-musl-mpi+mpich", "aarch64-linux-musl-mpi+mpich", "armv6l-linux-musleabihf-mpi+mpich", "armv7l-linux-musleabihf-mpi+mpich", "x86_64-apple-darwin-mpi+mpich", "aarch64-apple-darwin-mpi+mpich", "x86_64-unknown-freebsd-mpi+mpich", "aarch64-unknown-freebsd-mpi+mpich", "i686-linux-gnu-mpi+mpitrampoline", "x86_64-linux-gnu-mpi+mpitrampoline", "aarch64-linux-gnu-mpi+mpitrampoline", "armv6l-linux-gnueabihf-mpi+mpitrampoline", "armv7l-linux-gnueabihf-mpi+mpitrampoline", "powerpc64le-linux-gnu-mpi+mpitrampoline", "riscv64-linux-gnu-mpi+mpitrampoline", "x86_64-apple-darwin-mpi+mpitrampoline", "aarch64-apple-darwin-mpi+mpitrampoline", "x86_64-unknown-freebsd-mpi+mpitrampoline", "aarch64-unknown-freebsd-mpi+mpitrampoline", "i686-linux-gnu-mpi+openmpi", "x86_64-linux-gnu-mpi+openmpi", "aarch64-linux-gnu-mpi+openmpi", "armv7l-linux-gnueabihf-mpi+openmpi", "powerpc64le-linux-gnu-mpi+openmpi", "riscv64-linux-gnu-mpi+openmpi", "i686-linux-musl-mpi+openmpi", "x86_64-linux-musl-mpi+openmpi", "aarch64-linux-musl-mpi+openmpi", "armv6l-linux-musleabihf-mpi+openmpi", "armv7l-linux-musleabihf-mpi+openmpi", "x86_64-apple-darwin-mpi+openmpi", "aarch64-apple-darwin-mpi+openmpi", "x86_64-unknown-freebsd-mpi+openmpi", "aarch64-unknown-freebsd-mpi+openmpi"]
+script = """cd $WORKSPACE/srcdir/libcircle\n\nexport MPITRAMPOLINE_CC=\"${CC}\"\nexport MPITRAMPOLINE_CXX=\"${CXX}\"\nexport MPITRAMPOLINE_FC=\"${FC}\"\n\n./autogen.sh\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} ac_cv_func_malloc_0_nonnull=yes ac_cv_func_realloc_0_nonnull=yes\nmake -j${nproc}\nmake install\n"""
+version = "v0.3.0"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "4.3.0 - 4"
+name = "MPICH_jll"
+platforms = ["i686-linux-gnu-mpi+mpich", "x86_64-linux-gnu-mpi+mpich", "aarch64-linux-gnu-mpi+mpich", "armv6l-linux-gnueabihf-mpi+mpich", "armv7l-linux-gnueabihf-mpi+mpich", "powerpc64le-linux-gnu-mpi+mpich", "riscv64-linux-gnu-mpi+mpich", "i686-linux-musl-mpi+mpich", "x86_64-linux-musl-mpi+mpich", "aarch64-linux-musl-mpi+mpich", "armv6l-linux-musleabihf-mpi+mpich", "armv7l-linux-musleabihf-mpi+mpich", "x86_64-apple-darwin-mpi+mpich", "aarch64-apple-darwin-mpi+mpich", "x86_64-unknown-freebsd-mpi+mpich", "aarch64-unknown-freebsd-mpi+mpich"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "5.5.3 - 5"
+name = "MPItrampoline_jll"
+platforms = ["i686-linux-gnu-mpi+mpitrampoline", "x86_64-linux-gnu-mpi+mpitrampoline", "aarch64-linux-gnu-mpi+mpitrampoline", "armv6l-linux-gnueabihf-mpi+mpitrampoline", "armv7l-linux-gnueabihf-mpi+mpitrampoline", "powerpc64le-linux-gnu-mpi+mpitrampoline", "riscv64-linux-gnu-mpi+mpitrampoline", "x86_64-apple-darwin-mpi+mpitrampoline", "aarch64-apple-darwin-mpi+mpitrampoline", "x86_64-unknown-freebsd-mpi+mpitrampoline", "aarch64-unknown-freebsd-mpi+mpitrampoline"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MicrosoftMPI_jll"
+platforms = []
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "4.1.8, 5.0.7"
+name = "OpenMPI_jll"
+platforms = ["i686-linux-gnu-mpi+openmpi", "x86_64-linux-gnu-mpi+openmpi", "aarch64-linux-gnu-mpi+openmpi", "armv7l-linux-gnueabihf-mpi+openmpi", "powerpc64le-linux-gnu-mpi+openmpi", "riscv64-linux-gnu-mpi+openmpi", "i686-linux-musl-mpi+openmpi", "x86_64-linux-musl-mpi+openmpi", "aarch64-linux-musl-mpi+openmpi", "armv6l-linux-musleabihf-mpi+openmpi", "armv7l-linux-musleabihf-mpi+openmpi", "x86_64-apple-darwin-mpi+openmpi", "aarch64-apple-darwin-mpi+openmpi", "x86_64-unknown-freebsd-mpi+openmpi", "aarch64-unknown-freebsd-mpi+openmpi"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "0.1"
+name = "MPIPreferences"
+platforms = ["any"]
+top_level = true
+type = "dependency"
+uuid = "3da0fdf6-3ccc-4f1b-acd9-58baa6c99267"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcircle"]
+type = "lib"
+variable_name = "libcircle"
+
+[[sources]]
+hash = "3d8fbfae2b95fafe71a309fcfbb7c1c993f16ad8"
+type = "git"
+unpack_target = ""
+url = "https://github.com/hpc/libcircle"

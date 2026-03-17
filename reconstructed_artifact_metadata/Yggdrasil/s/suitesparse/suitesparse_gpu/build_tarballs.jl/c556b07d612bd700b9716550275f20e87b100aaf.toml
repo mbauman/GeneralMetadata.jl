@@ -1,0 +1,167 @@
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "SuiteSparse_GPU"
+platforms = ["x86_64-linux-gnu"]
+script = """cd $WORKSPACE/srcdir/SuiteSparse\n\n# Apply Jameson's shlib patch\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/SuiteSparse-shlib.patch\n\n# Disable OpenMP as it will probably interfere with blas threads and Julia threads\nFLAGS+=(INSTALL=\"${prefix}\" INSTALL_LIB=\"${libdir}\" INSTALL_INCLUDE=\"${prefix}/include\" CFOPENMP=)\n\nif [[ ${target} == *mingw32* ]]; then\n    FLAGS+=(UNAME=Windows)\n    FLAGS+=(LDFLAGS=\"${LDFLAGS} -L${libdir} -shared\")\nelse\n    FLAGS+=(UNAME=\"$(uname)\")\n    FLAGS+=(LDFLAGS=\"${LDFLAGS} -L${libdir}\")\nfi\n\nBLAS_NAME=blastrampoline\nif [[ ${nbits} == 64 ]]; then\n    SUN=\"-DSUN64 -DLONGBLAS='long long'\"\nfi\n\nFLAGS+=(BLAS=\"-l${BLAS_NAME}\" LAPACK=\"-l${BLAS_NAME}\")\n\n# CUDA\nFLAGS+=(CUDA_PATH=\"$prefix/cuda\")\n\n# METIS\nFLAGS+=(MY_METIS_LIB=\"-lmetis\" MY_METIS_INC=\"${prefix}/include\")\n\nmake -j${nproc} -C SuiteSparse_config \"${FLAGS[@]}\" library config\n\nfor proj in SuiteSparse_config SuiteSparse_GPURuntime GPUQREngine AMD BTF CAMD CCOLAMD COLAMD CHOLMOD LDL KLU UMFPACK RBio SPQR SLIP_LU Mongoose; do\n    make -j${nproc} -C $proj \"${FLAGS[@]}\" library CFOPENMP=\"$CFOPENMP\"\n    make -j${nproc} -C $proj \"${FLAGS[@]}\" install CFOPENMP=\"$CFOPENMP\"\ndone\n\n# For now, we'll have to adjust the name of the OpenBLAS library on macOS and FreeBSD.\n# Eventually, this should be fixed upstream\nif [[ ${target} == *-apple-* ]] || [[ ${target} == *freebsd* ]]; then\n    echo \"-- Modifying library name for OpenBLAS\"\n\n    for nm in libcholmod libspqr libumfpack; do\n        # Figure out what version it probably latched on to:\n        if [[ ${target} == *-apple-* ]]; then\n            OPENBLAS_LINK=$(otool -L ${libdir}/${nm}.dylib | grep lib${BLAS_NAME} | awk '{ print $1 }')\n            install_name_tool -change ${OPENBLAS_LINK} @rpath/lib${BLAS_NAME}.dylib ${libdir}/${nm}.dylib\n        elif [[ ${target} == *freebsd* ]]; then\n            OPENBLAS_LINK=$(readelf -d ${libdir}/${nm}.so | grep lib${BLAS_NAME} | sed -e 's/.*\\[\\(.*\\)\\].*/\\1/')\n            patchelf --replace-needed ${OPENBLAS_LINK} lib${BLAS_NAME}.so ${libdir}/${nm}.so\n        fi\n    done\nfi\n\n# Delete the extra soversion libraries built. https://github.com/JuliaPackaging/Yggdrasil/issues/7\nif [[ \"${target}\" == *-mingw* ]]; then\n    rm -f ${libdir}/lib*.*.${dlext}\n    rm -f ${libdir}/lib*.*.*.${dlext}\nfi\n\ninstall_license LICENSE.txt\n\n# Compile SuiteSparse_wrapper shim\ncd $WORKSPACE/srcdir/SuiteSparse_wrapper\n\"${CC}\" -O2 -shared -fPIC -I${prefix}/include SuiteSparse_wrapper.c -o ${libdir}/libsuitesparse_wrapper.${dlext} -L${libdir} -lcholmod\n"""
+version = "v5.8.1"
+
+[[dependencies]]
+compat = ""
+name = "libblastrampoline_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "METIS_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MPFR_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "GMP_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CUDA_full_jll"
+type = "builddependency"
+version-major = 10
+version-minor = 0
+version-patch = 130
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsuitesparseconfig"]
+type = "lib"
+variable_name = "libsuitesparseconfig"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libamd"]
+type = "lib"
+variable_name = "libamd"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libbtf"]
+type = "lib"
+variable_name = "libbtf"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcamd"]
+type = "lib"
+variable_name = "libcamd"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libccolamd"]
+type = "lib"
+variable_name = "libccolamd"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcolamd"]
+type = "lib"
+variable_name = "libcolamd"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcholmod"]
+type = "lib"
+variable_name = "libcholmod"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libldl"]
+type = "lib"
+variable_name = "libldl"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libklu"]
+type = "lib"
+variable_name = "libklu"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libumfpack"]
+type = "lib"
+variable_name = "libumfpack"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["librbio"]
+type = "lib"
+variable_name = "librbio"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libspqr"]
+type = "lib"
+variable_name = "libspqr"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsuitesparse_wrapper"]
+type = "lib"
+variable_name = "libsuitesparse_wrapper"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsliplu"]
+type = "lib"
+variable_name = "libsliplu"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libGPUQREngine"]
+type = "lib"
+variable_name = "libGPUQREngine"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libSuiteSparse_GPURuntime"]
+type = "lib"
+variable_name = "libSuiteSparse_GPURuntime"
+
+[[sources]]
+hash = "1869379f464f0f8dac471edb4e6d010b2b0e639d"
+type = "git"
+unpack_target = ""
+url = "https://github.com/DrTimothyAldenDavis/SuiteSparse.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

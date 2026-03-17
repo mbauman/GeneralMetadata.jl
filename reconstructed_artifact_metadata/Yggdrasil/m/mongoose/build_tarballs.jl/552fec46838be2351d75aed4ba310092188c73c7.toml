@@ -1,0 +1,23 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Mongoose"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir\ncat > CMakeLists.txt <<EOF\ncmake_minimum_required(VERSION 3.10)\nproject(mongoose C)\n\nadd_library(mongoose SHARED mongoose/mongoose.c)\n\nif(WIN32)\n    target_link_libraries(mongoose PRIVATE ws2_32)\nendif()\n\ninstall(TARGETS mongoose\n        LIBRARY DESTINATION $libdir\n        ARCHIVE DESTINATION $libdir\n        RUNTIME DESTINATION $bindir)\nEOF\n\ncmake -B build  \\\n    -DCMAKE_INSTALL_PREFIX=${prefix}  \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN}  \\\n    -DCMAKE_BUILD_TYPE=Release  \\\n    -S .\ncmake --build build --parallel ${nproc}\ncmake --install build\ninstall_license mongoose/LICENSE\n"""
+version = "v7.19.0"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmongoose"]
+type = "lib"
+variable_name = "libmongoose"
+
+[[sources]]
+hash = "739d78a45a8fa6595498df67d11cac3e39af8c0e"
+type = "git"
+unpack_target = ""
+url = "https://github.com/cesanta/mongoose.git"

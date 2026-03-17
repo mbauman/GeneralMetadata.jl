@@ -1,0 +1,92 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Powsybl"
+platforms = ["x86_64-linux-gnu-cxx03-julia_version+1.6.3", "x86_64-linux-gnu-cxx11-julia_version+1.6.3", "x86_64-linux-musl-cxx03-julia_version+1.6.3", "x86_64-linux-musl-cxx11-julia_version+1.6.3", "x86_64-apple-darwin-julia_version+1.6.3", "x86_64-w64-mingw32-cxx03-julia_version+1.6.3", "x86_64-w64-mingw32-cxx11-julia_version+1.6.3", "x86_64-linux-gnu-cxx03-julia_version+1.7.0", "x86_64-linux-gnu-cxx11-julia_version+1.7.0", "x86_64-linux-musl-cxx03-julia_version+1.7.0", "x86_64-linux-musl-cxx11-julia_version+1.7.0", "x86_64-apple-darwin-julia_version+1.7.0", "aarch64-apple-darwin-julia_version+1.7.0", "x86_64-w64-mingw32-cxx03-julia_version+1.7.0", "x86_64-w64-mingw32-cxx11-julia_version+1.7.0", "x86_64-linux-gnu-cxx03-julia_version+1.8.2", "x86_64-linux-gnu-cxx11-julia_version+1.8.2", "x86_64-linux-musl-cxx03-julia_version+1.8.2", "x86_64-linux-musl-cxx11-julia_version+1.8.2", "x86_64-apple-darwin-julia_version+1.8.2", "aarch64-apple-darwin-julia_version+1.8.2", "x86_64-w64-mingw32-cxx03-julia_version+1.8.2", "x86_64-w64-mingw32-cxx11-julia_version+1.8.2", "x86_64-linux-gnu-cxx03-julia_version+1.9.0", "x86_64-linux-gnu-cxx11-julia_version+1.9.0", "x86_64-linux-musl-cxx03-julia_version+1.9.0", "x86_64-linux-musl-cxx11-julia_version+1.9.0", "x86_64-apple-darwin-julia_version+1.9.0", "aarch64-apple-darwin-julia_version+1.9.0", "x86_64-w64-mingw32-cxx03-julia_version+1.9.0", "x86_64-w64-mingw32-cxx11-julia_version+1.9.0", "x86_64-linux-gnu-cxx03-julia_version+1.10.0", "x86_64-linux-gnu-cxx11-julia_version+1.10.0", "x86_64-linux-musl-cxx03-julia_version+1.10.0", "x86_64-linux-musl-cxx11-julia_version+1.10.0", "x86_64-apple-darwin-julia_version+1.10.0", "aarch64-apple-darwin-julia_version+1.10.0", "x86_64-w64-mingw32-cxx03-julia_version+1.10.0", "x86_64-w64-mingw32-cxx11-julia_version+1.10.0", "x86_64-linux-gnu-cxx03-julia_version+1.11.1", "x86_64-linux-gnu-cxx11-julia_version+1.11.1", "x86_64-linux-musl-cxx03-julia_version+1.11.1", "x86_64-linux-musl-cxx11-julia_version+1.11.1", "x86_64-apple-darwin-julia_version+1.11.1", "aarch64-apple-darwin-julia_version+1.11.1", "x86_64-w64-mingw32-cxx03-julia_version+1.11.1", "x86_64-w64-mingw32-cxx11-julia_version+1.11.1", "x86_64-linux-gnu-cxx03-julia_version+1.12.0", "x86_64-linux-gnu-cxx11-julia_version+1.12.0", "x86_64-linux-musl-cxx03-julia_version+1.12.0", "x86_64-linux-musl-cxx11-julia_version+1.12.0", "x86_64-apple-darwin-julia_version+1.12.0", "aarch64-apple-darwin-julia_version+1.12.0", "x86_64-w64-mingw32-cxx03-julia_version+1.12.0", "x86_64-w64-mingw32-cxx11-julia_version+1.12.0"]
+script = """cd $WORKSPACE/srcdir\n\n# Get binary for powsybl-java, generated with GraalVm, install them in ${prefix} path\ncp -rv powsybl-java-${target}/* ${prefix}\n\ncd $WORKSPACE/srcdir/pypowsybl/cpp\ncmake -B build \\\n    ${WORKSPACE}/srcdir/pypowsybl/cpp \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DBUILD_PYPOWSYBL_JAVA=OFF \\\n    -DBUILD_PYTHON_BINDINGS=OFF \\\n    -DPYPOWSYBL_JAVA_LIBRARY_DIR=${prefix}/lib \\\n    -DPYPOWSYBL_JAVA_INCLUDE_DIR=${prefix}/include \\\n    -DCMAKE_INSTALL_PREFIX=${prefix}\ncmake --build build --parallel ${nproc}\ncmake --install build\n\n# Build julia wrapper\ncd $WORKSPACE/srcdir/powsybl.jl\ncmake -B build \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    cpp/powsybljl-cpp \\\n    -DJulia_PREFIX=${prefix} \\\n    -DJlCxx_DIR=${prefix}/lib/cmake/JlCxx \\\n    -DCMAKE_FIND_ROOT_PATH=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_PREFIX_PATH=${prefix} \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DPOWSYBL_INSTALL_DIR=${prefix}\ncmake --build build --parallel ${nproc}\ncmake --install build\n\ninstall_license $WORKSPACE/srcdir/powsybl.jl/LICENSE.md\n"""
+version = "v0.2.0"
+
+[[dependencies]]
+compat = ""
+name = "libcxxwrap_julia_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "libjulia_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["math", "libmath"]
+type = "lib"
+variable_name = "libmath"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["pypowsybl-java", "libpypowsybl-java"]
+type = "lib"
+variable_name = "libpypowsybl_java"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["powsybl-cpp", "libpowsybl-cpp"]
+type = "lib"
+variable_name = "libpowsybl_cpp"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["PowsyblJlWrap", "libPowsyblJlWrap"]
+type = "lib"
+variable_name = "libPowsyblJlWrap"
+
+[[sources]]
+hash = "19ec2f5aff90d42df5d90f85dda76f6007a13757"
+type = "git"
+unpack_target = ""
+url = "https://github.com/powsybl/powsybl.jl.git"
+[[sources]]
+hash = "81d7e40a32d056a9945293238ce09cf207fc47fc"
+type = "git"
+unpack_target = ""
+url = "https://github.com/powsybl/pypowsybl.git"
+[[sources]]
+hash = "a3d1912e9ed213a4ca157ffa8470e4c38cbce84fa1529c646cb32ec4562f8c13"
+type = "archive"
+unpack_target = "powsybl-java-x86_64-w64-mingw32"
+url = "https://github.com/powsybl/pypowsybl/releases/download/v1.9.0/binaries-v1.9.0-windows.zip"
+[[sources]]
+hash = "98af7cdd909e7b9c0f4afea2788bbaf8671d59053f50dead52121241cba2d38e"
+type = "archive"
+unpack_target = "powsybl-java-x86_64-linux-gnu"
+url = "https://github.com/powsybl/pypowsybl/releases/download/v1.9.0/binaries-v1.9.0-linux.zip"
+[[sources]]
+hash = "98af7cdd909e7b9c0f4afea2788bbaf8671d59053f50dead52121241cba2d38e"
+type = "archive"
+unpack_target = "powsybl-java-x86_64-linux-musl"
+url = "https://github.com/powsybl/pypowsybl/releases/download/v1.9.0/binaries-v1.9.0-linux.zip"
+[[sources]]
+hash = "1d1a2989ab7b7f9b3ca0605885c0d32c93331e48c5505094c23519bfd054d6ba"
+type = "archive"
+unpack_target = "powsybl-java-x86_64-apple-darwin14"
+url = "https://github.com/powsybl/pypowsybl/releases/download/v1.9.0/binaries-v1.9.0-darwin.zip"
+[[sources]]
+hash = "3eac481b3da3c9224d3e76cfe2310d0ee620f99fcd8a78308eca79ed7447c948"
+type = "archive"
+unpack_target = "powsybl-java-aarch64-apple-darwin20"
+url = "https://github.com/powsybl/pypowsybl/releases/download/v1.9.0/binaries-v1.9.0-darwin-arm64.zip"

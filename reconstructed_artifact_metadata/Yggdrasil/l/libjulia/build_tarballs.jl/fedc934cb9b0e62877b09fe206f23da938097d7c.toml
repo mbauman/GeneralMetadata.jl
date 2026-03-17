@@ -1,0 +1,314 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "libjulia"
+platforms = ["i686-linux-gnu-julia_version+1.6.3", "x86_64-linux-gnu-julia_version+1.6.3", "aarch64-linux-gnu-julia_version+1.6.3", "armv7l-linux-gnueabihf-julia_version+1.6.3", "powerpc64le-linux-gnu-julia_version+1.6.3", "x86_64-linux-musl-julia_version+1.6.3", "aarch64-linux-musl-julia_version+1.6.3", "armv7l-linux-musleabihf-julia_version+1.6.3", "x86_64-apple-darwin-julia_version+1.6.3", "x86_64-unknown-freebsd-julia_version+1.6.3", "i686-w64-mingw32-julia_version+1.6.3", "x86_64-w64-mingw32-julia_version+1.6.3", "i686-linux-gnu-julia_version+1.7.0", "x86_64-linux-gnu-julia_version+1.7.0", "aarch64-linux-gnu-julia_version+1.7.0", "armv6l-linux-gnueabihf-julia_version+1.7.0", "armv7l-linux-gnueabihf-julia_version+1.7.0", "powerpc64le-linux-gnu-julia_version+1.7.0", "x86_64-linux-musl-julia_version+1.7.0", "aarch64-linux-musl-julia_version+1.7.0", "armv6l-linux-musleabihf-julia_version+1.7.0", "armv7l-linux-musleabihf-julia_version+1.7.0", "x86_64-apple-darwin-julia_version+1.7.0", "aarch64-apple-darwin-julia_version+1.7.0", "x86_64-unknown-freebsd-julia_version+1.7.0", "i686-w64-mingw32-julia_version+1.7.0", "x86_64-w64-mingw32-julia_version+1.7.0", "i686-linux-gnu-julia_version+1.8.2", "x86_64-linux-gnu-julia_version+1.8.2", "aarch64-linux-gnu-julia_version+1.8.2", "armv6l-linux-gnueabihf-julia_version+1.8.2", "armv7l-linux-gnueabihf-julia_version+1.8.2", "powerpc64le-linux-gnu-julia_version+1.8.2", "x86_64-linux-musl-julia_version+1.8.2", "aarch64-linux-musl-julia_version+1.8.2", "armv6l-linux-musleabihf-julia_version+1.8.2", "armv7l-linux-musleabihf-julia_version+1.8.2", "x86_64-apple-darwin-julia_version+1.8.2", "aarch64-apple-darwin-julia_version+1.8.2", "x86_64-unknown-freebsd-julia_version+1.8.2", "i686-w64-mingw32-julia_version+1.8.2", "x86_64-w64-mingw32-julia_version+1.8.2", "i686-linux-gnu-julia_version+1.9.0", "x86_64-linux-gnu-julia_version+1.9.0", "aarch64-linux-gnu-julia_version+1.9.0", "powerpc64le-linux-gnu-julia_version+1.9.0", "x86_64-linux-musl-julia_version+1.9.0", "aarch64-linux-musl-julia_version+1.9.0", "x86_64-apple-darwin-julia_version+1.9.0", "aarch64-apple-darwin-julia_version+1.9.0", "x86_64-unknown-freebsd-julia_version+1.9.0", "i686-w64-mingw32-julia_version+1.9.0", "x86_64-w64-mingw32-julia_version+1.9.0", "i686-linux-gnu-julia_version+1.10.0", "x86_64-linux-gnu-julia_version+1.10.0", "aarch64-linux-gnu-julia_version+1.10.0", "powerpc64le-linux-gnu-julia_version+1.10.0", "x86_64-linux-musl-julia_version+1.10.0", "aarch64-linux-musl-julia_version+1.10.0", "x86_64-apple-darwin-julia_version+1.10.0", "aarch64-apple-darwin-julia_version+1.10.0", "x86_64-unknown-freebsd-julia_version+1.10.0", "i686-w64-mingw32-julia_version+1.10.0", "x86_64-w64-mingw32-julia_version+1.10.0"]
+script = """apk add coreutils libuv-dev utf8proc\n\n# WORKAROUND for mingw: remove the fake `uname` binary, it throws off the\n# Julia buildsystem\nif [[ \"${target}\" == *mingw* ]]; then\n  rm -f /usr/bin/uname\nfi\n\ncd $WORKSPACE/srcdir/julia*\nversion=$(cat VERSION)\n# use the Julia version to determine the directory from which to read patches\npatchdir=$WORKSPACE/srcdir/patches/$version\n# Apply patches\nif [ -d $patchdir ]; then\nfor f in $patchdir/*.patch; do\n    echo \"Applying path ${f}\"\n    atomic_patch -p1 ${f}\ndone\nfi\n\n# HACK to allow building Julia 1.6 in Julia >= 1.7, as we can't install an old\n# LibOSXUnwind_jll for it (due to it becoming a stdlib in Julia 1.7).\n# See also <https://github.com/JuliaPackaging/Yggdrasil/pull/4320>\nif [[ \"${target}\" == *apple* ]] && [[ \"${version}\" == 1.6.* ]]; then\n    cp $WORKSPACE/srcdir/LibOSXUnwind_jll/include/*.h ${includedir}\n    mkdir -p ${includedir}/mach-o\n    cp $WORKSPACE/srcdir/LibOSXUnwind_jll/include/mach-o/*.h ${includedir}/mach-o\n    cp $WORKSPACE/srcdir/LibOSXUnwind_jll/lib/libosxunwind.* ${libdir}\nfi\n\ncase ${target} in\n    *linux*)\n        OS=Linux\n    ;;\n    *mingw*)\n        OS=WINNT\n    ;;\n    *darwin*)\n        OS=Darwin\n    ;;\n    *freebsd*)\n        OS=FreeBSD\n    ;;\nesac\n\ncat << EOM >Make.host.user\noverride CC=${CC_BUILD}\noverride CXX=${CXX_BUILD}\noverride AR=${AR_BUILD}\nUSE_SYSTEM_LIBUV=1\nUSE_SYSTEM_UTF8PROC=1\n# julia want's libuv.a\noverride LIBUV=/usr/lib/libuv.so\noverride LIBUTF8PROC=/usr/lib/libutf8proc.so.2\n\noverride OS=Linux\nEOM\n\n# TODO: eventually we should get LLVM_CXXFLAGS from llvm-config from\n# a HostDependency, now that we have those\nLLVM_CXXFLAGS=\"-I${prefix}/include -fno-exceptions -fno-rtti -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS\"\nif [[ \"${version}\" == 1.[0-5].* ]]; then\n    LLVM_CXXFLAGS=\"${LLVM_CXXFLAGS} -std=c++11\"\nelse\n    LLVM_CXXFLAGS=\"${LLVM_CXXFLAGS} -std=c++14\"\nfi\nLLVM_LDFLAGS=\"-L${prefix}/lib\"\nLDFLAGS=\"-L${prefix}/lib\"\nCFLAGS=\"-I${prefix}/include\"\n# -NDEBUG below fixes the FreeBSD build of Julia 1.4 and 1.5\nCXXFLAGS=\"-I${prefix}/include -DNDEBUG\"\nif [[ \"${target}\" == *mingw* ]]; then\n    if [[ \"${version}\" == 1.8.* ]]; then\n        LLVMLINK=\"-L${prefix}/bin -lLLVM-13jl\"\n    elif [[ \"${version}\" == 1.9.* ]]; then\n        LLVMLINK=\"-L${prefix}/bin -lLLVM-14jl\"\n    elif [[ \"${version}\" == 1.10.* ]]; then\n        LLVMLINK=\"-L${prefix}/bin -lLLVM-14jl\"\n    else\n        LLVMLINK=\"-L${prefix}/bin -lLLVM\"\n    fi\n    LLVM_LDFLAGS=\"-L${prefix}/bin\"\n    LDFLAGS=\"-L${prefix}/bin\"\nelif [[ \"${target}\" == *apple* ]]; then\n    LLVMLINK=\"-L${prefix}/lib -lLLVM\"\nelse\n    if [[ \"${version}\" == 1.6.* ]]; then\n        LLVMLINK=\"-L${prefix}/lib -lLLVM-11jl\"\n    elif [[ \"${version}\" == 1.7.* ]]; then\n        LLVMLINK=\"-L${prefix}/lib -lLLVM-12jl\"\n    elif [[ \"${version}\" == 1.8.* ]]; then\n        LLVMLINK=\"-L${prefix}/lib -lLLVM-13jl\"\n    elif [[ \"${version}\" == 1.9.* ]]; then\n        LLVMLINK=\"-L${prefix}/lib -lLLVM-14jl\"\n    elif [[ \"${version}\" == 1.10.* ]]; then\n        LLVMLINK=\"-L${prefix}/lib -lLLVM-14jl\"\n    else\n        echo \"Error, LLVM version not specified\"\n        exit 1\n    fi\nfi\n\n# enable extglob for BB_TRIPLET_LIBGFORTRAN_CXXABI\nshopt -s extglob\n\n# Strip the OS version from Darwin and FreeBSD\nBB_TRIPLET_LIBGFORTRAN_CXXABI=$(echo ${bb_full_target/-julia_version+([^-])} | sed 's/\\(darwin\\|freebsd\\)[0-9.]*/\\1/')\n\ncat << EOM >Make.user\nUSE_SYSTEM_LLVM=1\nUSE_SYSTEM_LLD=1\nUSE_SYSTEM_LIBUNWIND=1\n\nUSE_SYSTEM_PCRE=1\nUSE_SYSTEM_OPENLIBM=1\nUSE_SYSTEM_DSFMT=1\nUSE_SYSTEM_GMP=1\nUSE_SYSTEM_MPFR=1\nUSE_SYSTEM_SUITESPARSE=1\nUSE_SYSTEM_LIBUV=1\nUSE_SYSTEM_UTF8PROC=1\nUSE_SYSTEM_MBEDTLS=1\nUSE_SYSTEM_LIBSSH2=1\nUSE_SYSTEM_CURL=1\nUSE_SYSTEM_LIBGIT2=1\nUSE_SYSTEM_PATCHELF=1\nUSE_SYSTEM_ZLIB=1\nUSE_SYSTEM_P7ZIP=1\n\noverride XC_HOST=${target}\noverride OS=${OS}\noverride BUILD_OS=Linux\n\n#llvm-config-host is not available\noverride LLVMLINK=${LLVMLINK}    # For Julia <= 1.7\noverride RT_LLVMLINK=${LLVMLINK} # For Julia >= 1.8\noverride CG_LLVMLINK=${LLVMLINK} # For Julia >= 1.8\noverride LLVM_CXXFLAGS=${LLVM_CXXFLAGS}\noverride LLVM_LDFLAGS=${LLVM_LDFLAGS}\n\n# just nop this\noverride LLVM_CONFIG_HOST=true\n\n# we only run flisp and we built that for Linux\noverride spawn = \\$(1)\noverride cygpath_w = \\$(1)\n\n# julia expects libuv-julia.a\noverride LIBUV=${prefix}/lib/libuv.a\n\noverride BB_TRIPLET_LIBGFORTRAN_CXXABI=${BB_TRIPLET_LIBGFORTRAN_CXXABI}\noverride USE_BINARYBUILDER=1\n\nprefix=${prefix}\nLOCALBASE=${prefix}\nEOM\n\n# setting USE_SYSTEM_BLAS to get Julia to use OpenBLAS_jll doesn't work on macOS,\n# where the Julia build system instead tries to use a native BLAS, which however\n# then requires compiling a custom lapack, which fails for Julia 1.4\nif [[ \"${target}\" != *apple* ]]; then\n    cat << EOM >>Make.user\n    USE_SYSTEM_BLAS=1\n    LIBBLASNAME=libopenblas\n    USE_SYSTEM_LAPACK=1\n    LIBLAPACKNAME=libopenblas\nEOM\nelif [[ \"${version}\" == 1.[0-6].* ]]; then\n    cat << EOM >>Make.user\n    USECLANG=1\n\n    # link against libosxunwind, see https://github.com/JuliaPackaging/Yggdrasil/pull/2164\n    # and https://github.com/JuliaPackaging/Yggdrasil/pull/2190\n    LIBUNWIND:=-losxunwind\n    JCPPFLAGS+=-DLIBOSXUNWIND\nEOM\nfi\n\n# avoid linker errors related to atomic support in 32bit ARM builds\nif [[ \"${bb_full_target}\" == armv7l-* ]]; then\n    echo \"MARCH=armv7-a\" >>Make.user\nfi\n\n# Add file to one of the `STD_LIB_PATH`\nif [[ \"${target}\" == *mingw* ]]; then\n    cp /opt/*-w64-mingw32/*-w64-mingw32/sys-root/bin/libwinpthread-1.dll /opt/*-w64-mingw32/*-mingw32/sys-root/lib/\nfi\n\n# first build flisp, as we need that for compilation; instruct the build system\n# to build it for the cross compilation host architecture, not the final target\nmake BUILDING_HOST_TOOLS=1 NO_GIT=1 -j${nproc} VERBOSE=1 -C src/flisp host/flisp\nmake clean -C src\nmake clean -C src/support\nmake clean -C src/flisp\n\n# We don't trust the system libm in places\n# So we include a private copy of libopenlibm\nmkdir -p usr/lib\ncp ${prefix}/*/libopenlibm.a usr/lib/\n\n# choose make targets which compile libjulia but don't try to build a sysimage\nif [[ \"${version}\" == 1.[0-5].* ]]; then\n    MAKE_TARGET=\"julia-ui-release julia-ui-debug\"\nelse\n    MAKE_TARGET=\"julia-src-release julia-cli-release julia-src-debug julia-cli-debug\"\nfi\n\n# Start the actual build. We pass DSYMUTIL='true -ignore' to skip the\n# unnecessary step calling dsymutil, which in our cross compilation\n# environment results in a segfault.\nmake USE_CROSS_FLISP=1 NO_GIT=1 LDFLAGS=\"${LDFLAGS}\" CFLAGS=\"${CFLAGS}\" CXXFLAGS=\"${CXXFLAGS}\" -j${nproc} VERBOSE=1 ${MAKE_TARGET} DSYMUTIL=true\n\n# HACK to avoid runtime dependency on LibOSXUnwind_jll with Julia 1.6: it\n# disables the `#include <libunwind.h>` statements in two header files,\n# and all code directly depending on them; luckily all of that is internal\n# and should not affect external code using the Julia kernel \"API\"\nif [[ \"${version}\" == 1.6.* ]]; then\n    atomic_patch -p1 $WORKSPACE/srcdir/libunwind-julia-1.6.patch\nfi\n\n# 'manually' install libraries and headers\nmkdir -p ${libdir}\nmkdir -p ${includedir}/julia\nif [[ \"${target}\" == *mingw* ]]; then\n    cp -r usr/bin/libjulia* ${bindir}/\nelse\n    cp -r usr/lib/libjulia* ${libdir}/\nfi\n\ncp -R -L usr/include/julia/* ${includedir}/julia\ninstall_license LICENSE.md\n"""
+version = "v1.10.0"
+
+[[dependencies]]
+compat = ""
+name = "OpenLibm_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "dSFMT_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "utf8proc_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MbedTLS_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LibSSH2_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LibCURL_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "p7zip_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MPFR_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "GMP_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Objconv_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "SuiteSparse_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+uuid = "bea87d4a-7f5b-5778-9afe-8cc45184846c"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LibUV_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LibUnwind_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LLVM_full_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+uuid = "a3ccf953-465e-511d-b87f-60a6490c289d"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenBLAS_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+uuid = "4536629a-c528-5b80-bd46-f80d51c5b363"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LibGit2_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+uuid = "e37daf67-58a4-590a-8e99-b0245dd2ffc5"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "SuiteSparse_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LibUnwind_jll"
+platforms = ["i686-linux-gnu-julia_version+1.7.0", "x86_64-linux-gnu-julia_version+1.7.0", "aarch64-linux-gnu-julia_version+1.7.0", "armv6l-linux-gnueabihf-julia_version+1.7.0", "armv7l-linux-gnueabihf-julia_version+1.7.0", "powerpc64le-linux-gnu-julia_version+1.7.0", "x86_64-linux-musl-julia_version+1.7.0", "aarch64-linux-musl-julia_version+1.7.0", "armv6l-linux-musleabihf-julia_version+1.7.0", "armv7l-linux-musleabihf-julia_version+1.7.0", "x86_64-unknown-freebsd-julia_version+1.7.0", "i686-w64-mingw32-julia_version+1.7.0", "x86_64-w64-mingw32-julia_version+1.7.0"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LLVMLibUnwind_jll"
+platforms = ["x86_64-apple-darwin-julia_version+1.7.0", "aarch64-apple-darwin-julia_version+1.7.0"]
+top_level = false
+type = "dependency"
+uuid = "47c5dbc3-30ba-59ef-96a6-123e260183d9"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LibUV_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "183b4373-6708-53ba-ad28-60e28bb38547"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LibUnwind_jll"
+platforms = ["i686-linux-gnu-julia_version+1.8.2", "x86_64-linux-gnu-julia_version+1.8.2", "aarch64-linux-gnu-julia_version+1.8.2", "armv6l-linux-gnueabihf-julia_version+1.8.2", "armv7l-linux-gnueabihf-julia_version+1.8.2", "powerpc64le-linux-gnu-julia_version+1.8.2", "x86_64-linux-musl-julia_version+1.8.2", "aarch64-linux-musl-julia_version+1.8.2", "armv6l-linux-musleabihf-julia_version+1.8.2", "armv7l-linux-musleabihf-julia_version+1.8.2", "x86_64-unknown-freebsd-julia_version+1.8.2", "i686-w64-mingw32-julia_version+1.8.2", "x86_64-w64-mingw32-julia_version+1.8.2"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LLVMLibUnwind_jll"
+platforms = ["x86_64-apple-darwin-julia_version+1.8.2", "aarch64-apple-darwin-julia_version+1.8.2"]
+top_level = false
+type = "dependency"
+uuid = "47c5dbc3-30ba-59ef-96a6-123e260183d9"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LibUnwind_jll"
+platforms = ["i686-linux-gnu-julia_version+1.9.0", "x86_64-linux-gnu-julia_version+1.9.0", "aarch64-linux-gnu-julia_version+1.9.0", "powerpc64le-linux-gnu-julia_version+1.9.0", "x86_64-linux-musl-julia_version+1.9.0", "aarch64-linux-musl-julia_version+1.9.0", "x86_64-unknown-freebsd-julia_version+1.9.0", "i686-w64-mingw32-julia_version+1.9.0", "x86_64-w64-mingw32-julia_version+1.9.0"]
+top_level = false
+type = "dependency"
+uuid = "745a5e78-f969-53e9-954f-d19f2f74f4e3"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LLVMLibUnwind_jll"
+platforms = ["x86_64-apple-darwin-julia_version+1.9.0", "aarch64-apple-darwin-julia_version+1.9.0"]
+top_level = false
+type = "dependency"
+uuid = "47c5dbc3-30ba-59ef-96a6-123e260183d9"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LibUnwind_jll"
+platforms = ["i686-linux-gnu-julia_version+1.10.0", "x86_64-linux-gnu-julia_version+1.10.0", "aarch64-linux-gnu-julia_version+1.10.0", "powerpc64le-linux-gnu-julia_version+1.10.0", "x86_64-linux-musl-julia_version+1.10.0", "aarch64-linux-musl-julia_version+1.10.0", "x86_64-unknown-freebsd-julia_version+1.10.0", "i686-w64-mingw32-julia_version+1.10.0", "x86_64-w64-mingw32-julia_version+1.10.0"]
+top_level = false
+type = "dependency"
+uuid = "745a5e78-f969-53e9-954f-d19f2f74f4e3"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LLVMLibUnwind_jll"
+platforms = ["x86_64-apple-darwin-julia_version+1.10.0", "aarch64-apple-darwin-julia_version+1.10.0"]
+top_level = false
+type = "dependency"
+uuid = "47c5dbc3-30ba-59ef-96a6-123e260183d9"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libjulia"]
+type = "lib"
+variable_name = "libjulia"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libjulia-debug"]
+type = "lib"
+variable_name = "libjulia_debug"
+
+[[sources]]
+hash = "2593def8cc9ef81663d1c6bfb8addc3f10502dd9a1d5a559728316a11dea2594"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/JuliaLang/julia/releases/download/v1.6.3/julia-1.6.3.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"
+[[sources]]
+hash = "e2ea6ecae13c0f2666d1b3020098feeab92affae1614f6b2a992dde0af88ec2f"
+type = "archive"
+unpack_target = "LibOSXUnwind_jll"
+url = "https://github.com/JuliaBinaryWrappers/LibOSXUnwind_jll.jl/releases/download/LibOSXUnwind-v0.0.7%2B0/LibOSXUnwind.v0.0.7.x86_64-apple-darwin.tar.gz"
+[[sources]]
+hash = "8e870dbef71bc72469933317a1a18214fd1b4b12f1080784af7b2c56177efcb4"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/JuliaLang/julia/releases/download/v1.7.0/julia-1.7.0.tar.gz"
+[[sources]]
+hash = "3e2cea35bf5df963ed7b75a83e8febfc000acf1e664ecd657a0772508eb1fb5d"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/JuliaLang/julia/releases/download/v1.8.2/julia-1.8.2.tar.gz"
+[[sources]]
+hash = "3119d91b3f856131a0c8fbf00cdea275086f7a99cb098baf53f020d1351c9ac7"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/JuliaLang/julia/releases/download/v1.9.0-beta2/julia-1.9.0-beta2.tar.gz"
+[[sources]]
+hash = "d020702dbbc627abfdf0b880dfbd185b0904715a"
+type = "git"
+unpack_target = ""
+url = "https://github.com/JuliaLang/julia.git"

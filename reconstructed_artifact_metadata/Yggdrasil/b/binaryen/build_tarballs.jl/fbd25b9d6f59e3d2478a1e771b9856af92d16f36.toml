@@ -1,0 +1,77 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Binaryen"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir/binaryen\n\natomic_patch -p1 ../patches/fix.patch\n\nmkdir build\ncd build\n\nif [[ \"${target}\" == x86_64-apple-darwin* ]]; then\n    apple_sdk_root=$WORKSPACE/srcdir/MacOSX10.15.sdk\n    sed -i \"s!/opt/x86_64-apple-darwin14/x86_64-apple-darwin14/sys-root!$apple_sdk_root!\" $CMAKE_TARGET_TOOLCHAIN\n    export MACOSX_DEPLOYMENT_TARGET=10.15\nfi\n\ncmake -DCMAKE_INSTALL_PREFIX=$prefix \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DBUILD_TESTS=OFF \\\n    -DBUILD_SHARED_LIBS=ON \\\n    ..\n\nmake -j${nproc}\nmake install\ninstall_license ${WORKSPACE}/srcdir/binaryen/LICENSE\n"""
+version = "v0.116.0"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libbinaryen"]
+type = "lib"
+variable_name = "libbinaryen"
+[[products]]
+binnames = ["wasm2js"]
+type = "exe"
+variable_name = "wasm2js"
+[[products]]
+binnames = ["wasm-opt"]
+type = "exe"
+variable_name = "wasmopt"
+[[products]]
+binnames = ["wasm-reduce"]
+type = "exe"
+variable_name = "wasmreduce"
+[[products]]
+binnames = ["wasm-merge"]
+type = "exe"
+variable_name = "wasmmerge"
+[[products]]
+binnames = ["wasm-split"]
+type = "exe"
+variable_name = "wasmsplit"
+[[products]]
+binnames = ["wasm-shell"]
+type = "exe"
+variable_name = "wasmshell"
+[[products]]
+binnames = ["wasm-metadce"]
+type = "exe"
+variable_name = "wasmmetadce"
+[[products]]
+binnames = ["wasm-dis"]
+type = "exe"
+variable_name = "wasmdis"
+[[products]]
+binnames = ["wasm-as"]
+type = "exe"
+variable_name = "wasmas"
+[[products]]
+binnames = ["wasm-ctor-eval"]
+type = "exe"
+variable_name = "wasmctoreval"
+[[products]]
+binnames = ["wasm-fuzz-types"]
+type = "exe"
+variable_name = "wasmfuzztypes"
+
+[[sources]]
+hash = "11dba9b1c2ad988500b329727f39f4d8786918c5"
+type = "git"
+unpack_target = ""
+url = "https://github.com/WebAssembly/binaryen.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"
+[[sources]]
+hash = "2408d07df7f324d3beea818585a6d990ba99587c218a3969f924dfcc4de93b62"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.15.sdk.tar.xz"

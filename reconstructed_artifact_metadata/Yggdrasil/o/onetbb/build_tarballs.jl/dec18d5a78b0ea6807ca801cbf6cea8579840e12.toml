@@ -1,0 +1,41 @@
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "oneTBB"
+platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd"]
+script = """cd $WORKSPACE/srcdir/oneTBB*\n\n# We can't do Link-Time-Optimization with Clang, disable it.\natomic_patch -p1 ../patches/clang-no-lto.patch\n\nif [[ ${target} == *-linux-musl* ]]; then\n    # Adapt patch from https://github.com/oneapi-src/oneTBB/pull/203\n    atomic_patch -p1 ../patches/musl.patch\n\nelif [[ ${target} == *-mingw* ]]; then\n    #derived from https://github.com/oneapi-src/oneTBB/commit/ce476173772f289c66ba98089618c1ff767ecea4, can hopefully be removed next release\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/lowercase-windows-include.patch\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/NOMINMAX-defines.patch\n    # `CreateSemaphoreEx` requires at least Windows Vista/Server 2008:\n    # https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-createsemaphoreexa\n    export CXXFLAGS=\"-D_WIN32_WINNT=0x0600\"\nfi\n\nmkdir build && cd build/\ncmake -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DTBB_TEST=OFF \\\n    -DTBB_EXAMPLES=OFF \\\n    ..\nmake -j${nproc}\nmake install\n"""
+version = "v2021.5.0"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libtbbmalloc"]
+type = "lib"
+variable_name = "libtbbmalloc"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libtbbmalloc_proxy"]
+type = "lib"
+variable_name = "libtbbmalloc_proxy"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libtbb", "libtbb12"]
+type = "lib"
+variable_name = "libtbb"
+
+[[sources]]
+hash = "e5b57537c741400cf6134b428fc1689a649d7d38d9bb9c1b6d64f092ea28178a"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/oneapi-src/oneTBB/archive/refs/tags/v2021.5.0.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

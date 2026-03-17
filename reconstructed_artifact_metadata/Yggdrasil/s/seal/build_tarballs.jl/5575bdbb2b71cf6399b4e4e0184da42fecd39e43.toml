@@ -1,0 +1,22 @@
+dependencies = []
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "SEAL"
+platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "x86_64-apple-darwin", "x86_64-unknown-freebsd"]
+script = """cd $WORKSPACE/srcdir/SEAL-*\n\n# Collect target-specific flags\n# Note: The '-DSEAL_USE__*' and `-DSEAL*_EXITCODE*` flags are required to circumvent\n# cross-compilation issues\nTARGET_FLAGS=\"\"\nif [[ \"${target}\" == *-darwin* ]]; then\n  # C++17 is disabled on MacOS due to the environment being too old.\n  TARGET_FLAGS=\"$TARGET_FLAGS -DSEAL_MEMSET_S_FOUND_EXITCODE=1\"\n  TARGET_FLAGS=\"$TARGET_FLAGS -DSEAL_MEMSET_S_FOUND_EXITCODE__TRYRUN_OUTPUT=1\"\n  TARGET_FLAGS=\"$TARGET_FLAGS -DSEAL_USE_CXX17=OFF\"\nelif [[ \"${target}\" == *-freebsd* ]]; then\n  TARGET_FLAGS=\"$TARGET_FLAGS -DSEAL_MEMSET_S_FOUND_EXITCODE=1\"\n  TARGET_FLAGS=\"$TARGET_FLAGS -DSEAL_MEMSET_S_FOUND_EXITCODE__TRYRUN_OUTPUT=1\"\nelif [[ \"${target}\" == aarch64* ]]; then\n  TARGET_FLAGS=\"$TARGET_FLAGS -DSEAL_ARM64_EXITCODE=1\"\n  TARGET_FLAGS=\"$TARGET_FLAGS -DSEAL_ARM64_EXITCODE__TRYRUN_OUTPUT=1\"\nfi\n\ncmake -S . -B build \\\n  -DCMAKE_INSTALL_PREFIX=$prefix \\\n  -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN%.*}_clang.cmake \\\n  -DCMAKE_BUILD_TYPE=Release \\\n  -DCMAKE_POSITION_INDEPENDENT_CODE=ON \\\n  -DSEAL_BUILD_SEAL_C=ON \\\n  -DSEAL_USE___BUILTIN_CLZLL=OFF \\\n  -DSEAL___BUILTIN_CLZLL_FOUND_EXITCODE=1 \\\n  -DSEAL___BUILTIN_CLZLL_FOUND_EXITCODE__TRYRUN_OUTPUT=1 \\\n  -DSEAL_USE__ADDCARRY_U64=OFF \\\n  -DSEAL__ADDCARRY_U64_FOUND_EXITCODE=1 \\\n  -DSEAL__ADDCARRY_U64_FOUND_EXITCODE__TRYRUN_OUTPUT=1 \\\n  -DSEAL_USE__SUBBORROW_U64=OFF \\\n  -DSEAL__SUBBORROW_U64_FOUND_EXITCODE=1 \\\n  -DSEAL__SUBBORROW_U64_FOUND_EXITCODE__TRYRUN_OUTPUT=1 \\\n  $TARGET_FLAGS\n\ncmake --build build --parallel ${nproc}\ncmake --install build\n"""
+version = "v3.6.2"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsealc"]
+type = "lib"
+variable_name = "libsealc"
+
+[[sources]]
+hash = "1e2a97deb1f5b543640fc37d7b4737cab2a9849f616c13ff40ad3be4cf29fb9c"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/microsoft/SEAL/archive/v3.6.2.tar.gz"

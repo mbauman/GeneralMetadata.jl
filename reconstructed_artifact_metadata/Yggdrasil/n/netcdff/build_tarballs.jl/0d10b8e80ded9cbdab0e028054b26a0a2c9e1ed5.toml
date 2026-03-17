@@ -1,0 +1,52 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "NetCDFF"
+platforms = ["x86_64-linux-gnu-libgfortran3", "x86_64-linux-gnu-libgfortran4", "x86_64-linux-gnu-libgfortran5", "x86_64-apple-darwin-libgfortran3", "x86_64-apple-darwin-libgfortran4", "x86_64-apple-darwin-libgfortran5", "aarch64-linux-gnu-libgfortran3", "aarch64-linux-gnu-libgfortran4", "aarch64-linux-gnu-libgfortran5", "x86_64-w64-mingw32-libgfortran3", "x86_64-w64-mingw32-libgfortran4", "x86_64-w64-mingw32-libgfortran5", "i686-w64-mingw32-libgfortran3", "i686-w64-mingw32-libgfortran4", "i686-w64-mingw32-libgfortran5"]
+script = """cd $WORKSPACE/srcdir/netcdf-fortran*/\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target}\nmake -j${nproc}\nmake install\nif [[ \"${target}\" == *-mingw* ]]; then\n    # Manually build shared library for Windows\n    gfortran -shared -fPIC -o ${libdir}/libnetcdff.${dlext} -Wl,$(flagon --whole-archive) ${prefix}/lib/libnetcdff.a -Wl,$(flagon --no-whole-archive) -lnetcdf\nfi\n# Remove static libraries\nrm ${prefix}/lib/*.a\n"""
+version = "v4.6.0"
+
+[[dependencies]]
+compat = "400.902.5"
+name = "NetCDF_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "7243133f-43d8-5620-bbf4-c2c921802cf3"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MbedTLS_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 2
+version-minor = 24
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnetcdff"]
+type = "lib"
+variable_name = "libnetcdff"
+
+[[sources]]
+hash = "8194aa70e400c0adfc456127c1d97af2c6489207171d13b10cd754a16da8b0ca"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/Unidata/netcdf-fortran/archive/refs/tags/v4.6.0.tar.gz"

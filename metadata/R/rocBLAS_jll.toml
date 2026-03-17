@@ -5,98 +5,10 @@ registered = 2022-09-08T17:47:27.000Z
     [["4.2.0+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/rocBLAS_jll.jl/releases/download/rocBLAS-v4.2.0+0/rocBLAS.v4.2.0.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/rocBLAS_jll.jl/releases/download/rocBLAS-v4.2.0+0/rocBLAS.v4.2.0.x86_64-linux-musl-cxx11.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/23954770c485a5b9230ae828cf0e242bd4f20619/R/rocBLAS/rocBLAS@4.2.0/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/r/rocblas/rocblas@4.2.0/build_tarballs.jl/23954770c485a5b9230ae828cf0e242bd4f20619.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.5.5"
-
-        ["4.2.0+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.7"
-        lazy_artifacts = false
-        name = "rocBLAS"
-        platforms = ["x86_64-linux-gnu-cxx11", "x86_64-linux-musl-cxx11"]
-        script = """cd ${WORKSPACE}/srcdir/rocBLAS*/\nmkdir build\n\nexport ROCM_PATH=${prefix}\nexport HIP_PATH=${prefix}/hip\n\nexport HIP_PLATFORM=amd\nexport HIP_RUNTIME=rocclr\nexport HIP_COMPILER=clang\nexport HSA_PATH=${prefix}\n# export HIP_ROCCLR_HOME=${prefix}/lib\nexport HIP_CLANG_PATH=${prefix}/llvm/bin\n\n# Other HIPCC env variables.\nexport HIPCC_VERBOSE=1\nexport HIP_LIB_PATH=${prefix}/hip/lib\nexport DEVICE_LIB_PATH=${prefix}/amdgcn/bitcode\nexport HIP_CLANG_HCC_COMPAT_MODE=1\n\n# BB compile HIPCC flags:\nBB_COMPILE_BASE_DIR=/opt/${target}/${target}\nBB_COMPILE_CPP_DIR=${BB_COMPILE_BASE_DIR}/include/c++/*\nOMP_DIR=/opt/${target}/lib/gcc/${target}/*/include\nBB_COMPILE_FLAGS=\" -isystem ${OMP_DIR} -isystem ${BB_COMPILE_CPP_DIR} -isystem ${BB_COMPILE_CPP_DIR}/${target} --sysroot=${BB_COMPILE_BASE_DIR}/sys-root\"\n\n# BB link HIPCC flags:\nBB_LINK_GCC_DIR=/opt/${target}/lib/gcc/${target}/*\nBB_LINK_FLAGS=\" --sysroot=${BB_COMPILE_BASE_DIR}/sys-root -B ${BB_LINK_GCC_DIR} -L ${BB_LINK_GCC_DIR}  -L ${BB_COMPILE_BASE_DIR}/lib64 -L ${prefix}/lib\"\n\n# Set compile & link flags for hipcc.\nexport HIPCC_COMPILE_FLAGS_APPEND=$BB_COMPILE_FLAGS\nexport HIPCC_LINK_FLAGS_APPEND=$BB_LINK_FLAGS\n\nexport PATH=\"${prefix}/hip/bin:${prefix}/llvm/bin:${PATH}\"\nexport LD_LIBRARY_PATH=\"${prefix}/lib:${prefix}/llvm/lib:${LD_LIBRARY_PATH}\"\n\n# NOTE\n# Looking at hcc-cmd, it is clear that it is omitting 'hip/include' directory.\n# Therefore we symlink to other directory that it looks at.\nmkdir ${prefix}/lib/include\nln -s ${prefix}/hip/include/* ${prefix}/lib/include\n\n# NOTE\n# This is needed to avoid errors with zipping files older than 1980.\n# See: https://github.com/pypa/wheel/issues/418\nunset SOURCE_DATE_EPOCH\npip install -U pip wheel setuptools\n\nexport TENSILE_ARCHITECTURE=\"gfx900\"\n\nCXX=${prefix}/hip/bin/hipcc \\\ncmake -S . -B build \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_PREFIX_PATH=${prefix} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DCMAKE_CXX_COMPILER=${prefix}/hip/bin/hipcc \\\n    -DCMAKE_CXX_FLAGS=\"-fuse-ld=lld\" \\\n    -DROCM_PATH={prefix} \\\n    -DBUILD_VERBOSE=ON \\\n    -DBUILD_WITH_TENSILE=ON \\\n    -DBUILD_WITH_TENSILE_HOST=ON \\\n    -DTensile_LIBRARY_FORMAT=yaml \\\n    -DTensile_COMPILER=hipcc \\\n    -DTensile_LOGIC=asm_full \\\n    -DTensile_CODE_OBJECT_VERSION=V3 \\\n    -DTensile_ARCHITECTURE=$TENSILE_ARCHITECTURE \\\n    -DBUILD_CLIENTS_TESTS=OFF \\\n    -DBUILD_CLIENTS_BENCHMARKS=OFF \\\n    -DBUILD_CLIENTS_SAMPLES=OFF \\\n    -DBUILD_TESTING=OFF\n\nmake -j${nproc} -C build install\n\ninstall_license ${WORKSPACE}/srcdir/rocBLAS*/LICENSE.md\n"""
-        version = "v4.2.0"
-
-            [["4.2.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "ROCmLLVM_jll"
-            platforms = ["any"]
-            type = "builddependency"
-            version-major = 4
-            version-minor = 2
-            version-patch = 0
-            [["4.2.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "rocm_cmake_jll"
-            platforms = ["any"]
-            type = "builddependency"
-            version-major = 4
-            version-minor = 2
-            version-patch = 0
-            [["4.2.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "ROCmCompilerSupport_jll"
-            platforms = ["any"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["4.2.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "ROCmOpenCLRuntime_jll"
-            platforms = ["any"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["4.2.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "ROCmDeviceLibs_jll"
-            platforms = ["any"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["4.2.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "rocminfo_jll"
-            platforms = ["any"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["4.2.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "hsa_rocr_jll"
-            platforms = ["any"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["4.2.0+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "HIP_jll"
-            platforms = ["any"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["4.2.0+0".artifact_metadata.metadata.products]]
-            dir_paths = ["rocblas/lib"]
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["librocblas"]
-            type = "lib"
-            variable_name = "librocblas"
-
-            [["4.2.0+0".artifact_metadata.metadata.sources]]
-            hash = "547f6d5d38a41786839f01c5bfa46ffe9937b389193a8891f251e276a1a47fb0"
-            type = "archive"
-            unpack_target = ""
-            url = "https://github.com/ROCmSoftwarePlatform/rocBLAS/archive/rocm-4.2.0.tar.gz"
 
 ["4.5.2+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/rocBLAS_jll.jl/releases/download/rocBLAS-v4.5.2+0/rocBLAS.v4.5.2.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/rocBLAS_jll.jl/releases/download/rocBLAS-v4.5.2+0/rocBLAS.v4.5.2.x86_64-linux-musl-cxx11.tar.gz"]
@@ -105,98 +17,10 @@ registered = 2022-09-09T13:59:04.000Z
     [["4.5.2+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/rocBLAS_jll.jl/releases/download/rocBLAS-v4.5.2+0/rocBLAS.v4.5.2.x86_64-linux-gnu-cxx11.tar.gz", "https://github.com/JuliaBinaryWrappers/rocBLAS_jll.jl/releases/download/rocBLAS-v4.5.2+0/rocBLAS.v4.5.2.x86_64-linux-musl-cxx11.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/566e1b64f4fcf301b2cc57e82ffff31a2085c160/R/rocBLAS/rocBLAS@4.5.2/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/r/rocblas/rocblas@4.5.2/build_tarballs.jl/566e1b64f4fcf301b2cc57e82ffff31a2085c160.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.5.5"
-
-        ["4.5.2+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.8"
-        lazy_artifacts = false
-        name = "rocBLAS"
-        platforms = ["x86_64-linux-gnu-cxx11", "x86_64-linux-musl-cxx11"]
-        script = """cd ${WORKSPACE}/srcdir/rocBLAS*/\nmkdir build\n\nexport ROCM_PATH=${prefix}\nexport HIP_PATH=${prefix}/hip\n\nexport HIP_PLATFORM=amd\nexport HIP_RUNTIME=rocclr\nexport HIP_COMPILER=clang\nexport HSA_PATH=${prefix}\n# export HIP_ROCCLR_HOME=${prefix}/lib\nexport HIP_CLANG_PATH=${prefix}/llvm/bin\n\n# Other HIPCC env variables.\nexport HIPCC_VERBOSE=1\nexport HIP_LIB_PATH=${prefix}/hip/lib\nexport DEVICE_LIB_PATH=${prefix}/amdgcn/bitcode\nexport HIP_CLANG_HCC_COMPAT_MODE=1\n\n# BB compile HIPCC flags:\nBB_COMPILE_BASE_DIR=/opt/${target}/${target}\nBB_COMPILE_CPP_DIR=${BB_COMPILE_BASE_DIR}/include/c++/*\nOMP_DIR=/opt/${target}/lib/gcc/${target}/*/include\nBB_COMPILE_FLAGS=\" -isystem ${OMP_DIR} -isystem ${BB_COMPILE_CPP_DIR} -isystem ${BB_COMPILE_CPP_DIR}/${target} --sysroot=${BB_COMPILE_BASE_DIR}/sys-root\"\n\n# BB link HIPCC flags:\nBB_LINK_GCC_DIR=/opt/${target}/lib/gcc/${target}/*\nBB_LINK_FLAGS=\" --sysroot=${BB_COMPILE_BASE_DIR}/sys-root -B ${BB_LINK_GCC_DIR} -L ${BB_LINK_GCC_DIR}  -L ${BB_COMPILE_BASE_DIR}/lib64 -L ${prefix}/lib\"\n\n# Set compile & link flags for hipcc.\nexport HIPCC_COMPILE_FLAGS_APPEND=$BB_COMPILE_FLAGS\nexport HIPCC_LINK_FLAGS_APPEND=$BB_LINK_FLAGS\n\nexport PATH=\"${prefix}/hip/bin:${prefix}/llvm/bin:${PATH}\"\nexport LD_LIBRARY_PATH=\"${prefix}/lib:${prefix}/llvm/lib:${LD_LIBRARY_PATH}\"\n\n# NOTE\n# Looking at hcc-cmd, it is clear that it is omitting 'hip/include' directory.\n# Therefore we symlink to other directory that it looks at.\nmkdir ${prefix}/lib/include\nln -s ${prefix}/hip/include/* ${prefix}/lib/include\n\n# NOTE\n# This is needed to avoid errors with zipping files older than 1980.\n# See: https://github.com/pypa/wheel/issues/418\nunset SOURCE_DATE_EPOCH\npip install -U pip wheel setuptools\n\nexport TENSILE_ARCHITECTURE=\"gfx900\"\n\nCXX=${prefix}/hip/bin/hipcc \\\ncmake -S . -B build \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_PREFIX_PATH=${prefix} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DCMAKE_CXX_COMPILER=${prefix}/hip/bin/hipcc \\\n    -DCMAKE_CXX_FLAGS=\"-fuse-ld=lld\" \\\n    -DROCM_PATH={prefix} \\\n    -DBUILD_VERBOSE=ON \\\n    -DBUILD_WITH_TENSILE=ON \\\n    -DBUILD_WITH_TENSILE_HOST=ON \\\n    -DTensile_LIBRARY_FORMAT=yaml \\\n    -DTensile_COMPILER=hipcc \\\n    -DTensile_LOGIC=asm_full \\\n    -DTensile_CODE_OBJECT_VERSION=V3 \\\n    -DTensile_ARCHITECTURE=$TENSILE_ARCHITECTURE \\\n    -DBUILD_CLIENTS_TESTS=OFF \\\n    -DBUILD_CLIENTS_BENCHMARKS=OFF \\\n    -DBUILD_CLIENTS_SAMPLES=OFF \\\n    -DBUILD_TESTING=OFF\n\nmake -j${nproc} -C build install\n\ninstall_license ${WORKSPACE}/srcdir/rocBLAS*/LICENSE.md\n"""
-        version = "v4.5.2"
-
-            [["4.5.2+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "ROCmLLVM_jll"
-            platforms = ["any"]
-            type = "builddependency"
-            version-major = 4
-            version-minor = 5
-            version-patch = 2
-            [["4.5.2+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "rocm_cmake_jll"
-            platforms = ["any"]
-            type = "builddependency"
-            version-major = 4
-            version-minor = 5
-            version-patch = 2
-            [["4.5.2+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "ROCmCompilerSupport_jll"
-            platforms = ["any"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["4.5.2+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "ROCmOpenCLRuntime_jll"
-            platforms = ["any"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["4.5.2+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "ROCmDeviceLibs_jll"
-            platforms = ["any"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["4.5.2+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "rocminfo_jll"
-            platforms = ["any"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["4.5.2+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "hsa_rocr_jll"
-            platforms = ["any"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["4.5.2+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "HIP_jll"
-            platforms = ["any"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["4.5.2+0".artifact_metadata.metadata.products]]
-            dir_paths = ["rocblas/lib"]
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["librocblas"]
-            type = "lib"
-            variable_name = "librocblas"
-
-            [["4.5.2+0".artifact_metadata.metadata.sources]]
-            hash = "15d725e38f91d1ff7772c4204b97c1515af58fa7b8ec2a2014b99b6d337909c4"
-            type = "archive"
-            unpack_target = ""
-            url = "https://github.com/ROCmSoftwarePlatform/rocBLAS/archive/rocm-4.5.2.tar.gz"
 
 ["5.2.3+0"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/rocBLAS_jll.jl/releases/download/rocBLAS-v5.2.3+0/rocBLAS.v5.2.3.x86_64-linux-gnu-cxx11.tar.gz"]
@@ -205,98 +29,10 @@ registered = 2022-09-21T20:59:05.000Z
     [["5.2.3+0".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/rocBLAS_jll.jl/releases/download/rocBLAS-v5.2.3+0/rocBLAS.v5.2.3.x86_64-linux-gnu-cxx11.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/3da3cc66bd8682b6030d32fe563d8690d3dc9253/R/rocBLAS/rocBLAS@5.2.3/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/r/rocblas/rocblas@5.2.3/build_tarballs.jl/3da3cc66bd8682b6030d32fe563d8690d3dc9253.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.5.5"
-
-        ["5.2.3+0".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.0"
-        lazy_artifacts = false
-        name = "rocBLAS"
-        platforms = ["x86_64-linux-gnu-cxx11"]
-        script = """cd ${WORKSPACE}/srcdir/rocBLAS*/\n\nmkdir build\n\nexport ROCM_PATH=${prefix}\nexport HIP_PATH=${prefix}/hip\n\nexport HIP_PLATFORM=amd\nexport HIP_RUNTIME=rocclr\nexport HIP_COMPILER=clang\nexport HSA_PATH=${prefix}\nexport HIP_CLANG_PATH=${prefix}/llvm/bin\n\n# Other HIPCC env variables.\nexport HIPCC_VERBOSE=1\nexport HIP_LIB_PATH=${prefix}/hip/lib\nexport DEVICE_LIB_PATH=${prefix}/amdgcn/bitcode\nexport HIP_CLANG_HCC_COMPAT_MODE=1\n\n# BB compile HIPCC flags:\nBB_COMPILE_BASE_DIR=/opt/${target}/${target}\nBB_COMPILE_CPP_DIR=${BB_COMPILE_BASE_DIR}/include/c++/*\nOMP_DIR=/opt/${target}/lib/gcc/${target}/*/include\nBB_COMPILE_FLAGS=\" -isystem ${OMP_DIR} -isystem ${BB_COMPILE_CPP_DIR} -isystem ${BB_COMPILE_CPP_DIR}/${target} --sysroot=${BB_COMPILE_BASE_DIR}/sys-root\"\n\n# BB link HIPCC flags:\nBB_LINK_GCC_DIR=/opt/${target}/lib/gcc/${target}/*\nBB_LINK_FLAGS=\" --sysroot=${BB_COMPILE_BASE_DIR}/sys-root -B ${BB_LINK_GCC_DIR} -L ${BB_LINK_GCC_DIR}  -L ${BB_COMPILE_BASE_DIR}/lib64 -L ${prefix}/lib\"\n\n# Set compile & link flags for hipcc.\nexport HIPCC_COMPILE_FLAGS_APPEND=$BB_COMPILE_FLAGS\nexport HIPCC_LINK_FLAGS_APPEND=$BB_LINK_FLAGS\n\nexport PATH=\"${prefix}/hip/bin:${prefix}/llvm/bin:${PATH}\"\nexport LD_LIBRARY_PATH=\"${prefix}/lib:$prefix/hip/lib:${prefix}/llvm/lib:${LD_LIBRARY_PATH}\"\n\n# NOTE\n# Looking at hcc-cmd, it is clear that it is omitting 'hip/include' directory.\n# Therefore we symlink to other directory that it looks at.\nmkdir ${prefix}/lib/include\nln -s ${prefix}/hip/include/* ${prefix}/lib/include\n\n# NOTE\n# This is needed to avoid errors with zipping files older than 1980.\n# See: https://github.com/pypa/wheel/issues/418\nunset SOURCE_DATE_EPOCH\npip install -U pip wheel setuptools\n\n\n export AMDGPU_TARGETS=\"gfx900;gfx906:xnack-;gfx908:xnack-;gfx90a:xnack+;gfx90a:xnack-;gfx1010;gfx1012;gfx1030\" \n\nCXX=${prefix}/hip/bin/hipcc \\\ncmake -S . -B build \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_PREFIX_PATH=${prefix} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DCMAKE_CXX_COMPILER=${prefix}/hip/bin/hipcc \\\n    -DCMAKE_CXX_FLAGS=\"-fuse-ld=lld\" \\\n    -DROCM_PATH=${prefix} \\\n    -DBUILD_VERBOSE=ON \\\n    -DBUILD_WITH_TENSILE=ON \\\n    -DBUILD_WITH_TENSILE_HOST=ON \\\n    -DTensile_LIBRARY_FORMAT=yaml \\\n    -DTensile_COMPILER=hipcc \\\n    -DTensile_LOGIC=asm_full \\\n    -DTensile_CODE_OBJECT_VERSION=V3 \\\n    -DTensile_ARCHITECTURE=${AMDGPU_TARGETS} \\\n    -DAMDGPU_TARGETS=${AMDGPU_TARGETS} \\\n    -DBUILD_CLIENTS_TESTS=OFF \\\n    -DBUILD_CLIENTS_BENCHMARKS=OFF \\\n    -DBUILD_CLIENTS_SAMPLES=OFF \\\n    -DBUILD_TESTING=OFF \\\n    -DBUILD_FILE_REORG_BACKWARD_COMPATIBILITY=OFF \\\n    -Dpython=python\n\nmake -j${nproc} -C build install\n\ninstall_license ${WORKSPACE}/srcdir/rocBLAS*/LICENSE.md\n"""
-        version = "v5.2.3"
-
-            [["5.2.3+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "ROCmLLVM_jll"
-            platforms = ["any"]
-            type = "builddependency"
-            version-major = 5
-            version-minor = 2
-            version-patch = 3
-            [["5.2.3+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "rocm_cmake_jll"
-            platforms = ["any"]
-            type = "builddependency"
-            version-major = 5
-            version-minor = 2
-            version-patch = 3
-            [["5.2.3+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "ROCmCompilerSupport_jll"
-            platforms = ["any"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["5.2.3+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "ROCmOpenCLRuntime_jll"
-            platforms = ["any"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["5.2.3+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "ROCmDeviceLibs_jll"
-            platforms = ["any"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["5.2.3+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "rocminfo_jll"
-            platforms = ["any"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["5.2.3+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "hsa_rocr_jll"
-            platforms = ["any"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["5.2.3+0".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "HIP_jll"
-            platforms = ["any"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["5.2.3+0".artifact_metadata.metadata.products]]
-            dir_paths = ["rocblas/lib"]
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["librocblas"]
-            type = "lib"
-            variable_name = "librocblas"
-
-            [["5.2.3+0".artifact_metadata.metadata.sources]]
-            hash = "36f74ce53b82331a756c42f95f3138498d6f4a66f2fd370cff9ab18281bb12d5"
-            type = "archive"
-            unpack_target = ""
-            url = "https://github.com/ROCmSoftwarePlatform/rocBLAS/archive/rocm-5.2.3.tar.gz"
 
 ["5.2.3+1"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/rocBLAS_jll.jl/releases/download/rocBLAS-v5.2.3+1/rocBLAS.v5.2.3.x86_64-linux-gnu-cxx11.tar.gz"]
@@ -305,98 +41,10 @@ registered = 2022-09-22T11:50:32.000Z
     [["5.2.3+1".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/rocBLAS_jll.jl/releases/download/rocBLAS-v5.2.3+1/rocBLAS.v5.2.3.x86_64-linux-gnu-cxx11.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/96cbef75000bcb39b286e797b3a8235413b3d8ba/R/rocBLAS/rocBLAS@5.2.3/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/r/rocblas/rocblas@5.2.3/build_tarballs.jl/96cbef75000bcb39b286e797b3a8235413b3d8ba.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.5.5"
-
-        ["5.2.3+1".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.0"
-        lazy_artifacts = false
-        name = "rocBLAS"
-        platforms = ["x86_64-linux-gnu-cxx11"]
-        script = """cd ${WORKSPACE}/srcdir/rocBLAS*/\n\nmkdir build\n\nexport ROCM_PATH=${prefix}\nexport HIP_PATH=${prefix}/hip\n\nexport HIP_PLATFORM=amd\nexport HIP_RUNTIME=rocclr\nexport HIP_COMPILER=clang\nexport HSA_PATH=${prefix}\nexport HIP_CLANG_PATH=${prefix}/llvm/bin\n\n# Other HIPCC env variables.\nexport HIPCC_VERBOSE=1\nexport HIP_LIB_PATH=${prefix}/hip/lib\nexport DEVICE_LIB_PATH=${prefix}/amdgcn/bitcode\nexport HIP_CLANG_HCC_COMPAT_MODE=1\n\n# BB compile HIPCC flags:\nBB_COMPILE_BASE_DIR=/opt/${target}/${target}\nBB_COMPILE_CPP_DIR=${BB_COMPILE_BASE_DIR}/include/c++/*\nOMP_DIR=/opt/${target}/lib/gcc/${target}/*/include\nBB_COMPILE_FLAGS=\" -isystem ${OMP_DIR} -isystem ${BB_COMPILE_CPP_DIR} -isystem ${BB_COMPILE_CPP_DIR}/${target} --sysroot=${BB_COMPILE_BASE_DIR}/sys-root\"\n\n# BB link HIPCC flags:\nBB_LINK_GCC_DIR=/opt/${target}/lib/gcc/${target}/*\nBB_LINK_FLAGS=\" --sysroot=${BB_COMPILE_BASE_DIR}/sys-root -B ${BB_LINK_GCC_DIR} -L ${BB_LINK_GCC_DIR}  -L ${BB_COMPILE_BASE_DIR}/lib64 -L ${prefix}/lib\"\n\n# Set compile & link flags for hipcc.\nexport HIPCC_COMPILE_FLAGS_APPEND=$BB_COMPILE_FLAGS\nexport HIPCC_LINK_FLAGS_APPEND=$BB_LINK_FLAGS\n\nexport PATH=\"${prefix}/hip/bin:${prefix}/llvm/bin:${PATH}\"\nexport LD_LIBRARY_PATH=\"${prefix}/lib:$prefix/hip/lib:${prefix}/llvm/lib:${LD_LIBRARY_PATH}\"\n\n# NOTE\n# Looking at hcc-cmd, it is clear that it is omitting 'hip/include' directory.\n# Therefore we symlink to other directory that it looks at.\nmkdir ${prefix}/lib/include\nln -s ${prefix}/hip/include/* ${prefix}/lib/include\n\n# NOTE\n# This is needed to avoid errors with zipping files older than 1980.\n# See: https://github.com/pypa/wheel/issues/418\nunset SOURCE_DATE_EPOCH\npip install -U pip wheel setuptools\n\n\n export AMDGPU_TARGETS=\"gfx900;gfx906:xnack-;gfx908:xnack-;gfx90a:xnack+;gfx90a:xnack-;gfx1010;gfx1012;gfx1030\" \n\nCXX=${prefix}/hip/bin/hipcc \\\ncmake -S . -B build \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_PREFIX_PATH=${prefix} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DCMAKE_CXX_COMPILER=${prefix}/hip/bin/hipcc \\\n    -DCMAKE_CXX_FLAGS=\"-fuse-ld=lld\" \\\n    -DROCM_PATH=${prefix} \\\n    -DBUILD_VERBOSE=ON \\\n    -DBUILD_WITH_TENSILE=ON \\\n    -DBUILD_WITH_TENSILE_HOST=ON \\\n    -DTensile_LIBRARY_FORMAT=yaml \\\n    -DTensile_COMPILER=hipcc \\\n    -DTensile_LOGIC=asm_full \\\n    -DTensile_CODE_OBJECT_VERSION=V3 \\\n    -DTensile_ARCHITECTURE=${AMDGPU_TARGETS} \\\n    -DAMDGPU_TARGETS=${AMDGPU_TARGETS} \\\n    -DBUILD_CLIENTS_TESTS=OFF \\\n    -DBUILD_CLIENTS_BENCHMARKS=OFF \\\n    -DBUILD_CLIENTS_SAMPLES=OFF \\\n    -DBUILD_TESTING=OFF \\\n    -DBUILD_FILE_REORG_BACKWARD_COMPATIBILITY=OFF \\\n    -Dpython=python\n\nmake -j${nproc} -C build install\n\ninstall_license ${WORKSPACE}/srcdir/rocBLAS*/LICENSE.md\n"""
-        version = "v5.2.3"
-
-            [["5.2.3+1".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "ROCmLLVM_jll"
-            platforms = ["any"]
-            type = "builddependency"
-            version-major = 5
-            version-minor = 2
-            version-patch = 3
-            [["5.2.3+1".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "rocm_cmake_jll"
-            platforms = ["any"]
-            type = "builddependency"
-            version-major = 5
-            version-minor = 2
-            version-patch = 3
-            [["5.2.3+1".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "ROCmCompilerSupport_jll"
-            platforms = ["any"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["5.2.3+1".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "ROCmOpenCLRuntime_jll"
-            platforms = ["any"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["5.2.3+1".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "ROCmDeviceLibs_jll"
-            platforms = ["any"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["5.2.3+1".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "rocminfo_jll"
-            platforms = ["any"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["5.2.3+1".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "hsa_rocr_jll"
-            platforms = ["any"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["5.2.3+1".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "HIP_jll"
-            platforms = ["any"]
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["5.2.3+1".artifact_metadata.metadata.products]]
-            dir_paths = ["lib"]
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["librocblas"]
-            type = "lib"
-            variable_name = "librocblas"
-
-            [["5.2.3+1".artifact_metadata.metadata.sources]]
-            hash = "36f74ce53b82331a756c42f95f3138498d6f4a66f2fd370cff9ab18281bb12d5"
-            type = "archive"
-            unpack_target = ""
-            url = "https://github.com/ROCmSoftwarePlatform/rocBLAS/archive/rocm-5.2.3.tar.gz"
 
 ["5.2.3+2"]
 artifact_urls = ["https://github.com/JuliaBinaryWrappers/rocBLAS_jll.jl/releases/download/rocBLAS-v5.2.3+2/rocBLAS.v5.2.3.x86_64-linux-gnu-cxx11.tar.gz"]
@@ -405,112 +53,7 @@ registered = 2022-11-07T13:51:34.000Z
     [["5.2.3+2".artifact_metadata]]
     artifact_urls = ["https://github.com/JuliaBinaryWrappers/rocBLAS_jll.jl/releases/download/rocBLAS-v5.2.3+2/rocBLAS.v5.2.3.x86_64-linux-gnu-cxx11.tar.gz"]
     buildscript = "https://github.com/JuliaPackaging/Yggdrasil/tree/47b25245588ff9adacf45aaaa0923436f90657bb/R/rocBLAS/rocBLAS@5.2.3/build_tarballs.jl"
+    metadata = "reconstructed_artifact_metadata/Yggdrasil/r/rocblas/rocblas@5.2.3/build_tarballs.jl/47b25245588ff9adacf45aaaa0923436f90657bb.toml"
     metadata_source = "retrospective (by README link)"
     metadata_type = "BinaryBuilder --meta-json"
     metadata_version = "0.5.6"
-
-        ["5.2.3+2".artifact_metadata.metadata]
-        augment_platform_block = ""
-        init_block = ""
-        julia_compat = "1.9"
-        lazy_artifacts = false
-        name = "rocBLAS"
-        platforms = ["x86_64-linux-gnu-cxx11"]
-        script = """cd ${WORKSPACE}/srcdir/rocBLAS*/\n\nmkdir build\n\nexport ROCM_PATH=${prefix}\nexport HIP_PATH=${prefix}/hip\n\nexport HIP_PLATFORM=amd\nexport HIP_RUNTIME=rocclr\nexport HIP_COMPILER=clang\nexport HSA_PATH=${prefix}\nexport HIP_CLANG_PATH=${prefix}/llvm/bin\n\n# Other HIPCC env variables.\nexport HIPCC_VERBOSE=1\nexport HIP_LIB_PATH=${prefix}/hip/lib\nexport DEVICE_LIB_PATH=${prefix}/amdgcn/bitcode\nexport HIP_CLANG_HCC_COMPAT_MODE=1\n\n# BB compile HIPCC flags:\nBB_COMPILE_BASE_DIR=/opt/${target}/${target}\nBB_COMPILE_CPP_DIR=${BB_COMPILE_BASE_DIR}/include/c++/*\nOMP_DIR=/opt/${target}/lib/gcc/${target}/*/include\nBB_COMPILE_FLAGS=\" -isystem ${OMP_DIR} -isystem ${BB_COMPILE_CPP_DIR} -isystem ${BB_COMPILE_CPP_DIR}/${target} --sysroot=${BB_COMPILE_BASE_DIR}/sys-root\"\n\n# BB link HIPCC flags:\nBB_LINK_GCC_DIR=/opt/${target}/lib/gcc/${target}/*\nBB_LINK_FLAGS=\" --sysroot=${BB_COMPILE_BASE_DIR}/sys-root -B ${BB_LINK_GCC_DIR} -L ${BB_LINK_GCC_DIR}  -L ${BB_COMPILE_BASE_DIR}/lib64 -L ${prefix}/lib\"\n\n# Set compile & link flags for hipcc.\nexport HIPCC_COMPILE_FLAGS_APPEND=$BB_COMPILE_FLAGS\nexport HIPCC_LINK_FLAGS_APPEND=$BB_LINK_FLAGS\n\nexport PATH=\"${prefix}/hip/bin:${prefix}/llvm/bin:${PATH}\"\nexport LD_LIBRARY_PATH=\"${prefix}/lib:$prefix/hip/lib:${prefix}/llvm/lib:${LD_LIBRARY_PATH}\"\n\n# NOTE\n# Looking at hcc-cmd, it is clear that it is omitting 'hip/include' directory.\n# Therefore we symlink to other directory that it looks at.\nmkdir ${prefix}/lib/include\nln -s ${prefix}/hip/include/* ${prefix}/lib/include\n\n export AMDGPU_TARGETS=\"gfx900;gfx906:xnack-;gfx908:xnack-;gfx90a:xnack+;gfx90a:xnack-;gfx1010;gfx1012;gfx1030\" \nCXX=${prefix}/hip/bin/hipcc \\\ncmake -S . -B build \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_PREFIX_PATH=${prefix} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DCMAKE_CXX_COMPILER=${prefix}/hip/bin/hipcc \\\n    -DCMAKE_CXX_FLAGS=\"-fuse-ld=lld\" \\\n    -DROCM_PATH=${prefix} \\\n    -DBUILD_VERBOSE=ON \\\n    -DBUILD_WITH_TENSILE=ON \\\n    -DBUILD_WITH_TENSILE_HOST=ON \\\n    -DTensile_LIBRARY_FORMAT=msgpack \\\n    -DTensile_COMPILER=hipcc \\\n    -DTensile_LOGIC=asm_full \\\n    -DTensile_CODE_OBJECT_VERSION=V3 \\\n    -DTensile_ARCHITECTURE=${AMDGPU_TARGETS} \\\n    -DAMDGPU_TARGETS=${AMDGPU_TARGETS} \\\n    -DBUILD_CLIENTS_TESTS=OFF \\\n    -DBUILD_CLIENTS_BENCHMARKS=OFF \\\n    -DBUILD_CLIENTS_SAMPLES=OFF \\\n    -DBUILD_TESTING=OFF \\\n    -DBUILD_FILE_REORG_BACKWARD_COMPATIBILITY=OFF \\\n    -Dpython=python\n\nmake -j${nproc} -C build install\n\ninstall_license ${WORKSPACE}/srcdir/rocBLAS*/LICENSE.md\n"""
-        version = "v5.2.3"
-
-            [["5.2.3+2".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "ROCmLLVM_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "builddependency"
-            version-major = 5
-            version-minor = 2
-            version-patch = 3
-            [["5.2.3+2".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "rocm_cmake_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "builddependency"
-            version-major = 5
-            version-minor = 2
-            version-patch = 3
-            [["5.2.3+2".artifact_metadata.metadata.dependencies]]
-            compat = "5.2.3"
-            name = "ROCmCompilerSupport_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["5.2.3+2".artifact_metadata.metadata.dependencies]]
-            compat = "5.2.3"
-            name = "ROCmOpenCLRuntime_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["5.2.3+2".artifact_metadata.metadata.dependencies]]
-            compat = "5.2.3"
-            name = "ROCmDeviceLibs_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["5.2.3+2".artifact_metadata.metadata.dependencies]]
-            compat = "5.2.3"
-            name = "rocminfo_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["5.2.3+2".artifact_metadata.metadata.dependencies]]
-            compat = "5.2.3"
-            name = "hsa_rocr_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["5.2.3+2".artifact_metadata.metadata.dependencies]]
-            compat = "5.2.3"
-            name = "HIP_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-            [["5.2.3+2".artifact_metadata.metadata.dependencies]]
-            compat = ""
-            name = "msgpack_jll"
-            platforms = ["any"]
-            top_level = false
-            type = "dependency"
-            version-major = 0
-            version-minor = 0
-            version-patch = 0
-
-            [["5.2.3+2".artifact_metadata.metadata.products]]
-            dir_paths = ["lib"]
-            dlopen_flags = []
-            dont_dlopen = false
-            libnames = ["librocblas"]
-            type = "lib"
-            variable_name = "librocblas"
-
-            [["5.2.3+2".artifact_metadata.metadata.sources]]
-            hash = "36f74ce53b82331a756c42f95f3138498d6f4a66f2fd370cff9ab18281bb12d5"
-            type = "archive"
-            unpack_target = ""
-            url = "https://github.com/ROCmSoftwarePlatform/rocBLAS/archive/rocm-5.2.3.tar.gz"

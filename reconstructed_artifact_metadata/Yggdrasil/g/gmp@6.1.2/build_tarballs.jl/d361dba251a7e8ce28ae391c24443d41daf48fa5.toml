@@ -1,0 +1,34 @@
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "GMP"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11", "aarch64-apple-darwin", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11"]
+script = """cd $WORKSPACE/srcdir/gmp-*\n\n# Include Julia-carried patches\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/gmp_alloc_overflow_func.patch\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/gmp-exception.patch\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/gmp-apple-arm64.patch\n\nflags=(--enable-cxx --enable-shared --disable-static)\n\n# On x86_64 architectures, build fat binary\nif [[ ${proc_family} == intel ]]; then\n    flags+=(--enable-fat)\nfi\n\nautoreconf\n./configure --prefix=$prefix --build=${MACHTYPE} --host=${target} ${flags[@]}\n\nmake -j${nproc}\nmake install\n\n# On Windows, we need to make sure that the non-versioned dll names exist too\nif [[ ${target} == *mingw* ]]; then\n    cp -v ${libdir}/libgmp-*.dll \"${libdir}/libgmp.dll\"\n    cp -v ${libdir}/libgmpxx-*.dll \"${libdir}/libgmpxx.dll\"\nfi\n\n# GMP is dual-licensed, install all license files\ninstall_license COPYING*\n"""
+version = "v6.1.2"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgmp"]
+type = "lib"
+variable_name = "libgmp"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgmpxx"]
+type = "lib"
+variable_name = "libgmpxx"
+
+[[sources]]
+hash = "5275bb04f4863a13516b2f39392ac5e272f5e1bb8057b18aec1c9b79d73d8fb2"
+type = "archive"
+unpack_target = ""
+url = "https://gmplib.org/download/gmp/gmp-6.1.2.tar.bz2"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

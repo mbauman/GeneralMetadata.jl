@@ -1,0 +1,28 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "cmt"
+platforms = ["x86_64-apple-darwin", "aarch64-apple-darwin"]
+script = """cd Metal.jl/deps/cmt\n\ninstall_license LICENSE\n\nCMAKE_FLAGS=()\n# Release build for best performance\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\n# Install things into $prefix\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix})\n# Explicitly use our cmake toolchain file and tell CMake we're cross-compiling\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING:BOOL=ON)\n# replace the Yggdrasil-provided macOS SDK with a newer one\napple_sdk_root=$WORKSPACE/srcdir/MacOSX11.1.sdk\nsed -i \"s!/opt/x86_64-apple-darwin14/x86_64-apple-darwin14/sys-root!$apple_sdk_root!\" $CMAKE_TARGET_TOOLCHAIN\nCMAKE_FLAGS+=(-DCMAKE_SYSROOT=$apple_sdk_root)\nCMAKE_FLAGS+=(-DCMAKE_FRAMEWORK_PATH=$apple_sdk_root/System/Library/Frameworks)\nCMAKE_FLAGS+=(-DCMAKE_OSX_DEPLOYMENT_TARGET=11.1)\n\ncmake -B build -S . -GNinja ${CMAKE_FLAGS[@]}\n\nninja -C build -j ${nproc} install\n"""
+version = "v0.1.0"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcmt"]
+type = "lib"
+variable_name = "libcmt"
+
+[[sources]]
+hash = "aef4cd6ba7360a1487adb2415c1b0fec3cd10000"
+type = "git"
+unpack_target = ""
+url = "https://github.com/JuliaGPU/Metal.jl"
+[[sources]]
+hash = "9b86eab03176c56bb526de30daa50fa819937c54b280364784ce431885341bf6"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/phracker/MacOSX-SDKs/releases/download/11.0-11.1/MacOSX11.1.sdk.tar.xz"

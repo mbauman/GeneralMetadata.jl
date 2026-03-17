@@ -1,0 +1,36 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "flex"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd"]
+script = """cd ${WORKSPACE}/srcdir/flex*\n\natomic_patch -p1 ../patches/scanner-segfault.patch\n\napk add gettext gettext-dev help2man texinfo\n\n# For macOS, allow undefined symbols in libfl (yylex is provided by user code)\nif [[ \"${target}\" == *-apple-* ]]; then\n    export LDFLAGS=\"-Wl,-undefined,dynamic_lookup\"\nfi\n\n./autogen.sh\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} --disable-static --enable-shared ac_cv_func_reallocarray=no\nmake -j${nproc}\ncd src && make install\ninstall -Dvm 0755 ${bindir}/flex ${bindir}/flex++\n"""
+version = "v2.6.5"
+
+[[products]]
+binnames = ["flex"]
+type = "exe"
+variable_name = "flex"
+[[products]]
+binnames = ["flex++"]
+type = "exe"
+variable_name = "flexpp"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libfl"]
+type = "lib"
+variable_name = "libfl"
+
+[[sources]]
+hash = "ab49343b08c933e32de8de78132649f9560a3727"
+type = "git"
+unpack_target = ""
+url = "https://github.com/westes/flex.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

@@ -1,0 +1,73 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "RocksDB"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd"]
+script = """cd rocksdb\n\n# Apply patch for aarch\nif [[ \"${target}\" == aarch* ]]; then\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/arm64.patch\nfi\n\nmkdir build && cd build\n\n# Resolve: error: aligned allocation function of type 'void *(std::size_t, std::align_val_t)' is only available on macOS 10.13 or newer\nif [[ \"${target}\" == x86_64-apple-darwin* ]]; then\n    echo \"Installing newer MacOS 10.15 SDK\"\n    export MACOSX_DEPLOYMENT_TARGET=10.15\n    # ...and install a newer SDK which supports `std::filesystem`\n    pushd $WORKSPACE/srcdir/MacOSX10.*.sdk\n    rm -rf /opt/${target}/${target}/sys-root/System\n    cp -ra usr/* \"/opt/${target}/${target}/sys-root/usr/.\"\n    cp -ra System \"/opt/${target}/${target}/sys-root/.\"\n    popd\nfi\n\ncmake -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DWITH_GFLAGS=0 \\\n    -DROCKSDB_BUILD_SHARED=1 \\\n    -DPORTABLE=1 \\\n    -DWITH_TOOLS=0 \\\n    -DWITH_TESTS=0 \\\n    -DWITH_BENCHMARK_TOOLS=0 \\\n    -DCMAKE_BUILD_TYPE=Release ..\n\ncmake --build . --parallel ${nproc}\ncmake --install .\n\ninstall_license ../LICENSE.apache ../LICENSE.leveldb\n"""
+version = "v8.9.1"
+
+[[dependencies]]
+compat = ""
+name = "snappy_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "fe1e1685-f7be-5f59-ac9f-4ca204017dfd"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Lz4_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "5ced341a-0733-55b8-9ab6-a4889d929147"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "83775a58-1f1d-513f-b197-d71354ab007a"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zstd_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "3161d3a3-bdf6-5164-811a-617609db77b4"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["librocksdb"]
+type = "lib"
+variable_name = "librocksdb"
+
+[[sources]]
+hash = "49ce8a1064dd1ad89117899839bf136365e49e79"
+type = "git"
+unpack_target = ""
+url = "https://github.com/facebook/rocksdb.git"
+[[sources]]
+hash = "2408d07df7f324d3beea818585a6d990ba99587c218a3969f924dfcc4de93b62"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.15.sdk.tar.xz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

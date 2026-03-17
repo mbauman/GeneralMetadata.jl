@@ -1,0 +1,87 @@
+dependencies = ["SQLite_jll"]
+name = "PROJ"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "arm-linux-gnueabihf-cxx03", "arm-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "arm-linux-musleabihf-cxx03", "arm-linux-musleabihf-cxx11", "x86_64-apple-darwin14-cxx03", "x86_64-apple-darwin14-cxx11", "x86_64-unknown-freebsd11.1-cxx03", "x86_64-unknown-freebsd11.1-cxx11", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir/proj-*/\n\n# sqlite needed to build proj.db, so this should not be the\n# cross-compiled one since it needs to be executed on the host\napk add sqlite\n\nif [[ ${target} == *mingw* ]]; then\n    SQLITE3_LIBRARY=${libdir}/libsqlite3-0.dll\nelse\n    SQLITE3_LIBRARY=${libdir}/libsqlite3.${dlext}\nfi\n\nif [[ \"${target}\" == powerpc64le-* ]]; then\n    # Need to remember to link against libdl\n    export LDFLAGS=\"-ldl\"\nfi\n\nmkdir build\ncd build\ncmake -DCMAKE_INSTALL_PREFIX=$prefix \\\n      -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n      -DSQLITE3_INCLUDE_DIR=$prefix/include \\\n      -DSQLITE3_LIBRARY=$SQLITE3_LIBRARY \\\n      -DHAVE_PTHREAD_MUTEX_RECURSIVE_DEFN=1 \\\n      -DBUILD_LIBPROJ_SHARED=ON \\\n      ..\nmake -j${nproc}\nmake install\n"""
+version = "v6.3.0"
+
+[[products]]
+dir_paths = []
+dont_dlopen = false
+libnames = ["libproj", "libproj_6_3"]
+type = "lib"
+variable_name = "libproj"
+[[products]]
+binnames = ["cct"]
+type = "exe"
+variable_name = "cct"
+[[products]]
+binnames = ["cs2cs"]
+type = "exe"
+variable_name = "cs2cs"
+[[products]]
+binnames = ["geod"]
+type = "exe"
+variable_name = "geod"
+[[products]]
+binnames = ["gie"]
+type = "exe"
+variable_name = "gie"
+[[products]]
+binnames = ["proj"]
+type = "exe"
+variable_name = "proj"
+[[products]]
+binnames = ["projinfo"]
+type = "exe"
+variable_name = "projinfo"
+[[products]]
+paths = ["share/proj/CH"]
+type = "file"
+variable_name = "ch"
+[[products]]
+paths = ["share/proj/GL27"]
+type = "file"
+variable_name = "gl27"
+[[products]]
+paths = ["share/proj/ITRF2000"]
+type = "file"
+variable_name = "itrf2000"
+[[products]]
+paths = ["share/proj/ITRF2008"]
+type = "file"
+variable_name = "itrf2008"
+[[products]]
+paths = ["share/proj/ITRF2014"]
+type = "file"
+variable_name = "itrf2014"
+[[products]]
+paths = ["share/proj/nad.lst"]
+type = "file"
+variable_name = "nad_lst"
+[[products]]
+paths = ["share/proj/nad27"]
+type = "file"
+variable_name = "nad27"
+[[products]]
+paths = ["share/proj/nad83"]
+type = "file"
+variable_name = "nad83"
+[[products]]
+paths = ["share/proj/null"]
+type = "file"
+variable_name = "null"
+[[products]]
+paths = ["share/proj/other.extra"]
+type = "file"
+variable_name = "other_extra"
+[[products]]
+paths = ["share/proj/proj.db"]
+type = "file"
+variable_name = "proj_db"
+[[products]]
+paths = ["share/proj/world"]
+type = "file"
+variable_name = "world"
+
+[[sources]]
+"https://download.osgeo.org/proj/proj-6.3.0.tar.gz" = "68ce9ba0005d442c2c1d238a3b9bc6654c358159b4af467b91e8d5b407c79c77"

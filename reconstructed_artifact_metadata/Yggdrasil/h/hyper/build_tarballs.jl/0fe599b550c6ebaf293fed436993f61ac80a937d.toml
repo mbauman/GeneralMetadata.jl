@@ -1,0 +1,28 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "hyper"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/hyper*/\n# Revert https://github.com/hyperium/hyper/commit/1c6637060e36654ddb2fdfccb0d146c7ad527476\n# which prevents building shared libraries with the stable channel.\natomic_patch -p1 ../patches/revert-dont-build-c-lib.patch\nRUSTFLAGS=\"--cfg hyper_unstable_ffi\" cargo rustc --release --features client,http1,http2,ffi\ninstall -Dvm 755 target/${rust_target}/release/*hyper.${dlext} \"${libdir}/libhyper.${dlext}\"\n"""
+version = "v0.14.19"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libhyper"]
+type = "lib"
+variable_name = "libhyper"
+
+[[sources]]
+hash = "fb455f0ce68d209556285f971d275a72cd1873619699d44369c46874920af436"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/hyperium/hyper/archive/refs/tags/v0.14.19.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

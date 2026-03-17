@@ -1,0 +1,40 @@
+lazy_artifacts = false
+name = "CSDP"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/Csdp*\n\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/blegat.patch\n\nCFLAGS=\"-O2 -fPIC -fopenmp -ansi -Wall -DUSEOPENMP -DSETNUMTHREADS -DUSEGETTIME -I../include\"\nLIBS=\"-L../lib -lsdp -lopenblas -lm\"\n\nif [[ \"${nbits}\" == 64 ]] && [[ \"${target}\" != *aarch64* ]]; then\n    CFLAGS=\"$CFLAGS -m64 -DBIT64\"\nfi\n\nif [[ \"${target}\" == *-freebsd* ]] || [[ \"${target}\" == *-apple-* ]]; then\n    CC=gcc\nfi\n\nmake CFLAGS=\"$CFLAGS\" LIBS=\"$LIBS\" CC=\"$CC\"\nmake install\nmkdir -p ${bindir}\ncp /usr/local/bin/csdp ${bindir}/csdp\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    mv \"${bindir}/csdp\" \"${bindir}/csdp${exeext}\"\nfi\n\ncd lib\nar x libsdp.a\n\nmkdir -p ${libdir}\n${CC} -shared -o \"${libdir}/libcsdp.${dlext}\" libsdp.a\n"""
+version = "v6.2.0"
+
+[[dependencies]]
+name = "OpenBLAS32_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "CompilerSupportLibraries_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["csdp"]
+type = "exe"
+variable_name = "csdp"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcsdp"]
+type = "lib"
+variable_name = "libcsdp"
+
+[[sources]]
+hash = "0dcf187a159c365b6d4e4e0ed5849f7b706da408"
+type = "git"
+unpack_target = ""
+url = "https://github.com/coin-or/Csdp.git"
+[[sources]]
+path = "./bundled"
+target = ""
+type = "directory"

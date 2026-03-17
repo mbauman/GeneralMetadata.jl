@@ -1,0 +1,174 @@
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "FastJet"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11", "aarch64-apple-darwin", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11"]
+script = """cd $WORKSPACE/srcdir/fastjet-*/\nexport CXXFLAGS=\"-O3 -Wall\"\nexport CFLAGS=\"-O3 -Wall\"\nif [[ \"${target}\" == *-freebsd* ]]; then\n    # Needed to fix the following errors\n    #   undefined reference to `backtrace_symbols'\n    #   undefined reference to `backtrace'\n    export LDFLAGS=\"-lexecinfo\"\nfi\nFLAGS=()\nif [[ \"${target}\" == *-mingw* ]]; then\n    # This is needed in order to build the shared library on Windows when we get\n    #   libtool: warning: undefined symbols not allowed in x86_64-w64-mingw32 shared libraries; building static only\n    FLAGS+=(LDFLAGS=\"-no-undefined\")\nfi\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} --disable-auto-ptr --disable-static\nmake -j ${nprocs} \"${FLAGS[@]}\"\nmake install\ntail -n 340 COPYING > LICENSE\ninstall_license LICENSE\ncp include/fastjet/config_win.h ${includedir}/fastjet/\n\ncd $WORKSPACE/srcdir/fjcontrib-*/\nfor name in ClusteringVetoPlugin ConstituentSubtractor EnergyCorrelator FlavorCone GenericSubtractor JetCleanser JetFFMoments JetsWithoutJets LundPlane Nsubjettiness QCDAwarePlugin RecursiveTools ScJet SoftKiller SubjetCounting ValenciaPlugin VariableR\ndo\n    cd $name\n    rm example*\n    c++ -fPIC -shared -I${includedir} -O3 -Wall ${LDFLAGS} [A-Z]*.cc -o \"${libdir}/lib${name}.${dlext}\" -lfastjet -lfastjettools\n    cp [A-Z]*.hh ${includedir}/fastjet\n    cd ..\ndone\n"""
+version = "v3.4.0"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libConstituentSubtractor"]
+type = "lib"
+variable_name = "libConstituentSubtractor"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libQCDAwarePlugin"]
+type = "lib"
+variable_name = "libQCDAwarePlugin"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libJetFFMoments"]
+type = "lib"
+variable_name = "libJetFFMoments"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libLundPlane"]
+type = "lib"
+variable_name = "libLundPlane"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libJetsWithoutJets"]
+type = "lib"
+variable_name = "libJetsWithoutJets"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libEnergyCorrelator"]
+type = "lib"
+variable_name = "libEnergyCorrelator"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libfastjettools"]
+type = "lib"
+variable_name = "libfastjettools"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libSoftKiller"]
+type = "lib"
+variable_name = "libSoftKiller"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libRecursiveTools"]
+type = "lib"
+variable_name = "libRecursiveTools"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libfastjet"]
+type = "lib"
+variable_name = "libfastjet"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libValenciaPlugin"]
+type = "lib"
+variable_name = "libValenciaPlugin"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsiscone"]
+type = "lib"
+variable_name = "libsiscone"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libNsubjettiness"]
+type = "lib"
+variable_name = "libNsubjettiness"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libfastjetplugins"]
+type = "lib"
+variable_name = "libfastjetplugins"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libVariableR"]
+type = "lib"
+variable_name = "libVariableR"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsiscone_spherical"]
+type = "lib"
+variable_name = "libsiscone_spherical"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libJetCleanser"]
+type = "lib"
+variable_name = "libJetCleanser"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libFlavorCone"]
+type = "lib"
+variable_name = "libFlavorCone"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libGenericSubtractor"]
+type = "lib"
+variable_name = "libGenericSubtractor"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libScJet"]
+type = "lib"
+variable_name = "libScJet"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libSubjetCounting"]
+type = "lib"
+variable_name = "libSubjetCounting"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libClusteringVetoPlugin"]
+type = "lib"
+variable_name = "libClusteringVetoPlugin"
+
+[[sources]]
+hash = "ee07c8747c8ead86d88de4a9e4e8d1e9e7d7614973f5631ba8297f7a02478b91"
+type = "archive"
+unpack_target = ""
+url = "http://fastjet.fr/repo/fastjet-3.4.0.tar.gz"
+[[sources]]
+hash = "f9989d3b6aeb22848bcf91095c30607f027d3ef277a4f0f704a8f0fc2e766981"
+type = "archive"
+unpack_target = ""
+url = "http://fastjet.hepforge.org/contrib/downloads/fjcontrib-1.048.tar.gz"

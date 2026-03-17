@@ -1,0 +1,32 @@
+lazy_artifacts = false
+name = "cddlib"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/*\nsed -i '/^libcddgmp_la_LDFLAGS/ s/$/  $(CDD_LDFLAGS)/' lib-src/Makefile.gmp.am\n./bootstrap # needed because we are building a commit and not a release\nCPPFLAGS=-I${prefix}/include ./configure --prefix=${prefix} --host=${target}\ncd lib-src # Call make in the lib-src subfolder to avoid building the doc folder since pdflatex is not installed\nmake -j${nproc}\nmake install\n"""
+version = "v0.94.10"
+
+[[dependencies]]
+name = "GMP_jll"
+type = "dependency"
+uuid = "781609d7-10c4-51f6-84f2-b8444358ff6d"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dont_dlopen = false
+libnames = ["libcdd"]
+type = "lib"
+variable_name = "libcdd"
+[[products]]
+dir_paths = []
+dont_dlopen = false
+libnames = ["libcddgmp"]
+type = "lib"
+variable_name = "libcddgmp"
+
+[[sources]]
+hash = "6d980f2258052f6cf47acca611d6a268d657dfc7"
+type = "git"
+unpack_target = ""
+url = "https://github.com/cddlib/cddlib"

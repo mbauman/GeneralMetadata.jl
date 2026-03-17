@@ -1,0 +1,22 @@
+dependencies = []
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "DuckDB"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir\ncd duckdb*/\nif [[ \"${target}\" == *-mingw32 ]]; then\n    sed -i -E \"/add_executable\\(duckdb_rest_server server.cpp\\)$/aif\\(\\$\\{WIN32\\}\\)\\n  set\\(LINK_EXTRA -lwsock32 -lws2_32\\)\\nendif\\(\\)\\n\" tools/rest/CMakeLists.txt\nfi\n\nmkdir build\ncd build\ncmake -DCMAKE_INSTALL_PREFIX=$prefix -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} -DCMAKE_BUILD_TYPE=Release -DDISABLE_UNITY=TRUE -DENABLE_SANITIZER=FALSE -DBUILD_UNITTESTS=FALSE ..\nmake -j${nproc}\nmake install\n\n\nif [[ \"${target}\" == *-mingw32 ]]; then\n    mkdir -p ${libdir}\n    cp src/libduckdb.${dlext} ${libdir}\nfi\n"""
+version = "v0.2.9"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libduckdb"]
+type = "lib"
+variable_name = "libduckdb"
+
+[[sources]]
+hash = "ede74256ca8811ae37001d238c4ffb156861c408453e95e02096773465619ccf"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/duckdb/duckdb/archive/refs/tags/v0.2.9.tar.gz"

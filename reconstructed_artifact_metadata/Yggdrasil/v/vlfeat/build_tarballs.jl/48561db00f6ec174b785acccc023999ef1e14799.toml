@@ -1,0 +1,37 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "VLFeat"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir\ncd vlfeat\n\natomic_patch -p1 ../patches/vlfeat-march.patch\natomic_patch -p1 ../patches/vlfeat-glibc-limitation.patch\natomic_patch -p1 ../patches/vlfeat-mingw-lowercase-windows-include.patch\natomic_patch -p1 ../patches/vlfeat-windows.patch\n\nmake_args=()\n\nif [[ $target != x86_64-* ]]; then\n    make_args+=\"DISABLE_AVX=1 \"\n    make_args+=\"DISABLE_SSE2=1 \"\nfi\n\nif [[ $target == *-apple-darwin* ]]; then\n    ARCH=maci64\nelif [[ $target == i686-w64-mingw32 ]]; then\n    ARCH=win32\nelif [[ $target == x86_64-w64-mingw32 ]]; then\n    ARCH=win64\nelif [[ $nbits == 32 ]]; then\n    ARCH=glnx86\nelse\n    ARCH=glnxa64\nfi\nmake_args+=\"ARCH=$ARCH \"\n\nif [[ $target == *-apple-* ]]; then\n    make_args+=\"SDKROOT=/opt/$target/$target/sys-root \"\nfi\n\nmake ${make_args[@]} dll\n\ninstall -vD bin/$ARCH/libvl.$dlext $libdir/libvl.$dlext\n"""
+version = "v0.9.21"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvl"]
+type = "lib"
+variable_name = "libvl"
+
+[[sources]]
+hash = "2f6abbf13fe7ee052bc970480efaca9d6b0c195d"
+type = "git"
+unpack_target = ""
+url = "https://github.com/vlfeat/vlfeat.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

@@ -1,0 +1,56 @@
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = true
+name = "MKL"
+platforms = ["x86_64-linux-gnu", "i686-linux-gnu", "x86_64-apple-darwin", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = ["""cd ${WORKSPACE}/srcdir/mkl-${target}\nif [[ ${target} == *-mingw* ]]; then\n    cp -r Library/bin/* ${libdir}\nelse\n    cp -r lib/* ${libdir}\nfi\n\ninstall_license info/licenses/*.txt""", """\nsha256() { sha256sum \"$1\" | awk '{ print $1 }'; }\n\nexists() {\n  if [ \"$2\" != in ]; then\n    echo \"Incorrect usage.  Use: exists {key} in {array}\"\n    return\n  fi\n  eval '[ ${'$3'[$1]+x} ]'\n}\n\ncd ${WORKSPACE}/srcdir/mkl-${target}/lib\n\n#####\n## Replace duplicate library files with symlinks\n## (https://github.com/JuliaPackaging/Yggdrasil/issues/3632)\n\ndeclare -A SHAs\n\n# Iterate over files in reverse order of name length.\n# This ensures any symlinks go to the longer name.\nfor file in $(find . -type f | awk '{ print length, $0 }' | sort -n -r | cut -d\" \" -f2-); do\n    sha=$(sha256 \"$file\")\n\n    if ! exists $sha in SHAs; then\n        SHAs[$sha]=\"$file\"\n        continue\n    fi\n\n    src_file=\"${SHAs[$sha]}\"\n    ln -sf $src_file $file\ndone\n\n#####\n\ncd ..\ncp -r lib/* ${libdir}\ninstall_license info/licenses/*.txt"""]
+version = "v2021.1.1"
+
+[[dependencies]]
+compat = ""
+name = "IntelOpenMP_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmkl_core", "mkl_core", "mkl_core.1"]
+type = "lib"
+variable_name = "libmkl_core"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmkl_rt", "mkl_rt", "mkl_rt.1"]
+type = "lib"
+variable_name = "libmkl_rt"
+
+[[sources]]
+hash = "bfb0fd056576cad99ae1d9c69ada2745420da9f9cf052551d5b91f797538bda2"
+type = "archive"
+unpack_target = "mkl-x86_64-linux-gnu"
+url = "https://anaconda.org/intel/mkl/2021.1.1/download/linux-64/mkl-2021.1.1-intel_52.tar.bz2"
+[[sources]]
+hash = "7b6f55a30886154bd96d4b4c6b7428494a59397b87779b58e5b3de00250343f9"
+type = "archive"
+unpack_target = "mkl-i686-linux-gnu"
+url = "https://anaconda.org/intel/mkl/2021.1.1/download/linux-32/mkl-2021.1.1-intel_52.tar.bz2"
+[[sources]]
+hash = "819fb8875909d4d024e2a936c54b561aebd1e3aebe58fc605c70aa1ad9a66b70"
+type = "archive"
+unpack_target = "mkl-x86_64-apple-darwin14"
+url = "https://anaconda.org/intel/mkl/2021.1.1/download/osx-64/mkl-2021.1.1-intel_50.tar.bz2"
+[[sources]]
+hash = "dba6a12a481407ec55fba9895b68afacb15f044905dcb5e185db341b688e6177"
+type = "archive"
+unpack_target = "mkl-i686-w64-mingw32"
+url = "https://anaconda.org/intel/mkl/2021.1.1/download/win-32/mkl-2021.1.1-intel_52.tar.bz2"
+[[sources]]
+hash = "4024391b8a45836d5a7ee92405b7767874b3c3bbf2f490349fda042db3b60dfd"
+type = "archive"
+unpack_target = "mkl-x86_64-w64-mingw32"
+url = "https://anaconda.org/intel/mkl/2021.1.1/download/win-64/mkl-2021.1.1-intel_52.tar.bz2"

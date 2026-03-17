@@ -1,0 +1,97 @@
+augment_platform_block = ""
+init_block = """ENV[\"QT_PLUGIN_PATH\"] = qt6plugins_dir\nENV[\"__EGL_VENDOR_LIBRARY_DIRS\"] = get(ENV, \"__EGL_VENDOR_LIBRARY_DIRS\", \"/usr/share/glvnd/egl_vendor.d\")\n"""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Qt6Wayland"
+platforms = ["i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx11", "x86_64-unknown-freebsd"]
+script = """# Need newer cmake from JLL\napk del cmake\n\ncd $WORKSPACE/srcdir\n\nmkdir build\ncd build/\nqtsrcdir=`ls -d ../qtwayland-*`\n\natomic_patch -p1 -d \"${qtsrcdir}\" ../patches/freebsd.patch\n\ncase \"$bb_full_target\" in\n\n    x86_64-linux-musl-libgfortran5-cxx11)\n        cmake -G Ninja \\\n            -DCMAKE_INSTALL_PREFIX=${prefix} \\\n            -DCMAKE_FIND_ROOT_PATH=$prefix \\\n            -DCMAKE_BUILD_TYPE=Release \\\n            $qtsrcdir\n    ;;\n\n    *)\n        cmake -G Ninja \\\n            -DQT_HOST_PATH=$host_prefix \\\n            -DCMAKE_INSTALL_PREFIX=${prefix} \\\n            -DCMAKE_FIND_ROOT_PATH=$prefix \\\n            -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n            -DCMAKE_BUILD_TYPE=Release \\\n            $qtsrcdir\n        # Fix needed for aarch64:\n        sed -i 's!/workspace/destdir/bin/wayland-scanner!/workspace/x86_64-linux-musl-cxx11/destdir/bin/wayland-scanner!' CMakeCache.txt\n    ;;\n\nesac\n\ncmake --build . --parallel ${nproc}\ncmake --install .\ninstall_license $WORKSPACE/srcdir/qt*-src-*/LICENSES/LGPL-3.0-only.txt\n"""
+version = "v6.10.2"
+
+[[dependencies]]
+compat = ""
+name = "CMake_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Qt6Base_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "=6.10.2"
+name = "Qt6Base_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Qt6Declarative_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "=6.10.2"
+name = "Qt6Declarative_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_xproto_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Vulkan_Headers_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Qt6Wayland_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+paths = ["plugins"]
+type = "file"
+variable_name = "qt6plugins_dir"
+
+[[sources]]
+hash = "391998eb432719df26a6a67d8efdc67f8bf2afdd76c1ee3381ebff4fe7527ee2"
+type = "archive"
+unpack_target = ""
+url = "https://download.qt.io/official_releases/qt/6.10/6.10.2/submodules/qtwayland-everywhere-src-6.10.2.tar.xz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

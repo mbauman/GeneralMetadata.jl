@@ -1,0 +1,65 @@
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Notcurses"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "aarch64-apple-darwin", "armv6l-linux-gnueabihf", "armv6l-linux-musleabihf"]
+script = """cd ${WORKSPACE}/srcdir/notcurses*/\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/repent.patch\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/0001-also-look-for-shared-libraries-on-Windows.patch\n\nif [[ $target == *mingw* ]]; then\n    export CFLAGS=\"${CFLAGS} -D_WIN32_WINNT=0x0600\"\n    cp ${WORKSPACE}/srcdir/headers/pthread_time.h \"/opt/${target}/${target}/sys-root/include/pthread_time.h\"\nfi\n\ninstall_license COPYRIGHT\n\nmkdir build && cd build\n\nexport CFLAGS=\"${CFLAGS} -I${includedir}\"\n\nFLAGS=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN}\n       -DCMAKE_INSTALL_PREFIX=${prefix}\n       -DCMAKE_BUILD_TYPE=Release\n       -DBUILD_SHARED_LIBS=ON\n       -DUSE_DOCTEST=off\n       -DUSE_PANDOC=off\n       -DUSE_STATIC=off\n       -DUSE_QRCODEGEN=off\n       -DBUILD_EXECUTABLES=off\n       -DUSE_POC=off\n       -DUSE_MULTIMEDIA=none\n       )\n\ncmake .. \"${FLAGS[@]}\"\nmake -j${nproc}\nmake install\n"""
+version = "v3.0.2"
+
+[[dependencies]]
+compat = ""
+name = "Ncurses_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "libunistring_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "libdeflate_jll"
+platforms = ["any"]
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnotcurses"]
+type = "lib"
+variable_name = "libnotcurses"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnotcurses-core"]
+type = "lib"
+variable_name = "libnotcurses_core"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnotcurses-ffi"]
+type = "lib"
+variable_name = "libnotcurses_ffi"
+
+[[sources]]
+hash = "c19a2477ff41586bbe899f354d7d65b54445be2a"
+type = "git"
+unpack_target = ""
+url = "https://github.com/dankamongmen/notcurses"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

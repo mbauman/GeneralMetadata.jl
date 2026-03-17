@@ -1,0 +1,103 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Librsvg"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/librsvg-*/\n\nautoreconf -fiv\n\n# Delete misleading libtool files\nrm -vf ${prefix}/lib/*.la\n\n# On most platforms we have to use `${rust_target}` as `host`\nFLAGS=(--host=${rust_target})\nif [[ \"${target}\" == *-mingw* ]]; then\n    # On Windows using `${rust_target}` wouldn't work:\n    #\n    #     Invalid configuration `x86_64-pc-windows-gnu': Kernel `windows' not known to work with OS `gnu'.\n    #\n    # Then we have to use `RUST_TARGET` to set the Rust target.  I haven't found\n    # a combination host and RUST_TARGET that would work on all platforms.  If\n    # you do, let me know!\n    FLAGS=(--host=${target} RUST_TARGET=\"${rust_target}\" LIBS=\"-luserenv -lbcrypt\")\nfi\n\n# MUSL-specific Rust linking fix - force dynamic linking instead of static\nif [[ \"${target}\" == *-musl* ]]; then\n    export RUSTFLAGS=\"-C target-feature=-crt-static\"\nfi\n\nif [[ ${target} == x86_64-linux-musl* ]]; then\n    # Remove host system libraries otherwise get \"undefined reference to getrandom\" error message on x86_64\n    rm /usr/lib/libexpat*\n    # For newer versions of librsvg `rm /usr/lib/libffi*`` may be needed to fix \"undefined reference to `memfd_create'\" error message\nfi\n\n./configure \\\n    --build=${MACHTYPE} \\\n    --prefix=${prefix} \\\n    --disable-static \\\n    --enable-pixbuf-loader \\\n    --disable-introspection \\\n    --disable-gtk-doc-html \\\n    --enable-shared \\\n    \"${FLAGS[@]}\"\nmake\nmake install\ninstall_license COPYING.LIB\n"""
+version = "v2.58.5"
+
+[[dependencies]]
+compat = ""
+name = "gdk_pixbuf_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 2
+version-minor = 42
+version-patch = 8
+[[dependencies]]
+compat = ""
+name = "Xorg_xorgproto_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 2019
+version-minor = 2
+version-patch = 0
+[[dependencies]]
+compat = "2.42.8"
+name = "gdk_pixbuf_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.50.3"
+name = "Pango_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.18.0"
+name = "Cairo_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "2.13.1"
+name = "FreeType2_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "2.74.0"
+name = "Glib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "2.9.14 - 2.13"
+name = "XML2_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["librsvg-2"]
+type = "lib"
+variable_name = "librsvg"
+[[products]]
+paths = ["lib/gdk-pixbuf-2.0/2.10.0/loaders/libpixbufloader-svg.so", "lib/gdk-pixbuf-2.0/2.10.0/loaders/libpixbufloader-svg.dll"]
+type = "file"
+variable_name = "libpixbufloader_svg"
+[[products]]
+binnames = ["rsvg-convert"]
+type = "exe"
+variable_name = "rsvg_convert"
+
+[[sources]]
+hash = "224233a0e347d38c415f15a49f0e0885313e3ecc18f3192055f9304dd2f3a27a"
+type = "archive"
+unpack_target = ""
+url = "https://download.gnome.org/sources/librsvg/2.58/librsvg-2.58.5.tar.xz"

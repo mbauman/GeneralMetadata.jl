@@ -1,0 +1,73 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.9"
+lazy_artifacts = false
+name = "qpOASES"
+platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """apk del cmake\ncd $WORKSPACE/srcdir\ncd qpOASES\n\natomic_patch -p1  ${WORKSPACE}/srcdir/patches/mypatch.patch\n\nrm Makefile\nrm *.mk\nmkdir build && cd build\nif [[ \"$nbits\" == \"64\" ]]; then\n    LOB=\"${libdir}/libopenblas64_.${dlext}\";\nelse\n    LOB=\"$libdir/libopenblas.$dlext\"\nfi\n\nfor sym in  sgemm dgemm spotrf dpotrf strcon dtrcon strtrs dtrtrs ; do\n    SYMB_DEFS+=(\"-D${sym}_=${sym}_64_\")\ndone\n\nexport CXXFLAGS=\"${SYMB_DEFS[@]}\"\nexport LDFLAGS=\"-L${libdir}\"\ncmake -DCMAKE_INSTALL_PREFIX=$prefix \\\n    -DCMAKE_PREFIX_PATH=${libdir} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DCMAKE_MODULE_PATH=$WORKSPACE/srcdir \\\n    -DMUMPS_INCLUDE_DIR=${includedir} \\\n    -DMUMPS_LIBRARIES=\"${libdir}/libdmumps.${dlext}\" \\\n    -DMUMPS_COMMON_LIBRARY=\"${libdir}/libmumps_common.${dlext}\" \\\n    -DMUMPS_PORD_LIBRARY=\"${libdir}/libpord.${dlext}\" \\\n    -DMUMPS_MPISEQ_LIBRARY=\"${libdir}/libmpiseq.${dlext}\" \\\n    -DBLAS_LIBRARIES=${LOB} \\\n    -DLAPACK_LIBRARIES=${LOB} \\\n    ..\n\nmake\nmake install\ninstall_license ../LICENSE\n"""
+version = "v3.2.2"
+
+[[dependencies]]
+compat = "500.700.301"
+name = "MUMPS_seq_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "d7ed1dd3-d0ae-5e8e-bfb4-87a502085b8d"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "0.3.23"
+name = "OpenBLAS_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CMake_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libqpOASES"]
+type = "lib"
+variable_name = "libqpOASES"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libqpOASES_MUMPS"]
+type = "lib"
+variable_name = "libqpOASES_MUMPS"
+
+[[sources]]
+hash = "680f18c8ef0018a120e1604b769f056e8368df97"
+type = "git"
+unpack_target = ""
+url = "https://github.com/coin-or/qpOASES.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

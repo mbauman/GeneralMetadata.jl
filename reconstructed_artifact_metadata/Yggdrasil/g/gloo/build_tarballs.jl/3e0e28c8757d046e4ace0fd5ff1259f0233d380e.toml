@@ -1,0 +1,36 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Gloo"
+platforms = ["x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir/gloo\natomic_patch -p1 ../patches/mingw32.patch\natomic_patch -p1 ../patches/mingw-lowercase-include.patch\nmkdir build\ncd build\nif [[ $target != *w64-mingw32* ]]; then\n    cmake_extra_args=\"-DUSE_LIBUV=ON\"\nfi\ncmake \\\n    -DCMAKE_INSTALL_PREFIX=$prefix \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DBUILD_SHARED_LIBS=ON \\\n    $cmake_extra_args \\\n    ..\ncmake --build . -- -j $nproc\nmake install\n"""
+version = "v0.0.20200910"
+
+[[dependencies]]
+compat = ""
+name = "LibUV_jll"
+platforms = ["any"]
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgloo"]
+type = "lib"
+variable_name = "libgloo"
+
+[[sources]]
+hash = "881f7f0dcf06f7e49e134a45d3284860fb244fa9"
+type = "git"
+unpack_target = ""
+url = "https://github.com/facebookincubator/gloo.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

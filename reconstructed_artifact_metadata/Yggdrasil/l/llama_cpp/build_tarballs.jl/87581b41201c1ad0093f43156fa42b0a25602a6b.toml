@@ -1,0 +1,64 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "llama_cpp"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir/llama.cpp*\n\n# remove -march=native from cmake files\natomic_patch -p1 ../patches/cmake-remove-compiler-flags-forbidden-in-bb.patch\n\nEXTRA_CMAKE_ARGS=\nif [[ \"${target}\" == *-linux-* ]]; then\n    # otherwise we have undefined reference to `clock_gettime' when\n    # linking the `main' example program\n    EXTRA_CMAKE_ARGS='-DCMAKE_EXE_LINKER_FLAGS=\"-lrt\"'\nfi\n\nmkdir build && cd build\n\ncmake .. \\\n    -DCMAKE_INSTALL_PREFIX=$prefix \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=RELEASE \\\n    -DBUILD_SHARED_LIBS=ON \\\n    -DLLAMA_BUILD_TESTS=OFF \\\n    -DLLAMA_BUILD_EXAMPLES=ON \\\n    -DLLAMA_NATIVE=OFF \\\n    -DLLAMA_ACCELERATE=ON \\\n    -DLLAMA_AVX=ON \\\n    -DLLAMA_AVX2=ON \\\n    -DLLAMA_F16C=ON \\\n    -DLLAMA_FMA=ON \\\n    -DLLAMA_OPENBLAS=OFF \\\n    -DLLAMA_CUBLAS=OFF \\\n    -DLLAMA_CLBLAST=OFF \\\n    $EXTRA_CMAKE_ARGS\nmake -j${nproc}\n\n# `make install` doesn't work (2023.03.21)\n# install executables\nfor prg in baby-llama benchmark embedding main perplexity q8dot quantize quantize-stats save-load-state vdot; do\n    install -Dvm 755 \"./bin/${prg}${exeext}\" \"${bindir}/${prg}${exeext}\"\ndone\n# install libs\nfor lib in libllama; do\n    if [[ \"${target}\" == *-w64-mingw32* ]]; then\n        install -Dvm 755 \"./bin/${lib}.${dlext}\" \"${libdir}/${lib}.${dlext}\"\n    else\n        install -Dvm 755 \"./${lib}.${dlext}\" \"${libdir}/${lib}.${dlext}\"\n    fi\ndone\n# install header files\nfor hdr in llama.h ggml.h; do\n    install -Dvm 644 \"../${hdr}\" \"${includedir}/${hdr}\"\ndone\n\ninstall_license ../LICENSE\n"""
+version = "v0.0.10"
+
+[[products]]
+binnames = ["benchmark"]
+type = "exe"
+variable_name = "benchmark"
+[[products]]
+binnames = ["embedding"]
+type = "exe"
+variable_name = "embedding"
+[[products]]
+binnames = ["main"]
+type = "exe"
+variable_name = "main"
+[[products]]
+binnames = ["perplexity"]
+type = "exe"
+variable_name = "perplexity"
+[[products]]
+binnames = ["q8dot"]
+type = "exe"
+variable_name = "q8dot"
+[[products]]
+binnames = ["quantize"]
+type = "exe"
+variable_name = "quantize"
+[[products]]
+binnames = ["quantize-stats"]
+type = "exe"
+variable_name = "quantize_stats"
+[[products]]
+binnames = ["save-load-state"]
+type = "exe"
+variable_name = "save_load_state"
+[[products]]
+binnames = ["vdot"]
+type = "exe"
+variable_name = "vdot"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libllama"]
+type = "lib"
+variable_name = "libllama"
+
+[[sources]]
+hash = "2d5db48371052087a83974abda3767d1aedec598"
+type = "git"
+unpack_target = ""
+url = "https://github.com/ggerganov/llama.cpp.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

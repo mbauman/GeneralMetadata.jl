@@ -1,0 +1,35 @@
+init_block = """  if !Sys.iswindows() && !(get(ENV, \"NEMO_THREADED\", \"\") == \"1\")\n    #to match the global gmp ones\n    fm = dlsym(libflint_handle, :__flint_set_memory_functions)\n    ccall(fm, Nothing,\n      (Ptr{Nothing},Ptr{Nothing},Ptr{Nothing},Ptr{Nothing}),\n        cglobal(:jl_malloc),\n        cglobal(:jl_calloc),\n        cglobal(:jl_realloc),\n        cglobal(:jl_free))\n  end\n"""
+lazy_artifacts = false
+name = "FLINT"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin14", "x86_64-unknown-freebsd11.1", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/flint*\nif [[ ${target} == *musl* ]]; then\n   # because of some ordering issue with pthread.h and sched.h includes\n   export CFLAGS=-D_GNU_SOURCE\nelif [[ ${target} == *mingw* ]]; then\n   extraflags=--reentrant\nfi\n./configure --prefix=$prefix --disable-static --enable-shared --with-gmp=$prefix --with-mpfr=$prefix ${extraflags}\nmake -j${nproc}\nmake install LIBDIR=$(basename ${libdir})\n"""
+version = "v2.6.2"
+
+[[dependencies]]
+name = "GMP_jll"
+type = "dependency"
+uuid = "781609d7-10c4-51f6-84f2-b8444358ff6d"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "MPFR_jll"
+type = "dependency"
+uuid = "3a97d323-0669-5f0c-9066-3539efd106a3"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libflint"]
+type = "lib"
+variable_name = "libflint"
+
+[[sources]]
+hash = "5f9b45113c3b50c10564a04e9dd929eb8ad96488b5eb901db5723cd21bbae1da"
+type = "archive"
+unpack_target = ""
+url = "http://www.flintlib.org/flint-2.6.2.tar.gz"

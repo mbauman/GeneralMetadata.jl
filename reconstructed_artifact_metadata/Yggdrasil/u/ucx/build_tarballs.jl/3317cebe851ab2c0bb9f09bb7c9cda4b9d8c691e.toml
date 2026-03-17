@@ -1,0 +1,82 @@
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "UCX"
+platforms = ["x86_64-linux-gnu", "powerpc64le-linux-gnu"]
+script = """cd $WORKSPACE/srcdir/ucx-*\n\nupdate_configure_scripts --reconf\n\n./configure --prefix=${prefix} \\\n    --build=${MACHTYPE} \\\n    --host=${target} \\\n    --disable-debug \\\n    --disable-assertions \\\n    --disable-params-check \\\n    --disable-static \\\n    --disable-profiling \\\n    --enable-shared \\\n    --enable-mt \\\n    --enable-frame-pointer \\\n    --enable-cma \\\n    --with-rdmacm=${prefix} \\\n    --with-cuda=${prefix}/cuda\n\n# For a bug in `src/uct/sm/cma/Makefile` that I did't have the time to look\n# into, we have to build with `V=1`\nmake -j${nproc} V=1\nmake install\n"""
+version = "v1.9.0"
+
+[[dependencies]]
+name = "CompilerSupportLibraries_jll"
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "NUMA_jll"
+type = "dependency"
+uuid = "7f51dc2b-bb24-59f8-b771-bb1490e4195d"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "rdma_core_jll"
+type = "dependency"
+uuid = "69dc3629-5c98-505f-8bcd-225213cebe70"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+name = "CUDA_full_jll"
+type = "builddependency"
+version-major = 11
+version-minor = 2
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libuct"]
+type = "lib"
+variable_name = "libuct"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libucm"]
+type = "lib"
+variable_name = "libucm"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libucp"]
+type = "lib"
+variable_name = "libucp"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libucs"]
+type = "lib"
+variable_name = "libucs"
+[[products]]
+binnames = ["ucx_info"]
+type = "exe"
+variable_name = "ucx_info"
+[[products]]
+binnames = ["ucx_perftest"]
+type = "exe"
+variable_name = "ucx_perftest"
+[[products]]
+binnames = ["ucx_read_profile"]
+type = "exe"
+variable_name = "ucx_read_profile"
+
+[[sources]]
+hash = "a7a2c8841dc0d5444088a4373dc9b9cc68dbffcd917c1eba92ca8ed8e5e635fb"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/openucx/ucx/releases/download/v1.9.0/ucx-1.9.0.tar.gz"

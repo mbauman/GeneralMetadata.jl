@@ -1,0 +1,74 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "SLEEF"
+platforms = ["x86_64-linux-gnu", "aarch64-linux-gnu", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "x86_64-linux-musl", "aarch64-linux-musl", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd"]
+script = """cd $WORKSPACE/srcdir/sleef\n\nif [[ \"${target}\" == *-apple-darwin* ]]; then\n    rm -rf /opt/${target}/${target}/sys-root/System /opt/${target}/${target}/sys-root/usr/include/libxml2\n    tar --extract --file=${WORKSPACE}/srcdir/MacOSX14.5.tar.xz --directory=\"/opt/${target}/${target}/sys-root/.\" --strip-components=1 MacOSX14.5.sdk/System MacOSX14.5.sdk/usr\n    export MACOSX_DEPLOYMENT_TARGET=14.5\nfi\n\n# The respective file does not exist any more on the master branch\natomic_patch -p1 ../patches/windows.patch\n\nmkdir build-native\ncd build-native\ncmake \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_HOST_TOOLCHAIN} \\\n    -G Ninja \\\n    -DSLEEF_BUILD_DFT=TRUE \\\n    -DSLEEF_BUILD_QUAD=TRUE \\\n    -DSLEEF_BUILD_SCALAR_LIB=TRUE \\\n    -DSLEEF_BUILD_SHARED_LIBS=TRUE \\\n    -DSLEEF_BUILD_TESTS=OFF \\\n    ..\nninja all\n\ncd $WORKSPACE/srcdir/sleef\nmkdir build-cross\ncd build-cross\ncmake \\\n    -DCMAKE_INSTALL_PREFIX=$prefix \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -G Ninja \\\n    -DNATIVE_BUILD_DIR=$WORKSPACE/srcdir/sleef/build-native \\\n    -DSLEEF_SHOW_CONFIG=1 \\\n    -DSLEEF_BUILD_DFT=TRUE \\\n    -DSLEEF_BUILD_QUAD=TRUE \\\n    -DSLEEF_BUILD_SCALAR_LIB=TRUE \\\n    -DSLEEF_BUILD_SHARED_LIBS=TRUE \\\n    -DSLEEF_BUILD_TESTS=OFF \\\n    ..\nninja all\nninja install\n\ninstall_license $WORKSPACE/srcdir/sleef/LICENSE.txt\n"""
+version = "v3.9.0"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["x86_64-linux-gnu", "aarch64-linux-gnu", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "x86_64-linux-musl", "aarch64-linux-musl"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LLVMOpenMP_jll"
+platforms = ["x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd"]
+top_level = false
+type = "dependency"
+uuid = "1d63c593-3942-5779-bab2-d838dc0a180e"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsleef"]
+type = "lib"
+variable_name = "libsleef"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsleefdft"]
+type = "lib"
+variable_name = "libsleefdft"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsleefquad"]
+type = "lib"
+variable_name = "libsleefquad"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsleefscalar"]
+type = "lib"
+variable_name = "libsleefscalar"
+
+[[sources]]
+hash = "906ca7512ee483296780a81a21b9ca715d40dfe1"
+type = "git"
+unpack_target = ""
+url = "https://github.com/shibatch/sleef.git"
+[[sources]]
+filename = "MacOSX14.5.tar.xz"
+hash = "f6acc6209db9d56b67fcaf91ec1defe48722e9eb13dc21fb91cfeceb1489e57e"
+type = "file"
+url = "https://github.com/alexey-lysiuk/macos-sdk/releases/download/14.5/MacOSX14.5.tar.xz"
+[[sources]]
+follow_symlinks = false
+path = "bundled"
+target = ""
+type = "directory"

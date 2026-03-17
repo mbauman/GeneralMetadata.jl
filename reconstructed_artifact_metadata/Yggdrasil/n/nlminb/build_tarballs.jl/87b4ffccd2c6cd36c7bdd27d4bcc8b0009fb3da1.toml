@@ -1,0 +1,36 @@
+init_block = ""
+julia_compat = "1.0"
+lazy_artifacts = false
+name = "nlminb"
+platforms = ["i686-linux-gnu-libgfortran3", "i686-linux-gnu-libgfortran4", "i686-linux-gnu-libgfortran5", "x86_64-linux-gnu-libgfortran3", "x86_64-linux-gnu-libgfortran4", "x86_64-linux-gnu-libgfortran5", "aarch64-linux-gnu-libgfortran3", "aarch64-linux-gnu-libgfortran4", "aarch64-linux-gnu-libgfortran5", "armv7l-linux-gnueabihf-libgfortran3", "armv7l-linux-gnueabihf-libgfortran4", "armv7l-linux-gnueabihf-libgfortran5", "powerpc64le-linux-gnu-libgfortran3", "powerpc64le-linux-gnu-libgfortran4", "powerpc64le-linux-gnu-libgfortran5", "i686-linux-musl-libgfortran3", "i686-linux-musl-libgfortran4", "i686-linux-musl-libgfortran5", "x86_64-linux-musl-libgfortran3", "x86_64-linux-musl-libgfortran4", "x86_64-linux-musl-libgfortran5", "aarch64-linux-musl-libgfortran3", "aarch64-linux-musl-libgfortran4", "aarch64-linux-musl-libgfortran5", "armv7l-linux-musleabihf-libgfortran3", "armv7l-linux-musleabihf-libgfortran4", "armv7l-linux-musleabihf-libgfortran5", "x86_64-apple-darwin-libgfortran3", "x86_64-apple-darwin-libgfortran4", "x86_64-apple-darwin-libgfortran5", "x86_64-unknown-freebsd-libgfortran3", "x86_64-unknown-freebsd-libgfortran4", "x86_64-unknown-freebsd-libgfortran5", "i686-w64-mingw32-libgfortran3", "i686-w64-mingw32-libgfortran4", "i686-w64-mingw32-libgfortran5", "x86_64-w64-mingw32-libgfortran3", "x86_64-w64-mingw32-libgfortran4", "x86_64-w64-mingw32-libgfortran5"]
+script = """cd $WORKSPACE/srcdir/nlminb.f\n\n## compile by hand\nif [[ \"${proc_family}\" == \"intel\" ]]; then\n    FLAGS=\"-mfpmath=sse -msse2 -mstackrealign\"\nfi\nCFLAGS=\"-fPIC -DNDEBUG  -Iinclude -O2 -Wall -std=gnu99 ${FLAGS}\"\nFFLAGS=\"-fPIC -fno-optimize-sibling-calls -O2 ${FLAGS}\"\n\ngfortran ${FFLAGS} -c src/portsrc.f -o src/portsrc.o \ngfortran ${FFLAGS} -c src/d1mach.f -o src/d1mach.o \ngcc ${CFLAGS} -c src/port2.c -o src/port.o\ngfortran -shared -static-libgcc -lm -o ${libdir}/libnlminb.${dlext} src/portsrc.o src/d1mach.o src/port.o -lopenblas\n"""
+version = "v0.1.0"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenBLAS32_jll"
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnlminb"]
+type = "lib"
+variable_name = "libnlminb"
+
+[[sources]]
+hash = "6b2d460b866911e8bfca32b1217c08fb78c3111f"
+type = "git"
+unpack_target = ""
+url = "https://github.com/geo-julia/nlminb.f.git"

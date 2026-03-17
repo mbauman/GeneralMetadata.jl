@@ -1,0 +1,103 @@
+augment_platform_block = """using Base.BinaryPlatforms\n# Can't use Preferences since we might be running this very early with a non-existing Manifest\nMPIPreferences_UUID = Base.UUID(\"3da0fdf6-3ccc-4f1b-acd9-58baa6c99267\")\nconst preferences = Base.get_preferences(MPIPreferences_UUID)\n\n# Keep logic in sync with MPIPreferences.jl\nfunction augment_mpi!(platform)\n    # Doesn't need to be `const` since we depend on MPIPreferences so we\n    # invalidate the cache when it changes.\n    # Note: MPIPreferences uses `Sys.iswindows()` without the `platform` argument.\n    binary = get(preferences, \"binary\", Sys.iswindows(platform) ? \"MicrosoftMPI_jll\" : \"MPICH_jll\")\n\n    abi = if binary == \"system\"\n        let abi = get(preferences, \"abi\", nothing)\n            if abi === nothing\n                error(\"MPIPreferences: Inconsistent state detected, binary set to system, but no ABI set.\")\n            else\n                abi\n            end\n        end\n    elseif binary == \"MicrosoftMPI_jll\"\n        \"MicrosoftMPI\"\n    elseif binary == \"MPICH_jll\"\n        \"MPICH\"\n    elseif binary == \"MPICH_CUDA_jll\"\n        \"MPICH\"\n    elseif binary == \"OpenMPI_jll\"\n        \"OpenMPI\"\n    elseif binary == \"MPItrampoline_jll\"\n        \"MPItrampoline\"\n    else\n        error(\"Unknown binary: $binary\")\n    end\n\n    if !haskey(platform, \"mpi\")\n        platform[\"mpi\"] = abi\n    end\n    return platform\nend\n\naugment_platform!(platform::Platform) = augment_mpi!(platform)\n"""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = true
+name = "AMReX"
+platforms = ["i686-linux-gnu-libgfortran5-cxx11-mpi+mpich", "x86_64-linux-gnu-libgfortran5-cxx11-mpi+mpich", "aarch64-linux-gnu-libgfortran5-cxx11-mpi+mpich", "armv6l-linux-gnueabihf-libgfortran5-cxx11-mpi+mpich", "armv7l-linux-gnueabihf-libgfortran5-cxx11-mpi+mpich", "powerpc64le-linux-gnu-libgfortran5-cxx11-mpi+mpich", "riscv64-linux-gnu-libgfortran5-cxx11-mpi+mpich", "x86_64-apple-darwin-libgfortran5-mpi+mpich", "aarch64-apple-darwin-libgfortran5-mpi+mpich", "x86_64-unknown-freebsd-libgfortran5-mpi+mpich", "aarch64-unknown-freebsd-libgfortran5-mpi+mpich", "i686-linux-gnu-libgfortran5-cxx11-mpi+mpitrampoline", "x86_64-linux-gnu-libgfortran5-cxx11-mpi+mpitrampoline", "aarch64-linux-gnu-libgfortran5-cxx11-mpi+mpitrampoline", "armv6l-linux-gnueabihf-libgfortran5-cxx11-mpi+mpitrampoline", "armv7l-linux-gnueabihf-libgfortran5-cxx11-mpi+mpitrampoline", "powerpc64le-linux-gnu-libgfortran5-cxx11-mpi+mpitrampoline", "riscv64-linux-gnu-libgfortran5-cxx11-mpi+mpitrampoline", "x86_64-apple-darwin-libgfortran5-mpi+mpitrampoline", "aarch64-apple-darwin-libgfortran5-mpi+mpitrampoline", "x86_64-unknown-freebsd-libgfortran5-mpi+mpitrampoline", "aarch64-unknown-freebsd-libgfortran5-mpi+mpitrampoline", "i686-w64-mingw32-libgfortran5-cxx11-mpi+microsoftmpi", "x86_64-w64-mingw32-libgfortran5-cxx11-mpi+microsoftmpi", "i686-linux-gnu-libgfortran5-cxx11-mpi+openmpi", "x86_64-linux-gnu-libgfortran5-cxx11-mpi+openmpi", "aarch64-linux-gnu-libgfortran5-cxx11-mpi+openmpi", "armv7l-linux-gnueabihf-libgfortran5-cxx11-mpi+openmpi", "powerpc64le-linux-gnu-libgfortran5-cxx11-mpi+openmpi", "riscv64-linux-gnu-libgfortran5-cxx11-mpi+openmpi", "x86_64-apple-darwin-libgfortran5-mpi+openmpi", "aarch64-apple-darwin-libgfortran5-mpi+openmpi", "x86_64-unknown-freebsd-libgfortran5-mpi+openmpi", "aarch64-unknown-freebsd-libgfortran5-mpi+openmpi"]
+script = """macos_sdk_version=10.14\nmacosx_deployment_target=10.14\nif [[ \"${target}\" == x86_64-apple-darwin* ]]; then\n    echo \"Extracting MacOSX${macos_sdk_version}.sdk.tar.xz (this may take a while)\"\n    rm -rf /opt/${target}/${target}/sys-root/System\n    rm -rf /opt/${target}/${target}/sys-root/usr/include/libxml2/libxml\n    # extract the tarball into the sys-root so all compilers pick it up\n    # automatically, and use --warning=no-unknown-keyword to hide harmless\n    # warnings about unsupported pax header keywords like \"SCHILY.fflags\"\n    tar --extract \\\n        --file=${WORKSPACE}/srcdir/MacOSX${macos_sdk_version}.sdk.tar.xz \\\n        --directory=\"/opt/${target}/${target}/sys-root/.\" \\\n        --strip-components=1 \\\n        --warning=no-unknown-keyword \\\n        MacOSX${macos_sdk_version}.sdk/System \\\n        MacOSX${macos_sdk_version}.sdk/usr\n    export MACOSX_DEPLOYMENT_TARGET=${macosx_deployment_target}\nfi\ncd ${WORKSPACE}/srcdir/amrex\n\n# Correct HDF5 compiler wrappers\nperl -pi -e 's+-I/workspace/srcdir/hdf5-1[.]14[.]./src/H5FDsubfiling++' $(which h5pcc)\n\nif [[ \"${target}\" == *-apple-* ]]; then\n    if grep -q MPICH_NAME ${prefix}/include/mpi.h; then\n        # MPICH's pkgconfig file \"mpich.pc\" lists these options:\n        #     Libs:     -framework OpenCL -Wl,-flat_namespace -Wl,-commons,use_dylibs -L${libdir} -lmpi -lpmpi -lm    -lpthread\n        #     Cflags:   -I${includedir}\n        # cmake doesn't know how to handle the \"-framework OpenCL\" option\n        # and wants to use \"-framework\" as a stand-alone option. This fails,\n        # and cmake concludes that MPI is not available.\n        mpiopts=\"-DMPI_C_ADDITIONAL_INCLUDE_DIRS='' -DMPI_C_LIBRARIES='-Wl,-flat_namespace;-Wl,-commons,use_dylibs;-lmpi;-lpmpi' -DMPI_CXX_ADDITIONAL_INCLUDE_DIRS='' -DMPI_CXX_LIBRARIES='-Wl,-flat_namespace;-Wl,-commons,use_dylibs;-lmpi;-lpmpi'\"\n    fi\nelif [[ \"${target}\" == x86_64-w64-mingw32 ]]; then\n    mpiopts=\"-DMPI_HOME=${prefix} -DMPI_GUESS_LIBRARY_NAME=MSMPI -DMPI_C_LIBRARIES=msmpi64 -DMPI_CXX_LIBRARIES=msmpi64\"\nelif [[ \"${target}\" == *-mingw* ]]; then\n    mpiopts=\"-DMPI_HOME=${prefix} -DMPI_GUESS_LIBRARY_NAME=MSMPI\"\nelse\n    mpiopts=\nfi\n\nif [[ \"${target}\" == *-mingw32* ]]; then\n    # AMReX requires a parallel HDF5 library\n    hdf5opts=\"-DAMReX_HDF5=OFF\"\nelse\n    hdf5opts=\"-DAMReX_HDF5=ON\"\nfi\n\nexport MPITRAMPOLINE_CC=${CC}\nexport MPITRAMPOLINE_CXX=${CXX}\nexport MPITRAMPOLINE_FC=${FC}\n\ncmake \\\n    -B build \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=RelWithDebInfo \\\n    -DAMReX_FORTRAN=ON \\\n    -DAMReX_MPI=ON \\\n    -DAMReX_OMP=ON \\\n    -DAMReX_PARTICLES=ON \\\n    -DBUILD_SHARED_LIBS=ON \\\n    ${hdf5opts} \\\n    ${mpiopts}\ncmake --build build --parallel ${nproc}\ncmake --install build\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    # Move all shared libraries to `${libdir}`.\n    # Ref: <https://github.com/JuliaPackaging/Yggdrasil/issues/7968>.\n    mv -v ${prefix}/lib/*.${dlext} ${libdir}/.\nfi\n\ninstall_license LICENSE\n"""
+version = "v26.2.0"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["i686-linux-gnu-libgfortran5-cxx11-mpi+mpich", "x86_64-linux-gnu-libgfortran5-cxx11-mpi+mpich", "aarch64-linux-gnu-libgfortran5-cxx11-mpi+mpich", "armv6l-linux-gnueabihf-libgfortran5-cxx11-mpi+mpich", "armv7l-linux-gnueabihf-libgfortran5-cxx11-mpi+mpich", "powerpc64le-linux-gnu-libgfortran5-cxx11-mpi+mpich", "riscv64-linux-gnu-libgfortran5-cxx11-mpi+mpich", "i686-linux-gnu-libgfortran5-cxx11-mpi+mpitrampoline", "x86_64-linux-gnu-libgfortran5-cxx11-mpi+mpitrampoline", "aarch64-linux-gnu-libgfortran5-cxx11-mpi+mpitrampoline", "armv6l-linux-gnueabihf-libgfortran5-cxx11-mpi+mpitrampoline", "armv7l-linux-gnueabihf-libgfortran5-cxx11-mpi+mpitrampoline", "powerpc64le-linux-gnu-libgfortran5-cxx11-mpi+mpitrampoline", "riscv64-linux-gnu-libgfortran5-cxx11-mpi+mpitrampoline", "i686-w64-mingw32-libgfortran5-cxx11-mpi+microsoftmpi", "x86_64-w64-mingw32-libgfortran5-cxx11-mpi+microsoftmpi", "i686-linux-gnu-libgfortran5-cxx11-mpi+openmpi", "x86_64-linux-gnu-libgfortran5-cxx11-mpi+openmpi", "aarch64-linux-gnu-libgfortran5-cxx11-mpi+openmpi", "armv7l-linux-gnueabihf-libgfortran5-cxx11-mpi+openmpi", "powerpc64le-linux-gnu-libgfortran5-cxx11-mpi+openmpi", "riscv64-linux-gnu-libgfortran5-cxx11-mpi+openmpi"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "2.0.0"
+name = "HDF5_jll"
+platforms = ["i686-linux-gnu-libgfortran5-cxx11-mpi+mpich", "x86_64-linux-gnu-libgfortran5-cxx11-mpi+mpich", "aarch64-linux-gnu-libgfortran5-cxx11-mpi+mpich", "armv6l-linux-gnueabihf-libgfortran5-cxx11-mpi+mpich", "armv7l-linux-gnueabihf-libgfortran5-cxx11-mpi+mpich", "powerpc64le-linux-gnu-libgfortran5-cxx11-mpi+mpich", "riscv64-linux-gnu-libgfortran5-cxx11-mpi+mpich", "x86_64-apple-darwin-libgfortran5-mpi+mpich", "aarch64-apple-darwin-libgfortran5-mpi+mpich", "x86_64-unknown-freebsd-libgfortran5-mpi+mpich", "aarch64-unknown-freebsd-libgfortran5-mpi+mpich", "i686-linux-gnu-libgfortran5-cxx11-mpi+mpitrampoline", "x86_64-linux-gnu-libgfortran5-cxx11-mpi+mpitrampoline", "aarch64-linux-gnu-libgfortran5-cxx11-mpi+mpitrampoline", "armv6l-linux-gnueabihf-libgfortran5-cxx11-mpi+mpitrampoline", "armv7l-linux-gnueabihf-libgfortran5-cxx11-mpi+mpitrampoline", "powerpc64le-linux-gnu-libgfortran5-cxx11-mpi+mpitrampoline", "riscv64-linux-gnu-libgfortran5-cxx11-mpi+mpitrampoline", "x86_64-apple-darwin-libgfortran5-mpi+mpitrampoline", "aarch64-apple-darwin-libgfortran5-mpi+mpitrampoline", "x86_64-unknown-freebsd-libgfortran5-mpi+mpitrampoline", "aarch64-unknown-freebsd-libgfortran5-mpi+mpitrampoline", "i686-linux-gnu-libgfortran5-cxx11-mpi+openmpi", "x86_64-linux-gnu-libgfortran5-cxx11-mpi+openmpi", "aarch64-linux-gnu-libgfortran5-cxx11-mpi+openmpi", "armv7l-linux-gnueabihf-libgfortran5-cxx11-mpi+openmpi", "powerpc64le-linux-gnu-libgfortran5-cxx11-mpi+openmpi", "riscv64-linux-gnu-libgfortran5-cxx11-mpi+openmpi", "x86_64-apple-darwin-libgfortran5-mpi+openmpi", "aarch64-apple-darwin-libgfortran5-mpi+openmpi", "x86_64-unknown-freebsd-libgfortran5-mpi+openmpi", "aarch64-unknown-freebsd-libgfortran5-mpi+openmpi"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LLVMOpenMP_jll"
+platforms = ["x86_64-apple-darwin-libgfortran5-mpi+mpich", "aarch64-apple-darwin-libgfortran5-mpi+mpich", "x86_64-unknown-freebsd-libgfortran5-mpi+mpich", "aarch64-unknown-freebsd-libgfortran5-mpi+mpich", "x86_64-apple-darwin-libgfortran5-mpi+mpitrampoline", "aarch64-apple-darwin-libgfortran5-mpi+mpitrampoline", "x86_64-unknown-freebsd-libgfortran5-mpi+mpitrampoline", "aarch64-unknown-freebsd-libgfortran5-mpi+mpitrampoline", "x86_64-apple-darwin-libgfortran5-mpi+openmpi", "aarch64-apple-darwin-libgfortran5-mpi+openmpi", "x86_64-unknown-freebsd-libgfortran5-mpi+openmpi", "aarch64-unknown-freebsd-libgfortran5-mpi+openmpi"]
+top_level = false
+type = "dependency"
+uuid = "1d63c593-3942-5779-bab2-d838dc0a180e"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "4.3.0 - 4"
+name = "MPICH_jll"
+platforms = ["i686-linux-gnu-libgfortran5-cxx11-mpi+mpich", "x86_64-linux-gnu-libgfortran5-cxx11-mpi+mpich", "aarch64-linux-gnu-libgfortran5-cxx11-mpi+mpich", "armv6l-linux-gnueabihf-libgfortran5-cxx11-mpi+mpich", "armv7l-linux-gnueabihf-libgfortran5-cxx11-mpi+mpich", "powerpc64le-linux-gnu-libgfortran5-cxx11-mpi+mpich", "riscv64-linux-gnu-libgfortran5-cxx11-mpi+mpich", "x86_64-apple-darwin-libgfortran5-mpi+mpich", "aarch64-apple-darwin-libgfortran5-mpi+mpich", "x86_64-unknown-freebsd-libgfortran5-mpi+mpich", "aarch64-unknown-freebsd-libgfortran5-mpi+mpich"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "5.5.3 - 5"
+name = "MPItrampoline_jll"
+platforms = ["i686-linux-gnu-libgfortran5-cxx11-mpi+mpitrampoline", "x86_64-linux-gnu-libgfortran5-cxx11-mpi+mpitrampoline", "aarch64-linux-gnu-libgfortran5-cxx11-mpi+mpitrampoline", "armv6l-linux-gnueabihf-libgfortran5-cxx11-mpi+mpitrampoline", "armv7l-linux-gnueabihf-libgfortran5-cxx11-mpi+mpitrampoline", "powerpc64le-linux-gnu-libgfortran5-cxx11-mpi+mpitrampoline", "riscv64-linux-gnu-libgfortran5-cxx11-mpi+mpitrampoline", "x86_64-apple-darwin-libgfortran5-mpi+mpitrampoline", "aarch64-apple-darwin-libgfortran5-mpi+mpitrampoline", "x86_64-unknown-freebsd-libgfortran5-mpi+mpitrampoline", "aarch64-unknown-freebsd-libgfortran5-mpi+mpitrampoline"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MicrosoftMPI_jll"
+platforms = ["i686-w64-mingw32-libgfortran5-cxx11-mpi+microsoftmpi", "x86_64-w64-mingw32-libgfortran5-cxx11-mpi+microsoftmpi"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "4.1.8, 5.0.7"
+name = "OpenMPI_jll"
+platforms = ["i686-linux-gnu-libgfortran5-cxx11-mpi+openmpi", "x86_64-linux-gnu-libgfortran5-cxx11-mpi+openmpi", "aarch64-linux-gnu-libgfortran5-cxx11-mpi+openmpi", "armv7l-linux-gnueabihf-libgfortran5-cxx11-mpi+openmpi", "powerpc64le-linux-gnu-libgfortran5-cxx11-mpi+openmpi", "riscv64-linux-gnu-libgfortran5-cxx11-mpi+openmpi", "x86_64-apple-darwin-libgfortran5-mpi+openmpi", "aarch64-apple-darwin-libgfortran5-mpi+openmpi", "x86_64-unknown-freebsd-libgfortran5-mpi+openmpi", "aarch64-unknown-freebsd-libgfortran5-mpi+openmpi"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "0.1"
+name = "MPIPreferences"
+platforms = ["any"]
+top_level = true
+type = "dependency"
+uuid = "3da0fdf6-3ccc-4f1b-acd9-58baa6c99267"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libamrex_3d"]
+type = "lib"
+variable_name = "libamrex"
+
+[[sources]]
+hash = "7627f0bac4f8025b555b6c7c7a26e2d4db4e7a7fda660b77b272ffe40749b7b2"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/AMReX-Codes/amrex/releases/download/26.02/amrex-26.02.tar.gz"
+[[sources]]
+filename = "MacOSX10.14.sdk.tar.xz"
+hash = "0f03869f72df8705b832910517b47dd5b79eb4e160512602f593ed243b28715f"
+type = "file"
+url = "https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.14.sdk.tar.xz"

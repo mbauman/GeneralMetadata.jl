@@ -1,0 +1,52 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.9"
+lazy_artifacts = false
+name = "LibGit2"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "x86_64-linux-gnu-sanitize+memory"]
+script = """cd $WORKSPACE/srcdir/libgit2*\n\nBUILD_FLAGS=(\n    -DCMAKE_BUILD_TYPE=Release\n    -DUSE_THREADS=ON\n    -DUSE_BUNDLED_ZLIB=ON\n    -DUSE_SSH=ON\n    -DBUILD_CLI=OFF\n    \"-DCMAKE_INSTALL_PREFIX=${prefix}\"\n    \"-DCMAKE_TOOLCHAIN_FILE=\"${CMAKE_TARGET_TOOLCHAIN}\"\"\n)\n\nif [[ ${bb_full_target} == *-sanitize+memory* ]]; then\n    # Install msan runtime (for clang)\n    cp -rL ${libdir}/linux/* /opt/x86_64-linux-musl/lib/clang/*/lib/linux/\nfi\n\nif [[ ${target} == *-mingw* ]]; then\n    # Special Windows flags\n    BUILD_FLAGS+=(-DWIN32=ON -DMINGW=ON -DBUILD_TESTS=OFF)\n    if [[ ${target} == i686-* ]]; then\n        BUILD_FLAGS+=(-DCMAKE_C_FLAGS=\"-mincoming-stack-boundary=2\")\n    fi\n\n    # For some reason, CMake fails to find libssh2 using pkg-config.\n    BUILD_FLAGS+=(-Dssh2_RESOLVED=${bindir}/libssh2.dll)\nelif [[ ${target} == *linux* ]] || [[ ${target} == *freebsd* ]] || [[ ${target} == *openbsd* ]]; then\n    # If we're on Linux or FreeBSD, explicitly ask for OpenSSL\n    BUILD_FLAGS+=(-DUSE_HTTPS=OpenSSL -DUSE_SHA1=CollisionDetection -DCMAKE_INSTALL_RPATH=\"\\$ORIGIN\")\nfi\n\ncmake -B build \"${BUILD_FLAGS[@]}\"\ncmake --build build --parallel ${nproc}\ncmake --install build\n"""
+version = "v1.9.0"
+
+[[dependencies]]
+compat = "1.11.3"
+name = "LibSSH2_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "3.0.15"
+name = "OpenSSL_jll"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "x86_64-linux-gnu-sanitize+memory"]
+top_level = false
+type = "dependency"
+uuid = "458c3c95-2e84-50aa-8efc-19380b2a3a95"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LLVMCompilerRT_jll"
+platforms = ["x86_64-linux-gnu-sanitize+memory"]
+top_level = false
+type = "builddependency"
+uuid = "4e17d02c-6bf5-513e-be62-445f41c75a11"
+version-major = 13
+version-minor = 0
+version-patch = 1
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgit2"]
+type = "lib"
+variable_name = "libgit2"
+
+[[sources]]
+hash = "338e6fb681369ff0537719095e22ce9dc602dbf0"
+type = "git"
+unpack_target = ""
+url = "https://github.com/libgit2/libgit2.git"

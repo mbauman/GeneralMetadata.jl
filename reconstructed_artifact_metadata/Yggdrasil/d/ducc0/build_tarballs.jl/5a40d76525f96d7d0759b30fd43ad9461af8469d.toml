@@ -1,0 +1,37 @@
+augment_platform_block = """using Base.BinaryPlatforms: arch, arch_march_isa_mapping, CPUID, HostPlatform, Platform\n\nfunction augment_microarchitecture!(platform::Platform)\n    haskey(platform, \"march\") && return platform\n\n    host_arch = arch(HostPlatform())\n    host_isas = arch_march_isa_mapping[host_arch]\n    idx = findlast(((name, isa),) -> isa <= CPUID.cpu_isa(), host_isas)\n    platform[\"march\"] = first(host_isas[idx])\n    return platform\nend\n\nfunction augment_platform!(platform::Platform)\n    # We augment only x86_64\n    @static if Sys.ARCH === :x86_64\n        augment_microarchitecture!(platform)\n    else\n        platform\n    end\nend\n"""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = true
+name = "ducc0"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03-march+x86_64", "x86_64-linux-gnu-cxx11-march+x86_64", "x86_64-linux-gnu-cxx03-march+avx", "x86_64-linux-gnu-cxx11-march+avx", "x86_64-linux-gnu-cxx03-march+avx2", "x86_64-linux-gnu-cxx11-march+avx2", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03-march+x86_64", "x86_64-linux-musl-cxx11-march+x86_64", "x86_64-linux-musl-cxx03-march+avx", "x86_64-linux-musl-cxx11-march+avx", "x86_64-linux-musl-cxx03-march+avx2", "x86_64-linux-musl-cxx11-march+avx2", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin-march+x86_64", "x86_64-apple-darwin-march+avx", "x86_64-apple-darwin-march+avx2", "aarch64-apple-darwin", "x86_64-unknown-freebsd-march+x86_64", "x86_64-unknown-freebsd-march+avx", "x86_64-unknown-freebsd-march+avx2", "i686-w64-mingw32-cxx03", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx03-march+x86_64", "x86_64-w64-mingw32-cxx11-march+x86_64", "x86_64-w64-mingw32-cxx03-march+avx", "x86_64-w64-mingw32-cxx11-march+avx", "x86_64-w64-mingw32-cxx03-march+avx2", "x86_64-w64-mingw32-cxx11-march+avx2"]
+script = """\nif [[ \"${target}\" == x86_64-apple-darwin* ]]; then\n    # Install a newer SDK to work around compilation failures\n    pushd $WORKSPACE/srcdir/MacOSX10.*.sdk\n    rm -rf /opt/${target}/${target}/sys-root/System\n    cp -ra usr/* \"/opt/${target}/${target}/sys-root/usr/.\"\n    cp -ra System \"/opt/${target}/${target}/sys-root/.\"\n    popd\n    CXXFLAGS=\"-mmacosx-version-min=10.14\"\nfi\n\ncd $WORKSPACE/srcdir/ducc*/julia\ninstall_license ../LICENSE\n${CXX} ${CXXFLAGS} -O3 -I ../src/ ducc_julia.cc -Wfatal-errors -pthread -std=c++17 -fPIC -fno-math-errno -fassociative-math -freciprocal-math -fno-signed-zeros -fno-trapping-math -ffp-contract=fast -ffinite-math-only -fno-rounding-math -fno-signaling-nans -fexcess-precision=fast -fvisibility=hidden -c\n# -fcx-limited-range is not supported by clang\n${CXX} ${CXXFLAGS} -O3 -o libducc_julia.${dlext} ducc_julia.o -Wfatal-errors -pthread -std=c++17 -shared -fPIC\ninstall -Dvm 0755 \"libducc_julia.${dlext}\" \"${libdir}/libducc_julia.${dlext}\"\n"""
+version = "v0.29.0"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["i686-linux-gnu-cxx03", "i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx03-march+x86_64", "x86_64-linux-gnu-cxx11-march+x86_64", "x86_64-linux-gnu-cxx03-march+avx", "x86_64-linux-gnu-cxx11-march+avx", "x86_64-linux-gnu-cxx03-march+avx2", "x86_64-linux-gnu-cxx11-march+avx2", "aarch64-linux-gnu-cxx03", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx03", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx03", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx03", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx03-march+x86_64", "x86_64-linux-musl-cxx11-march+x86_64", "x86_64-linux-musl-cxx03-march+avx", "x86_64-linux-musl-cxx11-march+avx", "x86_64-linux-musl-cxx03-march+avx2", "x86_64-linux-musl-cxx11-march+avx2", "aarch64-linux-musl-cxx03", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx03", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx03", "armv7l-linux-musleabihf-cxx11", "x86_64-unknown-freebsd-march+x86_64", "x86_64-unknown-freebsd-march+avx", "x86_64-unknown-freebsd-march+avx2"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libducc_julia"]
+type = "lib"
+variable_name = "libducc_julia"
+
+[[sources]]
+hash = "d29050f2dff2a87dd430ddf2c82d590cc3aa42a4"
+type = "git"
+unpack_target = ""
+url = "https://gitlab.mpcdf.mpg.de/mtr/ducc.git"
+[[sources]]
+hash = "2408d07df7f324d3beea818585a6d990ba99587c218a3969f924dfcc4de93b62"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.15.sdk.tar.xz"
