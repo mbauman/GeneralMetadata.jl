@@ -6,6 +6,8 @@ using Dates: Dates, DateTime, Date, Day, Millisecond
 using CodecZlib: GzipDecompressorStream
 using DataStructures: DataStructures, DefaultDict
 
+include("GitHub.jl")
+
 ## Abstract away some Pkg internals into one common place:
 function registered_package_names()
     registry = only(filter(x->x.name == "General", Pkg.Registry.reachable_registries()))
@@ -83,6 +85,14 @@ function general_repo()
     dir = mktempdir()
     run(`git clone https://github.com/JuliaRegistries/General $dir`)
     return GENERAL[] = dir
+end
+
+const YGGDRASIL = Ref{String}()
+function yggdrasil_repo()
+    isassigned(YGGDRASIL) && return YGGDRASIL[]
+    dir = mktempdir()
+    run(`git clone https://github.com/JuliaPackaging/Yggdrasil $dir`)
+    return YGGDRASIL[] = dir
 end
 
 function update_registration_dates!(meta = metadata(); after=maximum(Iterators.map(v->get(v, "registered", Dates.DateTime(0)), Iterators.flatmap(values, values(meta))), init=DateTime("2018-08-08T17:02:39")), before=after + Dates.Year(1))
@@ -337,6 +347,261 @@ function update_artifact_urls!(meta = metadata(); max_downloads=10000)
             @warn "Reached maximum download limit of $max_downloads, stopping early."
             break
         end
+    end
+    return meta
+end
+
+## JLL Metadata
+commit_and_path_from_readme(::Nothing, jllname, jllversion) = nothing, nothing
+function commit_and_path_from_readme(readme, jllname, jllversion)
+    # This ensures the version is correct; Yggdrasil didn't always tag the right release
+    startswith(readme, "# `$(jllname)_jll.jl` (v$jllversion)") || return nothing, nothing
+    m = match(r"originating \[`build_tarballs\.jl`\]\(https://github\.com/JuliaPackaging/Yggdrasil/blob/([^/]+)/(.*\.jl)\)", readme)
+    isnothing(m) && return nothing, nothing
+    return (m.captures[1], m.captures[2])
+end
+
+majorminorpatch(v::VersionNumber) = string(v.major, ".", v.minor, ".", v.patch)
+majorminor(v::VersionNumber) = string(v.major, ".", v.minor)
+major(v::VersionNumber) = string(v.major)
+
+drop_nothings(d::AbstractDict) = Dict(k => drop_nothings(v) for (k, v) in d if v !== nothing)
+drop_nothings(A::AbstractArray) = [drop_nothings(v) for v in A if v !== nothing]
+drop_nothings(v) = v
+
+# From https://github.com/JuliaPackaging/BinaryBuilder.jl/blob/58b87b84742baad7f50a4866aff0c7f2a6a290d9/src/Declarative.jl#L1-L25
+# merge multiple JSON objects garnered via `--meta-json`
+function merge_json_objects(objs::Vector)
+    merged = Dict()
+    for obj in objs
+        for k in keys(obj)
+            if !haskey(merged, k)
+                merged[k] = obj[k]
+            else
+                if merged[k] != obj[k]
+                    if !isa(merged[k], Array)
+                        merged[k] = [merged[k]]
+                    end
+
+                    if isa(obj[k], Array)
+                        append!(merged[k], obj[k])
+                    else
+                        push!(merged[k], obj[k])
+                    end
+                    merged[k] = unique(merged[k])
+                end
+            end
+        end
+    end
+    return merged
+end
+
+function separate_reconstructed_artifact_metadata!(jllmeta)
+    jllmeta["metadata"] isa String && return jllmeta # already a string pointing to some location
+    # Extract the metadata blob itself and place it into the reconstructed_artifact_metadata directory
+    repo, commit, path = match(r"^https://github.com/(?:[^/]+)/([^/]+)/tree/([^/]+)/(.*)$", jllmeta["buildscript"])
+    jllmeta_metapath = joinpath("reconstructed_artifact_metadata", repo, lowercase(path), commit * ".toml")
+    jllmeta_file = joinpath(@__DIR__, "..", jllmeta_metapath)
+    if isfile(jllmeta_file) &&
+        replace(sprint((io,x)->TOML.print(io, x, sorted=true), jllmeta["metadata"]), r"\"/tmp/jl_[^/]+/" => "\"") !=
+        replace(sprint((io,x)->TOML.print(io, x, sorted=true), TOML.parsefile(jllmeta_file)), r"\"/tmp/jl_[^/]+/" => "\"")
+        # temp foldernames sometimes get serialized to metadata; ignore those differences
+        error("reconstructing buildscript $(jllmeta["buildscript"]) generated two different metadata blobs")
+    end
+    mkpath(dirname(jllmeta_file))
+    open(jllmeta_file, "w") do f
+        TOML.print(f, jllmeta["metadata"], sorted=true)
+    end
+    jllmeta["metadata"] = jllmeta_metapath
+    return jllmeta
+end
+
+function add_jll_artifact_metadata!(meta_version_entry)
+    urls = meta_version_entry["artifact_urls"]
+    releases = Dict{Tuple{String,String,String}, Vector{String}}()
+    for url in urls
+        m = match(r"^https://github.com/([^/]+)/([^/]+)/releases/download/([^/]+)/", url)
+        isnothing(m) && continue
+        push!(get!(releases, Tuple(m), String[]), url)
+    end
+    for ((org, repo, tag), urls) in releases
+        org == "JuliaBinaryWrappers" || continue
+        jllmeta = metadata_for_jll_release(org, repo, tag)
+        jllmeta["artifact_urls"] = urls
+        separate_reconstructed_artifact_metadata!(jllmeta)
+        push!(get!(meta_version_entry, "artifact_metadata", []), jllmeta)
+    end
+    return meta_version_entry
+end
+
+function metadata_for_jll_release(org, repo, tag)
+    contains(tag, "-v") || error("unknown tag $tag for $org/$repo")
+    jllname, jllversion = split(tag, "-v", limit=2)
+    release = GitHub.get_release(org, repo, tag)
+    # Currently constrain to releases authored by jlbuild; TODO: relax this with BinaryBuilder2 support and log the author instead
+    release["author"]["login"] == "jlbuild" || error("release $(release["html_url"]) is not by jlbuild, got $(release["author"]["login"])")
+    # This might be wrong, but commit_and_path_from_readme checks to ensure versions match
+    # In cases where it's wrong, _there does exist_ a good link to Yggdrasil in its README... somewhere.
+    # But I don't know how to reliably get to it... so we fall back to the Yggdrasil timestamps
+    tree_sha = GitHub.tree_sha_from_tagname(org, repo, release["tag_name"])
+    commit_from_readme, path_from_readme = commit_and_path_from_readme(GitHub.get_readme(org, repo, tree_sha), jllname, jllversion)
+    release_published_at = release.published_at
+    return cd(yggdrasil_repo()) do
+        if !isnothing(commit_from_readme)
+            commit = commit_from_readme
+            method = "README link"
+        else
+            commit = strip(read(`git rev-list --first-parent -n 1 --before=$(release_published_at) master`, String))
+            method = "timestamp"
+        end
+        try
+            run(pipeline(`git checkout $commit`, stdout=Base.devnull, stderr=Base.devnull))
+        catch _
+            # Sometimes a README link points to a commit that's on a fork or somesuch; sometimes origin knows this
+            run(pipeline(`git fetch origin $commit`, stdout=Base.devnull, stderr=Base.devnull))
+            run(pipeline(`git checkout $commit`, stdout=Base.devnull, stderr=Base.devnull))
+        end
+        buildscript = @something path_from_readme joinpath(uppercase(jllname[1:1]), jllname, "build_tarballs.jl")
+        if !isfile(buildscript)
+            # First look for a potentially-deeper nested path, without worrying about case, then consider version numbers
+            for searchpath in ("./$(jllname[1])/$jllname/build_tarballs.jl",
+                                "*/$jllname/build_tarballs.jl",
+                                "*/$jllname@$jllversion/build_tarballs.jl",
+                                "*/$jllname@$(majorminorpatch(VersionNumber(jllversion)))/build_tarballs.jl",
+                                "*/$jllname@$(majorminor(VersionNumber(jllversion)))/build_tarballs.jl",
+                                "*/$jllname@$(major(VersionNumber(jllversion)))/build_tarballs.jl",
+                                "*/$jllname@v$jllversion/build_tarballs.jl",
+                                "*/$jllname@v$(majorminorpatch(VersionNumber(jllversion)))/build_tarballs.jl",
+                                "*/$jllname@v$(majorminor(VersionNumber(jllversion)))/build_tarballs.jl",
+                                "*/$jllname@v$(major(VersionNumber(jllversion)))/build_tarballs.jl")
+                pathmatches = split(readchomp(`find . -ipath $searchpath`), "\n", keepempty=false)
+                if length(pathmatches) == 1
+                    buildscript = pathmatches[1]
+                    break
+                elseif length(pathmatches) > 1
+                    error("found multiple build scripts for $jllname at Ygg $commit, got $pathmatches")
+                end
+            end
+        end
+        !isfile(buildscript) && error("could not find build script for $jllname at Ygg $commit")
+        @info "$jllname@$jllversion: $buildscript @ $commit"
+        # Now find the version of BinaryBuilder/Julia to run
+        if isfile(".ci/Manifest.toml")
+            manifest = TOML.parsefile(".ci/Manifest.toml")
+            proj = abspath(".ci")
+            if haskey(manifest, "julia_version")
+                julia_version = majorminor(VersionNumber(manifest["julia_version"])) # ignore patch versions for these
+            elseif isfile(".ci/azp_agent/install_agents.sh")
+                # Try to find it from .ci/azp_agent/install_agents.sh (which should be present alongside the manifest)
+                # Extract Julia version from the install_agents.sh script; this has varied over time (and note there's sometimes commented ones, too)
+                #     JULIA_URL="https://julialang-s3.julialang.org/bin/linux/x64/1.6/julia-1.6.0-linux-x86_64.tar.gz"
+                #     JULIA_URL="https://julialang-s3.julialang.org/bin/linux/x64/1.6/julia-1.6.0-linux-x86_64.tar.gz"
+                #     JULIA_URL="https://julialang-s3.julialang.org/bin/linux/x64/1.6/julia-1.6.0-rc1-linux-x86_64.tar.gz"
+                #     JULIA_URL="https://julialangnightlies-s3.julialang.org/bin/linux/x64/julia-latest-linux64.tar.gz"
+                #     JULIA_URL="https://julialang-s3.julialang.org/bin/linux/x64/1.4/julia-1.4.1-linux-x86_64.tar.gz"
+                #     JULIA_URL="https://julialang-s3.julialang.org/bin/linux/x64/1.4/julia-1.4.0-linux-x86_64.tar.gz"
+                #     JULIA_URL="julialangnightlies-s3.julialang.org/assert_pretesting/linux/x64/1.4/julia-3a22e2fdcf-linux64.tar.gz"
+                julia_match = match(r"^\s*JULIA_URL=\".*?/julia-(.*)-linux"m, readchomp(".ci/azp_agent/install_agents.sh"))
+                julia_version = if !isnothing(julia_match)
+                    if julia_match[1] == "1.6.0-rc1"
+                        "1.6.0"
+                    elseif julia_match[1] == "latest"
+                        # ugh. https://github.com/JuliaPackaging/Yggdrasil/blob/e0c5ee45cb0b6aea8006ad25f388ad116da22a01/.ci/azp_agent/install_agents.sh#L54-L57
+                        # We have to guess based on the behaviors here; we don't have easy access to every nightly. Fortunately this only
+                        # happened during the 1.6-DEV period, but there are periods where neither release 1.6 nor 1.5 work
+                        if DateTime(chopsuffix(release_published_at, "Z")) > DateTime(2021, 2, 18, 23, 18, 14)
+                            # 1.6.0 begins working after https://github.com/JuliaPackaging/Yggdrasil/pull/2593 (ARGS not defined error)
+                            "1.6.0"
+                        else
+                            # 1.6.0-beta1 still had the old scoping behaviors that worked prior to that
+                            "1.6.0-beta1"
+                        end
+                    elseif julia_match[1] == "3a22e2fdcf"
+                        # This was https://github.com/JuliaLang/julia/commit/3a22e2fdcf, a v1.4-rc2 pre-release
+                        "1.4.0"
+                    else
+                        julia_match[1]
+                    end
+                else
+                    # Prior to https://github.com/JuliaPackaging/Yggdrasil/commit/5ce813311a8066095115635e05e8805efccfd873, this was in run_agent.sh (or not included at all)
+                    "1.3.0"
+                end
+            else
+                julia_version = "1.3.0"
+            end
+        else
+            # Prior to https://github.com/JuliaPackaging/Yggdrasil/commit/102b6ec47081ccb932e59bd604b02959ffbbdc16, there was no manifest
+            # and Julia lived inside a pre-built docker container... from somewhere...
+            proj = joinpath(@__DIR__, "yggdrasil_env_pre_2020_02_07") # This has BB v0.2.2 (Jan 2020); there are older buildscripts that predate this, but start here
+            julia_version = "1.3.0"
+        end
+        # Now ask the build script for its meta-json
+        bb_meta = mktemp() do path, io
+            @info "julia +$julia_version --project=$proj -e 'using Pkg; Pkg.instantiate()'"
+            buf = IOBuffer()
+            run(pipeline(`julia +$julia_version --project=$proj -e 'using Pkg; Pkg.instantiate()'`, stdout=buf, stderr=buf))
+            output = String(take!(buf))
+            if contains(output, "Error: ")
+                @warn "got error during Pkg.instantiate() for $proj at $commit, output was:\n\n$output"
+            end
+            @info "julia +$julia_version --project=$proj $buildscript --meta-json=...'"
+            cd(dirname(buildscript)) do
+                run(`julia +$julia_version --project=$proj $(basename(buildscript)) --meta-json=$path`)
+            end
+            drop_nothings(merge_json_objects(JSON.parse(io, jsonlines=true)))
+        end
+        bb_version = begin
+            manifest = TOML.parsefile("$proj/Manifest.toml")
+            haskey(manifest, "deps") ? manifest["deps"]["BinaryBuilder"][]["version"] : manifest["BinaryBuilder"][]["version"]
+        end
+        if bb_meta["name"] != jllname || majorminorpatch(VersionNumber(bb_meta["version"])) != majorminorpatch(VersionNumber(jllversion))
+            # Some old buildscripts were committed _after_ the release publication, which means we got the wrong version of the buildscript.
+            error("metadata mismatch: buildscript defines version=$(bb_meta["name"])@$(bb_meta["version"]), tag is $jllname@$jllversion")
+        end
+        return Dict{String,Any}(
+            "buildscript" => "https://github.com/JuliaPackaging/Yggdrasil/tree/$(commit)$(buildscript)",
+            "metadata_type" => "BinaryBuilder --meta-json",
+            "metadata_source" => "retrospective (by $method)",
+            "metadata_version" => bb_version,
+            "metadata" => bb_meta,
+        )
+    end
+end
+
+function update_jll_metadata!(meta; force = false, timelimit=Dates.Minute(90))
+    start_time = Dates.now()
+    entries = []
+    for (pkg, pkgentry) in meta
+        for (ver, verinfo) in pkgentry
+            haskey(verinfo, "artifact_urls") && push!(entries, verinfo)
+        end
+    end
+    sort!(entries, by=x->x["registered"], rev=true)
+    failures = []
+    for entry in entries
+        if !haskey(entry, "artifact_urls") || isempty(entry["artifact_urls"])
+            continue
+        end
+        if haskey(entry, "artifact_metadata") && !force
+            continue
+        end
+        if DateTime(2020, 9, 9) < entry["registered"] < DateTime(2020, 10, 19)
+            # Skip versions registered during the dark ages when Yggdrasil was pulling some -latest that doesn't work with v1.5 or v1.6-beta1
+            # TODO: find a good version here!
+            continue
+        end
+        (Dates.now() - start_time) > timelimit && ( @info "timelimit of $timelimit reached, stopping here"; break)
+        try
+            add_jll_artifact_metadata!(entry)
+        catch ex
+            @error "error getting metadata for $(entry["artifact_urls"][1:begin])..." ex
+            push!(failures, "$(entry["artifact_urls"][1:begin])... => $ex")
+            ex isa HTTP.Exceptions.StatusError && ex.status == 403 && (start_time = Dates.now() - timelimit; break)
+        end
+    end
+    if length(failures) > 0
+        @warn "encountered $(length(failures)) failures:"
+        println(join(replace.(failures, ('\n'=>" ",)), "\n"))
     end
     return meta
 end
