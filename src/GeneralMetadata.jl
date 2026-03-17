@@ -446,7 +446,7 @@ function metadata_for_jll_release(org, repo, tag)
     tree_sha = GitHub.tree_sha_from_tagname(org, repo, release["tag_name"])
     commit_from_readme, path_from_readme = commit_and_path_from_readme(GitHub.get_readme(org, repo, tree_sha), jllname, jllversion)
     release_published_at = release.published_at
-    return cd(yggy) do
+    return cd(yggdrasil_repo()) do
         if !isnothing(commit_from_readme)
             commit = commit_from_readme
             method = "README link"
@@ -461,7 +461,7 @@ function metadata_for_jll_release(org, repo, tag)
             run(pipeline(`git fetch origin $commit`, stdout=Base.devnull, stderr=Base.devnull))
             run(pipeline(`git checkout $commit`, stdout=Base.devnull, stderr=Base.devnull))
         end
-        buildscript = @something path_from_readme joinpath(yggy, uppercase(jllname[1:1]), jllname, "build_tarballs.jl")
+        buildscript = @something path_from_readme joinpath(uppercase(jllname[1:1]), jllname, "build_tarballs.jl")
         if !isfile(buildscript)
             # First look for a potentially-deeper nested path, without worrying about case, then consider version numbers
             for searchpath in ("./$(jllname[1])/$jllname/build_tarballs.jl",
@@ -476,7 +476,7 @@ function metadata_for_jll_release(org, repo, tag)
                                 "*/$jllname@v$(major(VersionNumber(jllversion)))/build_tarballs.jl")
                 pathmatches = split(readchomp(`find . -ipath $searchpath`), "\n", keepempty=false)
                 if length(pathmatches) == 1
-                    buildscript = joinpath(yggy, pathmatches[1])
+                    buildscript = pathmatches[1]
                     break
                 elseif length(pathmatches) > 1
                     error("found multiple build scripts for $jllname at Ygg $commit, got $pathmatches")
@@ -559,7 +559,7 @@ function metadata_for_jll_release(org, repo, tag)
             error("metadata mismatch: buildscript defines version=$(bb_meta["name"])@$(bb_meta["version"]), tag is $jllname@$jllversion")
         end
         return Dict{String,Any}(
-            "buildscript" => "https://github.com/JuliaPackaging/Yggdrasil/tree/$(commit)$(chopprefix(buildscript,yggy))",
+            "buildscript" => "https://github.com/JuliaPackaging/Yggdrasil/tree/$(commit)$(buildscript)",
             "metadata_type" => "BinaryBuilder --meta-json",
             "metadata_source" => "retrospective (by $method)",
             "metadata_version" => bb_version,

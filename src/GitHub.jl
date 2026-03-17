@@ -1,6 +1,7 @@
 module GitHub
 
 import HTTP, JSON
+using Base64: base64decode
 
 const API_BASE = "https://api.github.com"
 function build_headers()

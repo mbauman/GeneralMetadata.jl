@@ -1,5 +1,4 @@
 using GeneralMetadata
-using TOML
 
 function main()
     meta = GeneralMetadata.metadata()
