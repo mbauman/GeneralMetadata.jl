@@ -354,7 +354,19 @@ function update_artifact_urls!(meta = metadata(); max_downloads=10000)
         for (ver, ver_info) in pkg_info
             haskey(ver_info, "artifact_urls") && continue
             @info "Updating artifact URLs for $pkg_name v$ver"
-            artifact_urls = gather_artifact_urls(pkg_uuid, reg_info[VersionNumber(ver)].git_tree_sha1)
+            artifact_urls = try
+                gather_artifact_urls(pkg_uuid, reg_info[VersionNumber(ver)].git_tree_sha1)
+            catch ex
+                @warn "Failed to gather artifact URLs for $pkg_name version $ver:" ex
+                if ex isa Downloads.RequestError && ex.response.status == 404
+                    # If we get a 404, skip all subsquent versions of this package, but keep going with other packages.
+                    break
+                else
+                    # For all other errors, ensure we don't hammer with more than 5 retries
+                    download_count += max(10, max_downloads÷5)
+                    break
+                end
+            end
             download_count += 1
             ver_info["artifact_urls"] = artifact_urls
         end
