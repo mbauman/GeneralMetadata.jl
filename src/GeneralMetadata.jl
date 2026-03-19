@@ -296,10 +296,12 @@ end
 
 function gather_artifact_urls(uuid, sha)
     repo_url = registered_package_repo(uuid)
+    subdir = registered_repo_subdir(uuid)
+    artifact_paths = isnothing(subdir) ? Artifacts.artifact_names : joinpath.(subdir, Artifacts.artifact_names)
     m = match(r"^https?://github\.com/([^/]+)/([^/]+?)(?:.git)?$", repo_url)
     artifact_toml = try
         org, repo = m.captures
-        GitHub.get_file(org, repo, sha, in(Artifacts.artifact_names))
+        GitHub.get_file(org, repo, sha, in(artifact_paths))
     catch _
         # Fallback to getting it from the storage server
         try
@@ -308,14 +310,15 @@ function gather_artifact_urls(uuid, sha)
                 seekstart(iogz)
                 untar_file(x->x.path in Artifacts.artifact_names, GzipDecompressorStream(iogz))
             end
-        catch _
+        catch ex
             # Fallback fallback to cloning the entire repo and checking out the commit
+            startswith(repo_url, "https://github.com") && rethrow(ex) # Trust that we've already tried this GitHub repo via API
             mktempdir() do dir
                 run(`git clone $repo_url $dir`)
                 subdir = @something registered_package_repo_subdir(uuid) "."
                 cd(dir) do
                     # fetch the files directly from its tree sha
-                    toml_path = filter(in(Artifacts.artifact_names)∘basename, split(readchomp(`git ls-tree -r --name-only $sha $subdir`), "\n"))
+                    toml_path = filter(in(artifact_paths), split(readchomp(`git ls-tree -r --name-only $sha $subdir`), "\n"))
                     isempty(toml_path) ? nothing : readchomp(`git cat-file blob $sha:$(only(toml_path))`)
                 end
             end
