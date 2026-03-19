@@ -296,7 +296,7 @@ end
 
 function gather_artifact_urls(uuid, sha)
     repo_url = registered_package_repo(uuid)
-    subdir = registered_repo_subdir(uuid)
+    subdir = registered_package_repo_subdir(uuid)
     artifact_paths = isnothing(subdir) ? Artifacts.artifact_names : joinpath.(subdir, Artifacts.artifact_names)
     m = match(r"^https?://github\.com/([^/]+)/([^/]+?)(?:.git)?$", repo_url)
     artifact_toml = try
