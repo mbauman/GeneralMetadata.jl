@@ -1,0 +1,67 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.10"
+lazy_artifacts = false
+name = "GIAC"
+platforms = ["i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx11", "riscv64-linux-gnu-cxx11", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx11"]
+script = """cd ${WORKSPACE}/srcdir/giac*\n\n# Determine gettext option: FreeBSD doesn't have libintl via Gettext_jll\nGETTEXT_OPT=\"auto\"\nif [[ \"${target}\" == *freebsd* ]]; then\n    GETTEXT_OPT=\"disabled\"\nfi\n\n# Configure with Meson, disabling all optional dependencies\nmeson setup build \\\n    --cross-file=\"${MESON_TARGET_TOOLCHAIN}\" \\\n    --buildtype=release \\\n    -Dgui=disabled \\\n    -Dpari=disabled \\\n    -Dntl=disabled \\\n    -Dcocoa=disabled \\\n    -Dgsl=disabled \\\n    -Dlapack=disabled \\\n    -Decm=disabled \\\n    -Dglpk=disabled \\\n    -Dpng=disabled \\\n    -Dao=disabled \\\n    -Dsamplerate=disabled \\\n    -Dcurl=disabled \\\n    -Dreadline=auto \\\n    -Dmicropython=disabled \\\n    -Dquickjs=disabled \\\n    -Dlibbf=disabled \\\n    -Djni=disabled \\\n    -Dgettext=${GETTEXT_OPT}\n\nmeson compile -C build -j${nproc}\nmeson install -C build\n\n# Install aide_cas help data to share/giac/ so giac's built-in\n# bin/../share/giac/ fallback finds it automatically\nmkdir -p ${prefix}/share/giac\ncp doc/aide_cas ${prefix}/share/giac/aide_cas\n\ninstall_license COPYING\n"""
+version = "v2.0.1"
+
+[[dependencies]]
+compat = "0.21.0"
+name = "Gettext_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "6.2.1"
+name = "GMP_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "4.1.1"
+name = "MPFR_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "8.2.13"
+name = "Readline_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgiac"]
+type = "lib"
+variable_name = "libgiac"
+[[products]]
+binnames = ["icas"]
+type = "exe"
+variable_name = "icas"
+[[products]]
+paths = ["share/giac/aide_cas"]
+type = "file"
+variable_name = "aide_cas"
+
+[[sources]]
+hash = "194ff510872c5b871e316bf5c7dfbe942273bef8"
+type = "git"
+unpack_target = ""
+url = "https://github.com/s-celles/giac.git"
