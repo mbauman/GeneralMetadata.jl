@@ -585,7 +585,7 @@ function metadata_for_jll_release(org, repo, tag)
             end
             @info "julia +$julia_version --project=$proj $buildscript --meta-json=...'"
             cd(dirname(buildscript)) do
-                run(`julia +$julia_version --project=$proj $(basename(buildscript)) --meta-json=$path`)
+                run(addenv(`julia +$julia_version --project=$proj $(basename(buildscript)) --meta-json=$path`, "YGGDRASIL" => "true", "BUILD_BUILDNUMBER" => rsplit(jllversion, "+", limit=2)[end]))
             end
             drop_nothings(merge_json_objects(JSON.parse(io, jsonlines=true)))
         end
