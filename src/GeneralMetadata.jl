@@ -390,7 +390,7 @@ function update_artifact_urls!(meta = metadata(); max_downloads=10000)
     return meta
 end
 
-## JLL Metadata
+# JLL Metadata
 commit_and_path_from_readme(::Nothing, jllname, jllversion) = nothing, nothing
 function commit_and_path_from_readme(readme, jllname, jllversion)
     # This ensures the version is correct; Yggdrasil didn't always tag the right release
@@ -643,6 +643,83 @@ function update_jll_metadata!(meta; force = false, timelimit=Dates.Minute(90))
         println(join(replace.(failures, ('\n'=>" ",)), "\n"))
     end
     return meta
+end
+
+function extract_jll_sources!(meta)
+    for (pkg, pkgentry) in meta
+        for (ver, verinfo) in pkgentry
+            for artifactmeta in get(verinfo, "artifact_metadata", [])
+                haskey(artifactmeta, "metadata") || continue
+                haskey(artifactmeta, "sources") && continue
+                meta_contents = if contains(artifactmeta["metadata"], "://")
+                    String(HTTP.get(artifactmeta["metadata"]).body)
+                else
+                    read(joinpath(@__DIR__, "..", artifactmeta["metadata"]), String)
+                end
+                srcs = parse_artifact_metadata_sources(meta_contents, artifactmeta)
+                if !isnothing(srcs)
+                   artifactmeta["sources"] = srcs
+                end
+            end
+        end
+    end
+    return meta
+end
+
+function parse_artifact_metadata_sources(contents, artifactmeta)
+    type = get(artifactmeta, "metadata_type", missing)
+    if type == "BinaryBuilder --meta-json"
+        buildscript = get(artifactmeta, "buildscript", missing)
+        meta = TOML.parse(contents)
+        # The sources field has changed a number of times, but it's always a vector
+        sources = []
+        meta_srcs = get(meta, "sources", [])
+        @assert isa(meta_srcs, Vector) "expected \"sources\" to be a Vector, got $(typeof(meta_srcs))"
+        for src in meta_srcs
+            # There are three flavors here:
+            # * Strings are paths to bundled directores
+            # * Dicts of url => hash pairs (old versions)
+            # * Dicts with a "type" field (new versions)
+            #    - Possible types are "directory", "file", "archive", and "git"
+            @assert src isa Union{AbstractString, AbstractDict} "expected sources to be either strings or dicts, got $(typeof(src))"
+            if src isa AbstractString || (haskey(src, "type") && src["type"] == "directory")
+                dir = src isa AbstractString ? src : src["path"]
+                # This is a path to a bundled directory, resolve this to an Yggdrasil URL
+                # Sometimes these directories included a /tmp/jl_xxx prefix but still used a real Yggy path
+                dir = chopprefix(dir, r"^/tmp/jl_[^/]+") # intentially preserve leading / in this case
+                prefix, commit, path = match(r"^(.*)(/[a-f0-9]{40}/)(.*)$", buildscript) # because we resolve it relative to the buildscript, we need to preserve the path after the commit
+                yggy_path = dirname(path)
+                url = string(prefix, commit, normpath(joinpath(yggy_path, dir)))
+                r = HTTP.get(url, status_exception=false)
+                r.status == 200 || error("failed to resolve bundled directory $src to $url")
+                push!(sources, Dict("type"=>"directory", "url" => url))
+            elseif (haskey(src, "type") && src["type"] in ("git", "file", "archive"))
+                 push!(sources, Dict("type" => src["type"], "url" => src["url"], "hash" => src["hash"]))
+            elseif haskey(src, "type")
+                error("unknown source with fields $(keys(src)) and type $(src["type"])")
+            else
+                for (url, hash) in src
+                    @assert occursin(r"^[a-f0-9]{40}$", hash) || occursin(r"^[a-f0-9]{64}$", hash)
+                    push!(sources, Dict("url" => url, "hash" => hash))
+                end
+            end
+        end
+        # We also want to include build dependencies as sources, since those are often incorporated into the end result
+        # and are not otherwise dependencies that would be tracked separately
+        meta_deps = get(meta, "dependencies", [])
+        @assert meta_deps isa Vector "expected \"dependencies\" to be a Vector, got $(typeof(meta_deps))"
+        for dep in meta_deps
+            # Old versions used some String dependencies, but those are not build-only dependencies
+            if dep isa AbstractDict && haskey(dep, "type") && dep["type"] == "builddependency"
+                push!(sources, Dict("type" => "builddependency", "package" => dep["name"]))
+                # TODO: need to resolve the version...
+            end
+        end
+        return unique(sources)
+    else
+        @warn "unknown metadata type $type with version $version, cannot parse sources"
+        return nothing
+    end
 end
 
 end
