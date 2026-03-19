@@ -587,7 +587,7 @@ function metadata_for_jll_release(org, repo, tag)
             error("metadata mismatch: buildscript defines version=$(bb_meta["name"])@$(bb_meta["version"]), tag is $jllname@$jllversion")
         end
         return Dict{String,Any}(
-            "buildscript" => "https://github.com/JuliaPackaging/Yggdrasil/tree/$(commit)$(buildscript)",
+            "buildscript" => "https://github.com/JuliaPackaging/Yggdrasil/tree/$(commit)/$(chopprefix(normpath(buildscript), "/"))",
             "metadata_type" => "BinaryBuilder --meta-json",
             "metadata_source" => "retrospective (by $method)",
             "metadata_version" => bb_version,
