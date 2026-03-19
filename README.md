@@ -19,6 +19,15 @@ versions as its top-level keys. Each version entry has the following fields:
     * `metadata_type::String`. Optional. An identifier for the type of `metadata`, currently only `"BinaryBuilder --meta-json"`
     * `metadata_version::String`. Optional. The version of the metadata schema
     * `metadata_source::String`. Optional. Information about how the given metadata was obtained
+    * `sources::Vector{<:Dict}`. Optional. Extracted information from the build `metadata` to describe the
+    sources from which this artifact was created. Each table within has fields:
+        * `type::String`. Optional. One of `["file", "archive", "git", "directory", "builddependency"]`, or missing
+        * `package::String`. Required for `"builddependency"`.
+        * `url::String`. Required for all `type`s (including missing) except `"builddependency"`
+        * `hash::String`. Required for all `type`s (including missing) except `"builddependency"` and `"directory"`
+        * `upstream::Dict`. Optional. A table describing this resource:
+            * `project::String`. Required. Either a Repology or GitHub project URL
+            * `version::String`. Optional. The exact upstream version number, if known
 
 ## The web API
 

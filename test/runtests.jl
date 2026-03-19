@@ -82,6 +82,38 @@ end
                     if !contains(ainfo["metadata"], "://")
                         @test isfile(joinpath(@__DIR__, "..", ainfo["metadata"]))
                     end
+
+                    sources = get(ainfo, "sources", [])
+                    @test sources isa Vector
+                    for src in sources
+                        @test src isa Dict
+                        if haskey(src, "type")
+                            @test src["type"] isa String
+                            @test src["type"] in ["file", "archive", "git", "directory", "builddependency"]
+                        end
+                        if haskey(src, "type") && src["type"] == "builddependency"
+                            @test haskey(src, "package")
+                            @test src["package"] isa String
+                            # TODO: will need to add versioning information
+                        else
+                            # all other types have `url`
+                            @test haskey(src, "url")
+                            @test src["url"] isa String
+                            if get(src, "type", "") != "directory"
+                                # and all other types except directory have a hash
+                                @test haskey(src, "hash")
+                                @test src["hash"] isa String
+                            end
+                        end
+                        if haskey(src, "upstream")
+                            @test src["upstream"] isa Dict
+                            @test haskey(src["upstream"], "project")
+                            @test src["upstream"]["project"] isa String
+                            if haskey(src["upstream"], "version")
+                                @test src["upstream"]["version"] isa String
+                            end
+                        end
+                    end
                 end
             end
         end
