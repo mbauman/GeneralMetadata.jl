@@ -715,7 +715,7 @@ function parse_artifact_metadata_sources(contents, artifactmeta)
                 # TODO: need to resolve the version...
             end
         end
-        return sources
+        return unique(sources)
     else
         @warn "unknown metadata type $type with version $version, cannot parse sources"
         return nothing
