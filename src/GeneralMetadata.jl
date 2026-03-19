@@ -675,11 +675,11 @@ function parse_artifact_metadata_sources(contents, artifactmeta)
                 dir = src isa AbstractString ? src : src["path"]
                 # This is a path to a bundled directory, resolve this to an Yggdrasil URL
                 # Sometimes these directories included a /tmp/jl_xxx prefix but still used a real Yggy path
-                dir = chopprefix(dir, r"^/tmp/jl_[^/]+")
-                prefix, commit, path = match(r"^(.*)(/[a-f0-9]{40}/)(.*)$", buildscript)
+                dir = chopprefix(dir, r"^/tmp/jl_[^/]+") # intentially preserve leading / in this case
+                prefix, commit, path = match(r"^(.*)(/[a-f0-9]{40}/)(.*)$", buildscript) # because we resolve it relative to the buildscript, we need to preserve the path after the commit
                 yggy_path = dirname(path)
-                url = string(prefix, commit, joinpath(yggy_path, dir))
-                r = HTTP.get(url)
+                url = string(prefix, commit, normpath(joinpath(yggy_path, dir)))
+                r = HTTP.get(url, status_exception=false)
                 r.status == 200 || error("failed to resolve bundled directory $src to $url")
                 push!(sources, Dict("type"=>"directory", "url" => url))
             elseif (haskey(src, "type") && src["type"] in ("git", "file", "archive"))
