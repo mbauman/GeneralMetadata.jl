@@ -14,36 +14,31 @@ function registered_package_names()
     return Set(x.name for x in values(registry.pkgs))
 end
 
-function registered_package_versions(pkgname; registry=general_registry())
-    pkg_info = only(values(filter(((k,v),)->v.name == pkgname, registry.pkgs)))
-    return _registered_package_versions(registry, pkg_info)
-end
-function registered_package_versions(pkguuid::Base.UUID; registry = general_registry())
-    return _registered_package_versions(registry, registry[pkguuid])
-end
-function _registered_package_versions(registry, pkgentry)
-    if VERSION < v"1.13-"
+_init_package_info!(registry, pkgentry) = if VERSION < v"1.13-"
         Pkg.Registry.init_package_info!(pkgentry)
     else
         Pkg.Registry.init_package_info!(registry, pkgentry)
     end
+
+registered_package_versions(pkgname; registry=general_registry()) = registered_package_versions(uuid_from_name(pkgname); registry)
+function registered_package_versions(pkguuid::Base.UUID; registry = general_registry())
+    pkgentry = registry[pkguuid]
+    _init_package_info!(registry, pkgentry)
     return pkgentry.info.version_info
 end
 
-function registered_package_repo(pkgname; registry=general_registry())
-    pkg_info = only(values(filter(((k,v),)->v.name == pkgname, registry.pkgs)))
-    return _registered_package_repo(registry, pkg_info)
-end
+registered_package_repo(pkgname; registry=general_registry()) = registered_package_repo(uuid_from_name(pkgname); registry)
 function registered_package_repo(pkguuid::Base.UUID; registry = general_registry())
-    return _registered_package_repo(registry, registry[pkguuid])
-end
-function _registered_package_repo(registry, pkgentry)
-    if VERSION < v"1.13-"
-        Pkg.Registry.init_package_info!(pkgentry)
-    else
-        Pkg.Registry.init_package_info!(registry, pkgentry)
-    end
+    pkgentry = registry[pkguuid]
+    _init_package_info!(registry, pkgentry)
     return pkgentry.info.repo
+end
+
+registered_package_repo_subdir(pkgname; registry=general_registry()) = registered_package_repo_subdir(uuid_from_name(pkgname); registry)
+function registered_package_repo_subdir(pkguuid::Base.UUID; registry = general_registry())
+    pkgentry = registry[pkguuid]
+    _init_package_info!(registry, pkgentry)
+    return pkgentry.info.subdir
 end
 
 function uuid_from_name(pkg_name)
@@ -307,10 +302,23 @@ function gather_artifact_urls(uuid, sha)
         GitHub.get_file(org, repo, sha, in(Artifacts.artifact_names))
     catch _
         # Fallback to getting it from the storage server
-        mktemp() do _, iogz
-            Downloads.download("https://pkg.julialang.org/package/$(uuid)/$(sha)", iogz)
-            seekstart(iogz)
-            untar_file(x->x.path in Artifacts.artifact_names, GzipDecompressorStream(iogz))
+        try
+            mktemp() do _, iogz
+                Downloads.download("https://pkg.julialang.org/package/$(uuid)/$(sha)", iogz)
+                seekstart(iogz)
+                untar_file(x->x.path in Artifacts.artifact_names, GzipDecompressorStream(iogz))
+            end
+        catch _
+            # Fallback fallback to cloning the entire repo and checking out the commit
+            mktempdir() do dir
+                run(`git clone $repo_url $dir`)
+                subdir = @something registered_package_repo_subdir(uuid) "."
+                cd(dir) do
+                    # fetch the files directly from its tree sha
+                    toml_path = filter(in(Artifacts.artifact_names)∘basename, split(readchomp(`git ls-tree -r --name-only $sha $subdir`), "\n"))
+                    isempty(toml_path) ? nothing : readchomp(`git cat-file blob $sha:$(only(toml_path))`)
+                end
+            end
         end
     end
     isnothing(artifact_toml) && return String[]
