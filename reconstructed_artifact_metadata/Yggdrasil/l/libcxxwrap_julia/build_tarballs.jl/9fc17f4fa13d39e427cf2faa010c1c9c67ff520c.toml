@@ -1,0 +1,47 @@
+dependencies = []
+lazy_artifacts = false
+name = "libcxxwrap_julia"
+platforms = ["armv7l-linux-gnueabihf-cxx03", "armv7l-linux-gnueabihf-cxx11", "x86_64-linux-gnu-cxx03", "x86_64-linux-gnu-cxx11", "x86_64-apple-darwin14-cxx03", "x86_64-apple-darwin14-cxx11", "x86_64-w64-mingw32-cxx03", "x86_64-w64-mingw32-cxx11"]
+script = """\ncase \"$target\" in\n\tarm-linux-gnueabihf|x86_64-linux-gnu)\n        Julia_PREFIX=${WORKSPACE}/srcdir/julia-$target/julia-1.3.1\n        ;;\n    x86_64-apple-darwin14|x86_64-w64-mingw32)\n        Julia_PREFIX=${WORKSPACE}/srcdir/julia-$target/juliabin\n        ;;\nesac\n\nmkdir build\ncd build\ncmake -DJulia_PREFIX=$Julia_PREFIX -DCMAKE_INSTALL_PREFIX=$prefix -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} -DCMAKE_BUILD_TYPE=Release ../libcxxwrap-julia/\nVERBOSE=ON cmake --build . --config Release --target install -- -j${nproc}\ninstall_license $WORKSPACE/srcdir/libcxxwrap-julia*/LICENSE.md\n"""
+version = "v0.7.0"
+
+[[products]]
+dir_paths = []
+dlopen_flags = ["RTLD_GLOBAL"]
+dont_dlopen = false
+libnames = ["libcxxwrap_julia"]
+type = "lib"
+variable_name = "libcxxwrap_julia"
+[[products]]
+dir_paths = []
+dlopen_flags = ["RTLD_GLOBAL"]
+dont_dlopen = false
+libnames = ["libcxxwrap_julia_stl"]
+type = "lib"
+variable_name = "libcxxwrap_julia_stl"
+
+[[sources]]
+hash = "7959f09947f95e67ee094a2ee3fb8b7f9be696f8"
+type = "git"
+unpack_target = ""
+url = "https://github.com/JuliaInterop/libcxxwrap-julia.git"
+[[sources]]
+hash = "965c8fab2214f8ce1b3d449d088561a6de61be42543b48c3bbadaed5b02bf824"
+type = "archive"
+unpack_target = "julia-arm-linux-gnueabihf"
+url = "https://julialang-s3.julialang.org/bin/linux/armv7l/1.3/julia-1.3.1-linux-armv7l.tar.gz"
+[[sources]]
+hash = "faa707c8343780a6fe5eaf13490355e8190acf8e2c189b9e7ecbddb0fa2643ad"
+type = "archive"
+unpack_target = "julia-x86_64-linux-gnu"
+url = "https://julialang-s3.julialang.org/bin/linux/x64/1.3/julia-1.3.1-linux-x86_64.tar.gz"
+[[sources]]
+hash = "f2e5359f03314656c06e2a0a28a497f62e78f027dbe7f5155a5710b4914439b1"
+type = "archive"
+unpack_target = "julia-x86_64-apple-darwin14"
+url = "https://github.com/Gnimuc/JuliaBuilder/releases/download/v1.3.0/julia-1.3.0-x86_64-apple-darwin14.tar.gz"
+[[sources]]
+hash = "c7b2db68156150d0e882e98e39269301d7bf56660f4fc2e38ed2734a7a8d1551"
+type = "archive"
+unpack_target = "julia-x86_64-w64-mingw32"
+url = "https://github.com/Gnimuc/JuliaBuilder/releases/download/v1.3.0/julia-1.3.0-x86_64-w64-mingw32.tar.gz"
