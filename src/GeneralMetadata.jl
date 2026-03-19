@@ -10,15 +10,15 @@ include("GitHub.jl")
 
 # Abstract away some Pkg internals into one common place:
 function registered_package_names()
-    registry = only(filter(x->x.name == "General", Pkg.Registry.reachable_registries()))
+    registry = general_registry()
     return Set(x.name for x in values(registry.pkgs))
 end
 
-function registered_package_versions(pkgname; registry=only(filter(x->x.name == "General", Pkg.Registry.reachable_registries())))
+function registered_package_versions(pkgname; registry=general_registry())
     pkg_info = only(values(filter(((k,v),)->v.name == pkgname, registry.pkgs)))
     return _registered_package_versions(registry, pkg_info)
 end
-function registered_package_versions(pkguuid::Base.UUID; registry = only(filter(x->x.name == "General", Pkg.Registry.reachable_registries())))
+function registered_package_versions(pkguuid::Base.UUID; registry = general_registry())
     return _registered_package_versions(registry, registry[pkguuid])
 end
 function _registered_package_versions(registry, pkgentry)
@@ -30,11 +30,11 @@ function _registered_package_versions(registry, pkgentry)
     return pkgentry.info.version_info
 end
 
-function registered_package_repo(pkgname; registry=only(filter(x->x.name == "General", Pkg.Registry.reachable_registries())))
+function registered_package_repo(pkgname; registry=general_registry())
     pkg_info = only(values(filter(((k,v),)->v.name == pkgname, registry.pkgs)))
     return _registered_package_repo(registry, pkg_info)
 end
-function registered_package_repo(pkguuid::Base.UUID; registry = only(filter(x->x.name == "General", Pkg.Registry.reachable_registries())))
+function registered_package_repo(pkguuid::Base.UUID; registry = general_registry())
     return _registered_package_repo(registry, registry[pkguuid])
 end
 function _registered_package_repo(registry, pkgentry)
@@ -47,7 +47,7 @@ function _registered_package_repo(registry, pkgentry)
 end
 
 function uuid_from_name(pkg_name)
-    registry = only(filter(x->x.name == "General", Pkg.Registry.reachable_registries()))
+    registry = general_registry()
     return only(Pkg.Registry.uuids_from_name(registry, pkg_name))
 end
 
@@ -102,6 +102,7 @@ function general_repo()
     run(`git clone https://github.com/JuliaRegistries/General $dir`)
     return GENERAL[] = dir
 end
+general_registry() = Pkg.Registry.RegistryInstance(general_repo())
 
 const YGGDRASIL = Ref{String}()
 function yggdrasil_repo()
@@ -294,7 +295,7 @@ function all_matches(pattern_project_pairs, needle)
 end
 
 function package_repository(uuid)
-    registry = only(filter(x->x.name == "General", Pkg.Registry.reachable_registries()))
+    registry = general_registry()
     return registry[uuid].info.repo
 end
 
