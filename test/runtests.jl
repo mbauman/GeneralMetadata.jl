@@ -10,7 +10,7 @@ using Dates: Dates, DateTime
         timestamp = GeneralMetadata.last_update(meta) + Dates.Millisecond(500) # --before is exclusive
         last_commit = split(readchomp(`git rev-list --first-parent --before=$(timestamp)Z master`), "\n")[1]
         run(`git checkout --quiet --force $last_commit`)
-        reg = Pkg.Registry.RegistryInstance(GeneralMetadata.general_repo())
+        reg = Registry.RegistryInstance(pwd())
         last_update = GeneralMetadata.last_update(meta)
 
         # Ensure all registry packages are present in the metadata, and that all versions present in the metadata are present in the registry
