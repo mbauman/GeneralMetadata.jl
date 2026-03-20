@@ -48,15 +48,18 @@ to a dictionary of their versions and data. Modifications to this dictionary can
 ## Updates
 
 The goal is for this information to be automatically and regularly updated. All update scripts are non-destructive and
-preserve any manually-entered information. All recorded data should be correct. If you notice something wrong, please open an issue.
+preserve any manually-entered information. All recorded data should be correct. If you notice something wrong, please open
+an issue or pull request with the correction.
 
 Additional fields may be added to the TOML data files and web API in the future.
 
-## Yet to do:
+## Contributing
 
-* [ ] Package licenses
-* [ ] Artifact upstream component identification
-* [ ] Artifact upstream component licenses
+Contributions are very welcome, both to the infrastructure and to the data itself. In particular artifact "upstream" identifaction is
+automatically populated and may be wrong. These are only thorougly reviewed upon publication of a [Security Advisory](https://github.com/JuliaLang/SecurityAdvisories.jl).
+
+One category of metadata that is outstanding and for which contributions would be very welcome is licensing information, both of the packages
+themselves and their artifacts. 
 
 ## Scope
 
