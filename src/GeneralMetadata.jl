@@ -691,15 +691,15 @@ function parse_artifact_metadata_sources(contents, artifactmeta)
                 url = string(prefix, commit, normpath(joinpath(yggy_path, dir)))
                 r = HTTP.get(url, status_exception=false)
                 r.status == 200 || error("failed to resolve bundled directory $src to $url")
-                push!(sources, Dict("type"=>"directory", "url" => url))
+                push!(sources, Dict{String,Any}("type"=>"directory", "url" => url))
             elseif (haskey(src, "type") && src["type"] in ("git", "file", "archive"))
-                 push!(sources, Dict("type" => src["type"], "url" => src["url"], "hash" => src["hash"]))
+                 push!(sources, Dict{String,Any}("type" => src["type"], "url" => src["url"], "hash" => src["hash"]))
             elseif haskey(src, "type")
                 error("unknown source with fields $(keys(src)) and type $(src["type"])")
             else
                 for (url, hash) in src
                     @assert occursin(r"^[a-f0-9]{40}$", hash) || occursin(r"^[a-f0-9]{64}$", hash)
-                    push!(sources, Dict("url" => url, "hash" => hash))
+                    push!(sources, Dict{String,Any}("url" => url, "hash" => hash))
                 end
             end
         end
@@ -710,7 +710,7 @@ function parse_artifact_metadata_sources(contents, artifactmeta)
         for dep in meta_deps
             # Old versions used some String dependencies, but those are not build-only dependencies
             if dep isa AbstractDict && haskey(dep, "type") && dep["type"] == "builddependency"
-                push!(sources, Dict("type" => "builddependency", "package" => dep["name"]))
+                push!(sources, Dict{String,Any}("type" => "builddependency", "package" => dep["name"]))
                 # TODO: need to resolve the version...
             end
         end
