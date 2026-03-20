@@ -1,6 +1,6 @@
 module GeneralMetadata
 
-import TOML, JSON, HTTP, CSV, Pkg, Downloads, Tar, Artifacts
+import TOML, JSON, HTTP, CSV, Pkg, Downloads, Tar, Artifacts, Repology
 using DataFrames: DataFrames, DataFrame
 using Dates: Dates, DateTime, Date, Day, Millisecond
 using CodecZlib: GzipDecompressorStream
@@ -719,6 +719,27 @@ function parse_artifact_metadata_sources(contents, artifactmeta)
     else
         @warn "unknown metadata type $type with version $version, cannot parse sources"
         return nothing
+    end
+end
+
+function identify_upstream!(meta)
+    for (pkg, pkgentry) in meta
+        for (ver, verinfo) in pkgentry
+            for artifactmeta in get(verinfo, "artifact_metadata", [])
+                for source in get(artifactmeta, "sources", [])
+                    if haskey(source, "url") && haskey(source, "hash")
+                        (proj, ver) = Repology.identify_upstream(source["url"], source["hash"])
+                        isnothing(proj) && continue
+                        source["upstream"] = Dict{String,Any}()
+                        source["upstream"]["project"] = string("repology.org/project/", proj)
+                        if !isnothing(ver)
+                            source["upstream"]["version"] = ver
+                        end
+                        @info "identified upstream for source $(source["url"]): $(source["upstream"]["project"])@$(get(source["upstream"], "version", "*"))"
+                    end
+                end
+            end
+        end
     end
 end
 
