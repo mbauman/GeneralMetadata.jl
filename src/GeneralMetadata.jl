@@ -616,7 +616,7 @@ function update_jll_metadata!(meta; force = false, timelimit=Dates.Minute(90))
         end
     end
     sort!(entries, by=x->x["registered"], rev=true)
-    failures = []
+    failures = 0
     for entry in entries
         if !haskey(entry, "artifact_urls") || isempty(entry["artifact_urls"])
             continue
@@ -634,13 +634,12 @@ function update_jll_metadata!(meta; force = false, timelimit=Dates.Minute(90))
             add_jll_artifact_metadata!(entry)
         catch ex
             @error "error getting metadata for $(entry["artifact_urls"][1:begin])..." ex
-            push!(failures, "$(entry["artifact_urls"][1:begin])... => $ex")
+            failures += 1
             ex isa HTTP.Exceptions.StatusError && ex.status == 403 && (start_time = Dates.now() - timelimit; break)
         end
     end
-    if length(failures) > 0
-        @warn "encountered $(length(failures)) failures:"
-        println(join(replace.(failures, ('\n'=>" ",)), "\n"))
+    if failures > 0
+        @warn "encountered $(length(failures)) jll metadata failures"
     end
     return meta
 end
@@ -727,7 +726,7 @@ function identify_upstream!(meta)
         for (ver, verinfo) in pkgentry
             for artifactmeta in get(verinfo, "artifact_metadata", [])
                 for source in get(artifactmeta, "sources", [])
-                    if haskey(source, "url") && haskey(source, "hash")
+                    if haskey(source, "url") && haskey(source, "hash") && !haskey(source, "upstream")
                         (proj, ver) = Repology.identify_upstream(source["url"], source["hash"])
                         isnothing(proj) && continue
                         source["upstream"] = Dict{String,Any}()
@@ -735,7 +734,6 @@ function identify_upstream!(meta)
                         if !isnothing(ver)
                             source["upstream"]["version"] = ver
                         end
-                        @info "identified upstream for source $(source["url"]): $(source["upstream"]["project"])@$(get(source["upstream"], "version", "*"))"
                     end
                 end
             end
