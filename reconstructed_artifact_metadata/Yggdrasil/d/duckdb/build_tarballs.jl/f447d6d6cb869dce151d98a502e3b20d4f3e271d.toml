@@ -1,0 +1,32 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "DuckDB"
+platforms = ["i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx11", "riscv64-linux-gnu-cxx11", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx11"]
+script = """macos_sdk_version=14.0\nmacosx_deployment_target=11.0\nif [[ \"${target}\" == *-apple-darwin* ]]; then\n    echo \"Extracting MacOSX${macos_sdk_version}.sdk.tar.xz (this may take a while)\"\n    rm -rf /opt/${target}/${target}/sys-root/System\n    rm -rf /opt/${target}/${target}/sys-root/usr/include/libxml2/libxml\n    # extract the tarball into the sys-root so all compilers pick it up\n    # automatically, and use --warning=no-unknown-keyword to hide harmless\n    # warnings about unsupported pax header keywords like \"SCHILY.fflags\"\n    tar --extract \\\n        --file=${WORKSPACE}/srcdir/MacOSX${macos_sdk_version}.sdk.tar.xz \\\n        --directory=\"/opt/${target}/${target}/sys-root/.\" \\\n        --strip-components=1 \\\n        --warning=no-unknown-keyword \\\n        MacOSX${macos_sdk_version}.sdk/System \\\n        MacOSX${macos_sdk_version}.sdk/usr\n    export MACOSX_DEPLOYMENT_TARGET=${macosx_deployment_target}\nfi\ncd $WORKSPACE/srcdir/duckdb/\n\nexport DUCKDB_TARGET=\"${target}\"\nif [[ \"${target}\" == \"x86_64-linux-gnu\" ]]; then\n    export DUCKDB_TARGET=\"linux_amd64\"\nelif [[ \"${target}\" == aarch64-linux-gnu ]]; then\n    export DUCKDB_TARGET=\"linux_arm64\"\nelif [[ \"${target}\" == \"x86_64-linux-musl\" ]]; then\n    export DUCKDB_TARGET=\"linux_amd64_musl\"\nelif [[ \"${target}\" == \"x86_64-w64-mingw32\" ]]; then\n    export DUCKDB_TARGET=\"windows_amd64_mingw\"\nelif [[ \"${target}\" == x86_64-apple-* ]]; then\n    export DUCKDB_TARGET=\"osx_amd64\"\nelif [[ \"${target}\" == aarch64-apple-* ]]; then\n    export DUCKDB_TARGET=\"osx_arm64\"\nfi\n\nif [[ \"${bb_full_target}\" == *-cxx03* ]]; then\n    export DUCKDB_TARGET=\"${DUCKDB_TARGET}_gcc4\"\nfi\n\necho \"Compiling for DuckDB Target - $DUCKDB_TARGET\"\n\ncmake -B build \\\n      -DCMAKE_INSTALL_PREFIX=${prefix} \\\n      -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n      -DCMAKE_BUILD_TYPE=Release \\\n      -DENABLE_SANITIZER=FALSE \\\n      -DBUILD_EXTENSIONS='parquet;json' \\\n      -DSKIP_EXTENSIONS=jemalloc \\\n      -DENABLE_EXTENSION_AUTOLOADING=1 \\\n      -DENABLE_EXTENSION_AUTOINSTALL=1 \\\n      -DBUILD_UNITTESTS=FALSE \\\n      -DBUILD_SHELL=TRUE \\\n      -DDUCKDB_EXPLICIT_PLATFORM=${DUCKDB_TARGET}\ncmake --build build --parallel ${nproc}\ncmake --install build\n\nif [[ \"${target}\" == *-mingw32 ]]; then\n    install -Dvm 755 \"build/src/libduckdb.${dlext}\" -t \"${libdir}\"\nfi\n"""
+version = "v1.5.0"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libduckdb"]
+type = "lib"
+variable_name = "libduckdb"
+[[products]]
+binnames = ["duckdb"]
+type = "exe"
+variable_name = "duckdb"
+
+[[sources]]
+hash = "3a3967aa8190d0a2d1931d4ca4f5d920760030b4"
+type = "git"
+unpack_target = ""
+url = "https://github.com/duckdb/duckdb.git"
+[[sources]]
+filename = "MacOSX14.0.sdk.tar.xz"
+hash = "4a31565fd2644d1aec23da3829977f83632a20985561a2038e198681e7e7bf49"
+type = "file"
+url = "https://github.com/roblabla/MacOSX-SDKs/releases/download/macosx14.0/MacOSX14.0.sdk.tar.xz"
