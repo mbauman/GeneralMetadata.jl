@@ -6,6 +6,7 @@ function main()
     GeneralMetadata.update_artifact_urls!(meta)
     GeneralMetadata.update_jll_metadata!(meta)
     GeneralMetadata.extract_jll_sources!(meta)
+    GeneralMetadata.identify_upstream!(meta)
     GeneralMetadata.save_metadata!(meta)
     return meta
 end

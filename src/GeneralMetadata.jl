@@ -1,6 +1,6 @@
 module GeneralMetadata
 
-import TOML, JSON, HTTP, CSV, Pkg, Downloads, Tar, Artifacts
+import TOML, JSON, HTTP, CSV, Pkg, Downloads, Tar, Artifacts, Repology
 using DataFrames: DataFrames, DataFrame
 using Dates: Dates, DateTime, Date, Day, Millisecond
 using CodecZlib: GzipDecompressorStream
@@ -616,7 +616,7 @@ function update_jll_metadata!(meta; force = false, timelimit=Dates.Minute(90))
         end
     end
     sort!(entries, by=x->x["registered"], rev=true)
-    failures = []
+    failures = 0
     for entry in entries
         if !haskey(entry, "artifact_urls") || isempty(entry["artifact_urls"])
             continue
@@ -634,13 +634,12 @@ function update_jll_metadata!(meta; force = false, timelimit=Dates.Minute(90))
             add_jll_artifact_metadata!(entry)
         catch ex
             @error "error getting metadata for $(entry["artifact_urls"][1:begin])..." ex
-            push!(failures, "$(entry["artifact_urls"][1:begin])... => $ex")
+            failures += 1
             ex isa HTTP.Exceptions.StatusError && ex.status == 403 && (start_time = Dates.now() - timelimit; break)
         end
     end
-    if length(failures) > 0
-        @warn "encountered $(length(failures)) failures:"
-        println(join(replace.(failures, ('\n'=>" ",)), "\n"))
+    if failures > 0
+        @warn "encountered $(length(failures)) jll metadata failures"
     end
     return meta
 end
@@ -692,15 +691,15 @@ function parse_artifact_metadata_sources(contents, artifactmeta)
                 url = string(prefix, commit, normpath(joinpath(yggy_path, dir)))
                 r = HTTP.get(url, status_exception=false)
                 r.status == 200 || error("failed to resolve bundled directory $src to $url")
-                push!(sources, Dict("type"=>"directory", "url" => url))
+                push!(sources, Dict{String,Any}("type"=>"directory", "url" => url))
             elseif (haskey(src, "type") && src["type"] in ("git", "file", "archive"))
-                 push!(sources, Dict("type" => src["type"], "url" => src["url"], "hash" => src["hash"]))
+                 push!(sources, Dict{String,Any}("type" => src["type"], "url" => src["url"], "hash" => src["hash"]))
             elseif haskey(src, "type")
                 error("unknown source with fields $(keys(src)) and type $(src["type"])")
             else
                 for (url, hash) in src
                     @assert occursin(r"^[a-f0-9]{40}$", hash) || occursin(r"^[a-f0-9]{64}$", hash)
-                    push!(sources, Dict("url" => url, "hash" => hash))
+                    push!(sources, Dict{String,Any}("url" => url, "hash" => hash))
                 end
             end
         end
@@ -711,7 +710,7 @@ function parse_artifact_metadata_sources(contents, artifactmeta)
         for dep in meta_deps
             # Old versions used some String dependencies, but those are not build-only dependencies
             if dep isa AbstractDict && haskey(dep, "type") && dep["type"] == "builddependency"
-                push!(sources, Dict("type" => "builddependency", "package" => dep["name"]))
+                push!(sources, Dict{String,Any}("type" => "builddependency", "package" => dep["name"]))
                 # TODO: need to resolve the version...
             end
         end
@@ -719,6 +718,42 @@ function parse_artifact_metadata_sources(contents, artifactmeta)
     else
         @warn "unknown metadata type $type with version $version, cannot parse sources"
         return nothing
+    end
+end
+
+function identify_upstream!(meta)
+    for (pkg, pkgentry) in meta
+        for (ver, verinfo) in pkgentry
+            for artifactmeta in get(verinfo, "artifact_metadata", [])
+                for source in get(artifactmeta, "sources", [])
+                    if haskey(source, "url") && haskey(source, "hash") && !haskey(source, "upstream")
+                        # We could theoretically detangle file/archive and repo sources here, but old metadata
+                        # didn't know at all and sometimes Repology itself is confused between the two, so this
+                        # just tries both ways.
+                        (proj, ver) = Repology.identify_upstream(source["url"], source["hash"])
+                        if isnothing(proj) && contains(source["url"], "github.com") && !contains(source["url"], "JuliaPackaging/Yggdrasil")
+                            # We can try a bit harder for GitHub URLs; they are very common and we know a lot about how they are structured
+                            (repo, ver) = GitHub.identify_upstream(source["url"])
+                            # Now go back and see if the repo matches a known Repology project, but trust GitHub's version information (if there)
+                            if !isnothing(repo)
+                                (proj, _) = Repology.identify_upstream(repo, "")
+                            end
+                            # TODO: If no Repology project matches, we could use the GitHub repo as the project name. GitHub is special among git forges
+                            # in that there could be GHSAs there, which probably makes it worthy of being used as a first-class project identifier
+                        elseif isnothing(ver) && contains(source["url"], "github.com") && !contains(source["url"], "JuliaPackaging/Yggdrasil")
+                            (_, ver) = GitHub.identify_upstream(source["url"])
+                        end
+                        if !isnothing(proj)
+                            source["upstream"] = Dict{String,Any}()
+                            source["upstream"]["project"] = string("repology.org/project/", proj)
+                            if !isnothing(ver)
+                                source["upstream"]["version"] = ver
+                            end
+                        end
+                    end
+                end
+            end
+        end
     end
 end
 
