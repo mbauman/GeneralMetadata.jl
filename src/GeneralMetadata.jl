@@ -726,7 +726,7 @@ function identify_upstream!(meta)
         for (ver, verinfo) in pkgentry
             for artifactmeta in get(verinfo, "artifact_metadata", [])
                 for source in get(artifactmeta, "sources", [])
-                    if haskey(source, "url") && haskey(source, "hash") && !haskey(source, "upstream")
+                    if haskey(source, "url") && haskey(source, "hash") # && !haskey(source, "upstream")
                         # We could theoretically detangle file/archive and repo sources here, but old metadata
                         # didn't know at all and sometimes Repology itself is confused between the two, so this
                         # just tries both ways.
