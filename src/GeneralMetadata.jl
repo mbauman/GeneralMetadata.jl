@@ -735,7 +735,9 @@ function identify_upstream!(meta)
                             # We can try a bit harder for GitHub URLs; they are very common and we know a lot about how they are structured
                             (repo, ver) = GitHub.identify_upstream(source["url"])
                             # Now go back and see if the repo matches a known Repology project, but trust GitHub's version information (if there)
-                            (proj, _) = Repology.identify_upstream(repo, "")
+                            if !isnothing(repo)
+                                (proj, _) = Repology.identify_upstream(repo, "")
+                            end
                             # TODO: If no Repology project matches, we could use the GitHub repo as the project name. GitHub is special among git forges
                             # in that there could be GHSAs there, which probably makes it worthy of being used as a first-class project identifier
                         elseif isnothing(ver) && contains(source["url"], "github.com") && !contains(source["url"], "JuliaPackaging/Yggdrasil")
