@@ -1,0 +1,52 @@
+augment_platform_block = ""
+init_block = """    if (@isdefined grfont_dat)\n        # need to set because PGPLOT searches for grfot.dat only via (i) PGPLOT_FONT (ii) PGPLOT_DIR (iii) comptime default path\n        ENV[\"PGPLOT_FONT\"] = grfont_dat\n    end\n"""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "PGPLOT"
+platforms = ["x86_64-linux-musl-libgfortran5", "x86_64-linux-gnu-libgfortran5", "i686-linux-gnu-libgfortran5", "aarch64-apple-darwin-libgfortran5"]
+script = """cd $WORKSPACE/srcdir\n\n# Apply patches to pgplot source\npushd pgplot\nfor f in ../patch-*.diff; do\n    atomic_patch -p0 \"${f}\"\ndone\npopd\n\nmkdir pgplot_build && cd pgplot_build/\ncp ../pgplot/drivers.list drivers.list\n\nif [[ \"${target}\" == *-apple-* ]]; then\n    mkdir ../pgplot/sys_darwin\n    cp ../bb.conf ../pgplot/sys_darwin/bb.conf\n    ../pgplot/makemake ../pgplot/ darwin\n    make lib SHELL=/bin/bash\nelse\n    ../pgplot/makemake ../pgplot/ linux g77_gcc\n    make lib FCOMPL=gfortran SHARED_LIB_LIBS=\"-lpng -lz\" SHARED_LD=\"${FC} -shared  -o libpgplot.${dlext}\"\nfi\n\n# Build grfont.dat using host (musl) Fortran compiler so pgpack can run in the sandbox\n${HOSTFC} -o pgpack ../pgplot/fonts/pgpack.f\n./pgpack < ../pgplot/fonts/grfont.txt\nmake rgb.txt\n\ninstall -Dvm 755 libpgplot.${dlext} \"${libdir}/libpgplot.${dlext}\"\ninstall -Dvm 644 grfont.dat \"${prefix}/share/pgplot/grfont.dat\"\ninstall -Dvm 644 rgb.txt \"${prefix}/share/pgplot/rgb.txt\"\ninstall_license ../pgplot/copyright.notice\n"""
+version = "v5.2.3"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "libpng_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "b53b4c65-9356-5827-b1ea-8c7a1a84506f"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libpgplot"]
+type = "lib"
+variable_name = "libpgplot"
+[[products]]
+paths = ["share/pgplot/grfont.dat"]
+type = "file"
+variable_name = "grfont_dat"
+
+[[sources]]
+hash = "a5799ff719a510d84d26df4ae7409ae61fe66477e3f1e8820422a9a4727a5be4"
+type = "archive"
+unpack_target = ""
+url = "ftp://ftp.astro.caltech.edu/pub/pgplot/pgplot5.2.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"
