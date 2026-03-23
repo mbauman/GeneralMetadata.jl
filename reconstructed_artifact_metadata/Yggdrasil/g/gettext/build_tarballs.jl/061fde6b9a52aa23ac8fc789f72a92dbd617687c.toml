@@ -1,0 +1,55 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Gettext"
+platforms = ["i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx11", "riscv64-linux-gnu-cxx11", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir/gettext-*\n\nexport CFLAGS=\"-O2\"\nexport CPPFLAGS=\"-I${includedir}\"\nexport LDFLAGS=\"-L${libdir}\"\n\n# Reported as <https://savannah.gnu.org/bugs/?67987>\natomic_patch -p1 ../patches/progreloc.patch\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    # Do not export multi-byte string functions.\n    # These functions are defined in a system library, and if we not re-export them,\n    # there would be duplicate definitions.\n    export LDFLAGS=\"-Wl,--exclude-symbols,mbrtowc:mbrlen:mbsrtowcs:wcsrtombs:mbtowc:wctomb\"\nfi\n\n./configure --prefix=${prefix} \\\n    --build=${MACHTYPE} \\\n    --host=${target} \\\n    --disable-static \\\n    --enable-relocatable \\\n    --with-libiconv-prefix=${prefix} \\\n    am_cv_lib_iconv=yes \\\n    am_cv_func_iconv=yes\nmake -j${nproc}\nmake install\n"""
+version = "v1.0.0"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Libiconv_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "~2.13.6"
+name = "XML2_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgettextlib", "libgettextlib-1"]
+type = "lib"
+variable_name = "libgettext"
+
+[[sources]]
+hash = "71132a3fb71e68245b8f2ac4e9e97137d3e5c02f415636eb508ae607bc01add7"
+type = "archive"
+unpack_target = ""
+url = "https://ftpmirror.gnu.org/gettext/gettext-1.0.tar.xz"
+[[sources]]
+follow_symlinks = false
+path = "bundled"
+target = ""
+type = "directory"
