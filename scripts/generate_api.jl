@@ -12,6 +12,7 @@ function main()
         pkgdir = mkpath(joinpath(root, pkg))
         versioninfo = OrderedDict{String,Any}()
         for (ver, info) in versions
+            versioninfo[ver] = OrderedDict{String,Any}()
             # Registration dates
             versioninfo[ver]["registered"] = info["registered"]
             if haskey(info, "yanked")
