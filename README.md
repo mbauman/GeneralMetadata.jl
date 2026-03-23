@@ -38,7 +38,7 @@ To allow for programmatic access in non-Julia environments, this powers a simple
         * `"yanked"` date
         * `"has_artifacts"` boolean
         * `"artifact_upstreams"` array of tables of upstream project names and versions
-        * `"artifacts_tracked"` boolean if all artifacts have fully identified sources
+        * `"artifacts_tracked"` boolean if all artifacts have upstream information for all their sources
 * GET https://juliaregistries.github.io/GeneralMetadata.jl/api/Example/info.json
      * provides the UUID
 
