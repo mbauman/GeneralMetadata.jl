@@ -20,7 +20,7 @@ function main()
             end
             # Artifact information
             if haskey(info, "artifact_urls")
-                versioninfo[ver]["has_artifacts"] = isempty(info["artifact_urls"])
+                versioninfo[ver]["has_artifacts"] = !isempty(info["artifact_urls"])
                 if haskey(info, "artifact_metadata")
                     components = []
                     tracked_urls = Set{String}(info["artifact_urls"])
