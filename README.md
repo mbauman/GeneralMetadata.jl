@@ -34,7 +34,11 @@ versions as its top-level keys. Each version entry has the following fields:
 To allow for programmatic access in non-Julia environments, this powers a simple JSON-based API server.  It currently has the following endpoints:
 
 * GET https://juliaregistries.github.io/GeneralMetadata.jl/api/Example/versions.json
-     * provides the version numbers and their registration/yank dates
+    * provides the version numbers and each one's `registered` date along with, optionally:
+        * `"yanked"` date
+        * `"has_artifacts"` boolean
+        * `"artifact_upstreams"` array of tables of upstream project names and versions
+        * `"artifacts_tracked"` boolean if all artifacts have fully identified sources
 * GET https://juliaregistries.github.io/GeneralMetadata.jl/api/Example/info.json
      * provides the UUID
 
@@ -59,7 +63,7 @@ Contributions are very welcome, both to the infrastructure and to the data itsel
 automatically populated and may be wrong. These are only thorougly reviewed upon publication of a [Security Advisory](https://github.com/JuliaLang/SecurityAdvisories.jl).
 
 One category of metadata that is outstanding and for which contributions would be very welcome is licensing information, both of the packages
-themselves and their artifacts. 
+themselves and their artifacts.
 
 ## Scope
 
