@@ -1,0 +1,103 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "SCOTCH"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd ${WORKSPACE}/srcdir/scotch\n\n# Apply conda-forge patches\natomic_patch -p1 $WORKSPACE/srcdir/scotch-feedstock/recipe/0001-put-metis-headers-in-include-scotch.patch\natomic_patch -p1 $WORKSPACE/srcdir/scotch-feedstock/recipe/0002-fix-ptesmumps.h.patch\natomic_patch -p1 $WORKSPACE/srcdir/scotch-feedstock/recipe/0003-win-fix-ssize_t.patch\natomic_patch -p1 $WORKSPACE/srcdir/scotch-feedstock/recipe/0004-win-fix-context.c.patch\natomic_patch -p1 $WORKSPACE/srcdir/scotch-feedstock/recipe/0005-use-external-dummysizes.patch\natomic_patch -p1 $WORKSPACE/srcdir/scotch-feedstock/recipe/0006-win-fix-graph-match-scan.patch\natomic_patch -p1 $WORKSPACE/srcdir/scotch-feedstock/recipe/0007-allow-overriding-pthread_mutex_t-size.patch\n\n################################################################################\n\n# SCOTCH builds a helper program `dummysizes`, and runs it to extract sizes of datatypes.\n# This does not work when cross-building.\n# We build `dummysizes` ahead of time with the host compiler.\n\nmkdir -p src/dummysizes/build-host\ncd src/dummysizes\ncp $WORKSPACE/srcdir/scotch-feedstock/recipe/CMakeLists-dummysizes.txt CMakeLists.txt\n\n# First we need to find out `sizeof(pthread_mutex_t)` for the build platform\ncat >find_mutex_size.c <<EOF\n#include <pthread.h>\n// Encode size as ASCII digits in a magic string\nchar info[] = {\n    'I','N','F','O',':','s','i','z','e','[',\n    ('0' + ((sizeof(pthread_mutex_t) / 10000) % 10)),\n    ('0' + ((sizeof(pthread_mutex_t) /  1000) % 10)),\n    ('0' + ((sizeof(pthread_mutex_t) /   100) % 10)),\n    ('0' + ((sizeof(pthread_mutex_t) /    10) % 10)),\n    ('0' + ((sizeof(pthread_mutex_t) /     1) % 10)),\n    ']', '\\0'\n};\nEOF\n$CC -c find_mutex_size.c\nmutex_size=$(\n    strings find_mutex_size.o |\n    grep 'INFO:size\\[' |\n    grep -o '\\[[0-9]*\\]' |\n    tr -d '[]' |\n    sed 's/^0*//'\n)\necho \"Found sizeof(pthread_mutex_t) = $mutex_size\"\n\nOPTIONS=(\n    -DBUILD_LIBESMUMPS=OFF\n    -DBUILD_LIBSCOTCHMETIS=OFF\n    -DBUILD_PTSCOTCH=OFF\n    -DCMAKE_BUILD_TYPE=Release\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_HOST_TOOLCHAIN}\n    -DENABLE_TESTS=OFF\n    -DINTSIZE=\"32\"\n    -DMPI_THREAD_MULTIPLE=OFF\n    -DSCOTCH_PATCHLEVEL=11\n    -DSCOTCH_RELEASE=0\n    -DSCOTCH_VERSION=7\n    -DTHREADS=ON\n)\ncmake -B build-host ${OPTIONS[@]}\ncmake --build build-host --parallel ${nproc}\n\n################################################################################\n\n# Now build SCOTCH\n\ncd ${WORKSPACE}/srcdir/scotch\n\nFLAGS=\"\"\nif [[ \"${target}\" == *linux* ]]; then\n    FLAGS=\"-lrt\"\nfi\nif [[ \"${target}\" == *linux-musl* ]]; then\n    FLAGS=\"-lrt -D_GNU_SOURCE\"\nfi\nif [[ \"${target}\" == *freebsd* ]]; then\n    FLAGS=\"-Dcpu_set_t=cpuset_t -D__BSD_VISIBLE\"\nfi\n\nOPTIONS=(\n    -DBUILD_LIBESMUMPS=ON\n    -DBUILD_LIBSCOTCHMETIS=ON\n    -DBUILD_PTSCOTCH=OFF\n    -DBUILD_SHARED_LIBS=ON\n    -DBUILD_DUMMYSIZES=OFF\n    -DCMAKE_BUILD_TYPE=Release\n    -DCMAKE_INSTALL_PREFIX=$prefix\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN}\n    -DENABLE_TESTS=OFF\n    -DINSTALL_METIS_HEADERS=OFF\n    -DINTSIZE=\"32\"\n    -DLIBSCOTCHERR=scotcherr\n    -DMPI_THREAD_MULTIPLE=OFF\n    -DTHREADS=ON\n)\n\nCFLAGS=$FLAGS cmake -B build ${OPTIONS[@]}\ncmake --build build --parallel ${nproc}\ncmake --install build\n\ninstall_license ${WORKSPACE}/srcdir/scotch/LICENSE_en.txt\n"""
+version = "v7.0.11"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.2.12"
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "83775a58-1f1d-513f-b197-d71354ab007a"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.0.9"
+name = "Bzip2_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "6e34b625-4abd-537c-b88f-471c36dfa7a0"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "5.8.2"
+name = "XZ_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "ffd25f8a-64ca-5728-b0f7-c24cf3aae800"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libscotch"]
+type = "lib"
+variable_name = "libscotch"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libesmumps"]
+type = "lib"
+variable_name = "libesmumps"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libscotcherr"]
+type = "lib"
+variable_name = "libscotcherr"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libscotcherrexit"]
+type = "lib"
+variable_name = "libscotcherrexit"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libscotchmetisv3"]
+type = "lib"
+variable_name = "libscotchmetisv3"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libscotchmetisv5"]
+type = "lib"
+variable_name = "libscotchmetisv5"
+
+[[sources]]
+hash = "626b88ce70edabb993bbee463f6c28ae2899af69"
+type = "git"
+unpack_target = ""
+url = "https://gitlab.inria.fr/scotch/scotch"
+[[sources]]
+hash = "73cc602e57759cd4a12823586aa46e29d7a7e6f7"
+type = "git"
+unpack_target = ""
+url = "https://github.com/conda-forge/scotch-feedstock"
