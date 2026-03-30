@@ -1,0 +1,43 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.10"
+lazy_artifacts = false
+name = "GAP_pkg_semigroups"
+platforms = ["x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "powerpc64le-linux-gnu-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "riscv64-linux-gnu-cxx11"]
+script = """macos_sdk_version=10.14\nmacosx_deployment_target=10.14\nif [[ \"${target}\" == x86_64-apple-darwin* ]]; then\n    echo \"Extracting MacOSX${macos_sdk_version}.sdk.tar.xz (this may take a while)\"\n    rm -rf /opt/${target}/${target}/sys-root/System\n    rm -rf /opt/${target}/${target}/sys-root/usr/include/libxml2/libxml\n    # extract the tarball into the sys-root so all compilers pick it up\n    # automatically, and use --warning=no-unknown-keyword to hide harmless\n    # warnings about unsupported pax header keywords like \"SCHILY.fflags\"\n    tar --extract \\\n        --file=${WORKSPACE}/srcdir/MacOSX${macos_sdk_version}.sdk.tar.xz \\\n        --directory=\"/opt/${target}/${target}/sys-root/.\" \\\n        --strip-components=1 \\\n        --warning=no-unknown-keyword \\\n        MacOSX${macos_sdk_version}.sdk/System \\\n        MacOSX${macos_sdk_version}.sdk/usr\n    export MACOSX_DEPLOYMENT_TARGET=${macosx_deployment_target}\nfi\ncd semigroups*\n\nEXTRA_FLAGS=()\nif [[ \"${target}\" == *apple-darwin* ]]; then\n    # lld does support the single_module flag\n    # but the detection is broken due to a warning\n    # see https://savannah.gnu.org/support/?110937\n    EXTRA_FLAGS+=(lt_cv_apple_cc_single_mod=yes)\nfi\n\n# not enough space in /tmp on buildkite\nexport TMPDIR=$WORKSPACE/tmp\nmkdir $TMPDIR\n\nif [[ \"${target}\" == powerpc64le* ]]; then\n    # work around https://gitlab.com/libeigen/eigen/-/work_items/2259 until the fixed eigen gets used in libsemigroups (https://github.com/libsemigroups/libsemigroups/issues/932)\n    export CXXFLAGS=\"-DEIGEN_ALTIVEC_DISABLE_MMA\"\nfi\n\n./configure \\\n    --build=${MACHTYPE} \\\n    --host=${target} \\\n    --with-gaproot=${prefix}/lib/gap \\\n    --disable-hpcombi \\\n    --disable-backward \\\n    --with-external-libsemigroups \\\n    \"${EXTRA_FLAGS[@]}\"\nmake -j${nproc}\n\n# copy the loadable module\nmkdir -p ${prefix}/lib/gap\ncp bin/*/*.so ${prefix}/lib/gap/\n\ninstall_license LICENSE\n"""
+version = "v501.60100.0"
+
+[[dependencies]]
+compat = "~400.1500.0"
+name = "GAP_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "=3.5.3"
+name = "libsemigroups_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+paths = ["lib/gap/semigroups.so"]
+type = "file"
+variable_name = "semigroups"
+
+[[sources]]
+hash = "92123474c067710219f7813c0511fb418338a04e493d0d2dbfb0a88ad5c6dc9d"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/semigroups/Semigroups/releases/download/v5.6.1/semigroups-5.6.1.tar.gz"
+[[sources]]
+filename = "MacOSX10.14.sdk.tar.xz"
+hash = "0f03869f72df8705b832910517b47dd5b79eb4e160512602f593ed243b28715f"
+type = "file"
+url = "https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.14.sdk.tar.xz"
