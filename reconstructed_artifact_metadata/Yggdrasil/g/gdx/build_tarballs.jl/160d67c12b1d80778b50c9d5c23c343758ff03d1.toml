@@ -1,0 +1,37 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "gdx"
+platforms = ["i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir/gdx/\n\nif [[ \"${target}\" == *mingw* ]]; then\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/winfloat.patch;\nfi\n\ncmake -S . -B build \\\n    --install-prefix ${prefix} \\\n    --toolchain ${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DCMAKE_C_FLAGS=${C_FLAGS} \\\n    -DCMAKE_CXX_FLAGS=${C_FLAGS} \\\n    -DNO_TESTS=ON \\\n    -DNO_EXAMPLES=ON \\\n    -DNO_TOOLS=ON\ncmake --build build --parallel ${nproc}\ncmake --install build\n\ninstall -Dvm 755 build/libgdxcclib64.${dlext} -t ${libdir}\ninstall -Dvm 644 generated/*.h -t ${includedir}\ninstall_license LICENSE\n"""
+version = "v7.11.20"
+
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgdxcclib64"]
+type = "lib"
+variable_name = "libgdx"
+
+[[sources]]
+hash = "c6417bbbd0cd3c620f7b705b15ec8474fbbacd5b"
+type = "git"
+unpack_target = ""
+url = "https://github.com/GAMS-dev/gdx.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"
