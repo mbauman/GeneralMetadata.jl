@@ -1,0 +1,48 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "libsoundio"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/libsoundio\n\n# Fix MinGW GUID redefinition errors (upstream PR #283)\natomic_patch -p1 $WORKSPACE/srcdir/patches/fix-mingw-guid-redefinition.patch\n\n# Initialize flags\nCMAKE_FLAGS=(\"-DCMAKE_INSTALL_PREFIX=$prefix\"\n             \"-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN}\"\n             \"-DCMAKE_BUILD_TYPE=Release\"\n             \"-DCMAKE_C_FLAGS_RELEASE=-O3 -DNDEBUG -funroll-loops -fno-plt\"\n             \"-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON\"\n             \"-DBUILD_STATIC_LIBS=OFF\"\n             \"-DBUILD_EXAMPLE_PROGRAMS=OFF\"\n             \"-DBUILD_TESTS=OFF\"\n             \"-DENABLE_JACK=OFF\")\n\n# Platform-specific backend configuration\ncase \"${target}\" in\n    *linux*)\n        CMAKE_FLAGS+=(\"-DENABLE_ALSA=ON\" \"-DENABLE_PULSEAUDIO=ON\" \"-DENABLE_COREAUDIO=OFF\" \"-DENABLE_WASAPI=OFF\")\n        ;;\n    *apple*)\n        CMAKE_FLAGS+=(\"-DENABLE_ALSA=OFF\" \"-DENABLE_PULSEAUDIO=OFF\" \"-DENABLE_COREAUDIO=ON\" \"-DENABLE_WASAPI=OFF\")\n        ;;\n    *w64*)\n        CMAKE_FLAGS+=(\"-DENABLE_ALSA=OFF\" \"-DENABLE_PULSEAUDIO=OFF\" \"-DENABLE_COREAUDIO=OFF\" \"-DENABLE_WASAPI=ON\")\n        ;;\n    *)\n        CMAKE_FLAGS+=(\"-DENABLE_ALSA=OFF\" \"-DENABLE_PULSEAUDIO=OFF\" \"-DENABLE_COREAUDIO=OFF\" \"-DENABLE_WASAPI=OFF\")\n        ;;\nesac\n\ncmake -B build \"${CMAKE_FLAGS[@]}\"\ncmake --build build --parallel ${nproc}\ncmake --install build\n\ninstall_license ./LICENSE\n"""
+version = "v2.0.1"
+
+[[dependencies]]
+compat = ""
+name = "alsa_jll"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf"]
+top_level = false
+type = "dependency"
+uuid = "45378030-f8ea-5b20-a7c7-1a9d95efb90e"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "PulseAudio_jll"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf"]
+top_level = false
+type = "dependency"
+uuid = "02771fc1-bdb7-5db5-8d11-300768e00fbd"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsoundio"]
+type = "lib"
+variable_name = "libsoundio"
+
+[[sources]]
+hash = "f42a607883101244e2d21168cce8d7f2ec21c588"
+type = "git"
+unpack_target = ""
+url = "https://github.com/andrewrk/libsoundio.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

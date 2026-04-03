@@ -1,0 +1,90 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.12"
+lazy_artifacts = false
+name = "CompilerSupportLibraries"
+platforms = ["i686-linux-gnu-libgfortran5", "x86_64-linux-gnu-libgfortran5", "aarch64-linux-gnu-libgfortran5", "armv6l-linux-gnueabihf-libgfortran5", "armv7l-linux-gnueabihf-libgfortran5", "powerpc64le-linux-gnu-libgfortran5", "riscv64-linux-gnu-libgfortran5", "i686-linux-musl-libgfortran5", "x86_64-linux-musl-libgfortran5", "aarch64-linux-musl-libgfortran5", "armv6l-linux-musleabihf-libgfortran5", "armv7l-linux-musleabihf-libgfortran5", "x86_64-apple-darwin-libgfortran5", "aarch64-apple-darwin-libgfortran5", "x86_64-unknown-freebsd-libgfortran5", "aarch64-unknown-freebsd-libgfortran5", "i686-w64-mingw32-libgfortran5", "x86_64-w64-mingw32-libgfortran5"]
+script = """WINDOWS_STATICLIBS=true\nPREFERRED_GCC_VERSION=15.0.0\nVERSION=10400\n# Start by extracting LatestLibraries\ntar -zxvf ${WORKSPACE}/srcdir/LatestLibraries*.tar.gz -C ${prefix}\n\n# Make sure expansions aren't empty\nshopt -s nullglob\n\n# copy out all the libraries we can find except libstdc++ and libgomp,\n# which we copied out in the extraction step above.\nfor lib in /opt/${target}/${target}/lib*/*.${dlext}*; do\n    if [[ \"${lib}\" != *libstdc++* ]] && [[ \"${lib}\" != *libgomp* ]]; then\n        cp -uav \"${lib}\" \"${libdir}/\"\n    fi\ndone\n\n# libwinpthread is a special snowflake and is only within `bin` for some reason\nif [[ ${target} == *mingw* ]]; then\n    cp -uav /opt/${target}/${target}/sys-root/bin/*.${dlext}* ${libdir}/\n    if [[ \"${WINDOWS_STATICLIBS}\" == \"true\" ]]; then\n        # From v1.1.0 of CSL we move the Windows `*.a` files to a subdir of `${prefix}/lib`.\n        # See <https://github.com/JuliaLang/julia/issues/48081>.\n        if [[ \"${VERSION}\" -ge 10100 ]]; then\n           destdir=\"${prefix}/lib/gcc/${target}/${PREFERRED_GCC_VERSION%.*.*}\"\n        else\n           destdir=\"${prefix}/lib\"\n        fi\n        # Install also some static and import libraries, needed for linking of pkgimages.\n        for lib in libmsvcrt.a libgcc.a libgcc_s.a libssp.dll.a; do\n            qfind \"/opt/${target}\" -name \"${lib}\" -exec install -Dvm 0644 '{}' \"${destdir}/${lib}\" \\;\n        done\n    fi\nfi\n\n# Delete .a and .py files, we don't want those.\nrm -f ${libdir}/*.a ${libdir}/*.py\n\n# Delete any `.so` files that are not ELF files, since they're mostly likely linker scripts\nfor f in ${libdir}/*.so; do\n    if [[ \"$(file -b \"$(realpath \"$f\")\")\" != ELF* ]]; then\n        rm -vf \"$f\"\n    fi\ndone\n\n# change permissions so that rpath succeeds\nfor l in ${libdir}/*; do\n    chmod 0755 \"${l}\"\ndone\n\n# libgcc_s.X.dylib receives special treatment for now.  We need to reset the dylib id,\n# but we don't want to run a full audit, so we do it ourselves.\nif [[ ${target} == *apple* ]]; then\n    for libgcc_s in ${libdir}/libgcc_s.*.dylib; do\n        LIBGCC_NAME=$(basename \"${libgcc_s}\")\n        install_name_tool -id @rpath/${LIBGCC_NAME} \"${libdir}/${LIBGCC_NAME}\"\n        if [[ \"${LIBGCC_NAME}\" == \"libgcc_s.1.dylib\" ]] && [[ \"${PREFERRED_GCC_VERSION%.*.*}\" -ge 12 ]]; then\n            # GCC 12 on x86_64-apple-darwin changed the ABI of libgcc_s from 1 to 1.1, but keeping a compatibility shim\n            # called libgcc_s.1.dylib which forwards all calls to libgcc_s.1.1.dylib.  We have to manually fix the path\n            # of the dependency because the auditor won't do it: <https://github.com/JuliaPackaging/BinaryBuilder.jl/issues/1243>.\n            install_name_tool -change \"/workspace/destdir/${target}/lib/libgcc_s.1.1.dylib\" \"@rpath/libgcc_s.1.1.dylib\" \"${libdir}/${LIBGCC_NAME}\"\n        fi\n    done\nfi\n\n# Remove extraneous libraries\nrm -f ${libdir}/{libiconv,libxml2,libz}*.${dlext}*\n\n# Install license (we license these all as GPL3, since they're from GCC)\ninstall_license /usr/share/licenses/GPL-3.0+\n"""
+version = "v1.4.0"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgcc_s", "libgcc_s_sjlj", "libgcc_s_seh"]
+type = "lib"
+variable_name = "libgcc_s"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libstdc++"]
+type = "lib"
+variable_name = "libstdcxx"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgfortran"]
+type = "lib"
+variable_name = "libgfortran"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgomp"]
+type = "lib"
+variable_name = "libgomp"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libatomic"]
+type = "lib"
+variable_name = "libatomic"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libssp"]
+type = "lib"
+variable_name = "libssp"
+[[products]]
+paths = ["lib/gcc/i686-w64-mingw32/15/libmsvcrt.a"]
+type = "file"
+variable_name = "libmsvcrt_a"
+[[products]]
+paths = ["lib/gcc/i686-w64-mingw32/15/libgcc.a"]
+type = "file"
+variable_name = "libgcc_a"
+[[products]]
+paths = ["lib/gcc/i686-w64-mingw32/15/libgcc_s.a"]
+type = "file"
+variable_name = "libgcc_s_a"
+[[products]]
+paths = ["lib/gcc/i686-w64-mingw32/15/libssp.dll.a"]
+type = "file"
+variable_name = "libssp_dll_a"
+[[products]]
+paths = ["lib/gcc/x86_64-w64-mingw32/15/libmsvcrt.a"]
+type = "file"
+variable_name = "libmsvcrt_a"
+[[products]]
+paths = ["lib/gcc/x86_64-w64-mingw32/15/libgcc.a"]
+type = "file"
+variable_name = "libgcc_a"
+[[products]]
+paths = ["lib/gcc/x86_64-w64-mingw32/15/libgcc_s.a"]
+type = "file"
+variable_name = "libgcc_s_a"
+[[products]]
+paths = ["lib/gcc/x86_64-w64-mingw32/15/libssp.dll.a"]
+type = "file"
+variable_name = "libssp_dll_a"
+
+[[sources]]
+filename = "common.jl"
+hash = "d78bf3807a6f5d82ae6fd102a17cb17691443f460845472f123ea175329b821a"
+type = "file"
+url = "/tmp/jl_dIkAcF/C/CompilerSupportLibraries/common.jl"

@@ -1,0 +1,149 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "mpv"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/mpv\n\n# Clone libplacebo as a meson subproject (needs --recursive for 3rdparty deps)\nmkdir -p subprojects\ngit clone https://code.videolan.org/videolan/libplacebo.git \\\n    --branch v7.349.0 --depth=1 --recursive subprojects/libplacebo\n\n# Remove host cmake so meson doesn't pick it up for cross-compilation\napk del cmake\n\n# FFMPEG_jll installs pkgconfig files in ${libdir}/pkgconfig on Windows\nif [[ \"${target}\" == *-mingw* ]]; then\n    export PKG_CONFIG_PATH=\"${PKG_CONFIG_PATH}:${libdir}/pkgconfig\"\nfi\n\nFLAGS=()\n\nif [[ \"${target}\" == *-apple-* ]]; then\n    # x86_64-darwin14 sysroot lacks newer framework headers; overlay macOS 11.3 SDK\n    # aarch64-darwin20 already has them so no SDK needed\n    if [[ \"${target}\" == x86_64-apple-darwin* ]]; then\n        rm -rf /opt/${target}/${target}/sys-root/System\n        rm -rf /opt/${target}/${target}/sys-root/usr/include/libxml2/libxml\n        tar --extract --file=${WORKSPACE}/srcdir/MacOSX11.3.sdk.tar.xz \\\n            --directory=\"/opt/${target}/${target}/sys-root/.\" \\\n            --strip-components=1 MacOSX11.3.sdk/System MacOSX11.3.sdk/usr\n        export MACOSX_DEPLOYMENT_TARGET=11.0\n    fi\n\n    # Cocoa requires Swift (no Swift compiler in BinaryBuilder), so disable it\n    # and all features that depend on it. CoreAudio/AVFoundation are independent.\n    FLAGS+=(\n        -Dcocoa=disabled\n        -Dswift-build=disabled\n        -Dgl-cocoa=disabled\n        -Dmacos-cocoa-cb=disabled\n        -Dmacos-media-player=disabled\n        -Dmacos-touchbar=disabled\n    )\nfi\n\n# SDL2 video/audio are disabled by default in mpv 0.41; enable them explicitly\n# Vulkan is disabled: not native on macOS, stdcall ABI issues on 32-bit Windows,\n# and SDL2+OpenGL provide sufficient video output for a JLL package\nFLAGS+=(-Dsdl2-video=enabled -Dsdl2-audio=enabled -Dvulkan=disabled)\n\nmeson setup build --cross-file=${MESON_TARGET_TOOLCHAIN} --buildtype=release \"${FLAGS[@]}\"\nmeson compile -C build\nmeson install -C build\n\ninstall_license Copyright LICENSE.GPL\n"""
+version = "v0.41.0"
+
+[[dependencies]]
+compat = ""
+name = "CMake_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_xorgproto_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Libiconv_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "SDL2_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Shaderc_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "7.1"
+name = "FFMPEG_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Lua_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "JpegTurbo_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_libXrandr_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_libXinerama_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Libglvnd_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_libX11_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["mpv"]
+type = "exe"
+variable_name = "mpv"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmpv"]
+type = "lib"
+variable_name = "libmpv"
+
+[[sources]]
+hash = "41f6a645068483470267271e1d09966ca3b9f413"
+type = "git"
+unpack_target = ""
+url = "https://github.com/mpv-player/mpv.git"
+[[sources]]
+filename = "MacOSX11.3.sdk.tar.xz"
+hash = "cd4f08a75577145b8f05245a2975f7c81401d75e9535dcffbb879ee1deefcbf4"
+type = "file"
+url = "https://github.com/phracker/MacOSX-SDKs/releases/download/11.3/MacOSX11.3.sdk.tar.xz"
