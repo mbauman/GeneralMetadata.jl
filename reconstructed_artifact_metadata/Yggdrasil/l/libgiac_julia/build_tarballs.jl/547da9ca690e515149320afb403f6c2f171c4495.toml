@@ -1,0 +1,68 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "~1.10, ~1.11, ~1.12, ~1.13, ~1.14"
+lazy_artifacts = false
+name = "libgiac_julia"
+platforms = ["i686-linux-gnu-cxx11-julia_version+1.10.0", "x86_64-linux-gnu-cxx11-julia_version+1.10.0", "aarch64-linux-gnu-cxx11-julia_version+1.10.0", "powerpc64le-linux-gnu-cxx11-julia_version+1.10.0", "x86_64-linux-musl-cxx11-julia_version+1.10.0", "aarch64-linux-musl-cxx11-julia_version+1.10.0", "x86_64-apple-darwin-julia_version+1.10.0", "aarch64-apple-darwin-julia_version+1.10.0", "x86_64-unknown-freebsd-julia_version+1.10.0", "i686-w64-mingw32-cxx11-julia_version+1.10.0", "x86_64-w64-mingw32-cxx11-julia_version+1.10.0", "i686-linux-gnu-cxx11-julia_version+1.11.1", "x86_64-linux-gnu-cxx11-julia_version+1.11.1", "aarch64-linux-gnu-cxx11-julia_version+1.11.1", "powerpc64le-linux-gnu-cxx11-julia_version+1.11.1", "x86_64-linux-musl-cxx11-julia_version+1.11.1", "aarch64-linux-musl-cxx11-julia_version+1.11.1", "x86_64-apple-darwin-julia_version+1.11.1", "aarch64-apple-darwin-julia_version+1.11.1", "x86_64-unknown-freebsd-julia_version+1.11.1", "i686-w64-mingw32-cxx11-julia_version+1.11.1", "x86_64-w64-mingw32-cxx11-julia_version+1.11.1", "i686-linux-gnu-cxx11-julia_version+1.12.0", "x86_64-linux-gnu-cxx11-julia_version+1.12.0", "aarch64-linux-gnu-cxx11-julia_version+1.12.0", "powerpc64le-linux-gnu-cxx11-julia_version+1.12.0", "x86_64-linux-musl-cxx11-julia_version+1.12.0", "aarch64-linux-musl-cxx11-julia_version+1.12.0", "x86_64-apple-darwin-julia_version+1.12.0", "aarch64-apple-darwin-julia_version+1.12.0", "x86_64-unknown-freebsd-julia_version+1.12.0", "aarch64-unknown-freebsd-julia_version+1.12.0", "i686-w64-mingw32-cxx11-julia_version+1.12.0", "x86_64-w64-mingw32-cxx11-julia_version+1.12.0"]
+script = """cd $WORKSPACE/srcdir/libgiac-julia-wrapper\n\n# Use BinaryBuilder's default meson cross-file:\n# gcc on Linux/Windows, clang on macOS/FreeBSD.\nMESON_CROSS=\"${MESON_TARGET_TOOLCHAIN}\"\n\n# Meson's cmake module requires cmake in the cross-file's [binaries] section\n# for cross-compilation. Inject the system cmake path.\nsed -i \"/^\\[binaries\\]/a cmake = '$(which cmake)'\" \"${MESON_CROSS}\"\n\n# Tell meson where to find JlCxx (libcxxwrap-julia) via CMake\n# and where GIAC headers are installed\n# Pass Julia headers include path via meson cpp_args (cross builds ignore env CXXFLAGS)\nmeson setup builddir \\\n    --cross-file=\"${MESON_CROSS}\" \\\n    --prefix=\"${prefix}\" \\\n    --buildtype=release \\\n    -Dgiac_include_dir=\"${includedir}/giac\" \\\n    -Dcpp_args=\"-I${includedir}/julia -I${includedir}/giac\" \\\n    -Dcpp_link_args=\"-L${libdir}\" \\\n    --cmake-prefix-path=\"${prefix}\"\n\n# Build only the wrapper library target. Test executables (test_eval, etc.)\n# are skipped because they require a Julia runtime unavailable in cross-compilation.\nmeson compile -C builddir -j${nproc} giac_wrapper\n\n# Install without rebuilding: meson install normally recompiles ALL targets\n# (including tests) before installing. --no-rebuild installs only what was\n# already compiled above, avoiding test compilation failures.\nmeson install -C builddir --no-rebuild\n\ninstall_license LICENSE\n"""
+version = "v0.5.0"
+
+[[dependencies]]
+compat = ""
+name = "libjulia_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "~0.14"
+name = "libcxxwrap_julia_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "2.0.1"
+name = "GIAC_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "GMP_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MPFR_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgiac_wrapper"]
+type = "lib"
+variable_name = "libgiac_wrapper"
+
+[[sources]]
+hash = "490207923b75678ace5409e16ed5bc134bd9c7d9"
+type = "git"
+unpack_target = ""
+url = "https://github.com/s-celles/libgiac-julia-wrapper.git"
