@@ -1,0 +1,65 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "CGNS"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd ${WORKSPACE}/srcdir/CGNS*\n\nif [[ ${target} == x86_64-linux-musl ]]; then\n    # HDF5 needs libcurl, and it needs to be the BinaryBuilder libcurl, not the system libcurl\n    rm /usr/lib/libcurl.*\n    rm /usr/lib/libnghttp2.*\nfi\n\ncmake -Bbuild -GNinja \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=\"${CMAKE_TARGET_TOOLCHAIN}\" \\\n    -DCGNS_ENABLE_SHARED_LIB=ON \\\n    -DCGNS_ENABLE_STATIC_LIB=OFF\ncmake --build build --parallel ${nproc}\ncmake --install build\n"""
+version = "v4.5.1"
+
+[[dependencies]]
+compat = ""
+name = "OpenMPI_jll"
+platforms = ["i686-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "i686-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "i686-w64-mingw32"]
+top_level = false
+type = "builddependency"
+version-major = 4
+version-minor = 1
+version-patch = 8
+[[dependencies]]
+compat = "~2.0.0"
+name = "HDF5_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcgns"]
+type = "lib"
+variable_name = "libcgns"
+[[products]]
+binnames = ["cgnscheck"]
+type = "exe"
+variable_name = "cgnscheck"
+[[products]]
+binnames = ["cgnscompress"]
+type = "exe"
+variable_name = "cgnscompress"
+[[products]]
+binnames = ["cgnsconvert"]
+type = "exe"
+variable_name = "cgnsconvert"
+[[products]]
+binnames = ["cgnsdiff"]
+type = "exe"
+variable_name = "cgnsdiff"
+[[products]]
+binnames = ["cgnslist"]
+type = "exe"
+variable_name = "cgnslist"
+[[products]]
+binnames = ["cgnsnames"]
+type = "exe"
+variable_name = "cgnsnames"
+
+[[sources]]
+hash = "bbce5f0ec594ae4d066893370965d3b77136b13c"
+type = "git"
+unpack_target = ""
+url = "https://github.com/CGNS/CGNS.git"
