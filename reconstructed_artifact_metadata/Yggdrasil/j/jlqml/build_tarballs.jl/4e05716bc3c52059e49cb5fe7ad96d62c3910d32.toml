@@ -1,0 +1,91 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "jlqml"
+platforms = ["i686-linux-gnu-cxx11-julia_version+1.10.0", "x86_64-linux-gnu-cxx11-julia_version+1.10.0", "aarch64-linux-gnu-cxx11-julia_version+1.10.0", "powerpc64le-linux-gnu-cxx11-julia_version+1.10.0", "x86_64-linux-musl-cxx11-julia_version+1.10.0", "aarch64-linux-musl-cxx11-julia_version+1.10.0", "x86_64-apple-darwin-julia_version+1.10.0", "aarch64-apple-darwin-julia_version+1.10.0", "x86_64-unknown-freebsd-julia_version+1.10.0", "i686-w64-mingw32-cxx11-julia_version+1.10.0", "x86_64-w64-mingw32-cxx11-julia_version+1.10.0", "i686-linux-gnu-cxx11-julia_version+1.11.1", "x86_64-linux-gnu-cxx11-julia_version+1.11.1", "aarch64-linux-gnu-cxx11-julia_version+1.11.1", "powerpc64le-linux-gnu-cxx11-julia_version+1.11.1", "x86_64-linux-musl-cxx11-julia_version+1.11.1", "aarch64-linux-musl-cxx11-julia_version+1.11.1", "x86_64-apple-darwin-julia_version+1.11.1", "aarch64-apple-darwin-julia_version+1.11.1", "x86_64-unknown-freebsd-julia_version+1.11.1", "i686-w64-mingw32-cxx11-julia_version+1.11.1", "x86_64-w64-mingw32-cxx11-julia_version+1.11.1", "i686-linux-gnu-cxx11-julia_version+1.12.0", "x86_64-linux-gnu-cxx11-julia_version+1.12.0", "aarch64-linux-gnu-cxx11-julia_version+1.12.0", "powerpc64le-linux-gnu-cxx11-julia_version+1.12.0", "x86_64-linux-musl-cxx11-julia_version+1.12.0", "aarch64-linux-musl-cxx11-julia_version+1.12.0", "x86_64-apple-darwin-julia_version+1.12.0", "aarch64-apple-darwin-julia_version+1.12.0", "x86_64-unknown-freebsd-julia_version+1.12.0", "i686-w64-mingw32-cxx11-julia_version+1.12.0", "x86_64-w64-mingw32-cxx11-julia_version+1.12.0", "i686-linux-gnu-cxx11-julia_version+1.13.0", "x86_64-linux-gnu-cxx11-julia_version+1.13.0", "aarch64-linux-gnu-cxx11-julia_version+1.13.0", "powerpc64le-linux-gnu-cxx11-julia_version+1.13.0", "x86_64-linux-musl-cxx11-julia_version+1.13.0", "aarch64-linux-musl-cxx11-julia_version+1.13.0", "x86_64-apple-darwin-julia_version+1.13.0", "aarch64-apple-darwin-julia_version+1.13.0", "x86_64-unknown-freebsd-julia_version+1.13.0", "i686-w64-mingw32-cxx11-julia_version+1.13.0", "x86_64-w64-mingw32-cxx11-julia_version+1.13.0", "i686-linux-gnu-cxx11-julia_version+1.14.0", "x86_64-linux-gnu-cxx11-julia_version+1.14.0", "aarch64-linux-gnu-cxx11-julia_version+1.14.0", "powerpc64le-linux-gnu-cxx11-julia_version+1.14.0", "x86_64-linux-musl-cxx11-julia_version+1.14.0", "aarch64-linux-musl-cxx11-julia_version+1.14.0", "x86_64-apple-darwin-julia_version+1.14.0", "aarch64-apple-darwin-julia_version+1.14.0", "x86_64-unknown-freebsd-julia_version+1.14.0", "i686-w64-mingw32-cxx11-julia_version+1.14.0", "x86_64-w64-mingw32-cxx11-julia_version+1.14.0"]
+script = """macos_sdk_version=14.0\nmacosx_deployment_target=12\nif [[ \"${target}\" == *-apple-darwin* ]]; then\n    echo \"Extracting MacOSX${macos_sdk_version}.sdk.tar.xz (this may take a while)\"\n    rm -rf /opt/${target}/${target}/sys-root/System\n    rm -rf /opt/${target}/${target}/sys-root/usr/include/libxml2/libxml\n    # extract the tarball into the sys-root so all compilers pick it up\n    # automatically, and use --warning=no-unknown-keyword to hide harmless\n    # warnings about unsupported pax header keywords like \"SCHILY.fflags\"\n    tar --extract \\\n        --file=${WORKSPACE}/srcdir/MacOSX${macos_sdk_version}.sdk.tar.xz \\\n        --directory=\"/opt/${target}/${target}/sys-root/.\" \\\n        --strip-components=1 \\\n        --warning=no-unknown-keyword \\\n        MacOSX${macos_sdk_version}.sdk/System \\\n        MacOSX${macos_sdk_version}.sdk/usr\n    export MACOSX_DEPLOYMENT_TARGET=${macosx_deployment_target}\nfi\n# Need newer cmake from JLL\napk del cmake\n\nmkdir build\ncd build\ncmake \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DCMAKE_FIND_ROOT_PATH=${prefix} \\\n    -DCMAKE_INSTALL_PREFIX=$prefix \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DJulia_PREFIX=${prefix} \\\n    ../jlqml/\n\nVERBOSE=ON cmake --build . --config Release --target install -- -j${nproc}\ninstall_license $WORKSPACE/srcdir/jlqml*/LICENSE.md\n"""
+version = "v0.10.0"
+
+[[dependencies]]
+compat = "0.14.9"
+name = "libcxxwrap_julia_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "~6.10.2"
+name = "Qt6Declarative_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Qt6Declarative_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "~6.10.2"
+name = "Qt6Svg_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Libglvnd_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "libjulia_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CMake_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libjlqml"]
+type = "lib"
+variable_name = "libjlqml"
+
+[[sources]]
+hash = "ddde17dd8925089dba8254a48681600ebde4ea7e"
+type = "git"
+unpack_target = ""
+url = "https://github.com/JuliaGraphics/jlqml.git"
+[[sources]]
+filename = "MacOSX14.0.sdk.tar.xz"
+hash = "4a31565fd2644d1aec23da3829977f83632a20985561a2038e198681e7e7bf49"
+type = "file"
+url = "https://github.com/roblabla/MacOSX-SDKs/releases/download/macosx14.0/MacOSX14.0.sdk.tar.xz"
