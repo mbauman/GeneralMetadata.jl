@@ -1,0 +1,23 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "ZlibNG"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/zlib-ng\n\n# Architecture-specific optimization flags\n# These default to ON in zlib-ng, but we set them explicitly to ensure\n# they are not missed during cross-compilation.\n# We also force-set compiler flag variables and detection results because\n# cmake's check_c_compiler_flag tests fail during cross-compilation.\n# On aarch64, NEON is always available so no special compiler flag is needed,\n# but BinaryBuilder rejects -march flags, so we patch the cmake detection\n# to use empty flags instead.\nCMAKE_EXTRA_OPTIONS=(\n    -DWITH_RUNTIME_CPU_DETECTION=ON\n)\nif [[ \"${target}\" == aarch64-* ]]; then\n    # Patch cmake detection to avoid -march flags that BinaryBuilder rejects.\n    # NEON and CRC32 are always available on aarch64, no special flag needed.\n    sed -i 's/-march=armv8-a+simd//g' cmake/detect-intrinsics.cmake\n    sed -i 's/-march=armv8-a+crc+simd//g' cmake/detect-intrinsics.cmake\n    sed -i 's/-march=armv8-a+crc//g' cmake/detect-intrinsics.cmake\n    CMAKE_EXTRA_OPTIONS+=(\n        -DWITH_NEON=ON\n        -DWITH_ARMV8=ON\n    )\nelif [[ \"${target}\" == x86_64-* ]]; then\n    CMAKE_EXTRA_OPTIONS+=(\n        -DWITH_SSE2=ON\n        -DWITH_SSSE3=ON\n        -DWITH_SSE41=ON\n        -DWITH_SSE42=ON\n        -DWITH_PCLMULQDQ=ON\n        -DWITH_AVX2=ON\n        -DWITH_AVX512=ON\n        -DWITH_AVX512VNNI=ON\n        -DWITH_VPCLMULQDQ=ON\n    )\nelif [[ \"${target}\" == powerpc64le-* ]]; then\n    CMAKE_EXTRA_OPTIONS+=(\n        -DWITH_ALTIVEC=ON\n        -DWITH_POWER8=ON\n        -DWITH_POWER9=ON\n    )\nfi\n\ncmake -B build \\\n    -DCMAKE_INSTALL_PREFIX=$prefix \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DBUILD_SHARED_LIBS=ON \\\n    -DBUILD_TESTING=OFF \\\n    \"${CMAKE_EXTRA_OPTIONS[@]}\"\ncmake --build build --parallel ${nproc}\ncmake --install build\n"""
+version = "v2.3.3"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libz-ng", "libzlib-ng2"]
+type = "lib"
+variable_name = "libzng"
+
+[[sources]]
+hash = "12731092979c6d07f42da27da673a9f6c7b13586"
+type = "git"
+unpack_target = ""
+url = "https://github.com/zlib-ng/zlib-ng.git"
