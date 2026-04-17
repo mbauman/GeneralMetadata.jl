@@ -1,0 +1,23 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "libzenohc"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/zenoh-c\ninstall_license LICENSE\n\n# set up the host compiler for use by the ring native compilation path\nexport CC_$(echo $rust_host | sed \"s/-/_/g\")=$CC_BUILD\n\n# needed to build dylibs on musl\nif [[ \"${target}\" == *-musl* ]]; then\n    export RUSTFLAGS=\"-C target-feature=-crt-static\"\nfi\n\n# update static_init_macro to support cross-compilation\ncargo update -p static_init_macro\ncargo update -p static_init_macro --manifest-path build-resources/opaque-types/Cargo.toml\n\nmkdir -p build && cd build\ncmake -S .. -B . \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DZENOHC_CUSTOM_TARGET=${rust_target} \\\n    -DZENOHC_BUILD_WITH_SHARED_MEMORY=TRUE\ncmake --build . --target install --config Release --parallel ${nproc}\n"""
+version = "v1.9.0"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libzenohc", "zenohc"]
+type = "lib"
+variable_name = "libzenohc"
+
+[[sources]]
+hash = "499de93af63e6a7d3497313f544e666fea1d33fd"
+type = "git"
+unpack_target = ""
+url = "https://github.com/eclipse-zenoh/zenoh-c.git"
