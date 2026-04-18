@@ -1,0 +1,118 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Pango"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """\napk add glib-dev\n\ncd $WORKSPACE/srcdir/pango*\n\nif [[ \"${target}\" == \"${MACHTYPE}\" ]]; then\n    # When building for the host platform, the system libexpat is picked up\n    rm /usr/lib/libexpat.so*\nfi\n\n# If we want libpangoft2 on Windows we need to explicitly enable fontconfig and freetype\n# See <https://gitlab.gnome.org/GNOME/pango/-/blob/main/README.win32.md>.\n\n# We need a newer meson\npython3 -m pip install --upgrade meson\n\n# Fix target toolchain (required by meson 1.11)\nif [[ ${target} == *darwin* ]]; then\n    sed -i \"/\\[host_machine\\]/,/^$/ s/system = 'darwin'/system = 'darwin'\\nsubsystem = 'macos'/\" \"$MESON_TARGET_TOOLCHAIN\"\nfi\n\nmeson setup build \\\n    --cross-file=\"${MESON_TARGET_TOOLCHAIN}\" \\\n    -Dintrospection=disabled \\\n    -Dfontconfig=enabled \\\n    -Dfreetype=enabled\nninja -C build -j${nproc}\nninja -C build install\n\ninstall_license COPYING\n"""
+version = "v1.57.1"
+
+[[dependencies]]
+compat = ""
+name = "Gettext_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "gperf_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_xorgproto_jll"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.18.5"
+name = "Cairo_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "2.16.0"
+name = "Fontconfig_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "2.13.4"
+name = "FreeType2_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.0.17"
+name = "FriBidi_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "2.84.0"
+name = "Glib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "8.5.1"
+name = "HarfBuzz_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libpango", "libpango-1", "libpango-1.0"]
+type = "lib"
+variable_name = "libpango"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libpangocairo", "libpangocairo-1", "libpangocairo-1.0"]
+type = "lib"
+variable_name = "libpangocairo"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libpangoft2", "libpangoft2-1", "libpangoft2-1.0"]
+type = "lib"
+variable_name = "libpangoft"
+
+[[sources]]
+hash = "e65d6d117080dc3aeeb7d8b4b3b518f7383aa2e6cfce23117c623cd624764c2f"
+type = "archive"
+unpack_target = ""
+url = "http://ftp.gnome.org/pub/GNOME/sources/pango/1.57/pango-1.57.1.tar.xz"
