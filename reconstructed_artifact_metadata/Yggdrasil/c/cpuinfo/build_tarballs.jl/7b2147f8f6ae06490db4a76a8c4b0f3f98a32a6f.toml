@@ -1,0 +1,35 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "CPUInfo"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/cpuinfo\n\ncmake_args=(\n    -DCMAKE_BUILD_TYPE=Release\n    -DCMAKE_INSTALL_PREFIX=${prefix}\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN}\n    -DCPUINFO_BUILD_BENCHMARKS=OFF\n    -DCPUINFO_BUILD_MOCK_TESTS=OFF\n    -DCPUINFO_BUILD_UNIT_TESTS=OFF\n    -DCPUINFO_LIBRARY_TYPE=shared\n)\n\nif [[ $target == aarch64-apple-darwin* ]]; then\n    cmake_args+=(-DCMAKE_OSX_ARCHITECTURES=arm64)\nfi\n\ncmake -B build ${cmake_args[@]}\ncmake --build build --parallel ${nproc}\ncmake --install build\n\nif [[ $target == *-w64-mingw32 ]]; then\n    install -Dvm 755 build/libcpuinfo.dll \"${libdir}/libcpuinfo.dll\"\nfi\n"""
+version = "v0.0.20260415"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcpuinfo"]
+type = "lib"
+variable_name = "libcpuinfo"
+[[products]]
+binnames = ["isa-info"]
+type = "exe"
+variable_name = "isa_info"
+[[products]]
+binnames = ["cpu-info"]
+type = "exe"
+variable_name = "cpu_info"
+[[products]]
+binnames = ["cache-info"]
+type = "exe"
+variable_name = "cache_info"
+
+[[sources]]
+hash = "d05fbcd57dc096718c4979e7c054e628f1f3520b"
+type = "git"
+unpack_target = ""
+url = "https://github.com/pytorch/cpuinfo.git"
