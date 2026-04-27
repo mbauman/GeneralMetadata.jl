@@ -172,27 +172,31 @@ function process_commit!(dates, commit)
     else
         fastpath = false
         # Checkout the entire state of the repo at this commit
-        run(pipeline(`git checkout $commit`, stdout=Base.devnull, stderr=Base.devnull))
-        reg = TOML.parsefile("Registry.toml")
-        for (uuid, pkginfo) in reg["packages"]
-            pkg = pkginfo["name"]
-            isfile(joinpath(pkginfo["path"], "Versions.toml")) || continue
-            versions = TOML.parsefile(joinpath(pkginfo["path"], "Versions.toml"))
-            if !haskey(dates, pkg)
-                dates[pkg] = Dict{String, Any}()
+        try
+            run(pipeline(`git checkout $commit`, stdout=Base.devnull, stderr=Base.devnull))
+            reg = TOML.parsefile("Registry.toml")
+            for (uuid, pkginfo) in reg["packages"]
+                pkg = pkginfo["name"]
+                isfile(joinpath(pkginfo["path"], "Versions.toml")) || continue
+                versions = TOML.parsefile(joinpath(pkginfo["path"], "Versions.toml"))
+                if !haskey(dates, pkg)
+                    dates[pkg] = Dict{String, Any}()
+                end
+                for (ver, info) in versions
+                    isempty(info) && continue # There has been at least one time when a corrupted entry was commited (a60167d6c29b433119d6fbf051a733fa465e6ae7)
+                    if !haskey(dates[pkg], ver)
+                        dates[pkg][string(ver)] = Dict{String, Any}()
+                    end
+                    if !haskey(dates[pkg][string(ver)], "registered")
+                        dates[pkg][string(ver)]["registered"] = timestamp
+                    end
+                    if get(info, "yanked", false) == true && !haskey(dates[pkg][string(ver)], "yanked")
+                        dates[pkg][string(ver)]["yanked"] = timestamp
+                    end
+                end
             end
-            for (ver, info) in versions
-                isempty(info) && continue # There has been at least one time when a corrupted entry was commited (a60167d6c29b433119d6fbf051a733fa465e6ae7)
-                if !haskey(dates[pkg], ver)
-                    dates[pkg][string(ver)] = Dict{String, Any}()
-                end
-                if !haskey(dates[pkg][string(ver)], "registered")
-                    dates[pkg][string(ver)]["registered"] = timestamp
-                end
-                if get(info, "yanked", false) == true && !haskey(dates[pkg][string(ver)], "yanked")
-                    dates[pkg][string(ver)]["yanked"] = timestamp
-                end
-            end
+        finally
+            run(pipeline(`git checkout master`, stdout=Base.devnull, stderr=Base.devnull))
         end
     end
     return fastpath
@@ -360,6 +364,7 @@ end
 
 function update_artifact_urls!(meta = metadata(); max_downloads=10000)
     download_count = 0
+    http_errors = 0
     for (pkg_name, pkg_info) in meta
         pkg_uuid = uuid_from_name(pkg_name)
         reg_info = registered_package_versions(pkg_name)
@@ -370,13 +375,15 @@ function update_artifact_urls!(meta = metadata(); max_downloads=10000)
                 gather_artifact_urls(pkg_uuid, reg_info[VersionNumber(ver)].git_tree_sha1)
             catch ex
                 @warn "Failed to gather artifact URLs for $pkg_name version $ver:" ex
-                if ex isa Downloads.RequestError && ex.response.status == 404
-                    # If we get a 404, skip all subsquent versions of this package, but keep going with other packages.
+                if (ex isa Downloads.RequestError && ex.response.status != 404) ||
+                    (ex isa HTTP.ExceptionRequest.StatusError && ex.status_code != 404)
+                    # If we get an HTTP error other than 404, ensure we don't hammer with more than 5 retries
+                    download_count += max(10, max_downloads÷5)
+                    http_errors += 1
                     break
                 else
-                    # For all other errors, ensure we don't hammer with more than 5 retries
-                    download_count += max(10, max_downloads÷5)
-                    break
+                    download_count += 1
+                    continue
                 end
             end
             download_count += 1
@@ -384,6 +391,7 @@ function update_artifact_urls!(meta = metadata(); max_downloads=10000)
         end
         if download_count >= max_downloads
             @warn "Reached maximum download limit of $max_downloads, stopping early."
+            http_errors > 0 && @warn "(with $http_errors HTTP errors accounting for $(http_errors*max(10, max_downloads÷5)) of them)"
             break
         end
     end
