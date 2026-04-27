@@ -172,27 +172,31 @@ function process_commit!(dates, commit)
     else
         fastpath = false
         # Checkout the entire state of the repo at this commit
-        run(pipeline(`git checkout $commit`, stdout=Base.devnull, stderr=Base.devnull))
-        reg = TOML.parsefile("Registry.toml")
-        for (uuid, pkginfo) in reg["packages"]
-            pkg = pkginfo["name"]
-            isfile(joinpath(pkginfo["path"], "Versions.toml")) || continue
-            versions = TOML.parsefile(joinpath(pkginfo["path"], "Versions.toml"))
-            if !haskey(dates, pkg)
-                dates[pkg] = Dict{String, Any}()
+        try
+            run(pipeline(`git checkout $commit`, stdout=Base.devnull, stderr=Base.devnull))
+            reg = TOML.parsefile("Registry.toml")
+            for (uuid, pkginfo) in reg["packages"]
+                pkg = pkginfo["name"]
+                isfile(joinpath(pkginfo["path"], "Versions.toml")) || continue
+                versions = TOML.parsefile(joinpath(pkginfo["path"], "Versions.toml"))
+                if !haskey(dates, pkg)
+                    dates[pkg] = Dict{String, Any}()
+                end
+                for (ver, info) in versions
+                    isempty(info) && continue # There has been at least one time when a corrupted entry was commited (a60167d6c29b433119d6fbf051a733fa465e6ae7)
+                    if !haskey(dates[pkg], ver)
+                        dates[pkg][string(ver)] = Dict{String, Any}()
+                    end
+                    if !haskey(dates[pkg][string(ver)], "registered")
+                        dates[pkg][string(ver)]["registered"] = timestamp
+                    end
+                    if get(info, "yanked", false) == true && !haskey(dates[pkg][string(ver)], "yanked")
+                        dates[pkg][string(ver)]["yanked"] = timestamp
+                    end
+                end
             end
-            for (ver, info) in versions
-                isempty(info) && continue # There has been at least one time when a corrupted entry was commited (a60167d6c29b433119d6fbf051a733fa465e6ae7)
-                if !haskey(dates[pkg], ver)
-                    dates[pkg][string(ver)] = Dict{String, Any}()
-                end
-                if !haskey(dates[pkg][string(ver)], "registered")
-                    dates[pkg][string(ver)]["registered"] = timestamp
-                end
-                if get(info, "yanked", false) == true && !haskey(dates[pkg][string(ver)], "yanked")
-                    dates[pkg][string(ver)]["yanked"] = timestamp
-                end
-            end
+        finally
+            run(pipeline(`git checkout master`, stdout=Base.devnull, stderr=Base.devnull))
         end
     end
     return fastpath
