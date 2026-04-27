@@ -360,6 +360,7 @@ end
 
 function update_artifact_urls!(meta = metadata(); max_downloads=10000)
     download_count = 0
+    http_errors = 0
     for (pkg_name, pkg_info) in meta
         pkg_uuid = uuid_from_name(pkg_name)
         reg_info = registered_package_versions(pkg_name)
@@ -370,13 +371,15 @@ function update_artifact_urls!(meta = metadata(); max_downloads=10000)
                 gather_artifact_urls(pkg_uuid, reg_info[VersionNumber(ver)].git_tree_sha1)
             catch ex
                 @warn "Failed to gather artifact URLs for $pkg_name version $ver:" ex
-                if ex isa Downloads.RequestError && ex.response.status == 404
-                    # If we get a 404, skip all subsquent versions of this package, but keep going with other packages.
+                if (ex isa Downloads.RequestError && ex.response.status != 404) ||
+                    (ex isa HTTP.ExceptionRequest.StatusError && ex.status_code != 404)
+                    # If we get an HTTP error other than 404, ensure we don't hammer with more than 5 retries
+                    download_count += max(10, max_downloads÷5)
+                    http_errors += 1
                     break
                 else
-                    # For all other errors, ensure we don't hammer with more than 5 retries
-                    download_count += max(10, max_downloads÷5)
-                    break
+                    download_count += 1
+                    continue
                 end
             end
             download_count += 1
@@ -384,6 +387,7 @@ function update_artifact_urls!(meta = metadata(); max_downloads=10000)
         end
         if download_count >= max_downloads
             @warn "Reached maximum download limit of $max_downloads, stopping early."
+            http_errors > 0 && @warn "(with $http_errors HTTP errors accounting for $(http_errors*max(10, max_downloads÷5)) of them)"
             break
         end
     end
