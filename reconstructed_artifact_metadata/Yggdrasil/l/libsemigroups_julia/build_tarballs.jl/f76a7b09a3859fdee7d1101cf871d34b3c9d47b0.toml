@@ -1,0 +1,64 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "~1.10, ~1.11, ~1.12, ~1.13, ~1.14"
+lazy_artifacts = false
+name = "libsemigroups_julia"
+platforms = ["i686-linux-gnu-cxx11-julia_version+1.10.0", "x86_64-linux-gnu-cxx11-julia_version+1.10.0", "aarch64-linux-gnu-cxx11-julia_version+1.10.0", "powerpc64le-linux-gnu-cxx11-julia_version+1.10.0", "x86_64-linux-musl-cxx11-julia_version+1.10.0", "aarch64-linux-musl-cxx11-julia_version+1.10.0", "x86_64-apple-darwin-julia_version+1.10.0", "aarch64-apple-darwin-julia_version+1.10.0", "x86_64-unknown-freebsd-julia_version+1.10.0", "i686-linux-gnu-cxx11-julia_version+1.11.1", "x86_64-linux-gnu-cxx11-julia_version+1.11.1", "aarch64-linux-gnu-cxx11-julia_version+1.11.1", "powerpc64le-linux-gnu-cxx11-julia_version+1.11.1", "x86_64-linux-musl-cxx11-julia_version+1.11.1", "aarch64-linux-musl-cxx11-julia_version+1.11.1", "x86_64-apple-darwin-julia_version+1.11.1", "aarch64-apple-darwin-julia_version+1.11.1", "x86_64-unknown-freebsd-julia_version+1.11.1", "i686-linux-gnu-cxx11-julia_version+1.12.0", "x86_64-linux-gnu-cxx11-julia_version+1.12.0", "aarch64-linux-gnu-cxx11-julia_version+1.12.0", "powerpc64le-linux-gnu-cxx11-julia_version+1.12.0", "x86_64-linux-musl-cxx11-julia_version+1.12.0", "aarch64-linux-musl-cxx11-julia_version+1.12.0", "x86_64-apple-darwin-julia_version+1.12.0", "aarch64-apple-darwin-julia_version+1.12.0", "x86_64-unknown-freebsd-julia_version+1.12.0", "aarch64-unknown-freebsd-julia_version+1.12.0", "i686-linux-gnu-cxx11-julia_version+1.13.0", "x86_64-linux-gnu-cxx11-julia_version+1.13.0", "aarch64-linux-gnu-cxx11-julia_version+1.13.0", "powerpc64le-linux-gnu-cxx11-julia_version+1.13.0", "riscv64-linux-gnu-cxx11-julia_version+1.13.0", "x86_64-linux-musl-cxx11-julia_version+1.13.0", "aarch64-linux-musl-cxx11-julia_version+1.13.0", "x86_64-apple-darwin-julia_version+1.13.0", "aarch64-apple-darwin-julia_version+1.13.0", "x86_64-unknown-freebsd-julia_version+1.13.0", "aarch64-unknown-freebsd-julia_version+1.13.0", "i686-linux-gnu-cxx11-julia_version+1.14.0", "x86_64-linux-gnu-cxx11-julia_version+1.14.0", "aarch64-linux-gnu-cxx11-julia_version+1.14.0", "powerpc64le-linux-gnu-cxx11-julia_version+1.14.0", "riscv64-linux-gnu-cxx11-julia_version+1.14.0", "x86_64-linux-musl-cxx11-julia_version+1.14.0", "aarch64-linux-musl-cxx11-julia_version+1.14.0", "x86_64-apple-darwin-julia_version+1.14.0", "aarch64-apple-darwin-julia_version+1.14.0", "x86_64-unknown-freebsd-julia_version+1.14.0", "aarch64-unknown-freebsd-julia_version+1.14.0"]
+script = """macos_sdk_version=10.14\nmacosx_deployment_target=10.14\nif [[ \"${target}\" == x86_64-apple-darwin* ]]; then\n    echo \"Extracting MacOSX${macos_sdk_version}.sdk.tar.xz (this may take a while)\"\n    rm -rf /opt/${target}/${target}/sys-root/System\n    rm -rf /opt/${target}/${target}/sys-root/usr/include/libxml2/libxml\n    # extract the tarball into the sys-root so all compilers pick it up\n    # automatically, and use --warning=no-unknown-keyword to hide harmless\n    # warnings about unsupported pax header keywords like \"SCHILY.fflags\"\n    tar --extract \\\n        --file=${WORKSPACE}/srcdir/MacOSX${macos_sdk_version}.sdk.tar.xz \\\n        --directory=\"/opt/${target}/${target}/sys-root/.\" \\\n        --strip-components=1 \\\n        --warning=no-unknown-keyword \\\n        MacOSX${macos_sdk_version}.sdk/System \\\n        MacOSX${macos_sdk_version}.sdk/usr\n    export MACOSX_DEPLOYMENT_TARGET=${macosx_deployment_target}\nfi\ncd Semigroups.jl*/deps/src\ncmake . -B build \\\n   -DJulia_PREFIX=\"$prefix\" \\\n   -DCMAKE_INSTALL_PREFIX=\"$prefix\" \\\n   -DCMAKE_FIND_ROOT_PATH=\"$prefix\" \\\n   -DCMAKE_TOOLCHAIN_FILE=\"${CMAKE_TARGET_TOOLCHAIN}\" \\\n   -DCMAKE_CXX_STANDARD=17 \\\n   -DCMAKE_BUILD_TYPE=Release \\\n   -DLIBSEMIGROUPS_INCLUDE_DIR=\"${prefix}/include\" \\\n   -DLIBSEMIGROUPS_LIBRARY_DIR=\"${libdir}\"\n\nVERBOSE=ON cmake --build build --config Release --target install -- -j${nproc}\n\n# store tree hash of the source directory\ngit ls-tree HEAD .. | cut -c13-52 > ${libdir}/libsemigroups_julia.treehash\n\ninstall_license ../../LICENSE\n"""
+version = "v0.1.1"
+
+[[dependencies]]
+compat = ""
+name = "libjulia_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 1
+version-minor = 11
+version-patch = 0
+[[dependencies]]
+compat = "~0.14.5"
+name = "libcxxwrap_julia_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "libsemigroups_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsemigroups_julia"]
+type = "lib"
+variable_name = "libsemigroups_julia"
+
+[[sources]]
+hash = "7936ddeb53e9e629048beead2c774d3383302835"
+type = "git"
+unpack_target = ""
+url = "https://github.com/libsemigroups/Semigroups.jl.git"
+[[sources]]
+filename = "MacOSX10.14.sdk.tar.xz"
+hash = "0f03869f72df8705b832910517b47dd5b79eb4e160512602f593ed243b28715f"
+type = "file"
+url = "https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.14.sdk.tar.xz"
