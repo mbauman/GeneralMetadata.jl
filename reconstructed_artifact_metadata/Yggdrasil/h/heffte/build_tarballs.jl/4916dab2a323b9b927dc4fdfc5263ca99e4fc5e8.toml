@@ -1,0 +1,368 @@
+augment_platform_block = """    using Base.BinaryPlatforms\n\n    module __CUDA\n        using Base.BinaryPlatforms\n\ntry\n    using CUDA_Runtime_jll\ncatch\n    # during initial package installation, CUDA_Runtime_jll may not be available.\n    # in that case, we just won't select an artifact.\nend\n\n# can't use Preferences for the same reason\nconst CUDA_Runtime_jll_uuid = Base.UUID(\"76a88914-d11a-5bdc-97e0-2f5a05c973a2\")\nconst preferences = Base.get_preferences(CUDA_Runtime_jll_uuid)\nBase.record_compiletime_preference(CUDA_Runtime_jll_uuid, \"version\")\nBase.record_compiletime_preference(CUDA_Runtime_jll_uuid, \"local\")\nconst local_toolkit = something(tryparse(Bool, get(preferences, \"local\", \"false\")), false)\n\nfunction cuda_comparison_strategy(_a::String, _b::String, a_requested::Bool, b_requested::Bool)\n    # if we're using a local toolkit, we can't use artifacts\n    if local_toolkit\n        return false\n    end\n\n    # if either isn't a version number (e.g. \"none\"), perform a simple equality check\n    a = tryparse(VersionNumber, _a)\n    b = tryparse(VersionNumber, _b)\n    if a === nothing || b === nothing\n        return _a == _b\n    end\n\n    # if both b and a requested, then we fall back to equality\n    if a_requested && b_requested\n        return Base.thisminor(a) == Base.thisminor(b)\n    end\n\n    # otherwise, do the comparison between the the single version cap and the single version:\n    function is_compatible(artifact::VersionNumber, host::VersionNumber)\n        if host >= v\"11.0\"\n            # enhanced compatibility, semver-style\n            artifact.major == host.major &&\n            Base.thisminor(artifact) <= Base.thisminor(host)\n        else\n            Base.thisminor(artifact) == Base.thisminor(host)\n        end\n    end\n    if a_requested\n        is_compatible(b, a)\n    else\n        is_compatible(a, b)\n    end\nend\n\nfunction augment_platform!(platform::Platform)\n    if !@isdefined(CUDA_Runtime_jll)\n        # don't set to nothing or Pkg will download any artifact\n        platform[\"cuda\"] = \"none\"\n    end\n\n    if !haskey(platform, \"cuda\")\n        CUDA_Runtime_jll.augment_platform!(platform)\n    end\n    BinaryPlatforms.set_compare_strategy!(platform, \"cuda\", cuda_comparison_strategy)\n\n    return platform\nend\n    end\n\n    # Can't use Preferences since we might be running this very early with a non-existing Manifest\nMPIPreferences_UUID = Base.UUID(\"3da0fdf6-3ccc-4f1b-acd9-58baa6c99267\")\nconst preferences = Base.get_preferences(MPIPreferences_UUID)\n\nconst binary_to_abi = Dict(\n    \"MPIABI_jll\" => \"MPIABI\",\n    \"MPICH_jll\" => \"MPICH\",\n    \"MPICH_CUDA_jll\" => \"MPICH\",\n    \"MPItrampoline_jll\" => \"MPItrampoline\",\n    \"MicrosoftMPI_jll\" => \"MicrosoftMPI\",\n    \"OpenMPI_jll\" => \"OpenMPI\",\n)\n\n# Keep logic in sync with MPIPreferences.jl\nfunction augment_mpi!(platform)\n    # Doesn't need to be `const` since we depend on MPIPreferences so we\n    # invalidate the cache when it changes.\n\n    # Determine which jll binary provides our MPI implementation.\n    # Use MPIPreferences if set, otherwise use either MPICH or MicrosoftMPI (on Windows).\n    # Note: MPIPreferences uses `Sys.iswindows()` without the `platform` argument.\n    binary = get(preferences, \"binary\", Sys.iswindows(platform) ? \"MicrosoftMPI_jll\" : \"MPICH_jll\")\n\n    # Convert the jll binary to an ABI\n    if binary == \"system\"\n        abi = get(preferences, \"abi\", nothing)\n        abi === nothing && error(\"MPIPreferences: Inconsistent state detected, `binary` is set to system, but `abi` is not set.\")\n    else\n        abi = get(binary_to_abi, binary, nothing)\n        abi == nothing && error(\"Unknown MPI binary: $binary\")\n    end\n\n    # Add an `mpi` entry to the platform if it's missing\n    if !haskey(platform, \"mpi\")\n        platform[\"mpi\"] = abi\n    end\n\n    return platform\nend\n\n\n    function augment_platform!(platform::Platform)\n        augment_mpi!(platform)\n        __CUDA.augment_platform!(platform)\n    end\n"""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = true
+name = "HeFFTe"
+platforms = ["x86_64-linux-gnu-cxx11-cuda+none-mpi+mpiabi", "aarch64-linux-gnu-cxx11-cuda+none-mpi+mpiabi", "x86_64-linux-musl-cxx11-cuda+none-mpi+mpiabi", "aarch64-linux-musl-cxx11-cuda+none-mpi+mpiabi", "x86_64-linux-gnu-cxx11-cuda+none-mpi+mpich", "aarch64-linux-gnu-cxx11-cuda+none-mpi+mpich", "x86_64-linux-musl-cxx11-cuda+none-mpi+mpich", "aarch64-linux-musl-cxx11-cuda+none-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+none-mpi+mpitrampoline", "aarch64-linux-gnu-cxx11-cuda+none-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+none-mpi+openmpi", "aarch64-linux-gnu-cxx11-cuda+none-mpi+openmpi", "x86_64-linux-musl-cxx11-cuda+none-mpi+openmpi", "aarch64-linux-musl-cxx11-cuda+none-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+12.0-mpi+mpiabi", "x86_64-linux-gnu-cxx11-cuda+12.1-mpi+mpiabi", "x86_64-linux-gnu-cxx11-cuda+12.2-mpi+mpiabi", "x86_64-linux-gnu-cxx11-cuda+12.3-mpi+mpiabi", "x86_64-linux-gnu-cxx11-cuda+12.4-mpi+mpiabi", "x86_64-linux-gnu-cxx11-cuda+12.5-mpi+mpiabi", "x86_64-linux-gnu-cxx11-cuda+12.6-mpi+mpiabi", "x86_64-linux-gnu-cxx11-cuda+12.8-mpi+mpiabi", "x86_64-linux-gnu-cxx11-cuda+12.9-mpi+mpiabi", "x86_64-linux-gnu-cxx11-cuda+13.0-mpi+mpiabi", "x86_64-linux-gnu-cxx11-cuda+13.1-mpi+mpiabi", "x86_64-linux-gnu-cxx11-cuda+13.2-mpi+mpiabi", "x86_64-linux-gnu-cxx11-cuda+12.0-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+12.1-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+12.2-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+12.3-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+12.4-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+12.5-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+12.6-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+12.8-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+12.9-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+13.0-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+13.1-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+13.2-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+12.0-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+12.1-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+12.2-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+12.3-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+12.4-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+12.5-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+12.6-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+12.8-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+12.9-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+13.0-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+13.1-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+13.2-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+12.0-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+12.1-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+12.2-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+12.3-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+12.4-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+12.5-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+12.6-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+12.8-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+12.9-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+13.0-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+13.1-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+13.2-mpi+openmpi"]
+script = """cd $WORKSPACE/srcdir/heffte\n\ncmake_extra_args=\"\"\n\n# Detect CUDA\nif [[ \"${bb_full_target}\" == *cuda\\+none* || \"${bb_full_target}\" != *cuda* ]]; then\n    CUDA_OPTION=\"OFF\"\nelse\n    CUDA_OPTION=\"ON\"\n    export PATH=$PATH:$prefix/cuda/bin/\n    export CUDA_PATH=$prefix/cuda/\n    ln -s $prefix/cuda/lib/stubs/libcuda.so $prefix/cuda/lib/libcuda.so\n    ln -s $prefix/cuda/lib $prefix/cuda/lib64\n    cmake_extra_args=\"\\\n        -DCMAKE_CUDA_HOST_COMPILER=$CXX \\\n        -DCMAKE_EXE_LINKER_FLAGS=-Wl,--allow-shlib-undefined \\\n    \"\nfi\n\ncmake -B build \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_FIND_ROOT_PATH=\"${prefix}/lib/mpich;${prefix}\" \\\n    -DCMAKE_INSTALL_PREFIX=$prefix \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DBUILD_SHARED_LIBS=ON \\\n    -DMPI_C_COMPILER=$bindir/mpicc \\\n    -DMPI_CXX_COMPILER=$bindir/mpicxx \\\n    -DHeffte_ENABLE_FFTW=ON \\\n    -DHeffte_ENABLE_CUDA=${CUDA_OPTION} \\\n    -DHeffte_ENABLE_TESTING=OFF \\\n    ${cmake_extra_args}\n\ncmake --build build -j${nproc}\ncmake --install build\n\n# Clean up CUDA stubs\nif [[ \"${bb_full_target}\" != *cuda\\+none* && \"${bb_full_target}\" == *cuda* ]]; then\n    unlink $prefix/cuda/lib/libcuda.so\nfi\n"""
+version = "v2.4.1"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "FFTW_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "f5851436-0d7a-5f13-b9de-f02708fd171a"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "0.1.3"
+name = "MPIABI_jll"
+platforms = ["x86_64-linux-gnu-cxx11-cuda+none-mpi+mpiabi", "aarch64-linux-gnu-cxx11-cuda+none-mpi+mpiabi", "x86_64-linux-musl-cxx11-cuda+none-mpi+mpiabi", "aarch64-linux-musl-cxx11-cuda+none-mpi+mpiabi"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "5.0.1"
+name = "MPICH_jll"
+platforms = ["x86_64-linux-gnu-cxx11-cuda+none-mpi+mpich", "aarch64-linux-gnu-cxx11-cuda+none-mpi+mpich", "x86_64-linux-musl-cxx11-cuda+none-mpi+mpich", "aarch64-linux-musl-cxx11-cuda+none-mpi+mpich"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "5.5.6"
+name = "MPItrampoline_jll"
+platforms = ["x86_64-linux-gnu-cxx11-cuda+none-mpi+mpitrampoline", "aarch64-linux-gnu-cxx11-cuda+none-mpi+mpitrampoline"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MicrosoftMPI_jll"
+platforms = []
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "4.1.9, 5.0.11"
+name = "OpenMPI_jll"
+platforms = ["x86_64-linux-gnu-cxx11-cuda+none-mpi+openmpi", "aarch64-linux-gnu-cxx11-cuda+none-mpi+openmpi", "x86_64-linux-musl-cxx11-cuda+none-mpi+openmpi", "aarch64-linux-musl-cxx11-cuda+none-mpi+openmpi"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "0.1"
+name = "MPIPreferences"
+platforms = ["any"]
+top_level = true
+type = "runtimedependency"
+uuid = "3da0fdf6-3ccc-4f1b-acd9-58baa6c99267"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "0.1.3"
+name = "MPIABI_jll"
+platforms = ["x86_64-linux-gnu-cxx11-cuda+12.0-mpi+mpiabi", "x86_64-linux-gnu-cxx11-cuda+12.1-mpi+mpiabi", "x86_64-linux-gnu-cxx11-cuda+12.2-mpi+mpiabi", "x86_64-linux-gnu-cxx11-cuda+12.3-mpi+mpiabi", "x86_64-linux-gnu-cxx11-cuda+12.4-mpi+mpiabi", "x86_64-linux-gnu-cxx11-cuda+12.5-mpi+mpiabi", "x86_64-linux-gnu-cxx11-cuda+12.6-mpi+mpiabi", "x86_64-linux-gnu-cxx11-cuda+12.8-mpi+mpiabi", "x86_64-linux-gnu-cxx11-cuda+12.9-mpi+mpiabi", "x86_64-linux-gnu-cxx11-cuda+13.0-mpi+mpiabi", "x86_64-linux-gnu-cxx11-cuda+13.1-mpi+mpiabi", "x86_64-linux-gnu-cxx11-cuda+13.2-mpi+mpiabi"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "5.0.1"
+name = "MPICH_jll"
+platforms = ["x86_64-linux-gnu-cxx11-cuda+12.0-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+12.1-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+12.2-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+12.3-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+12.4-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+12.5-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+12.6-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+12.8-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+12.9-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+13.0-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+13.1-mpi+mpich", "x86_64-linux-gnu-cxx11-cuda+13.2-mpi+mpich"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "5.5.6"
+name = "MPItrampoline_jll"
+platforms = ["x86_64-linux-gnu-cxx11-cuda+12.0-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+12.1-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+12.2-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+12.3-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+12.4-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+12.5-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+12.6-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+12.8-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+12.9-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+13.0-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+13.1-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-cuda+13.2-mpi+mpitrampoline"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "4.1.9, 5.0.11"
+name = "OpenMPI_jll"
+platforms = ["x86_64-linux-gnu-cxx11-cuda+12.0-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+12.1-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+12.2-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+12.3-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+12.4-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+12.5-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+12.6-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+12.8-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+12.9-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+13.0-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+13.1-mpi+openmpi", "x86_64-linux-gnu-cxx11-cuda+13.2-mpi+openmpi"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 0
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_Runtime_jll"
+platforms = ["any"]
+top_level = false
+type = "runtimedependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_static_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 0
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_Driver_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 1
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_static_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 1
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 2
+version-patch = 2
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_static_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 2
+version-patch = 2
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 3
+version-patch = 2
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_static_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 3
+version-patch = 2
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 4
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_static_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 4
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 5
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_static_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 5
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 6
+version-patch = 3
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_static_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 6
+version-patch = 3
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 8
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_static_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 8
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 9
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_static_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 9
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 13
+version-minor = 0
+version-patch = 2
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_static_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 13
+version-minor = 0
+version-patch = 2
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 13
+version-minor = 1
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_static_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 13
+version-minor = 1
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 13
+version-minor = 2
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_static_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 13
+version-minor = 2
+version-patch = 1
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libheffte"]
+type = "lib"
+variable_name = "libheffte"
+
+[[sources]]
+hash = "6e16996e5a3eb65c60fd62fd4d93c4b2df833033"
+type = "git"
+unpack_target = ""
+url = "https://github.com/icl-utk-edu/heffte.git"
