@@ -1,0 +1,25 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Btop"
+platforms = ["i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx11", "riscv64-linux-gnu-cxx11", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd"]
+script = """macos_sdk_version=14.5\nmacosx_deployment_target=14.5\nif [[ \"${target}\" == *-apple-darwin* ]]; then\n    echo \"Extracting MacOSX${macos_sdk_version}.sdk.tar.xz (this may take a while)\"\n    rm -rf /opt/${target}/${target}/sys-root/System\n    rm -rf /opt/${target}/${target}/sys-root/usr/include/libxml2/libxml\n    # extract the tarball into the sys-root so all compilers pick it up\n    # automatically, and use --warning=no-unknown-keyword to hide harmless\n    # warnings about unsupported pax header keywords like \"SCHILY.fflags\"\n    tar --extract \\\n        --file=${WORKSPACE}/srcdir/MacOSX${macos_sdk_version}.sdk.tar.xz \\\n        --directory=\"/opt/${target}/${target}/sys-root/.\" \\\n        --strip-components=1 \\\n        --warning=no-unknown-keyword \\\n        MacOSX${macos_sdk_version}.sdk/System \\\n        MacOSX${macos_sdk_version}.sdk/usr\n    export MACOSX_DEPLOYMENT_TARGET=${macosx_deployment_target}\nfi\ncd $WORKSPACE/srcdir/btop*\n\n# The function `get_xdg_state_dir` calls `getenv` and is thus not constexpr\nsed -i -e 's/static constexpr auto get_xdg_state_dir/static auto get_xdg_state_dir/' src/btop_config.cpp\n\nFLAGS=(\n    THREADS=${nproc}\n    CC=\"$CC -Wno-implicit-function-declaration\"   # CFLAGS is not used when building\n    PREFIX=${prefix}\n)\n\n# Set platform and architecture flags manually;\n# otherwise, the build system runs `uname`, which does not work since we cross-build.\nif [[ \"${target}\" == *-linux* ]]; then\n    FLAGS+=(PLATFORM=Linux)\nelif [[ \"${target}\" == *-darwin* ]]; then\n    FLAGS+=(PLATFORM=MacOS)\nelif [[ \"${target}\" == *-freebsd* ]]; then\n    FLAGS+=(PLATFORM=FreeBSD)\nfi\nif [[ \"${target}\" == x86_64-* ]]; then\n    FLAGS+=(ARCH=x86_64)\nelif [[ \"${target}\" == aarch64-* ]]; then\n    FLAGS+=(ARCH=arm64)\nelif [[ \"${target}\" == riscv64-* ]]; then\n    FLAGS+=(ARCH=riscv64)\nelse\n    FLAGS+=(ARCH=other)\nfi\n\nif [[ \"${target}\" == x86_64-linux-gnu ]]; then\n    # Enable GPU also on aarch64, this needs to explicitly link to libdl for `dlerror` symbol.\n    FLAGS+=(GPU_SUPPORT=true ADDFLAGS=\"-ldl\")\nelse\n    # We cannot enable GPU support on non-Intel systems.\n    # The build system would try to build the Intel GPU support code unconditionally.\n    # (Some parts of the build system honour `INTEL_GPU_SUPPORT`, but others don't.)\n    FLAGS+=(GPU_SUPPORT=false ADDFLAGS=\"\")\nfi\n\necho \"${FLAGS[@]}\"\nmake -j${nproc} \"${FLAGS[@]}\"\nmake install \"${FLAGS[@]}\"   # PREFIX=${prefix}\n"""
+version = "v1.4.7"
+
+[[products]]
+binnames = ["btop"]
+type = "exe"
+variable_name = "btop"
+
+[[sources]]
+hash = "6e39144aaf5a6bc01b9f795010b0914431067183"
+type = "git"
+unpack_target = ""
+url = "https://github.com/aristocratos/btop.git"
+[[sources]]
+filename = "MacOSX14.5.sdk.tar.xz"
+hash = "d2b7784a8b63cfcc686059aef6f1065dc8d2aaeddc39245738f4c0cd9ca6165a"
+type = "file"
+url = "https://github.com/roblabla/MacOSX-SDKs/releases/download/macosx14.5/MacOSX14.5.sdk.tar.xz"
