@@ -1,0 +1,50 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "SimpleBLE"
+platforms = ["i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx11", "riscv64-linux-gnu-cxx11", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx11", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir\ninstall_license simpleble/LICENSE.md\n# Currently building for windows does not work I suspect \n# because we need MinGW 14 to have access to the right winrt\n# header files, so we download perbuilt binaries and use those\nif [[ ${target} == *mingw* ]]; then\n    if [[ ${target} == i686* ]]; then\n        cd windllx32/shared/bin/\n    else\n        cd windllx64/shared/bin/\n    fi\n    chmod +x simpleble.dll simplecble.dll\n    mkdir ${prefix}/bin || echo \"Its fine\"\n    cp -a simpleble.dll simplecble.dll ${prefix}/bin\nelse\n    cd simpleble/\n    cmake -S simplecble -B build_simplecble -DCMAKE_INSTALL_PREFIX=$prefix -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=TRUE\n    cmake --build build_simplecble --parallel ${nproc}\n    cd build_simplecble/\n    make install\nfi\n"""
+version = "v0.12.1"
+
+[[dependencies]]
+compat = ""
+name = "Dbus_jll"
+platforms = ["i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx11", "riscv64-linux-gnu-cxx11", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx11", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd"]
+top_level = false
+type = "dependency"
+uuid = "ee1fde0b-3d02-5ea6-8484-8dfef6360eab"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsimplecble", "simplecble"]
+type = "lib"
+variable_name = "simplecble"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsimpleble", "simpleble"]
+type = "lib"
+variable_name = "simpleble"
+
+[[sources]]
+hash = "d1b7110644f0f9cb850d6ab43f7d461ca9d4031e"
+type = "git"
+unpack_target = ""
+url = "https://github.com/simpleble/simpleble.git"
+[[sources]]
+hash = "d6aa05c6a8f0ea710419dc82ea00c4ebbcd37a4d9644f70d79b94b6baf03c888"
+type = "archive"
+unpack_target = "windllx64"
+url = "https://github.com/simpleble/simpleble/releases/download/v0.12.1/libsimplecble_windows-x64.zip"
+[[sources]]
+hash = "1be89fda486cdcecfeda78b1c78ed1c3e502544f6d9fbbd4362b9844cfb435c2"
+type = "archive"
+unpack_target = "windllx32"
+url = "https://github.com/simpleble/simpleble/releases/download/v0.12.1/libsimplecble_windows-x86.zip"
