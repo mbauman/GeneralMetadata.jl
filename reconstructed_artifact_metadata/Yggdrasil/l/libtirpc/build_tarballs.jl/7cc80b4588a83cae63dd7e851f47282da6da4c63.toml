@@ -1,0 +1,28 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "libtirpc"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf"]
+script = """cd $WORKSPACE/srcdir/libtirpc-*/\n\ninstall_license COPYING\n\n#musl does not have this header, so we manually carry it around, queue.h file contents taken from https://github.com/dbmail/dbmail/blob/master/compatibility/queue.h\nif [[ ${target} == *-musl* ]]; then\n    mkdir sys\n    cp $WORKSPACE/srcdir/queue.h $WORKSPACE/srcdir/libtirpc-*/sys/\nfi\n\n./configure \\\n--prefix=${prefix} \\\n--build=${MACHTYPE} \\\n--host=${target} \\\n--enable-static=no \\\n--enable-shared=yes \\\n--disable-gssapi\n\nmake -j${nproc}\nmake install\n\n"""
+version = "v1.3.7"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libtirpc"]
+type = "lib"
+variable_name = "libtirpc"
+
+[[sources]]
+hash = "b47d3ac19d3549e54a05d0019a6c400674da716123858cfdb6d3bdd70a66c702"
+type = "archive"
+unpack_target = ""
+url = "https://downloads.sourceforge.net/project/libtirpc/libtirpc/1.3.7/libtirpc-1.3.7.tar.bz2"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"
