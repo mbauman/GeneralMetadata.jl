@@ -1,0 +1,41 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "LuaJIT"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "x86_64-w64-mingw32"]
+script = """cd ${WORKSPACE}/srcdir/LuaJIT*\n\nfor file in ${WORKSPACE}/srcdir/patches/*.patch; do\n    atomic_patch -p1 ${file}\ndone\n\n# LuaJIT requires the buildvm/minilua host tools to share pointer size with the\n# target. BB's x86_64-linux-musl rootfs has no 32-bit multilib, so `HOSTCC -m32`\n# fails to link (no 32-bit libc/libgcc). Workaround for 32-bit *Linux* targets:\n# use the target cross-compiler statically; the static i686 binary runs natively\n# on the x86_64 build host via kernel ia32 emulation, no ldso needed.\nHOST_C=\"${HOSTCC} -m${nbits}\"\nif [[ \"${nbits}\" == \"32\" && ${target} == *-linux-* ]]; then\n    HOST_C=\"${CC} -static\"\nfi\n\nFLAGS=(\n    PREFIX=\"${prefix}\"\n    TARGET_CC=\"${CC}\"\n    TARGET_CFLAGS=\"-I${includedir}\"\n    TARGET_LDFLAGS=\"-L${libdir}\"\n    HOST_CC=\"${HOST_C}\"\n    HOST_SYS=\"BinaryBuilder\"\n)\n\nif [[ ${target} == *-apple-* ]]; then\n    FLAGS+=(TARGET_SYS=\"Darwin\")\nelif [[ ${target} == *-freebsd* ]]; then\n    FLAGS+=(TARGET_SYS=\"FreeBSD\")\nelif [[ ${target} == *-mingw* ]]; then\n    FLAGS+=(TARGET_SYS=\"Windows\")\nelse\n    FLAGS+=(TARGET_SYS=\"Linux\")\nfi\n\nmake -j${nproc} amalg \"${FLAGS[@]}\"\nmake install \"${FLAGS[@]}\"\n\n# LuaJIT's Makefile install rules use Linux SO conventions even for TARGET_SYS=Windows\n# (DLL installed under lib/ as libluajit-5.1.so.<VERSION>; exe installed without .exe),\n# so relocate to Windows conventions: lua51.dll -> bin/, .exe extension on the\n# executable, import lib named libluajit-5.1.dll.a.\nif [[ ${target} == *-mingw* ]]; then\n    # On Windows ${libdir} == ${bindir}, but LuaJIT's `make install PREFIX=…` writes to\n    # ${prefix}/lib regardless, so refer to that absolute path explicitly here. The DLL's\n    # full installed name is libluajit-5.1.so.<MAJVER>.<MINVER>.<RELVER> where RELVER is\n    # the commit timestamp (rolling release), so glob for it instead of hardcoding.\n    rm -f ${prefix}/lib/libluajit-5.1.so ${prefix}/lib/libluajit-5.1.so.2\n    mv ${prefix}/lib/libluajit-5.1.so.* ${bindir}/lua51.dll\n    mv ${prefix}/lib/libluajit-5.1.a ${prefix}/lib/libluajit-5.1.dll.a\n    # Upstream installs ${bindir}/luajit as a symlink to the versioned executable; its\n    # target gets renamed below, leaving the symlink broken. Symlinked .exe entries\n    # aren't a standard Windows convention anyway, so just drop it.\n    rm -f ${bindir}/luajit\n    for f in ${bindir}/luajit-*; do\n        [[ ${f} == *.exe ]] && continue\n        mv ${f} ${f}.exe\n    done\nfi\n\ninstall_license ${WORKSPACE}/srcdir/LuaJIT/COPYRIGHT\n"""
+version = "v2.1.20260330"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["luajit-2.1.1774896198"]
+type = "exe"
+variable_name = "luajit"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libluajit-5.1", "libluajit-5", "lua51"]
+type = "lib"
+variable_name = "libluajit"
+
+[[sources]]
+hash = "18b087cd2cd4ddc4a79782bf155383a689d5093d"
+type = "git"
+unpack_target = ""
+url = "https://github.com/LuaJIT/LuaJIT.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"
