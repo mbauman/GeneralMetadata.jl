@@ -1,0 +1,70 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.10"
+lazy_artifacts = false
+name = "vroom"
+platforms = ["i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx11", "riscv64-linux-gnu-cxx11", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir\n# Windows: no pkg-config for OpenSSL; set include/lib paths\nif [[ ${target} == *-w64-mingw32 ]]; then\n    export CPPFLAGS=\"-I${includedir} ${CPPFLAGS}\"\n    export LDFLAGS=\"-L${libdir} ${LDFLAGS}\"\nfi\ncd vroom\ngit submodule init\ngit submodule update\nif [[ ${target} == *-w64-mingw32 ]]; then\n    # There is no pkg-config info for OpenSSL on Windows. The makefile passes -lssl -lcrypto\n    # but not -L and does not use LDFLAGS. On Windows libdir=${prefix}/bin (where DLLs live).\n    export CPPFLAGS=\"-I${includedir} ${CPPFLAGS}\"\n    for f in $(find . \\( -name Makefile -o -name makefile -o -name '*.mk' \\) -type f); do\n        if grep -q 'lssl' \"$f\" 2>/dev/null; then\n            sed -i -e \"s| -lssl| -L${libdir} -lssl|g\" \\\n                   -e \"s| -lcrypto| -L${libdir} -lcrypto -lws2_32 -lmswsock|g\" \"$f\"\n        fi\n    done\nfi\ncd src\n# Use GCC instead of Clang on macOS: Apple's libc++ lacks std::jthread (vroom#1062, pyvroom#106)\n# Override deployment target for GCC compatibility (Runner/default may use 14.5 which GCC rejects).\nif [[ \"${target}\" == *-freebsd* ]] || [[ \"${target}\" == *-apple-* ]]; then\n    export CC=gcc\n    export CXX=g++\n    export MACOSX_DEPLOYMENT_TARGET=10.15\n    export CFLAGS=\"$(echo \" ${CFLAGS}\" | sed 's/ -mmacosx-version-min=[^ ]*//g' | sed 's/^ *//')\"\n    export CXXFLAGS=\"$(echo \" ${CXXFLAGS}\" | sed 's/ -mmacosx-version-min=[^ ]*//g' | sed 's/^ *//')\"\n    export LDFLAGS=\"$(echo \" ${LDFLAGS}\" | sed 's/ -Wl,-sdk_version,[^ ]*//g' | sed 's/^ *//')\"\nfi\nmake -j${nproc}\ninstall -Dvm 755 ../bin/vroom${exeext} -t ${bindir}\n"""
+version = "v1.14.0"
+
+[[dependencies]]
+compat = ""
+name = "asio_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+uuid = "adbc9c39-6bf4-5566-8295-c0623552eeca"
+version-major = 1
+version-minor = 18
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "GLPK_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "e8aa6df9-e6ca-548a-97ff-1f85fc5b8b98"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "jq_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "f8f80db2-c0ba-59e9-a5c3-38d72e3c5ac2"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "3.0.16"
+name = "OpenSSL_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "458c3c95-2e84-50aa-8efc-19380b2a3a95"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["vroom"]
+type = "exe"
+variable_name = "vroom"
+
+[[sources]]
+hash = "1fd711bc8c20326dd8e9538e2c7e4cb1ebd67bdb"
+type = "git"
+unpack_target = ""
+url = "https://github.com/VROOM-Project/vroom.git"

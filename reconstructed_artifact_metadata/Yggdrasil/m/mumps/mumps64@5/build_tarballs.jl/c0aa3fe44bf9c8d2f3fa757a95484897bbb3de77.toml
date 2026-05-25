@@ -1,0 +1,168 @@
+augment_platform_block = """    using Base.BinaryPlatforms\n    # Can't use Preferences since we might be running this very early with a non-existing Manifest\nMPIPreferences_UUID = Base.UUID(\"3da0fdf6-3ccc-4f1b-acd9-58baa6c99267\")\nconst preferences = Base.get_preferences(MPIPreferences_UUID)\n\nconst binary_to_abi = Dict(\n    \"MPIABI_jll\" => \"MPIABI\",\n    \"MPICH_jll\" => \"MPICH\",\n    \"MPICH_CUDA_jll\" => \"MPICH\",\n    \"MPItrampoline_jll\" => \"MPItrampoline\",\n    \"MicrosoftMPI_jll\" => \"MicrosoftMPI\",\n    \"OpenMPI_jll\" => \"OpenMPI\",\n)\n\n# Keep logic in sync with MPIPreferences.jl\nfunction augment_mpi!(platform)\n    # Doesn't need to be `const` since we depend on MPIPreferences so we\n    # invalidate the cache when it changes.\n\n    # Determine which jll binary provides our MPI implementation.\n    # Use MPIPreferences if set, otherwise use either MPICH or MicrosoftMPI (on Windows).\n    # Note: MPIPreferences uses `Sys.iswindows()` without the `platform` argument.\n    binary = get(preferences, \"binary\", Sys.iswindows(platform) ? \"MicrosoftMPI_jll\" : \"MPICH_jll\")\n\n    # Convert the jll binary to an ABI\n    if binary == \"system\"\n        abi = get(preferences, \"abi\", nothing)\n        abi === nothing && error(\"MPIPreferences: Inconsistent state detected, `binary` is set to system, but `abi` is not set.\")\n    else\n        abi = get(binary_to_abi, binary, nothing)\n        abi == nothing && error(\"Unknown MPI binary: $binary\")\n    end\n\n    # Add an `mpi` entry to the platform if it's missing\n    if !haskey(platform, \"mpi\")\n        platform[\"mpi\"] = abi\n    end\n\n    return platform\nend\n\n    augment_platform!(platform::Platform) = augment_mpi!(platform)\n"""
+init_block = ""
+julia_compat = "1.10"
+lazy_artifacts = false
+name = "MUMPS64"
+platforms = ["x86_64-linux-gnu-libgfortran5-mpi+mpiabi", "aarch64-linux-gnu-libgfortran5-mpi+mpiabi", "powerpc64le-linux-gnu-libgfortran5-mpi+mpiabi", "riscv64-linux-gnu-libgfortran5-mpi+mpiabi", "x86_64-linux-musl-libgfortran5-mpi+mpiabi", "aarch64-linux-musl-libgfortran5-mpi+mpiabi", "x86_64-apple-darwin-libgfortran5-mpi+mpiabi", "aarch64-apple-darwin-libgfortran5-mpi+mpiabi", "x86_64-unknown-freebsd-libgfortran5-mpi+mpiabi", "aarch64-unknown-freebsd-libgfortran5-mpi+mpiabi", "x86_64-linux-gnu-libgfortran5-mpi+mpich", "aarch64-linux-gnu-libgfortran5-mpi+mpich", "powerpc64le-linux-gnu-libgfortran5-mpi+mpich", "riscv64-linux-gnu-libgfortran5-mpi+mpich", "x86_64-linux-musl-libgfortran5-mpi+mpich", "aarch64-linux-musl-libgfortran5-mpi+mpich", "x86_64-apple-darwin-libgfortran5-mpi+mpich", "aarch64-apple-darwin-libgfortran5-mpi+mpich", "x86_64-unknown-freebsd-libgfortran5-mpi+mpich", "aarch64-unknown-freebsd-libgfortran5-mpi+mpich", "x86_64-linux-gnu-libgfortran5-mpi+mpitrampoline", "aarch64-linux-gnu-libgfortran5-mpi+mpitrampoline", "powerpc64le-linux-gnu-libgfortran5-mpi+mpitrampoline", "riscv64-linux-gnu-libgfortran5-mpi+mpitrampoline", "x86_64-apple-darwin-libgfortran5-mpi+mpitrampoline", "aarch64-apple-darwin-libgfortran5-mpi+mpitrampoline", "x86_64-unknown-freebsd-libgfortran5-mpi+mpitrampoline", "aarch64-unknown-freebsd-libgfortran5-mpi+mpitrampoline", "x86_64-linux-gnu-libgfortran5-mpi+openmpi", "aarch64-linux-gnu-libgfortran5-mpi+openmpi", "powerpc64le-linux-gnu-libgfortran5-mpi+openmpi", "riscv64-linux-gnu-libgfortran5-mpi+openmpi", "x86_64-linux-musl-libgfortran5-mpi+openmpi", "aarch64-linux-musl-libgfortran5-mpi+openmpi", "x86_64-apple-darwin-libgfortran5-mpi+openmpi", "aarch64-apple-darwin-libgfortran5-mpi+openmpi", "x86_64-unknown-freebsd-libgfortran5-mpi+openmpi", "aarch64-unknown-freebsd-libgfortran5-mpi+openmpi"]
+script = """mkdir -p ${libdir}\ncd $WORKSPACE/srcdir/MUMPS*\n\nmakefile=\"Makefile.G95.PAR\"\ncp Make.inc/${makefile} Makefile.inc\n\n# Add `-fallow-argument-mismatch` if supported\n: >empty.f\nFFLAGS=()\nif gfortran -c -fallow-argument-mismatch empty.f >/dev/null 2>&1; then\n    FFLAGS+=(\"-fallow-argument-mismatch\")\nfi\nrm -f empty.*\n\nif [[ \"${target}\" == *apple* ]]; then\n    SONAME=\"-install_name\"\nelse\n    SONAME=\"-soname\"\nfi\n\nif [[ \"${target}\" == *mingw* ]]; then\n  BLAS_LAPACK=\"-L${libdir} -lblastrampoline-5\"\nelse\n  BLAS_LAPACK=\"-L${libdir} -lblastrampoline\"\nfi\n\nMPILIBS=()\nif [[ ${bb_full_target} == *microsoftmpi* ]]; then\n    MPILIBS=(-lmsmpi)\nelif [[ ${bb_full_target} == *mpiabi* ]]; then\n    MPILIBS=(-lmpif -lmpi_abi)\nelif [[ ${bb_full_target} == *mpich* ]]; then\n    MPILIBS=(-lmpifort -lmpi)\nelif [[ ${bb_full_target} == *mpitrampoline* ]]; then\n    MPILIBS=(-lmpitrampoline)\nelif [[ ${bb_full_target} == *openmpi* ]]; then\n    MPILIBS=(-lmpi_usempif08 -lmpi_usempi_ignore_tkr -lmpi_mpifh -lmpi)\nfi\n\n# Override MPItrampoline's built-in compiler paths\nexport MPITRAMPOLINE_CC=cc\nexport MPITRAMPOLINE_CXX=c++\nexport MPITRAMPOLINE_FC=gfortran\n\nif [[ \"${target}\" == *mingw32* ]]; then\n    MPICC=gcc\n    MPIFC=gfortran\n    MPIFL=gfortran\nelse\n    MPICC=mpicc\n    MPIFC=mpifort\n    MPIFL=mpifort\nfi\n\n# Discover ScaLAPACK64 symbol base names (strip `_64_`) so we can rewrite\n# MUMPS's unsuffixed calls to the `_64_` exports via cpp -D defines.\nif [[ ${target} == *apple* ]]; then\n    NM=llvm-nm\n    NM_FILTER='$2 ~ /^[TW]$/ {sub(/^_/, \"\", $3); print $3}'\nelse\n    NM=${target}-nm\n    NM_FILTER='$2 ~ /^[TW]$/ {print $3}'\nfi\n${NM} --defined-only --extern-only ${libdir}/libscalapack64.${dlext} 2>/dev/null \\\n    | awk \"${NM_FILTER}\" \\\n    | grep -E '_64_$' \\\n    | sed 's/_64_$//' \\\n    | sort -u > /tmp/scalapack_syms.txt\n\n# BLAS/LAPACK symbols MUMPS calls; routed via LBT's `_64_` suffix.\nblas_lapack_syms=(\n    isamax idamax icamax izamax ilaenv lsame xerbla\n    slamch dlamch\n    sasum dasum scasum dzasum\n    snrm2 dnrm2 scnrm2 dznrm2\n    saxpy daxpy caxpy zaxpy\n    scopy dcopy ccopy zcopy\n    sdot ddot\n    sscal dscal cscal zscal csscal zdscal\n    sswap dswap cswap zswap\n    sgemm dgemm cgemm zgemm\n    sgemv dgemv cgemv zgemv\n    sger dger cgerc zgerc cgeru zgeru\n    ssymv dsymv chemv zhemv\n    ssyr dsyr cher zher\n    ssyr2 dsyr2 cher2 zher2\n    ssymm dsymm chemm zhemm csymm zsymm\n    ssyrk dsyrk cherk zherk csyrk zsyrk\n    ssyr2k dsyr2k cher2k zher2k csyr2k zsyr2k\n    strmm dtrmm ctrmm ztrmm\n    strsm dtrsm ctrsm ztrsm\n    strmv dtrmv ctrmv ztrmv\n    strsv dtrsv ctrsv ztrsv\n    sgesv dgesv cgesv zgesv\n    sgetrf dgetrf cgetrf zgetrf\n    sgetrs dgetrs cgetrs zgetrs\n    spotrf dpotrf cpotrf zpotrf\n    sgesvd dgesvd cgesvd zgesvd\n    slarfg dlarfg clarfg zlarfg\n    sorgqr dorgqr cungqr zungqr\n    sormqr dormqr cunmqr zunmqr\n    strtrs dtrtrs ctrtrs ztrtrs\n    slacpy dlacpy clacpy zlacpy\n    slaset dlaset claset zlaset\n    slaswp dlaswp claswp zlaswp\n    slamch dlamch\n    slange dlange clange zlange\n    sgeqrf dgeqrf cgeqrf zgeqrf\n    sgeqp3 dgeqp3 cgeqp3 zgeqp3\n)\n\n# cpp is case-sensitive but Fortran isn't, so emit both case variants for F.\n: >/tmp/fortran_defines.txt\n: >/tmp/c_defines.txt\n{ cat /tmp/scalapack_syms.txt; printf '%s\\n' \"${blas_lapack_syms[@]}\"; } | sort -u \\\n    | while read -r s; do\n        [[ -z \"$s\" ]] && continue\n        upper=$(echo \"$s\" | tr 'a-z' 'A-Z')\n        echo \"-D${s}=${s}_64\"     >> /tmp/fortran_defines.txt\n        echo \"-D${upper}=${upper}_64\" >> /tmp/fortran_defines.txt\n        echo \"-D${s}_=${s}_64_\"   >> /tmp/c_defines.txt\n    done\nRENAME_F=$(tr '\\n' ' ' < /tmp/fortran_defines.txt)\nRENAME_C=$(tr '\\n' ' ' < /tmp/c_defines.txt)\n\nLSCOTCH=\"\"\nFSCOTCH=\"\"\n\n# MPI Fortran headers (mpif_jll, mpitrampoline, …) use `&` at col 73 paired\n# with `&` at col 6 of the next line, relying on fixed-72 truncation.\n# `-ffixed-line-length-none` defeats this. mpifort hardcodes `-I${includedir}`\n# first, so we patch in place (originals are read-only artifact symlinks).\nfor f in \"${includedir}\"/*.h; do\n    [[ -e \"$f\" ]] || continue\n    if awk 'length($0)>=73 && substr($0,73,1)==\"&\" {found=1; exit} END {exit !found}' \"$f\"; then\n        cp -L \"$f\" \"${f}.tmp\"\n        rm -f \"$f\"\n        mv \"${f}.tmp\" \"$f\"\n        chmod u+w \"$f\"\n        sed -i 's/&[[:space:]]*$//' \"$f\"\n    fi\ndone\n\nmake_args+=(PLAT=\"par64\"\n            OPTF=\"-O3 -fopenmp -fdefault-integer-8 -ffixed-line-length-none -cpp ${RENAME_F}\"\n            OPTL=\"-O3 -fopenmp\"\n            OPTC=\"-O3 -fopenmp -DINTSIZE64 -DIDXTYPEWIDTH=64 -DREALTYPEWIDTH=64 ${RENAME_C}\"\n            CDEFS=-DAdd_\n            LMETISDIR=\"${libdir}/metis/metis_Int64_Real64/lib\"\n            IMETIS=\"-I${libdir}/metis/metis_Int64_Real64/include\"\n            LMETIS=\"-L${libdir} -lparmetis_Int64_Real64 -L${libdir}/metis/metis_Int64_Real64/lib -lmetis_Int64_Real64\"\n            LSCOTCHDIR=\"${libdir}\"\n            ISCOTCH=\"\"\n            LSCOTCH=\"\"\n            ORDERINGSF=\"-Dmetis -Dpord -Dparmetis\"\n            LIBEXT_SHARED=\".${dlext}\"\n            SHARED_OPT=\"-shared\"\n            SONAME=\"${SONAME}\"\n            CC=\"${MPICC} ${CFLAGS[@]}\"\n            FC=\"${MPIFC} ${FFLAGS[@]}\"\n            FL=\"${MPIFL}\"\n            RANLIB=\"echo\"\n            LPORD=\"-L./PORD/lib -lpordpar64\"\n            LIBBLAS=\"${BLAS_LAPACK}\"\n            LAPACK=\"${BLAS_LAPACK}\"\n            SCALAP=\"-L${libdir} -lscalapack64\"\n            INCPAR=\"-I${includedir}\"\n            LIBPAR=\"-L${libdir} -lscalapack64 ${BLAS_LAPACK} ${MPILIBS[*]}\")\n\nmake -j${nproc} allshared \"${make_args[@]}\"\n\ncp include/*.h ${includedir}\ncp lib/*.${dlext} ${libdir}\n"""
+version = "v5.9.0"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["x86_64-linux-gnu-libgfortran5-mpi+mpiabi", "aarch64-linux-gnu-libgfortran5-mpi+mpiabi", "powerpc64le-linux-gnu-libgfortran5-mpi+mpiabi", "riscv64-linux-gnu-libgfortran5-mpi+mpiabi", "x86_64-linux-musl-libgfortran5-mpi+mpiabi", "aarch64-linux-musl-libgfortran5-mpi+mpiabi", "x86_64-unknown-freebsd-libgfortran5-mpi+mpiabi", "aarch64-unknown-freebsd-libgfortran5-mpi+mpiabi", "x86_64-linux-gnu-libgfortran5-mpi+mpich", "aarch64-linux-gnu-libgfortran5-mpi+mpich", "powerpc64le-linux-gnu-libgfortran5-mpi+mpich", "riscv64-linux-gnu-libgfortran5-mpi+mpich", "x86_64-linux-musl-libgfortran5-mpi+mpich", "aarch64-linux-musl-libgfortran5-mpi+mpich", "x86_64-unknown-freebsd-libgfortran5-mpi+mpich", "aarch64-unknown-freebsd-libgfortran5-mpi+mpich", "x86_64-linux-gnu-libgfortran5-mpi+mpitrampoline", "aarch64-linux-gnu-libgfortran5-mpi+mpitrampoline", "powerpc64le-linux-gnu-libgfortran5-mpi+mpitrampoline", "riscv64-linux-gnu-libgfortran5-mpi+mpitrampoline", "x86_64-unknown-freebsd-libgfortran5-mpi+mpitrampoline", "aarch64-unknown-freebsd-libgfortran5-mpi+mpitrampoline", "x86_64-linux-gnu-libgfortran5-mpi+openmpi", "aarch64-linux-gnu-libgfortran5-mpi+openmpi", "powerpc64le-linux-gnu-libgfortran5-mpi+openmpi", "riscv64-linux-gnu-libgfortran5-mpi+openmpi", "x86_64-linux-musl-libgfortran5-mpi+openmpi", "aarch64-linux-musl-libgfortran5-mpi+openmpi", "x86_64-unknown-freebsd-libgfortran5-mpi+openmpi", "aarch64-unknown-freebsd-libgfortran5-mpi+openmpi"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LLVMOpenMP_jll"
+platforms = ["x86_64-apple-darwin-libgfortran5-mpi+mpiabi", "aarch64-apple-darwin-libgfortran5-mpi+mpiabi", "x86_64-apple-darwin-libgfortran5-mpi+mpich", "aarch64-apple-darwin-libgfortran5-mpi+mpich", "x86_64-apple-darwin-libgfortran5-mpi+mpitrampoline", "aarch64-apple-darwin-libgfortran5-mpi+mpitrampoline", "x86_64-apple-darwin-libgfortran5-mpi+openmpi", "aarch64-apple-darwin-libgfortran5-mpi+openmpi"]
+top_level = false
+type = "dependency"
+uuid = "1d63c593-3942-5779-bab2-d838dc0a180e"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "5.1.3"
+name = "METIS_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "d00139f3-1899-568f-a2f0-47f597d42d70"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "4.0.7"
+name = "PARMETIS_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "b247a4be-ddc1-5759-8008-7e02fe3dbdaa"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "2.2.3"
+name = "SCALAPACK64_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "575e156b-18ce-583f-9f61-e5186a0cefa5"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "5.4.0"
+name = "libblastrampoline_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "8e850b90-86db-534c-a0d3-1478176c7d93"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "0.1.5"
+name = "mpif_jll"
+platforms = ["x86_64-linux-gnu-libgfortran5-mpi+mpiabi", "aarch64-linux-gnu-libgfortran5-mpi+mpiabi", "powerpc64le-linux-gnu-libgfortran5-mpi+mpiabi", "riscv64-linux-gnu-libgfortran5-mpi+mpiabi", "x86_64-linux-musl-libgfortran5-mpi+mpiabi", "aarch64-linux-musl-libgfortran5-mpi+mpiabi", "x86_64-apple-darwin-libgfortran5-mpi+mpiabi", "aarch64-apple-darwin-libgfortran5-mpi+mpiabi", "x86_64-unknown-freebsd-libgfortran5-mpi+mpiabi", "aarch64-unknown-freebsd-libgfortran5-mpi+mpiabi"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "0.1.3"
+name = "MPIABI_jll"
+platforms = ["x86_64-linux-gnu-libgfortran5-mpi+mpiabi", "aarch64-linux-gnu-libgfortran5-mpi+mpiabi", "powerpc64le-linux-gnu-libgfortran5-mpi+mpiabi", "riscv64-linux-gnu-libgfortran5-mpi+mpiabi", "x86_64-linux-musl-libgfortran5-mpi+mpiabi", "aarch64-linux-musl-libgfortran5-mpi+mpiabi", "x86_64-apple-darwin-libgfortran5-mpi+mpiabi", "aarch64-apple-darwin-libgfortran5-mpi+mpiabi", "x86_64-unknown-freebsd-libgfortran5-mpi+mpiabi", "aarch64-unknown-freebsd-libgfortran5-mpi+mpiabi"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "5.0.1"
+name = "MPICH_jll"
+platforms = ["x86_64-linux-gnu-libgfortran5-mpi+mpich", "aarch64-linux-gnu-libgfortran5-mpi+mpich", "powerpc64le-linux-gnu-libgfortran5-mpi+mpich", "riscv64-linux-gnu-libgfortran5-mpi+mpich", "x86_64-linux-musl-libgfortran5-mpi+mpich", "aarch64-linux-musl-libgfortran5-mpi+mpich", "x86_64-apple-darwin-libgfortran5-mpi+mpich", "aarch64-apple-darwin-libgfortran5-mpi+mpich", "x86_64-unknown-freebsd-libgfortran5-mpi+mpich", "aarch64-unknown-freebsd-libgfortran5-mpi+mpich"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "5.5.6"
+name = "MPItrampoline_jll"
+platforms = ["x86_64-linux-gnu-libgfortran5-mpi+mpitrampoline", "aarch64-linux-gnu-libgfortran5-mpi+mpitrampoline", "powerpc64le-linux-gnu-libgfortran5-mpi+mpitrampoline", "riscv64-linux-gnu-libgfortran5-mpi+mpitrampoline", "x86_64-apple-darwin-libgfortran5-mpi+mpitrampoline", "aarch64-apple-darwin-libgfortran5-mpi+mpitrampoline", "x86_64-unknown-freebsd-libgfortran5-mpi+mpitrampoline", "aarch64-unknown-freebsd-libgfortran5-mpi+mpitrampoline"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MicrosoftMPI_jll"
+platforms = []
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "4.1.9, 5.0.11"
+name = "OpenMPI_jll"
+platforms = ["x86_64-linux-gnu-libgfortran5-mpi+openmpi", "aarch64-linux-gnu-libgfortran5-mpi+openmpi", "powerpc64le-linux-gnu-libgfortran5-mpi+openmpi", "riscv64-linux-gnu-libgfortran5-mpi+openmpi", "x86_64-linux-musl-libgfortran5-mpi+openmpi", "aarch64-linux-musl-libgfortran5-mpi+openmpi", "x86_64-apple-darwin-libgfortran5-mpi+openmpi", "aarch64-apple-darwin-libgfortran5-mpi+openmpi", "x86_64-unknown-freebsd-libgfortran5-mpi+openmpi", "aarch64-unknown-freebsd-libgfortran5-mpi+openmpi"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "0.1"
+name = "MPIPreferences"
+platforms = ["any"]
+top_level = true
+type = "dependency"
+uuid = "3da0fdf6-3ccc-4f1b-acd9-58baa6c99267"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsmumpspar64"]
+type = "lib"
+variable_name = "libsmumpspar64"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libdmumpspar64"]
+type = "lib"
+variable_name = "libdmumpspar64"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcmumpspar64"]
+type = "lib"
+variable_name = "libcmumpspar64"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libzmumpspar64"]
+type = "lib"
+variable_name = "libzmumpspar64"
+
+[[sources]]
+hash = "02c6efdb91749ec0f82351d40f3f860547272a1eb1d899126a4265b4d6bcc4ca"
+type = "archive"
+unpack_target = ""
+url = "https://mumps-solver.org/MUMPS_5.9.0.tar.gz"
