@@ -1,0 +1,68 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.10"
+lazy_artifacts = false
+name = "f4ncgb"
+platforms = ["x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "powerpc64le-linux-gnu-cxx11", "riscv64-linux-gnu-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "x86_64-w64-mingw32-cxx11"]
+script = """if [[ \"${target}\" == *-apple-darwin* ]]; then\n    # Install a newer SDK which supports C++20\n    # including std::format and concepts... which were added even later than c++20 support\n    apple_sdk_root=$WORKSPACE/srcdir/MacOSX15.0.sdk\n    sed -i \"s!/opt/$target/$target/sys-root!$apple_sdk_root!\" $CMAKE_TARGET_TOOLCHAIN\n    sed -i \"s!/opt/$target/$target/sys-root!$apple_sdk_root!\" /opt/bin/$bb_full_target/$target-clang++\n    export MACOSX_DEPLOYMENT_TARGET=15.0\nfi\n\ncd ${WORKSPACE}/srcdir/f4ncgb\n\n# no march=native, no test binary\nextraflags=\"-DENABLE_NATIVE=OFF -DENABLE_TEST=OFF\"\n\nif [[ \"${target}\" == *-mingw* ]]; then\n   # profiling needs sys/resource.h\n   # no proper signal handling for windows\n   extraflags=\"$extraflags -DENABLE_PROFILING=OFF -DENABLE_SIGNAL=OFF\"\nfi\n\ncmake -B build \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DSHARED_LIB=ON \\\n    $extraflags \\\n    -DCMAKE_BUILD_TYPE=Release\n\ncmake --build build --parallel ${nproc} -t install\n\ninstall_license LICENSE\n"""
+version = "v100.0.100"
+
+[[dependencies]]
+compat = ""
+name = "GMP_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MPFR_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "~301.500.000"
+name = "FLINT_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "=1.87.0"
+name = "boost_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["f4ncgb"]
+type = "exe"
+variable_name = "f4ncgb"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libf4ncgb"]
+type = "lib"
+variable_name = "libf4ncgb"
+
+[[sources]]
+hash = "236e7a362ae5584525952ba735f9147037203ff7"
+type = "git"
+unpack_target = ""
+url = "https://gitlab.sai.jku.at/f4ncgb/f4ncgb.git"
+[[sources]]
+hash = "9df0293776fdc8a2060281faef929bf2fe1874c1f9368993e7a4ef87b1207f98"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/joseluisq/MacOSX-SDKs/releases/download/15.0/MacOSX15.0.sdk.tar.xz"
