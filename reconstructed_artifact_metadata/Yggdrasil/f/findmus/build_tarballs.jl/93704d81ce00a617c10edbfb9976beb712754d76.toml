@@ -1,0 +1,47 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.10"
+lazy_artifacts = false
+name = "FindMUS"
+platforms = ["i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx11", "riscv64-linux-gnu-cxx11", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd"]
+script = """cd $WORKSPACE/srcdir/FindMUS\n# Apply the bundled source patches. Currently just one: musl lacks glibc's\n# <fpu_control.h>, which the vendored MiniSat includes under a bare __linux__\n# guard (using it, in System.cc, only when _FPU_* are defined); the patch gates\n# the include on __GLIBC__ so the build works on musl too.\nfor f in ${WORKSPACE}/srcdir/patches/*.patch; do\n    atomic_patch -p1 ${f}\ndone\ncmake -B build \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DCMAKE_PREFIX_PATH=${prefix} \\\n    -DCMAKE_CXX_FLAGS=\"-D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS\"\ncmake --build build --parallel ${nproc}\ncmake --install build\ninstall_license LICENSE.txt\n"""
+version = "v0.7.0"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "=2.9.5"
+name = "MiniZinc_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["findMUS"]
+type = "exe"
+variable_name = "findMUS"
+[[products]]
+paths = ["share/minizinc/solvers/findmus.msc"]
+type = "file"
+variable_name = "findmus_msc"
+
+[[sources]]
+hash = "d986e4e114a11eddb7def41837f900e00845a800"
+type = "git"
+unpack_target = ""
+url = "https://gitlab.com/minizinc/FindMUS.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"
