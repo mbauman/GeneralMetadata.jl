@@ -1,0 +1,67 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.9"
+lazy_artifacts = false
+name = "CImPlot3D"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir\ngit -C cimplot3d submodule update --init --recursive --depth 1\n\n# Regenerate cimplot3d.cpp/.h/.json with comments enabled so docstrings can\n# be lifted into a future Julia wrapper. Mirrors the same pattern as\n# cimgui-pack's build.jl for cimgui itself. The wrapper script passes `gcc`\n# as the C preprocessor; we redirect to ${HOSTCC} so we use the host C\n# compiler (the default `gcc` would be the cross-compiler, wrong arch for\n# something that runs at build time).\ncd cimplot3d/generator\nsed -i 's|TARGETS=\"internal\"|TARGETS=\"internal comments\"|' generator.sh\nsed -i \"s|gcc \"\\$TARGETS\"|${HOSTCC} \"\\$TARGETS\"|\" generator.sh\nbash ./generator.sh\ncd $WORKSPACE/srcdir\n\nmkdir build && cd build\ncmake .. -DCMAKE_INSTALL_PREFIX=${prefix} \\\n         -DCMAKE_PREFIX_PATH=${prefix} \\\n         -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n         -DCMAKE_BUILD_TYPE=Release\nmake -j${nproc}\nmake install\n\n# Install the generator's JSON outputs so a future Julia wrapper can\n# auto-generate bindings (mirrors CImGuiPack's pattern for cimplot etc).\ninstall -Dvm 644 $WORKSPACE/srcdir/cimplot3d/generator/output/*.json -t ${prefix}/share/cimplot3d\n\ninstall_license $WORKSPACE/srcdir/cimplot3d/implot3d/LICENSE\n"""
+version = "v0.4.0"
+
+[[dependencies]]
+compat = "0.12.1"
+name = "CImGuiPack_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LuaJIT_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcimplot3d"]
+type = "lib"
+variable_name = "libcimplot3d"
+[[products]]
+paths = ["share/cimplot3d/definitions.json"]
+type = "file"
+variable_name = "cimplot3d_definitions"
+[[products]]
+paths = ["share/cimplot3d/structs_and_enums.json"]
+type = "file"
+variable_name = "cimplot3d_structs_and_enums"
+[[products]]
+paths = ["share/cimplot3d/typedefs_dict.json"]
+type = "file"
+variable_name = "cimplot3d_typedefs_dict"
+[[products]]
+paths = ["share/cimplot3d/constants.json"]
+type = "file"
+variable_name = "cimplot3d_constants"
+
+[[sources]]
+hash = "8c1c16e98fdddc4b3ee78bf0f89e0dd708be79e0"
+type = "git"
+unpack_target = ""
+url = "https://github.com/cimgui/cimplot3d.git"
+[[sources]]
+hash = "1261b231939fc210032f30c4ee8a8f0440372237"
+type = "git"
+unpack_target = ""
+url = "https://github.com/cimgui/cimgui.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

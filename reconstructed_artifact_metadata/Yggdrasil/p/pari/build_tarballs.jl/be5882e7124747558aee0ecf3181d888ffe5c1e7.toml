@@ -1,0 +1,49 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "PARI"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd ${WORKSPACE}/srcdir/pari-*\n\n# --- Cross-compilation shim for PARI's Configure --------------------------\n# PARI's Configure probes the target by COMPILING and then RUNNING small C\n# programs (config/ansi.c, config/gnu.c, config/endian.c, config/gmp_version.c).\n# Under BinaryBuilder everything is cross-compiled, so those probe binaries are\n# foreign and cannot execute on the builder; Configure then aborts with\n# \"C compiler does not work\" (this is what broke aarch64, darwin, ... ).\n# Configure honours a $RUNTEST hook precisely for cross-compilation, so we\n# point it at a shim that answers each probe from values we already know for\n# ${target}. Note: the has_*.c feature probes use link-only tests already, so\n# RUNTEST is the *only* thing standing between PARI and cross-compilation.\nif [ \"${nbits}\" -eq 64 ]; then\n    pari_endian=\"-\"          # config/endian.c: '-'  => sizeof(long) == 8\nelse\n    pari_endian=\"1\"          # config/endian.c: '1'  => 32-bit IEEE little-endian\nfi\n# config/gmp_version.c only needs a non-empty, non-\"unsupported\" string.\npari_gmp_version=$(awk '/define __GNU_MP_VERSION /         {maj=$3}\n                        /define __GNU_MP_VERSION_MINOR /    {min=$3}\n                        /define __GNU_MP_VERSION_PATCHLEVEL /{pat=$3}\n                        END {print maj\".\"min\".\"pat}' \"${prefix}/include/gmp.h\")\n[ -n \"${pari_gmp_version}\" ] && [ \"${pari_gmp_version}\" != \"..\" ] || pari_gmp_version=\"6.0.0\"\n\ncat > \"${WORKSPACE}/pari_runtest\" <<EOF\n#!/bin/sh\n# Configure calls us as: pari_runtest <freshly-built-probe-binary>.\n# The probe binary's name encodes which check Configure is performing.\ncase \"\\$1\" in\n    *-endian*) echo \"${pari_endian}\" ;;\n    *-gmp*)    echo \"${pari_gmp_version}\" ;;\n    *)         : ;;   # ansi.c / gnu.c: a 0 exit status is all Configure needs\nesac\nexit 0\nEOF\nchmod +x \"${WORKSPACE}/pari_runtest\"\nexport RUNTEST=\"${WORKSPACE}/pari_runtest\"\n\n# PARI's Configure expects target_host in the form \"arch-osname\"\n# (its config/get_archos splits on the LAST dash). BB triplets like\n# x86_64-linux-gnu have an extra component, so we normalise them.\ncase \"${target}\" in\n    *-linux-*)         pari_host=\"$(echo ${target} | cut -d- -f1)-linux\" ;;\n    *-apple-darwin*)   pari_host=\"$(echo ${target} | cut -d- -f1)-darwin\" ;;\n    *-freebsd*)        pari_host=\"$(echo ${target} | cut -d- -f1)-freebsd\" ;;\n    *-mingw32*)        pari_host=\"$(echo ${target} | cut -d- -f1)-mingw\" ;;\n    *)                 pari_host=\"${target}\" ;;\nesac\n\n# BinaryBuilder exports LD pointing at the raw `ld`. PARI's Configure honours\n# $LD and would then link executables with `ld` directly, bypassing the\n# compiler driver. That is harmless on Linux (the C-library symbols resolve\n# transitively through libpari's NEEDED entries) but fatal on macOS, where\n# libSystem never lands on the link line (undefined ___stdinp/___stderrp/...).\n# Unset LD so Configure falls back to LD=$CC and links via the driver.\nunset LD\n\n# Cross-compile friendly Configure invocation.\n#   --kernel=gmp  : skip native CPU kernel autodetect, always use GMP kernel\n#   --graphic=none: do not link any plotting backend\n#   --without-readline : no readline dep (libpari is what JLL consumers want)\n#   --mt=pthread  : enable parboundary threading (matches Nemo/Hecke usage)\n./Configure \\\n    --prefix=${prefix} \\\n    --host=${pari_host} \\\n    --with-gmp=${prefix} \\\n    --without-readline \\\n    --graphic=none \\\n    --kernel=gmp \\\n    --mt=pthread \\\n    --time=clock_gettime\n\n# Configure creates an Oxxx-pthread/ directory; cd in and build.\ncd O*\nmake -j${nproc} gp\nmake install\nmake install-lib-dyn\n\ninstall_license ${WORKSPACE}/srcdir/pari-*/COPYING\n"""
+version = "v2.17.3"
+
+[[dependencies]]
+compat = "6.2.1"
+name = "GMP_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["gp"]
+type = "exe"
+variable_name = "gp"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libpari"]
+type = "lib"
+variable_name = "libpari"
+[[products]]
+paths = ["share/pari/pari.desc"]
+type = "file"
+variable_name = "pari_desc"
+
+[[sources]]
+hash = "8d9c4fcd584c468d27e0f23c36836587284452094c4b1c404c20c4b810462dcb"
+type = "archive"
+unpack_target = ""
+url = "https://pari.math.u-bordeaux.fr/pub/pari/unix/pari-2.17.3.tar.gz"
