@@ -1,0 +1,199 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "~1.10, ~1.11, ~1.12, ~1.13, ~1.14"
+lazy_artifacts = false
+name = "OpenCV"
+platforms = ["i686-linux-gnu-cxx11-julia_version+1.10.0", "x86_64-linux-gnu-cxx11-julia_version+1.10.0", "aarch64-linux-gnu-cxx11-julia_version+1.10.0", "powerpc64le-linux-gnu-cxx11-julia_version+1.10.0", "x86_64-linux-musl-cxx11-julia_version+1.10.0", "aarch64-linux-musl-cxx11-julia_version+1.10.0", "x86_64-apple-darwin-julia_version+1.10.0", "aarch64-apple-darwin-julia_version+1.10.0", "x86_64-unknown-freebsd-julia_version+1.10.0", "i686-w64-mingw32-cxx11-julia_version+1.10.0", "x86_64-w64-mingw32-cxx11-julia_version+1.10.0", "i686-linux-gnu-cxx11-julia_version+1.11.1", "x86_64-linux-gnu-cxx11-julia_version+1.11.1", "aarch64-linux-gnu-cxx11-julia_version+1.11.1", "powerpc64le-linux-gnu-cxx11-julia_version+1.11.1", "x86_64-linux-musl-cxx11-julia_version+1.11.1", "aarch64-linux-musl-cxx11-julia_version+1.11.1", "x86_64-apple-darwin-julia_version+1.11.1", "aarch64-apple-darwin-julia_version+1.11.1", "x86_64-unknown-freebsd-julia_version+1.11.1", "i686-w64-mingw32-cxx11-julia_version+1.11.1", "x86_64-w64-mingw32-cxx11-julia_version+1.11.1", "i686-linux-gnu-cxx11-julia_version+1.12.0", "x86_64-linux-gnu-cxx11-julia_version+1.12.0", "aarch64-linux-gnu-cxx11-julia_version+1.12.0", "powerpc64le-linux-gnu-cxx11-julia_version+1.12.0", "x86_64-linux-musl-cxx11-julia_version+1.12.0", "aarch64-linux-musl-cxx11-julia_version+1.12.0", "x86_64-apple-darwin-julia_version+1.12.0", "aarch64-apple-darwin-julia_version+1.12.0", "x86_64-unknown-freebsd-julia_version+1.12.0", "i686-w64-mingw32-cxx11-julia_version+1.12.0", "x86_64-w64-mingw32-cxx11-julia_version+1.12.0", "i686-linux-gnu-cxx11-julia_version+1.13.0", "x86_64-linux-gnu-cxx11-julia_version+1.13.0", "aarch64-linux-gnu-cxx11-julia_version+1.13.0", "powerpc64le-linux-gnu-cxx11-julia_version+1.13.0", "x86_64-linux-musl-cxx11-julia_version+1.13.0", "aarch64-linux-musl-cxx11-julia_version+1.13.0", "x86_64-apple-darwin-julia_version+1.13.0", "aarch64-apple-darwin-julia_version+1.13.0", "x86_64-unknown-freebsd-julia_version+1.13.0", "i686-w64-mingw32-cxx11-julia_version+1.13.0", "x86_64-w64-mingw32-cxx11-julia_version+1.13.0", "i686-linux-gnu-cxx11-julia_version+1.14.0", "x86_64-linux-gnu-cxx11-julia_version+1.14.0", "aarch64-linux-gnu-cxx11-julia_version+1.14.0", "powerpc64le-linux-gnu-cxx11-julia_version+1.14.0", "x86_64-linux-musl-cxx11-julia_version+1.14.0", "aarch64-linux-musl-cxx11-julia_version+1.14.0", "x86_64-apple-darwin-julia_version+1.14.0", "aarch64-apple-darwin-julia_version+1.14.0", "x86_64-unknown-freebsd-julia_version+1.14.0", "i686-w64-mingw32-cxx11-julia_version+1.14.0", "x86_64-w64-mingw32-cxx11-julia_version+1.14.0"]
+script = """macos_sdk_version=14.0\nmacosx_deployment_target=12\nif [[ \"${target}\" == *-apple-darwin* ]]; then\n    # Extract SDK\n    echo \"Extracting MacOSX${macos_sdk_version}.sdk.tar.xz (this may take a while)\"\n    tar \\\n        --extract \\\n        --file=${WORKSPACE}/srcdir/MacOSX${macos_sdk_version}.sdk.tar.xz \\\n        --directory=${WORKSPACE}/srcdir \\\n        --warning=no-unknown-keyword\n    old_sdkroot=${SDKROOT}\n    new_sdkroot=${WORKSPACE}/srcdir/MacOSX${macos_sdk_version}.sdk\n    # Point to C++ header files (these are not shipped with the SDK)\n    ln -s ${old_sdkroot}/usr/include/c++ ${new_sdkroot}/usr/include/c++\n    # Fix toolchain files\n    sed -i -e \"s+${old_sdkroot}+${new_sdkroot}+\" ${MESON_TARGET_TOOLCHAIN} ${CMAKE_TARGET_TOOLCHAIN}\n    # Fix compiler wrappers\n    sed -i -e \"s+${old_sdkroot}+${new_sdkroot}+\" $(find /opt/bin/${target}* -type f -print)\n    SDKROOT=${new_sdkroot}\n    export MACOSX_DEPLOYMENT_TARGET=${macosx_deployment_target}\nfi\ncd $WORKSPACE/srcdir\n\n# Overlay OpenCV.jl's vendored, reproducible Julia binding generator onto\n# opencv_contrib's julia module. This replaces the old in-tree generator and the\n# julia-bindings-upstream-contrib.patch (now folded into OpenCV.jl gen/).\nrm -rf opencv_contrib/modules/julia/gen\ncp -r OpenCV.jl/gen opencv_contrib/modules/julia/gen\ncp OpenCV.jl/gen/CMakeLists.txt opencv_contrib/modules/julia/CMakeLists.txt\n\nmkdir build && cd build\n\n# Qt 6.10 requires CMake >= 3.22; use CMake_jll from the host prefix\napk del cmake\n\nif [[ \"${target}\" == *-apple-* ]] || [[ \"${target}\" == *-freebsd* ]]; then\n    atomic_patch -p1 -d../opencv ../patches/atomic_fix.patch\nfi\n\natomic_patch -p1 -d../opencv ../patches/vsx_power10_paren.patch\n\nif [[ \"${target}\" == *-w64-* ]]; then\n    export CXXFLAGS=\"-Wa,-mbig-obj\"\nfi\n\ncmake -DCMAKE_FIND_ROOT_PATH=${prefix} \\\n      -DJulia_PREFIX=${prefix} \\\n      -DWITH_JULIA=ON \\\n      -DJulia_FOUND=ON \\\n      -DHAVE_JULIA=ON \\\n      -DJulia_WORD_SIZE=${nbits} \\\n      -DJulia_INCLUDE_DIRS=${includedir}/julia \\\n      -DJulia_LIBRARY_DIR=${libdir} \\\n      -DJulia_LIBRARY=${libdir}/libjulia.${dlext} \\\n      -DCMAKE_INSTALL_PREFIX=${prefix} \\\n      -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n      -DCMAKE_BUILD_TYPE=Release \\\n      -DCMAKE_CXX_STANDARD=11 \\\n      -DBUILD_TESTS=OFF \\\n      -DBUILD_PERF_TESTS=OFF \\\n      -DBUILD_EXAMPLES=OFF \\\n      -DHAVE_CXX_FVISIBILITY_HIDDEN=OFF \\\n      -DHAVE_CXX_FVISIBILITY_INLINES_HIDDEN=OFF \\\n      -DWITH_KLEIDICV=OFF \\\n      -DWITH_QT=ON \\\n      -DOPENCV_EXTRA_MODULES_PATH=../opencv_contrib/modules \\\n      -DBUILD_LIST=core,imgproc,imgcodecs,highgui,videoio,dnn,features2d,objdetect,calib3d,video,gapi,stitching,julia \\\n      ../opencv/\n\nmake -j${nproc}\nmake install\n\ncp lib/libopencv_julia.* ${libdir}/.\n# NOTE: the generated Julia wrappers are no longer shipped in the JLL — they live\n# in OpenCV.jl (src/generated/). This build only provides libopencv_julia.\n\ninstall_license ../opencv/{LICENSE,COPYRIGHT}\n"""
+version = "v4.13.0"
+
+[[dependencies]]
+compat = "~6.10.2"
+name = "Qt6Base_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Qt6Base_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CMake_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Libglvnd_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "7e76a0d4-f3c7-5321-8279-8d96eeed0f29"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "libjulia_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "0.14.7"
+name = "libcxxwrap_julia_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "3eaa8342-bff7-56a5-9981-c04077f7cee7"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "0.3.24"
+name = "OpenBLAS32_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libopencv_calib3d", "libopencv_calib3d4130"]
+type = "lib"
+variable_name = "libopencv_calib3d"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libopencv_objdetect", "libopencv_objdetect4130"]
+type = "lib"
+variable_name = "libopencv_objdetect"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libopencv_core", "libopencv_core4130"]
+type = "lib"
+variable_name = "libopencv_core"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libopencv_dnn", "libopencv_dnn4130"]
+type = "lib"
+variable_name = "libopencv_dnn"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libopencv_imgcodecs", "libopencv_imgcodecs4130"]
+type = "lib"
+variable_name = "libopencv_imgcodecs"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libopencv_highgui", "libopencv_highgui4130"]
+type = "lib"
+variable_name = "libopencv_highgui"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libopencv_flann", "libopencv_flann4130"]
+type = "lib"
+variable_name = "libopencv_flann"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libopencv_gapi", "libopencv_gapi4130"]
+type = "lib"
+variable_name = "libopencv_gapi"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libopencv_imgproc", "libopencv_imgproc4130"]
+type = "lib"
+variable_name = "libopencv_imgproc"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libopencv_features2d", "libopencv_features2d4130"]
+type = "lib"
+variable_name = "libopencv_features2d"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libopencv_stitching", "libopencv_stitching4130"]
+type = "lib"
+variable_name = "libopencv_stitching"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libopencv_video", "libopencv_video4130"]
+type = "lib"
+variable_name = "libopencv_video"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libopencv_videoio", "libopencv_videoio4130"]
+type = "lib"
+variable_name = "libopencv_videoio"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libopencv_julia"]
+type = "lib"
+variable_name = "libopencv_julia"
+
+[[sources]]
+hash = "fe38fc608f6acb8b68953438a62305d8318f4fcd"
+type = "git"
+unpack_target = ""
+url = "https://github.com/opencv/opencv.git"
+[[sources]]
+hash = "d99ad2a188210cc35067c2e60076eed7c2442bc3"
+type = "git"
+unpack_target = ""
+url = "https://github.com/opencv/opencv_contrib.git"
+[[sources]]
+hash = "ac677e09dd7bf6504849c8567b287eaf68d54c38"
+type = "git"
+unpack_target = ""
+url = "https://github.com/JuliaImages/OpenCV.jl.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"
+[[sources]]
+filename = "MacOSX14.0.sdk.tar.xz"
+hash = "4a31565fd2644d1aec23da3829977f83632a20985561a2038e198681e7e7bf49"
+type = "file"
+url = "https://github.com/roblabla/MacOSX-SDKs/releases/download/macosx14.0/MacOSX14.0.sdk.tar.xz"

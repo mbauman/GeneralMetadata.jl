@@ -1,0 +1,533 @@
+augment_platform_block = """using Base.BinaryPlatforms\n# Can't use Preferences since we might be running this very early with a non-existing Manifest\nMPIPreferences_UUID = Base.UUID(\"3da0fdf6-3ccc-4f1b-acd9-58baa6c99267\")\nconst preferences = Base.get_preferences(MPIPreferences_UUID)\n\nconst binary_to_abi = Dict(\n    \"MPIABI_jll\" => \"MPIABI\",\n    \"MPICH_jll\" => \"MPICH\",\n    \"MPICH_CUDA_jll\" => \"MPICH\",\n    \"MPItrampoline_jll\" => \"MPItrampoline\",\n    \"MicrosoftMPI_jll\" => \"MicrosoftMPI\",\n    \"OpenMPI_jll\" => \"OpenMPI\",\n)\n\n# Keep logic in sync with MPIPreferences.jl\nfunction augment_mpi!(platform)\n    # Doesn't need to be `const` since we depend on MPIPreferences so we\n    # invalidate the cache when it changes.\n\n    # Determine which jll binary provides our MPI implementation.\n    # Use MPIPreferences if set, otherwise use either MPICH or MicrosoftMPI (on Windows).\n    # Note: MPIPreferences uses `Sys.iswindows()` without the `platform` argument.\n    binary = get(preferences, \"binary\", Sys.iswindows(platform) ? \"MicrosoftMPI_jll\" : \"MPICH_jll\")\n\n    # Convert the jll binary to an ABI\n    if binary == \"system\"\n        abi = get(preferences, \"abi\", nothing)\n        abi === nothing && error(\"MPIPreferences: Inconsistent state detected, `binary` is set to system, but `abi` is not set.\")\n    else\n        abi = get(binary_to_abi, binary, nothing)\n        abi == nothing && error(\"Unknown MPI binary: $binary\")\n    end\n\n    # Add an `mpi` entry to the platform if it's missing\n    if !haskey(platform, \"mpi\")\n        platform[\"mpi\"] = abi\n    end\n\n    return platform\nend\n\naugment_platform!(platform::Platform) = augment_mpi!(platform)\n"""
+init_block = ""
+julia_compat = "1.9"
+lazy_artifacts = false
+name = "GDAL"
+platforms = ["i686-linux-gnu-cxx11-mpi+mpiabi", "x86_64-linux-gnu-cxx11-mpi+mpiabi", "aarch64-linux-gnu-cxx11-mpi+mpiabi", "armv6l-linux-gnueabihf-cxx11-mpi+mpiabi", "armv7l-linux-gnueabihf-cxx11-mpi+mpiabi", "powerpc64le-linux-gnu-cxx11-mpi+mpiabi", "riscv64-linux-gnu-cxx11-mpi+mpiabi", "i686-linux-musl-cxx11-mpi+mpiabi", "x86_64-linux-musl-cxx11-mpi+mpiabi", "aarch64-linux-musl-cxx11-mpi+mpiabi", "armv6l-linux-musleabihf-cxx11-mpi+mpiabi", "armv7l-linux-musleabihf-cxx11-mpi+mpiabi", "x86_64-apple-darwin-mpi+mpiabi", "aarch64-apple-darwin-mpi+mpiabi", "x86_64-unknown-freebsd-mpi+mpiabi", "aarch64-unknown-freebsd-mpi+mpiabi", "i686-linux-gnu-cxx11-mpi+mpich", "x86_64-linux-gnu-cxx11-mpi+mpich", "aarch64-linux-gnu-cxx11-mpi+mpich", "armv6l-linux-gnueabihf-cxx11-mpi+mpich", "armv7l-linux-gnueabihf-cxx11-mpi+mpich", "powerpc64le-linux-gnu-cxx11-mpi+mpich", "riscv64-linux-gnu-cxx11-mpi+mpich", "i686-linux-musl-cxx11-mpi+mpich", "x86_64-linux-musl-cxx11-mpi+mpich", "aarch64-linux-musl-cxx11-mpi+mpich", "armv6l-linux-musleabihf-cxx11-mpi+mpich", "armv7l-linux-musleabihf-cxx11-mpi+mpich", "x86_64-apple-darwin-mpi+mpich", "aarch64-apple-darwin-mpi+mpich", "x86_64-unknown-freebsd-mpi+mpich", "aarch64-unknown-freebsd-mpi+mpich", "i686-linux-gnu-cxx11-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-mpi+mpitrampoline", "aarch64-linux-gnu-cxx11-mpi+mpitrampoline", "armv6l-linux-gnueabihf-cxx11-mpi+mpitrampoline", "armv7l-linux-gnueabihf-cxx11-mpi+mpitrampoline", "powerpc64le-linux-gnu-cxx11-mpi+mpitrampoline", "riscv64-linux-gnu-cxx11-mpi+mpitrampoline", "x86_64-apple-darwin-mpi+mpitrampoline", "aarch64-apple-darwin-mpi+mpitrampoline", "x86_64-unknown-freebsd-mpi+mpitrampoline", "aarch64-unknown-freebsd-mpi+mpitrampoline", "i686-w64-mingw32-cxx11-mpi+microsoftmpi", "x86_64-w64-mingw32-cxx11-mpi+microsoftmpi", "i686-linux-gnu-cxx11-mpi+openmpi", "x86_64-linux-gnu-cxx11-mpi+openmpi", "aarch64-linux-gnu-cxx11-mpi+openmpi", "armv7l-linux-gnueabihf-cxx11-mpi+openmpi", "powerpc64le-linux-gnu-cxx11-mpi+openmpi", "riscv64-linux-gnu-cxx11-mpi+openmpi", "i686-linux-musl-cxx11-mpi+openmpi", "x86_64-linux-musl-cxx11-mpi+openmpi", "aarch64-linux-musl-cxx11-mpi+openmpi", "armv6l-linux-musleabihf-cxx11-mpi+openmpi", "armv7l-linux-musleabihf-cxx11-mpi+openmpi", "x86_64-apple-darwin-mpi+openmpi", "aarch64-apple-darwin-mpi+openmpi", "x86_64-unknown-freebsd-mpi+openmpi", "aarch64-unknown-freebsd-mpi+openmpi"]
+script = """macos_sdk_version=10.15\nmacosx_deployment_target=10.15\nif [[ \"${target}\" == x86_64-apple-darwin* ]]; then\n    # Extract SDK\n    echo \"Extracting MacOSX${macos_sdk_version}.sdk.tar.xz (this may take a while)\"\n    tar \\\n        --extract \\\n        --file=${WORKSPACE}/srcdir/MacOSX${macos_sdk_version}.sdk.tar.xz \\\n        --directory=${WORKSPACE}/srcdir \\\n        --warning=no-unknown-keyword\n    old_sdkroot=${SDKROOT}\n    new_sdkroot=${WORKSPACE}/srcdir/MacOSX${macos_sdk_version}.sdk\n    # Point to C++ header files (these are not shipped with the SDK)\n    ln -s ${old_sdkroot}/usr/include/c++ ${new_sdkroot}/usr/include/c++\n    # Fix toolchain files\n    sed -i -e \"s+${old_sdkroot}+${new_sdkroot}+\" ${MESON_TARGET_TOOLCHAIN} ${CMAKE_TARGET_TOOLCHAIN}\n    # Fix compiler wrappers\n    sed -i -e \"s+${old_sdkroot}+${new_sdkroot}+\" $(find /opt/bin/${target}* -type f -print)\n    SDKROOT=${new_sdkroot}\n    export MACOSX_DEPLOYMENT_TARGET=${macosx_deployment_target}\nfi\ncd $WORKSPACE/srcdir/gdal\n\natomic_patch -p1 ../patches/bsd-environ-undefined-fix.patch\n# Some of our Linux build environments are too old to define `O_TMPFILE`; define it manually\natomic_patch -p1 ../patches/tmpfile.patch\n\nif [[ \"${target}\" == *-freebsd* ]]; then\n    # Our FreeBSD libc has `environ` as undefined symbol, so the linker will\n    # complain if this symbol is used in the built library, even if this won't\n    # be a problem at runtime. The flag `-undefined` allows having undefined symbols.\n    # The flag `-lexecinfo` fixes \"undefined reference to `backtrace'\".\n    export LDFLAGS=\"-lexecinfo -undefined\"\nfi\n\nCMAKE_FLAGS=(\n    -B build\n    -DCMAKE_INSTALL_PREFIX=${prefix}\n    -DCMAKE_BUILD_TYPE=Release\n    -DCMAKE_FIND_ROOT_PATH=${prefix}\n    -DCMAKE_PREFIX_PATH=${prefix}\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN}\n    -DBUILD_CSHARP_BINDINGS=OFF\n    -DBUILD_JAVA_BINDINGS=OFF\n    -DBUILD_PYTHON_BINDINGS=OFF\n    -DGDAL_ENABLE_DRIVER_HDF4=ON\n    -DGDAL_USE_BLOSC=ON\n    -DGDAL_USE_CURL=ON\n    -DGDAL_USE_EXPAT=ON\n    -DGDAL_USE_GEOS=ON\n    -DGDAL_USE_GEOTIFF=ON\n    -DGDAL_USE_HDF4=ON\n    -DGDAL_USE_HDF5=ON\n    -DGDAL_USE_LERC=ON\n    -DGDAL_USE_LIBLZMA=ON\n    -DGDAL_USE_LIBXML2=ON\n    -DGDAL_USE_LZ4=ON\n    -DGDAL_USE_NETCDF=ON\n    -DGDAL_USE_OPENJPEG=ON\n    -DGDAL_USE_PNG=ON\n    -DGDAL_USE_POSTGRESQL=ON\n    -DGDAL_USE_QHULL=ON\n    -DGDAL_USE_SQLITE3=ON\n    -DGDAL_USE_TIFF=ON\n    -DGDAL_USE_WEBP=ON\n    -DGDAL_USE_ZLIB=ON\n    -DGDAL_USE_ZSTD=ON\n    -DGIF_LIBRARY=${libdir}/libgif.${dlext}\n    -DPCRE2-8_LIBRARY=${libdir}/libpcre2-8.${dlext}\n    -DPCRE2_INCLUDE_DIR=${includedir}\n    -DPostgreSQL_INCLUDE_DIR=${includedir}\n    -DPostgreSQL_LIBRARY=${libdir}/libpq.${dlext}\n)\n\n# Use Arrow only if available\nif [ -e \"${libdir}/libarrow.${dlext}\" ]; then\n    CMAKE_FLAGS+=(\n        -DGDAL_USE_ARROW=ON\n        -DGDAL_USE_PARQUET=ON\n    )\nfi\n\n# Use grok only if available\nif [ -e \"${libdir}/libgrokj2k.${dlext}\" ]; then\n    CMAKE_FLAGS+=(-DGDAL_USE_GROK=ON)\nfi\n\n# For run-time CPU detection on x86_64-apple\n# (avoid `ld64.lld: error: undefined symbol: __cpu_model`)\nif [[ \"${target}\" == x86_64-apple-* ]]; then\n    # Disable AVX2 unconditionally\n    sed -i -e 's/__builtin_cpu_supports(\"[a-z0-9]*\")/false/' gcore/gdaldataset.cpp port/cpl_cpu_features.cpp\nfi\n\n# Disable gif on Windows\nif [[ \"${target}\" == *mingw* ]]; then\n    CMAKE_FLAGS+=(-DGDAL_USE_GIF=OFF)   # Would break GDAL on Windows as of Giflib_jll v5.2.2 (#8781)\nfi\n\ncmake ${CMAKE_FLAGS[@]}\ncmake --build build --parallel ${nproc}\ncmake --install build\n\ninstall_license LICENSE.TXT\n"""
+version = "v305.1300.0"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "19.0.0"
+name = "Arrow_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.21.7"
+name = "Blosc_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "2.6.5"
+name = "Expat_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "3.13.1"
+name = "GEOS_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "4.3.1"
+name = "HDF4_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "~2.1.2"
+name = "HDF5_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "4.0.1"
+name = "LERC_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "7.73,8"
+name = "LibCURL_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "16.8"
+name = "LibPQ_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "4.7.2"
+name = "Libtiff_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.10.1"
+name = "Lz4_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "401.1000.0"
+name = "NetCDF_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "2.5.4"
+name = "OpenJpeg_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "10.42.0"
+name = "PCRE2_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "902.500.100"
+name = "PROJ_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "10008.0.1004"
+name = "Qhull_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "3.48.0"
+name = "SQLite_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "~2.13.6"
+name = "XML2_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "5.8.3"
+name = "XZ_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.2.12"
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.5.7"
+name = "Zstd_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "20.3.2"
+name = "grok_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "100.702.400"
+name = "libgeotiff_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.6.58"
+name = "libpng_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.5.0"
+name = "libwebp_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "2.3.5"
+name = "muparser_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "exprtk_jll"
+platforms = ["i686-linux-gnu-cxx11-mpi+mpiabi", "x86_64-linux-gnu-cxx11-mpi+mpiabi", "aarch64-linux-gnu-cxx11-mpi+mpiabi", "armv6l-linux-gnueabihf-cxx11-mpi+mpiabi", "armv7l-linux-gnueabihf-cxx11-mpi+mpiabi", "powerpc64le-linux-gnu-cxx11-mpi+mpiabi", "riscv64-linux-gnu-cxx11-mpi+mpiabi", "i686-linux-musl-cxx11-mpi+mpiabi", "x86_64-linux-musl-cxx11-mpi+mpiabi", "aarch64-linux-musl-cxx11-mpi+mpiabi", "armv6l-linux-musleabihf-cxx11-mpi+mpiabi", "armv7l-linux-musleabihf-cxx11-mpi+mpiabi", "x86_64-apple-darwin-mpi+mpiabi", "aarch64-apple-darwin-mpi+mpiabi", "x86_64-unknown-freebsd-mpi+mpiabi", "aarch64-unknown-freebsd-mpi+mpiabi", "i686-linux-gnu-cxx11-mpi+mpich", "x86_64-linux-gnu-cxx11-mpi+mpich", "aarch64-linux-gnu-cxx11-mpi+mpich", "armv6l-linux-gnueabihf-cxx11-mpi+mpich", "armv7l-linux-gnueabihf-cxx11-mpi+mpich", "powerpc64le-linux-gnu-cxx11-mpi+mpich", "riscv64-linux-gnu-cxx11-mpi+mpich", "i686-linux-musl-cxx11-mpi+mpich", "x86_64-linux-musl-cxx11-mpi+mpich", "aarch64-linux-musl-cxx11-mpi+mpich", "armv6l-linux-musleabihf-cxx11-mpi+mpich", "armv7l-linux-musleabihf-cxx11-mpi+mpich", "x86_64-apple-darwin-mpi+mpich", "aarch64-apple-darwin-mpi+mpich", "x86_64-unknown-freebsd-mpi+mpich", "aarch64-unknown-freebsd-mpi+mpich", "i686-linux-gnu-cxx11-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-mpi+mpitrampoline", "aarch64-linux-gnu-cxx11-mpi+mpitrampoline", "armv6l-linux-gnueabihf-cxx11-mpi+mpitrampoline", "armv7l-linux-gnueabihf-cxx11-mpi+mpitrampoline", "powerpc64le-linux-gnu-cxx11-mpi+mpitrampoline", "riscv64-linux-gnu-cxx11-mpi+mpitrampoline", "x86_64-apple-darwin-mpi+mpitrampoline", "aarch64-apple-darwin-mpi+mpitrampoline", "x86_64-unknown-freebsd-mpi+mpitrampoline", "aarch64-unknown-freebsd-mpi+mpitrampoline", "i686-linux-gnu-cxx11-mpi+openmpi", "x86_64-linux-gnu-cxx11-mpi+openmpi", "aarch64-linux-gnu-cxx11-mpi+openmpi", "armv7l-linux-gnueabihf-cxx11-mpi+openmpi", "powerpc64le-linux-gnu-cxx11-mpi+openmpi", "riscv64-linux-gnu-cxx11-mpi+openmpi", "i686-linux-musl-cxx11-mpi+openmpi", "x86_64-linux-musl-cxx11-mpi+openmpi", "aarch64-linux-musl-cxx11-mpi+openmpi", "armv6l-linux-musleabihf-cxx11-mpi+openmpi", "armv7l-linux-musleabihf-cxx11-mpi+openmpi", "x86_64-apple-darwin-mpi+openmpi", "aarch64-apple-darwin-mpi+openmpi", "x86_64-unknown-freebsd-mpi+openmpi", "aarch64-unknown-freebsd-mpi+openmpi"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "0.1.3"
+name = "MPIABI_jll"
+platforms = ["i686-linux-gnu-cxx11-mpi+mpiabi", "x86_64-linux-gnu-cxx11-mpi+mpiabi", "aarch64-linux-gnu-cxx11-mpi+mpiabi", "armv6l-linux-gnueabihf-cxx11-mpi+mpiabi", "armv7l-linux-gnueabihf-cxx11-mpi+mpiabi", "powerpc64le-linux-gnu-cxx11-mpi+mpiabi", "riscv64-linux-gnu-cxx11-mpi+mpiabi", "i686-linux-musl-cxx11-mpi+mpiabi", "x86_64-linux-musl-cxx11-mpi+mpiabi", "aarch64-linux-musl-cxx11-mpi+mpiabi", "armv6l-linux-musleabihf-cxx11-mpi+mpiabi", "armv7l-linux-musleabihf-cxx11-mpi+mpiabi", "x86_64-apple-darwin-mpi+mpiabi", "aarch64-apple-darwin-mpi+mpiabi", "x86_64-unknown-freebsd-mpi+mpiabi", "aarch64-unknown-freebsd-mpi+mpiabi"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "5.0.1"
+name = "MPICH_jll"
+platforms = ["i686-linux-gnu-cxx11-mpi+mpich", "x86_64-linux-gnu-cxx11-mpi+mpich", "aarch64-linux-gnu-cxx11-mpi+mpich", "armv6l-linux-gnueabihf-cxx11-mpi+mpich", "armv7l-linux-gnueabihf-cxx11-mpi+mpich", "powerpc64le-linux-gnu-cxx11-mpi+mpich", "riscv64-linux-gnu-cxx11-mpi+mpich", "i686-linux-musl-cxx11-mpi+mpich", "x86_64-linux-musl-cxx11-mpi+mpich", "aarch64-linux-musl-cxx11-mpi+mpich", "armv6l-linux-musleabihf-cxx11-mpi+mpich", "armv7l-linux-musleabihf-cxx11-mpi+mpich", "x86_64-apple-darwin-mpi+mpich", "aarch64-apple-darwin-mpi+mpich", "x86_64-unknown-freebsd-mpi+mpich", "aarch64-unknown-freebsd-mpi+mpich"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "5.5.6"
+name = "MPItrampoline_jll"
+platforms = ["i686-linux-gnu-cxx11-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-mpi+mpitrampoline", "aarch64-linux-gnu-cxx11-mpi+mpitrampoline", "armv6l-linux-gnueabihf-cxx11-mpi+mpitrampoline", "armv7l-linux-gnueabihf-cxx11-mpi+mpitrampoline", "powerpc64le-linux-gnu-cxx11-mpi+mpitrampoline", "riscv64-linux-gnu-cxx11-mpi+mpitrampoline", "x86_64-apple-darwin-mpi+mpitrampoline", "aarch64-apple-darwin-mpi+mpitrampoline", "x86_64-unknown-freebsd-mpi+mpitrampoline", "aarch64-unknown-freebsd-mpi+mpitrampoline"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MicrosoftMPI_jll"
+platforms = ["i686-w64-mingw32-cxx11-mpi+microsoftmpi", "x86_64-w64-mingw32-cxx11-mpi+microsoftmpi"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "4.1.9, 5.0.11"
+name = "OpenMPI_jll"
+platforms = ["i686-linux-gnu-cxx11-mpi+openmpi", "x86_64-linux-gnu-cxx11-mpi+openmpi", "aarch64-linux-gnu-cxx11-mpi+openmpi", "armv7l-linux-gnueabihf-cxx11-mpi+openmpi", "powerpc64le-linux-gnu-cxx11-mpi+openmpi", "riscv64-linux-gnu-cxx11-mpi+openmpi", "i686-linux-musl-cxx11-mpi+openmpi", "x86_64-linux-musl-cxx11-mpi+openmpi", "aarch64-linux-musl-cxx11-mpi+openmpi", "armv6l-linux-musleabihf-cxx11-mpi+openmpi", "armv7l-linux-musleabihf-cxx11-mpi+openmpi", "x86_64-apple-darwin-mpi+openmpi", "aarch64-apple-darwin-mpi+openmpi", "x86_64-unknown-freebsd-mpi+openmpi", "aarch64-unknown-freebsd-mpi+openmpi"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "0.1"
+name = "MPIPreferences"
+platforms = ["any"]
+top_level = true
+type = "runtimedependency"
+uuid = "3da0fdf6-3ccc-4f1b-acd9-58baa6c99267"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgdal"]
+type = "lib"
+variable_name = "libgdal"
+[[products]]
+binnames = ["gdal"]
+type = "exe"
+variable_name = "gdal_exe"
+[[products]]
+binnames = ["gdal_contour"]
+type = "exe"
+variable_name = "gdal_contour_exe"
+[[products]]
+binnames = ["gdal_create"]
+type = "exe"
+variable_name = "gdal_create_exe"
+[[products]]
+binnames = ["gdal_footprint"]
+type = "exe"
+variable_name = "gdal_footprint_exe"
+[[products]]
+binnames = ["gdal_grid"]
+type = "exe"
+variable_name = "gdal_grid_exe"
+[[products]]
+binnames = ["gdal_rasterize"]
+type = "exe"
+variable_name = "gdal_rasterize_exe"
+[[products]]
+binnames = ["gdal_translate"]
+type = "exe"
+variable_name = "gdal_translate_exe"
+[[products]]
+binnames = ["gdal_viewshed"]
+type = "exe"
+variable_name = "gdal_viewshed_exe"
+[[products]]
+binnames = ["gdaladdo"]
+type = "exe"
+variable_name = "gdaladdo_exe"
+[[products]]
+binnames = ["gdalbuildvrt"]
+type = "exe"
+variable_name = "gdalbuildvrt_exe"
+[[products]]
+binnames = ["gdaldem"]
+type = "exe"
+variable_name = "gdaldem_exe"
+[[products]]
+binnames = ["gdalenhance"]
+type = "exe"
+variable_name = "gdalenhance_exe"
+[[products]]
+binnames = ["gdalinfo"]
+type = "exe"
+variable_name = "gdalinfo_exe"
+[[products]]
+binnames = ["gdallocationinfo"]
+type = "exe"
+variable_name = "gdallocationinfo_exe"
+[[products]]
+binnames = ["gdalmanage"]
+type = "exe"
+variable_name = "gdalmanage_exe"
+[[products]]
+binnames = ["gdalmdiminfo"]
+type = "exe"
+variable_name = "gdalmdiminfo_exe"
+[[products]]
+binnames = ["gdalmdimtranslate"]
+type = "exe"
+variable_name = "gdalmdimtranslate_exe"
+[[products]]
+binnames = ["gdalsrsinfo"]
+type = "exe"
+variable_name = "gdalsrsinfo_exe"
+[[products]]
+binnames = ["gdaltindex"]
+type = "exe"
+variable_name = "gdaltindex_exe"
+[[products]]
+binnames = ["gdaltransform"]
+type = "exe"
+variable_name = "gdaltransform_exe"
+[[products]]
+binnames = ["gdalwarp"]
+type = "exe"
+variable_name = "gdalwarp_exe"
+[[products]]
+binnames = ["gnmanalyse"]
+type = "exe"
+variable_name = "gnmanalyse_exe"
+[[products]]
+binnames = ["gnmmanage"]
+type = "exe"
+variable_name = "gnmmanage_exe"
+[[products]]
+binnames = ["nearblack"]
+type = "exe"
+variable_name = "nearblack_exe"
+[[products]]
+binnames = ["ogr2ogr"]
+type = "exe"
+variable_name = "ogr2ogr_exe"
+[[products]]
+binnames = ["ogrinfo"]
+type = "exe"
+variable_name = "ogrinfo_exe"
+[[products]]
+binnames = ["ogrlineref"]
+type = "exe"
+variable_name = "ogrlineref_exe"
+[[products]]
+binnames = ["ogrtindex"]
+type = "exe"
+variable_name = "ogrtindex_exe"
+[[products]]
+binnames = ["sozip"]
+type = "exe"
+variable_name = "sozip_exe"
+[[products]]
+binnames = ["gdal_contour"]
+type = "exe"
+variable_name = "gdal_contour_path"
+[[products]]
+binnames = ["gdal_grid"]
+type = "exe"
+variable_name = "gdal_grid_path"
+[[products]]
+binnames = ["gdal_rasterize"]
+type = "exe"
+variable_name = "gdal_rasterize_path"
+[[products]]
+binnames = ["gdal_translate"]
+type = "exe"
+variable_name = "gdal_translate_path"
+[[products]]
+binnames = ["gdaladdo"]
+type = "exe"
+variable_name = "gdaladdo_path"
+[[products]]
+binnames = ["gdalbuildvrt"]
+type = "exe"
+variable_name = "gdalbuildvrt_path"
+[[products]]
+binnames = ["gdaldem"]
+type = "exe"
+variable_name = "gdaldem_path"
+[[products]]
+binnames = ["gdalinfo"]
+type = "exe"
+variable_name = "gdalinfo_path"
+[[products]]
+binnames = ["gdallocationinfo"]
+type = "exe"
+variable_name = "gdallocationinfo_path"
+[[products]]
+binnames = ["gdalmanage"]
+type = "exe"
+variable_name = "gdalmanage_path"
+[[products]]
+binnames = ["gdalsrsinfo"]
+type = "exe"
+variable_name = "gdalsrsinfo_path"
+[[products]]
+binnames = ["gdaltindex"]
+type = "exe"
+variable_name = "gdaltindex_path"
+[[products]]
+binnames = ["gdaltransform"]
+type = "exe"
+variable_name = "gdaltransform_path"
+[[products]]
+binnames = ["gdalwarp"]
+type = "exe"
+variable_name = "gdalwarp_path"
+[[products]]
+binnames = ["nearblack"]
+type = "exe"
+variable_name = "nearblack_path"
+[[products]]
+binnames = ["ogr2ogr"]
+type = "exe"
+variable_name = "ogr2ogr_path"
+[[products]]
+binnames = ["ogrinfo"]
+type = "exe"
+variable_name = "ogrinfo_path"
+[[products]]
+binnames = ["ogrlineref"]
+type = "exe"
+variable_name = "ogrlineref_path"
+[[products]]
+binnames = ["ogrtindex"]
+type = "exe"
+variable_name = "ogrtindex_path"
+
+[[sources]]
+hash = "130cb4675a0b42bd32acad56e57022cca44fc008"
+type = "git"
+unpack_target = ""
+url = "https://github.com/OSGeo/gdal.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"
+[[sources]]
+filename = "MacOSX10.15.sdk.tar.xz"
+hash = "2408d07df7f324d3beea818585a6d990ba99587c218a3969f924dfcc4de93b62"
+type = "file"
+url = "https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.15.sdk.tar.xz"
