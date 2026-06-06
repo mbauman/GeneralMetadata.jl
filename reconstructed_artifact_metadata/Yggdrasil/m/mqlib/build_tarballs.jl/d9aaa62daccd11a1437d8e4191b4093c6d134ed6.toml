@@ -1,0 +1,41 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "MQLib"
+platforms = ["i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx11", "riscv64-linux-gnu-cxx11", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx11"]
+script = """cd \"${WORKSPACE}/srcdir\"\n\nMQLIB_SRC=\"${WORKSPACE}/srcdir/MQLib\"\nMQLIB_C_HEADER=\"$(find \"${WORKSPACE}/srcdir\" -path '*/c_api/include/mqlib_c_api.h' -print -quit)\"\nMQLIB_JL_SRC=\"${MQLIB_C_HEADER%/c_api/include/mqlib_c_api.h}\"\n\nif [[ ! -f \"${MQLIB_JL_SRC}/c_api/src/mqlib_c_api.cpp\" ]]; then\n    echo \"Could not find MQLib.jl C ABI sources\" >&2\n    exit 1\nfi\n\nmkdir -p \"${bindir}\" \"${libdir}\" \"${includedir}\" \"${datadir}/mqlib/hhdata\"\n\ncd \"${MQLIB_SRC}\"\nmake -j${nproc}\ninstall -Dvm 0755 bin/MQLib \"${bindir}/MQLib${exeext}\"\ninstall -Dvm 0644 \\\n    \"${MQLIB_JL_SRC}/c_api/include/mqlib_c_api.h\" \\\n    \"${includedir}/mqlib_c_api.h\"\ninstall -vm 0644 hhdata/*.rf \"${datadir}/mqlib/hhdata/\"\n\nMQLIB_LIBRARY_SOURCES=\"$(find src -name '*.cpp' ! -name main.cpp | sort)\"\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    MQLIB_C_API_SHARED_FLAGS=(\n        -shared\n        -Wl,--out-implib,\"${libdir}/libmqlib_c_api.dll.a\"\n    )\nelif [[ \"${target}\" == *-apple-darwin* ]]; then\n    MQLIB_C_API_SHARED_FLAGS=(\n        -dynamiclib\n        -Wl,-install_name,@rpath/libmqlib_c_api.${dlext}\n    )\nelse\n    MQLIB_C_API_SHARED_FLAGS=(-shared)\nfi\nMQLIB_C_API_LIBRARY=\"${libdir}/libmqlib_c_api.${dlext}\"\n\n\"${CXX}\" \\\n    -std=c++11 \\\n    -O2 \\\n    -fPIC \\\n    -DMQLIB_C_BUILD_SHARED \\\n    -Iinclude \\\n    -I\"${MQLIB_JL_SRC}/c_api/include\" \\\n    ${MQLIB_LIBRARY_SOURCES} \\\n    \"${MQLIB_JL_SRC}/c_api/src/mqlib_c_api.cpp\" \\\n    \"${MQLIB_C_API_SHARED_FLAGS[@]}\" \\\n    -o \"${MQLIB_C_API_LIBRARY}\" \\\n    -lm\n"""
+version = "v0.1.2"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx11", "riscv64-linux-gnu-cxx11", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx11", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx11"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["MQLib"]
+type = "exe"
+variable_name = "MQLib"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmqlib_c_api"]
+type = "lib"
+variable_name = "libmqlib_c_api"
+
+[[sources]]
+hash = "585496274af5abb0849d0d47e135496b4688680b"
+type = "git"
+unpack_target = ""
+url = "https://github.com/MQLib/MQLib.git"
+[[sources]]
+hash = "3160500db96ca1a1bb1271897c4141b9124676cf"
+type = "git"
+unpack_target = ""
+url = "https://github.com/JuliaQUBO/MQLib.jl.git"

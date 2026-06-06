@@ -1,0 +1,57 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "fmusim"
+platforms = ["x86_64-linux-gnu", "aarch64-linux-gnu", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-w64-mingw32"]
+script = """cd ${WORKSPACE}/srcdir/Reference-FMUs*/\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/use-shared-deps.patch\n# MinGW cross-compilation: Linux is case-sensitive, fix Windows header capitalization\nfind . \\( -name \"*.c\" -o -name \"*.h\" \\) -exec sed -i \\\n    -e 's/#include <Windows\\.h>/#include <windows.h>/g' \\\n    -e 's/#include <Shlwapi\\.h>/#include <shlwapi.h>/g' \\\n    {} \\;\n\nmkdir -p build && cd build\n# Configure fmusim's own CMakeLists.txt directly (it has its own project() call)\n# rather than the root, which would otherwise force -DFMI_VERSION=3 just to\n# satisfy the reference-FMU model configure step. fmusim itself always\n# compiles support for FMI 1/2/3.\ncmake \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DCMAKE_C_STANDARD=99 \\\n    -DCMAKE_PREFIX_PATH=${prefix} \\\n    -DFMUSIM_VERSION=${version} \\\n    -DZLIB_SRC_DIR=${WORKSPACE}/srcdir/zlib \\\n    ../fmusim\n\ncmake --build . --parallel ${nproc}\n\ninstall -Dvm 755 fmusim${exeext} ${bindir}/fmusim${exeext}\ninstall_license ../LICENSE.txt\n"""
+version = "v0.0.39001"
+
+[[dependencies]]
+compat = ""
+name = "XML2_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "7.4"
+name = "Sundials_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["fmusim"]
+type = "exe"
+variable_name = "fmusim"
+
+[[sources]]
+hash = "c8d4e6d90fa14be49d7622badf30e38eebea5e0a"
+type = "git"
+unpack_target = ""
+url = "https://github.com/modelica/Reference-FMUs.git"
+[[sources]]
+hash = "da607da739fa6047df13e66a2af6b8bec7c2a498"
+type = "git"
+unpack_target = ""
+url = "https://github.com/madler/zlib.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

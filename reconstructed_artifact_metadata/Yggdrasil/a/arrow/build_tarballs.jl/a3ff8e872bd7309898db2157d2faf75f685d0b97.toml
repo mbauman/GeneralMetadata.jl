@@ -1,0 +1,146 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Arrow"
+platforms = ["i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx11", "riscv64-linux-gnu-cxx11", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx11"]
+script = """macos_sdk_version=12.3\nmacosx_deployment_target=12.3\nif [[ \"${target}\" == *-apple-darwin* ]]; then\n    # Extract SDK\n    echo \"Extracting MacOSX${macos_sdk_version}.sdk.tar.xz (this may take a while)\"\n    tar \\\n        --extract \\\n        --file=${WORKSPACE}/srcdir/MacOSX${macos_sdk_version}.sdk.tar.xz \\\n        --directory=${WORKSPACE}/srcdir \\\n        --warning=no-unknown-keyword\n    old_sdkroot=${SDKROOT}\n    new_sdkroot=${WORKSPACE}/srcdir/MacOSX${macos_sdk_version}.sdk\n    # Point to C++ header files (these are not shipped with the SDK)\n    ln -s ${old_sdkroot}/usr/include/c++ ${new_sdkroot}/usr/include/c++\n    # Fix toolchain files\n    sed -i -e \"s+${old_sdkroot}+${new_sdkroot}+\" ${MESON_TARGET_TOOLCHAIN} ${CMAKE_TARGET_TOOLCHAIN}\n    # Fix compiler wrappers\n    sed -i -e \"s+${old_sdkroot}+${new_sdkroot}+\" $(find /opt/bin/${target}* -type f -print)\n    SDKROOT=${new_sdkroot}\n    export MACOSX_DEPLOYMENT_TARGET=${macosx_deployment_target}\nfi\ncd $WORKSPACE/srcdir/apache-arrow-*\n\napk del cmake\n\nif [[ $target == *mingw32* ]]; then\n    # This hard-codes the name and location of the zstd library and\n    # must not be applied on other architectures\n    atomic_patch -p1 ${WORKSPACE}/srcdir/patches/windows-zstd.patch\nfi\n\ncd cpp\n\nCMAKE_FLAGS=(\n    -DCMAKE_BUILD_TYPE=Release\n    -DCMAKE_INSTALL_PREFIX=${prefix}\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN}\n    -DARROW_BUILD_STATIC=OFF\n    -DARROW_BUILD_UTILITIES=OFF\n    -DARROW_COMPUTE=OFF\n    -DARROW_CXXFLAGS=\"${CXXFLAGS}\"\n    -DARROW_DATASET=ON\n    -DARROW_DEPENDENCY_SOURCE=SYSTEM\n    -DARROW_IPC=OFF\n    -DARROW_JEMALLOC=OFF\n    -DARROW_MIMALLOC=OFF # We could turn this on when https://github.com/apache/arrow/pull/42090 is merged\n    -DARROW_PARQUET=ON\n    -DARROW_SIMD_LEVEL=NONE\n    -DARROW_THRIFT_USE_SHARED=ON\n    -DARROW_USE_XSIMD=OFF\n    -DARROW_VERBOSE_THIRDPARTY_BUILD=ON\n    -DARROW_WITH_BROTLI=ON\n    -DARROW_WITH_BZ2=ON\n    -DARROW_WITH_LZ4=ON\n    -DARROW_WITH_RE2=OFF\n    -DARROW_WITH_SNAPPY=ON\n    -DARROW_WITH_UTF8PROC=OFF\n    -DARROW_WITH_ZLIB=ON\n    -DARROW_WITH_ZSTD=ON\n    -DPARQUET_BUILD_EXECUTABLES=OFF\n    -Dxsimd_SOURCE=AUTO\n)\n\nif [[ $target == *mingw32* ]]; then\n    # Cmake doesn't find Boost nor zstd on Windows. (It does find\n    # zstd, but it somehow can't determine the path to the actual\n    # library.)\n    CMAKE_FLAGS+=(\n        -DBoost_DIR=${prefix}/bin/cmake/Boost-1.87.0\n        -DZSTD_LIB=\"${prefix}/lib/libzstd.dll.a\"\n    )\nfi\n\ncmake -B cmake-build \"${CMAKE_FLAGS[@]}\"\ncmake --build cmake-build --parallel ${nproc}\ncmake --install cmake-build\n"""
+version = "v24.0.0"
+
+[[dependencies]]
+compat = ""
+name = "CMake_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.0.9"
+name = "Bzip2_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx11", "riscv64-linux-gnu-cxx11", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx11", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx11"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Lz4_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "0.21.1"
+name = "Thrift_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.5.7"
+name = "Zstd_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "=1.87.0"
+name = "boost_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.1.1"
+name = "brotli_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.1.1"
+name = "rapidjson_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.2.2"
+name = "snappy_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libparquet"]
+type = "lib"
+variable_name = "libparquet"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libarrow"]
+type = "lib"
+variable_name = "libarrow"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libarrow_dataset"]
+type = "lib"
+variable_name = "libarrow_dataset"
+
+[[sources]]
+hash = "9a8094d24fa33b90c672ab77fdda253f29300c8b0dd3f0b8e55a29dbd98b82c9"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/apache/arrow/releases/download/apache-arrow-24.0.0/apache-arrow-24.0.0.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "bundled"
+target = ""
+type = "directory"
+[[sources]]
+filename = "MacOSX12.3.sdk.tar.xz"
+hash = "a511c1cf1ebfe6fe3b8ec005374b9c05e89ac28b3d4eb468873f59800c02b030"
+type = "file"
+url = "https://github.com/realjf/MacOSX-SDKs/releases/download/v0.0.1/MacOSX12.3.sdk.tar.xz"

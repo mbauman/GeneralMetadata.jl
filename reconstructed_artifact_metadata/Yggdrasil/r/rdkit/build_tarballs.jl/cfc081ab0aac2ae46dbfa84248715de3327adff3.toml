@@ -1,0 +1,69 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.10"
+lazy_artifacts = false
+name = "RDKit"
+platforms = ["i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx11", "riscv64-linux-gnu-cxx11", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx11"]
+script = """macos_sdk_version=10.14\nmacosx_deployment_target=10.14\nif [[ \"${target}\" == x86_64-apple-darwin* ]]; then\n    # Extract SDK\n    echo \"Extracting MacOSX${macos_sdk_version}.sdk.tar.xz (this may take a while)\"\n    tar \\\n        --extract \\\n        --file=${WORKSPACE}/srcdir/MacOSX${macos_sdk_version}.sdk.tar.xz \\\n        --directory=${WORKSPACE}/srcdir \\\n        --warning=no-unknown-keyword\n    old_sdkroot=${SDKROOT}\n    new_sdkroot=${WORKSPACE}/srcdir/MacOSX${macos_sdk_version}.sdk\n    # Point to C++ header files (these are not shipped with the SDK)\n    ln -s ${old_sdkroot}/usr/include/c++ ${new_sdkroot}/usr/include/c++\n    # Fix toolchain files\n    sed -i -e \"s+${old_sdkroot}+${new_sdkroot}+\" ${MESON_TARGET_TOOLCHAIN} ${CMAKE_TARGET_TOOLCHAIN}\n    # Fix compiler wrappers\n    sed -i -e \"s+${old_sdkroot}+${new_sdkroot}+\" $(find /opt/bin/${target}* -type f -print)\n    SDKROOT=${new_sdkroot}\n    export MACOSX_DEPLOYMENT_TARGET=${macosx_deployment_target}\nfi\ncd ${WORKSPACE}/srcdir/rdkit\n\n# Windows build fails to link a test, despite the fact we don't want tests.\natomic_patch -p1 ../patches/do-not-build-cffi-test.patch\n\nFLAGS=()\nif [[ \"${target}\" == *-mingw* ]]; then\n    FLAGS+=(-DRDK_BUILD_THREADSAFE_SSS=OFF)\nfi\n\nmkdir build\ncd build\ncmake \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DRDK_INSTALL_INTREE=OFF \\\n    -DRDK_BUILD_INCHI_SUPPORT=ON \\\n    -DRDK_BUILD_PYTHON_WRAPPERS=OFF \\\n    -DRDK_BUILD_CFFI_LIB=ON \\\n    -DRDK_BUILD_FREETYPE_SUPPORT=ON \\\n    -DRDK_BUILD_CPP_TESTS=OFF \\\n    -DRDK_BUILD_SLN_SUPPORT=OFF \\\n    -DRDK_TEST_MULTITHREADED=OFF \\\n    \"${FLAGS[@]}\" \\\n    ..\nmake -j${nproc}\nmake install\n"""
+version = "v2026.3.1"
+
+[[dependencies]]
+compat = "2.13.4"
+name = "FreeType2_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.87.0"
+name = "boost_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Eigen_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["librdkitcffi"]
+type = "lib"
+variable_name = "librdkitcffi"
+
+[[sources]]
+hash = "351f8f378f8ad6bbd517980c38896e66bf907af8"
+type = "git"
+unpack_target = ""
+url = "https://github.com/rdkit/rdkit.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"
+[[sources]]
+filename = "MacOSX10.14.sdk.tar.xz"
+hash = "0f03869f72df8705b832910517b47dd5b79eb4e160512602f593ed243b28715f"
+type = "file"
+url = "https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.14.sdk.tar.xz"

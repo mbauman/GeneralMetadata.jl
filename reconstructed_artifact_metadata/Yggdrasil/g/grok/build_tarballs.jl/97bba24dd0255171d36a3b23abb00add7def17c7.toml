@@ -1,0 +1,109 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "grok"
+platforms = ["i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "powerpc64le-linux-gnu-cxx11"]
+script = """cd ${WORKSPACE}/srcdir/grok*\n\n# Use our own, newer cmake\napk del cmake\n\n# Use proper C++ include headers\nfind examples -type f \\( -name '*.h' -o -name '*.cpp' \\) -exec sed -i 's/#include <inttypes\\.h>/#include <cinttypes>/g' {} +\n\n# Correct case of file name\nfind src -type f \\( -name '*.h' -o -name '*.cpp' \\) -exec sed -i 's/#include <Windows\\.h>/#include <windows.h>/g' {} +\n\n# Fix namespace location of `aligned_alloc` on Apple\nif [[ ${target} == *-apple-* ]]; then\n    find src -type f \\( -name '*.h' -o -name '*.cpp' \\) -exec sed -i 's/std::aligned_alloc/::aligned_alloc/g' {} +\nfi\n\ncmake_flags=(\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN}\n    -DCMAKE_BUILD_TYPE=Release\n    -DCMAKE_INSTALL_PREFIX=${prefix}\n    -DBUILD_SHARED_LIBS=ON\n    -DGRK_BUILD_JPEG=OFF\n    -DGRK_BUILD_LCMS2=OFF\n    -DGRK_BUILD_LIBPNG=OFF\n    -DGRK_BUILD_LIBTIFF=OFF\n    -DHWY_CMAKE_ARM7=OFF        # this would use `-march`, but it should be enabled\n    -DHWY_CMAKE_RVV=OFF         # we target riscv64 without the vector extension\n    -DSPDLOG_FMT_EXTERNAL=ON\n)\n\nif [[ ${target} == aarch64-* ]]; then\n    # We are building with old kernel headers that do not define `HWCAP_SVE2`.\n    cmake_flags+=(-DCMAKE_CXX_FLAGS='-DHWCAP2_SVE2=2')\nfi\n\ncmake -Bbuild \"${cmake_flags[@]}\"\ncmake --build build --parallel ${nproc}\ncmake --install build\n\ninstall_license LICENSE\n"""
+version = "v20.3.3"
+
+[[dependencies]]
+compat = ""
+name = "CMake_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "11.1.1"
+name = "Fmt_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "3.1.5"
+name = "JpegTurbo_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "4.7.2"
+name = "Libtiff_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "2.19.0"
+name = "LittleCMS_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.6.58"
+name = "libpng_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgrokj2k"]
+type = "lib"
+variable_name = "libgrokj2k"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgrokj2kcodec"]
+type = "lib"
+variable_name = "libgrokj2kcodec"
+[[products]]
+binnames = ["grk_compress"]
+type = "exe"
+variable_name = "grk_compress"
+[[products]]
+binnames = ["grk_decompress"]
+type = "exe"
+variable_name = "grk_decompress"
+[[products]]
+binnames = ["grk_dump"]
+type = "exe"
+variable_name = "grk_dump"
+[[products]]
+binnames = ["grk_transcode"]
+type = "exe"
+variable_name = "grk_transcode"
+
+[[sources]]
+hash = "2b588f23202e306e0242dd5b2c8b99648bded44f118a31e57ed5dcee75cbc549"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/GrokImageCompression/grok/releases/download/v20.3.3/source-full.tar.gz"
