@@ -1,0 +1,106 @@
+augment_platform_block = """using Base.BinaryPlatforms\n\ntry\n    using CUDA_Runtime_jll\ncatch\n    # during initial package installation, CUDA_Runtime_jll may not be available.\n    # in that case, we just won't select an artifact.\nend\n\n# can't use Preferences for the same reason\nconst CUDA_Runtime_jll_uuid = Base.UUID(\"76a88914-d11a-5bdc-97e0-2f5a05c973a2\")\nconst preferences = Base.get_preferences(CUDA_Runtime_jll_uuid)\nBase.record_compiletime_preference(CUDA_Runtime_jll_uuid, \"version\")\nBase.record_compiletime_preference(CUDA_Runtime_jll_uuid, \"local\")\nconst local_toolkit = something(tryparse(Bool, get(preferences, \"local\", \"false\")), false)\n\nfunction cuda_comparison_strategy(_a::String, _b::String, a_requested::Bool, b_requested::Bool)\n    # if we're using a local toolkit, we can't use artifacts\n    if local_toolkit\n        return false\n    end\n\n    # if either isn't a version number (e.g. \"none\"), perform a simple equality check\n    a = tryparse(VersionNumber, _a)\n    b = tryparse(VersionNumber, _b)\n    if a === nothing || b === nothing\n        return _a == _b\n    end\n\n    # if both b and a requested, then we fall back to equality\n    if a_requested && b_requested\n        return Base.thisminor(a) == Base.thisminor(b)\n    end\n\n    # otherwise, do the comparison between the the single version cap and the single version:\n    function is_compatible(artifact::VersionNumber, host::VersionNumber)\n        if host >= v\"11.0\"\n            # enhanced compatibility, semver-style\n            artifact.major == host.major &&\n            Base.thisminor(artifact) <= Base.thisminor(host)\n        else\n            Base.thisminor(artifact) == Base.thisminor(host)\n        end\n    end\n    if a_requested\n        is_compatible(b, a)\n    else\n        is_compatible(a, b)\n    end\nend\n\nfunction augment_platform!(platform::Platform)\n    if !@isdefined(CUDA_Runtime_jll)\n        # don't set to nothing or Pkg will download any artifact\n        platform[\"cuda\"] = \"none\"\n    end\n\n    if !haskey(platform, \"cuda\")\n        CUDA_Runtime_jll.augment_platform!(platform)\n    end\n    BinaryPlatforms.set_compare_strategy!(platform, \"cuda\", cuda_comparison_strategy)\n\n    return platform\nend"""
+init_block = ""
+julia_compat = "1.10"
+lazy_artifacts = true
+name = "cupynumeric"
+platforms = ["x86_64-linux-gnu-cxx11-cuda+none", "x86_64-linux-gnu-cxx11-cuda+13.0"]
+script = ["""\n    # Build crashes without this\n    export TMPDIR=${WORKSPACE}/tmpdir\n    mkdir -p ${TMPDIR}\n\n    # Put new CMake first on path\n    export PATH=${host_bindir}:$PATH\n\n    ln -s ${CUDA_HOME}/lib ${CUDA_HOME}/lib64\n\n    # Patch cupynumeric src code missing header include\n    # cd $WORKSPACE/srcdir\n    # atomic_patch -p1 cstring.patch\n\n    ## BUILD TBLIS ##\n    cd ${WORKSPACE}/srcdir/tblis\n\n    for i in ./Makefile.* ./configure*; do\n\n        # Building in container forbids -march options\n        sed -i \"s/-march[^ ]*//g\" $i\n\n    done\n\n    case ${target} in\n        *\"x86_64\"*\"linux\"*\"gnu\"*) \n            export BLI_CONFIG=x86,reference\n            ;;\n        *\"aarch64\"*)\n            ;;\n        *)\n            ;;\n    esac\n\n    ./configure \\\n        --prefix=$prefix \\\n        --build=${MACHTYPE} \\\n        --host=${target} \\\n        --with-label-type=int32_t \\\n        --with-length-type=int64_t \\\n        --with-stride-type=int64_t \\\n        --enable-thread-model=openmp \\\n        --enable-config=${BLI_CONFIG}\n\n    make -j ${nproc} && make install\n\n    cd ${WORKSPACE}/srcdir/cupynumeric\n\n    mkdir build\n    cmake -S . -B build \\\n        -Dlegate_ROOT:STRING=${prefix} \\\n        -DCMAKE_PREFIX_PATH=${prefix} \\\n        -DCMAKE_INSTALL_PREFIX=${prefix} \\\n        -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n        -DCMAKE_BUILD_TYPE=Release \\\n        -DBLAS_LIBRARIES=${libdir}/libopenblas.so \\\n\n    cmake --build build --parallel ${nproc} --verbose\n    cmake --install build\n\n    install_license $WORKSPACE/srcdir/cupynumeric*/LICENSE\n""", """\n    # Build crashes without this\n    export TMPDIR=${WORKSPACE}/tmpdir\n    mkdir -p ${TMPDIR}\n\n    # Copy cuTensor archive to proper dirs\n    cd ${WORKSPACE}/srcdir\n    cp -a ./include/. ${includedir}\n    cp -a ./lib/. ${libdir}\n\n    # Put new CMake first on path\n    export PATH=${host_bindir}:$PATH\n\n    # Necessary operations to cross compile CUDA from x86_64 to aarch64\n    if [[ \"${target}\" == aarch64-linux-* ]]; then\n\n        # Add /usr/lib/csl-musl-x86_64 to LD_LIBRARY_PATH to be able to use host nvcc\n        export LD_LIBRARY_PATH=\"/usr/lib/csl-musl-x86_64:/usr/lib/csl-glibc-x86_64:${LD_LIBRARY_PATH}\"\n        \n        # Make sure we use host CUDA executable by copying from the x86_64 CUDA redist\n        NVCC_DIR=(/workspace/srcdir/cuda_nvcc-*-archive)\n        rm -rf ${prefix}/cuda/bin\n        cp -r ${NVCC_DIR}/bin ${prefix}/cuda/bin\n        \n        rm -rf ${prefix}/cuda/nvvm/bin\n        cp -r ${NVCC_DIR}/nvvm/bin ${prefix}/cuda/nvvm/bin\n\n        export NVCC_PREPEND_FLAGS=\"-ccbin='${CXX}'\"\n    fi\n\n    export CUDA_HOME=${prefix}/cuda;\n    export PATH=$PATH:$CUDA_HOME/bin\n    export CUDACXX=$CUDA_HOME/bin/nvcc\n\n    ln -s ${CUDA_HOME}/lib ${CUDA_HOME}/lib64\n    \n\n    ## BUILD TBLIS ##\n    cd ${WORKSPACE}/srcdir/tblis\n\n    for i in ./Makefile.* ./configure*; do\n\n        # Building in container forbids -march options\n        sed -i \"s/-march[^ ]*//g\" $i\n\n    done\n\n    case ${target} in\n        *\"x86_64\"*\"linux\"*\"gnu\"*) \n            export BLI_CONFIG=x86,reference\n            ;;\n        *\"aarch64\"*)\n            ;;\n        *)\n            ;;\n    esac\n\n    ./configure \\\n        --prefix=$prefix \\\n        --build=${MACHTYPE} \\\n        --host=${target} \\\n        --with-label-type=int32_t \\\n        --with-length-type=int64_t \\\n        --with-stride-type=int64_t \\\n        --enable-thread-model=openmp \\\n        --enable-config=${BLI_CONFIG}\n\n    make -j ${nproc} && make install\n\n    ## Install cuPyNumeric ##\n    cd ${WORKSPACE}/srcdir/cupynumeric\n\n    mkdir build\n    cmake -S . -B build \\\n        -Dlegate_ROOT:STRING=${prefix} \\\n        -DCMAKE_PREFIX_PATH=${prefix} \\\n        -DCMAKE_INSTALL_PREFIX=${prefix} \\\n        -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n        -DCMAKE_BUILD_TYPE=Release \\\n        -DNCCL_LIBRARY=${libdir}/libnccl.so \\\n        -DNCCL_INCLUDE_DIR=${includedir} \\\n        -Dcutensor_LIBRARY=${libdir}/libcutensor.so \\\n        -Dcutensor_INCLUDE_DIR=${includedir} \\\n        -DBLAS_LIBRARIES=${libdir}/libopenblas.so \\\n        -Dcupynumeric_USE_CUSOLVERMP=0 \\\n        -DCMAKE_CUDA_ARCHITECTURES=\"75;80;86;89;90;100;103;120;121\"\n        \n\n    cmake --build build --parallel ${nproc} --verbose\n    cmake --install build\n\n    install_license $WORKSPACE/srcdir/cupynumeric*/LICENSE\n    install_license $WORKSPACE/srcdir/share/licenses/CUTENSOR/LICENSE\n\n    mkdir -vp \"${includedir}/cupynumeric/cuda\"\n    cp -v ${CUDA_HOME}/include/cuda.h ${includedir}/cupynumeric/cuda/cuda.h\n"""]
+version = "v26.1.0"
+
+[[dependencies]]
+compat = "=26.1"
+name = "legate_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenBLAS32_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CMake_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 3
+version-minor = 31
+version-patch = 9
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 13
+version-minor = 0
+version-patch = 2
+[[dependencies]]
+compat = ""
+name = "CUDA_Runtime_jll"
+platforms = ["any"]
+top_level = false
+type = "runtimedependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_static_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 13
+version-minor = 0
+version-patch = 2
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcupynumeric"]
+type = "lib"
+variable_name = "libcupynumeric"
+[[products]]
+paths = ["include/cupynumeric/cuda/cuda.h"]
+type = "file"
+variable_name = "cuda_header"
+
+[[sources]]
+hash = "ae1c787828a9327ad00a076739706f41d196a043"
+type = "git"
+unpack_target = ""
+url = "https://github.com/nv-legate/cupynumeric.git"
+[[sources]]
+hash = "c4f81e08b2827e72335baa7bf91a245f72c43970"
+type = "git"
+unpack_target = ""
+url = "https://github.com/MatthewsResearchGroup/tblis.git"
+[[sources]]
+filename = "miniconda.sh"
+hash = "4da8dde69eca0d9bc31420349a204851bfa2a1c87aeb87fe0c05517797edaac4"
+type = "file"
+url = "https://repo.anaconda.com/miniconda/Miniconda3-py311_24.3.0-0-Linux-x86_64.sh"
+[[sources]]
+hash = "bb9d29e92522d4867dcd5124dfb9151cc40eb87f8a7772dd0509bd344e393abf"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/JuliaBinaryWrappers/CUTENSOR_jll.jl/releases/download/CUTENSOR-v2.3.1%2B0/CUTENSOR.v2.3.1.x86_64-linux-gnu-cuda+13.0.tar.gz"
