@@ -1,0 +1,42 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "cppcheck"
+platforms = ["i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx11", "riscv64-linux-gnu-cxx11", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir/cppcheck/\n\n# cppcheck 2.21 requires CMake >= 3.22; remove the older system CMake so the\n# newer JLL-provided one is used.\napk del cmake\n\nmkdir build && cd build\n\n# By default cppcheck hard-codes FILESDIR to $prefix/share/cppcheck (baked into\n# the binary as an absolute path) and installs its data files (cfg/*.cfg,\n# platforms/*.xml and the Python addons such as misra.py) there. That absolute\n# path does not exist once the JLL is relocated. cppcheck also searches for\n# those files *next to the executable* (exepath/cfg, exepath/addons,\n# exepath/platforms) before falling back to FILESDIR, so install everything into\n# $prefix/bin to get a fully relocatable package.\ncmake -DCMAKE_INSTALL_PREFIX=$prefix \\\n      -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n      -DCMAKE_BUILD_TYPE=Release \\\n      -DFILESDIR=$prefix/bin \\\n      -DBUILD_GUI=OFF \\\n      -DUSE_MATCHCOMPILER=OFF \\\n      -DDISABLE_DMAKE=ON \\\n      -DBUILD_TESTS=OFF \\\n      -DHAVE_RULES=ON \\\n      ..\nmake -j${nproc}\nmake install\n"""
+version = "v2.21.0"
+
+[[dependencies]]
+compat = ""
+name = "CMake_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "8.45.1"
+name = "PCRE_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["cppcheck"]
+type = "exe"
+variable_name = "cppcheck"
+[[products]]
+paths = ["bin/addons/misra.py"]
+type = "file"
+variable_name = "misra_addon"
+
+[[sources]]
+hash = "e73bf44c3e49686b7495fab352d03a6c6075516b"
+type = "git"
+unpack_target = ""
+url = "https://github.com/danmar/cppcheck.git"

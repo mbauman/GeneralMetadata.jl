@@ -1,0 +1,30 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "PCRE"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/pcre-*/\n# Note: we deliberately do not enable the JIT (--enable-jit): the bundled sljit in\n# PCRE1 has no RISC-V backend, so enabling it would break riscv64.  We also drop\n# the C++ wrapper (--disable-cpp); nothing in the ecosystem links libpcrecpp, and\n# omitting it avoids the std::string GCC 4/5 ABI split entirely.\n./configure --prefix=${prefix} \\\n    --build=${MACHTYPE} \\\n    --host=${target} \\\n    --enable-utf8 \\\n    --enable-unicode-properties \\\n    --disable-cpp \\\n    --disable-static\nmake -j${nproc} VERBOSE=1\nmake install VERBOSE=1\n"""
+version = "v8.45.1"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libpcre"]
+type = "lib"
+variable_name = "libpcre"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libpcreposix"]
+type = "lib"
+variable_name = "libpcreposix"
+
+[[sources]]
+hash = "4dae6fdcd2bb0bb6c37b5f97c33c2be954da743985369cddac3546e3218bffb8"
+type = "archive"
+unpack_target = ""
+url = "https://sourceforge.net/projects/pcre/files/pcre/8.45/pcre-8.45.tar.bz2"
