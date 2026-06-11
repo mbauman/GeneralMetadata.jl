@@ -1,0 +1,56 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Glibc"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu"]
+script = """cd $WORKSPACE/srcdir/glibc-*/\n\n# Install licenses first thing\ninstall_license COPYING* LICENSES\n\n# Update configure scripts to work well with `musl`\nupdate_configure_scripts\n\nfor p in ${WORKSPACE}/srcdir/patches/glibc-*.patch; do\n    atomic_patch -p1 ${p}\ndone\n\n# Various configure overrides\nGLIBC_CONFIGURE_OVERRIDES=( libc_cv_forced_unwind=yes libc_cv_c_cleanup=yes )\n\nmkdir -p $WORKSPACE/srcdir/glibc_build\n\nif [[ -d ../debian ]]; then\n    echo \"https://dl-cdn.alpinelinux.org/alpine/edge/community/\" >> /etc/apk/repositories\n    apk update\n    apk add quilt\n    QUILT_PATCHES=$PWD/../debian/patches quilt push\n    echo \"libdir = /usr/lib/${target}\" >> $WORKSPACE/srcdir/glibc_build/configparms\n    echo \"slibdir = /lib/${target}\" >> $WORKSPACE/srcdir/glibc_build/configparms\n    echo \"rtlddir = /lib\" >> $WORKSPACE/srcdir/glibc_build/configparms\n    if [[ ${target} == aarch64-linux-gnu ]]; then\n        # At the moment -moutline-atomics (as used in the official debian binaries)\n        # intermittently causes binaries that are incompatible with rr. Forcing ARM\n        # 8.3 will result in inlined LSE atomics, working around the issue.\n        GLIBC_CONFIGURE_OVERRIDES+=( CFLAGS=\"-march=armv8.3-a -mno-outline-atomics -O2\")\n    fi\nfi\n\n# We have problems with libssp on ppc64le\nif [[ ${COMPILER_TARGET} == powerpc64le-* ]]; then\n    GLIBC_CONFIGURE_OVERRIDES+=( libc_cv_ssp=no libc_cv_ssp_strong=no )\nfi\n\ncd $WORKSPACE/srcdir/glibc_build\n$WORKSPACE/srcdir/glibc-*/configure \\\n    --prefix=/usr \\\n    --build=${MACHTYPE} \\\n    --host=${target} \\\n    --disable-multilib \\\n    --disable-werror \\\n    \"${GLIBC_CONFIGURE_OVERRIDES[@]}\"\n\nmake -j${nproc}\n\n# Install to the main prefix and also to the sysroot.\nmake install install_root=${prefix}\n"""
+version = "v2.34.0"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libc"]
+type = "lib"
+variable_name = "libc"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libdl"]
+type = "lib"
+variable_name = "libld"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libm"]
+type = "lib"
+variable_name = "libm"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libpthread"]
+type = "lib"
+variable_name = "libpthread"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["librt"]
+type = "lib"
+variable_name = "librt"
+
+[[sources]]
+hash = "44d26a1fe20b8853a48f470ead01e4279e869ac149b195dda4e44a195d981ab2"
+type = "archive"
+unpack_target = ""
+url = "https://mirrors.kernel.org/gnu/glibc/glibc-2.34.tar.xz"
+[[sources]]
+follow_symlinks = true
+path = "./bundled"
+target = ""
+type = "directory"

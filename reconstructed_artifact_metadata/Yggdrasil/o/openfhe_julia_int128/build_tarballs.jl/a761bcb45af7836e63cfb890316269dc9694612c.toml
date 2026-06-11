@@ -1,0 +1,76 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.10"
+lazy_artifacts = false
+name = "openfhe_julia_int128"
+platforms = ["x86_64-linux-gnu-cxx11-julia_version+1.10.0", "aarch64-linux-gnu-cxx11-julia_version+1.10.0", "x86_64-apple-darwin-julia_version+1.10.0", "aarch64-apple-darwin-julia_version+1.10.0", "x86_64-unknown-freebsd-julia_version+1.10.0", "x86_64-w64-mingw32-cxx11-julia_version+1.10.0", "x86_64-linux-gnu-cxx11-julia_version+1.11.1", "aarch64-linux-gnu-cxx11-julia_version+1.11.1", "x86_64-apple-darwin-julia_version+1.11.1", "aarch64-apple-darwin-julia_version+1.11.1", "x86_64-unknown-freebsd-julia_version+1.11.1", "x86_64-w64-mingw32-cxx11-julia_version+1.11.1", "x86_64-linux-gnu-cxx11-julia_version+1.12.0", "aarch64-linux-gnu-cxx11-julia_version+1.12.0", "x86_64-apple-darwin-julia_version+1.12.0", "aarch64-apple-darwin-julia_version+1.12.0", "x86_64-unknown-freebsd-julia_version+1.12.0", "x86_64-w64-mingw32-cxx11-julia_version+1.12.0"]
+script = """cd $WORKSPACE/srcdir/openfhe-julia/\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    # This is needed because otherwise we get unusable binaries (error \"The specified\n    # executable is not a valid application for this OS platform\"). These come from\n    # CompilerSupportLibraries_jll.\n    # xref: https://github.com/JuliaPackaging/Yggdrasil/issues/7904\n    #\n    # The remove path pattern matches `lib/gcc/<triple>/<major>/`, where `<triple>` is the\n    # platform triplet and `<major>` is the GCC major version with which CSL was built\n    # xref: https://github.com/JuliaPackaging/Yggdrasil/pull/7535\n    #\n    # However, before CSL v1.1, these files were located in just `lib/`, thus we clean this\n    # directory as well.\n    if test -n \"$(find $prefix/lib/gcc/*mingw*/*/libgcc*)\"; then\n        rm $prefix/lib/gcc/*mingw*/*/libgcc* $prefix/lib/gcc/*mingw*/*/libmsvcrt*\n    elif test -n \"$(find $prefix/lib/libgcc*)\"; then\n        rm $prefix/lib/libgcc* $prefix/lib/libmsvcrt*\n    else\n        echo \"Could not find any libraries to remove :-/\"\n        find $prefix/lib\n    fi\nfi\n\nif [[ \"$target\" == *-apple-darwin* ]]; then\n    # For MacOS higher version of SDK and additional linker flag are required \n    # according to https://github.com/llvm/llvm-project/issues/119608 to link typeid(__int128)\n    export LDFLAGS=\"-lc++abi\"\n    apple_sdk_root=$WORKSPACE/srcdir/MacOSX14.5.sdk\n    sed -i \"s!/opt/$bb_target/$bb_target/sys-root!$apple_sdk_root!\" $CMAKE_TARGET_TOOLCHAIN\n    sed -i \"s!/opt/$bb_target/$bb_target/sys-root!$apple_sdk_root!\" /opt/bin/$bb_full_target/$target-clang++\n\n    # OpenFHE's CMake config populates the build system with wrong path info for OpenMP\n    export LDFLAGS=\"$LDFLAGS -L$libdir\"\n    sed -i \"s|\\${OPENMP_INCLUDES}|\\$ENV{includedir}|\" CMakeLists.txt\n    sed -i \"s|\\${OPENMP_LIBRARIES}|\\$ENV{libdir}|\" CMakeLists.txt\nfi\n\nmkdir build && cd build\n\ncmake .. \\\n-DCMAKE_INSTALL_PREFIX=$prefix \\\n-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n-DCMAKE_BUILD_TYPE=Release \\\n-DJulia_PREFIX=$prefix \n\nmake -j${nproc}\nmake install\n"""
+version = "v0.6.1"
+
+[[dependencies]]
+compat = ""
+name = "libjulia_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 1
+version-minor = 11
+version-patch = 0
+[[dependencies]]
+compat = "0.14.4"
+name = "libcxxwrap_julia_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["x86_64-linux-gnu-cxx11-julia_version+1.10.0", "aarch64-linux-gnu-cxx11-julia_version+1.10.0", "x86_64-w64-mingw32-cxx11-julia_version+1.10.0", "x86_64-linux-gnu-cxx11-julia_version+1.11.1", "aarch64-linux-gnu-cxx11-julia_version+1.11.1", "x86_64-w64-mingw32-cxx11-julia_version+1.11.1", "x86_64-linux-gnu-cxx11-julia_version+1.12.0", "aarch64-linux-gnu-cxx11-julia_version+1.12.0", "x86_64-w64-mingw32-cxx11-julia_version+1.12.0"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LLVMOpenMP_jll"
+platforms = ["x86_64-apple-darwin-julia_version+1.10.0", "aarch64-apple-darwin-julia_version+1.10.0", "x86_64-unknown-freebsd-julia_version+1.10.0", "x86_64-apple-darwin-julia_version+1.11.1", "aarch64-apple-darwin-julia_version+1.11.1", "x86_64-unknown-freebsd-julia_version+1.11.1", "x86_64-apple-darwin-julia_version+1.12.0", "aarch64-apple-darwin-julia_version+1.12.0", "x86_64-unknown-freebsd-julia_version+1.12.0"]
+top_level = false
+type = "dependency"
+uuid = "1d63c593-3942-5779-bab2-d838dc0a180e"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.5.0"
+name = "OpenFHE_int128_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "a89a0bdd-1663-5679-8b21-c3a5388322bc"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libopenfhe_julia"]
+type = "lib"
+variable_name = "libopenfhe_julia"
+
+[[sources]]
+hash = "aa3cdae85379dcfcd79d7cec945c154fabff29b6"
+type = "git"
+unpack_target = ""
+url = "https://github.com/hpsc-lab/openfhe-julia.git"
+[[sources]]
+hash = "f6acc6209db9d56b67fcaf91ec1defe48722e9eb13dc21fb91cfeceb1489e57e"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/alexey-lysiuk/macos-sdk/releases/download/14.5/MacOSX14.5.tar.xz"
