@@ -1,0 +1,65 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "crun"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu"]
+script = """cd crun\ninstall_license COPYING\n\n# next to our (outdated) glibc's sched.h, also include the one from the kernel\n# in order to pick up more recent definitions (e.g. CLONE_NEWCGROUP)\nfind src -name '*.c' -exec sed -i '/#include <sched.h>/a #include <linux/sched.h>' {} \\;\n\n# our (outdated) glibc doesn't define SOL_NETLINK (added to glibc's\n# bits/socket.h in 2.24), so provide a fallback matching the kernel ABI\nsed -i '/#include <linux\\/netlink.h>/a #ifndef SOL_NETLINK\\n#define SOL_NETLINK 270\\n#endif' src/libcrun/net_device.c\n\n./autogen.sh\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} \\\n            --disable-criu # missing JLL\nmake -j${nproc}\nmake install\n"""
+version = "v1.28.0"
+
+[[dependencies]]
+compat = ""
+name = "JSON_C_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "blake3_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "libcap_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "systemd_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "libseccomp_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["crun"]
+type = "exe"
+variable_name = "crun"
+
+[[sources]]
+hash = "54f16ffbefcd022bf032af768b5c5ce075c18bfc"
+type = "git"
+unpack_target = ""
+url = "https://github.com/containers/crun"

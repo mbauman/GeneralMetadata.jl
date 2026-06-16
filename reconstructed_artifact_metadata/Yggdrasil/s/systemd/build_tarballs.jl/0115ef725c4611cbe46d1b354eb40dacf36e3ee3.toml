@@ -1,0 +1,111 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "systemd"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu"]
+script = """# check if we need to use a more recent glibc\nif [[ -f \"$prefix/usr/include/sched.h\" ]]; then\n    GLIBC_ARTIFACT_DIR=$(dirname $(dirname $(dirname $(realpath $prefix/usr/include/sched.h))))\n    rsync --archive ${GLIBC_ARTIFACT_DIR}/ /opt/${target}/${target}/sys-root/\nfi\n\ncd systemd\ninstall_license LICENSE.GPL2\n\n# build-time dependencies that aren't packaged as JLLs\napk add coreutils\n# pin MarkupSafe to the 2.x series: 3.x only ships an sdist for our Python,\n# whose pyproject.toml trips up the sandbox's old pip\npip install jinja2 \"markupsafe<3\"\n\nmeson --cross-file=${MESON_TARGET_TOOLCHAIN} build \\\n    -Dmode=release \\\n    -Dresolve=false -Dnss-resolve=disabled \\\n    -Dmachined=false -Dnss-mymachines=disabled \\\n    -Dnss-myhostname=false -Dnss-systemd=false \\\n    -Dtests=false\nninja -C build -j${nproc}\n\n# we only care about libsystemd, so install to a temporary prefix and copy what we need\nmeson install -C build --destdir \"/tmp/prefix\"\ncd /tmp/prefix\n# XXX: how is there a workspace/destdir dir there?\n#      maybe this is because busybox's realpath doesn't support --relative\ncd workspace/destdir\ncp -ar lib/lib* $libdir\ncp -ar include/* $includedir\ncp -ar share/pkgconfig $prefix/share\n"""
+version = "v256.7.0"
+
+[[dependencies]]
+compat = ""
+name = "Glibc_jll"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "powerpc64le-linux-gnu"]
+top_level = false
+type = "builddependency"
+version-major = 2
+version-minor = 19
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "gperf_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "libcap_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Libgcrypt_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "P11Kit_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Lz4_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "XZ_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zstd_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Libmount_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsystemd"]
+type = "lib"
+variable_name = "libsystemd"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libudev"]
+type = "lib"
+variable_name = "libudev"
+
+[[sources]]
+hash = "7635d01869ba325b9cf450923c8f13912b7ca536"
+type = "git"
+unpack_target = ""
+url = "https://github.com/systemd/systemd"

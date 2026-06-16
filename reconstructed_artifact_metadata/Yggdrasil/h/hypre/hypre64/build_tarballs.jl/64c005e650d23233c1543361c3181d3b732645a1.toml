@@ -1,0 +1,108 @@
+augment_platform_block = """    using Base.BinaryPlatforms\n    # Can't use Preferences since we might be running this very early with a non-existing Manifest\nMPIPreferences_UUID = Base.UUID(\"3da0fdf6-3ccc-4f1b-acd9-58baa6c99267\")\nconst preferences = Base.get_preferences(MPIPreferences_UUID)\n\nconst binary_to_abi = Dict(\n    \"MPIABI_jll\" => \"MPIABI\",\n    \"MPICH_jll\" => \"MPICH\",\n    \"MPICH_CUDA_jll\" => \"MPICH\",\n    \"MPItrampoline_jll\" => \"MPItrampoline\",\n    \"MicrosoftMPI_jll\" => \"MicrosoftMPI\",\n    \"OpenMPI_jll\" => \"OpenMPI\",\n)\n\n# Keep logic in sync with MPIPreferences.jl\nfunction augment_mpi!(platform)\n    # Doesn't need to be `const` since we depend on MPIPreferences so we\n    # invalidate the cache when it changes.\n\n    # Determine which jll binary provides our MPI implementation.\n    # Use MPIPreferences if set, otherwise use either MPICH or MicrosoftMPI (on Windows).\n    # Note: MPIPreferences uses `Sys.iswindows()` without the `platform` argument.\n    binary = get(preferences, \"binary\", Sys.iswindows(platform) ? \"MicrosoftMPI_jll\" : \"MPICH_jll\")\n\n    # Convert the jll binary to an ABI\n    if binary == \"system\"\n        abi = get(preferences, \"abi\", nothing)\n        abi === nothing && error(\"MPIPreferences: Inconsistent state detected, `binary` is set to system, but `abi` is not set.\")\n    else\n        abi = get(binary_to_abi, binary, nothing)\n        abi == nothing && error(\"Unknown MPI binary: $binary\")\n    end\n\n    # Add an `mpi` entry to the platform if it's missing\n    if !haskey(platform, \"mpi\")\n        platform[\"mpi\"] = abi\n    end\n\n    return platform\nend\n\n    augment_platform!(platform::Platform) = augment_mpi!(platform)\n"""
+init_block = ""
+julia_compat = "1.10"
+lazy_artifacts = false
+name = "HYPRE64"
+platforms = ["x86_64-linux-gnu-mpi+mpiabi", "aarch64-linux-gnu-mpi+mpiabi", "powerpc64le-linux-gnu-mpi+mpiabi", "riscv64-linux-gnu-mpi+mpiabi", "x86_64-linux-musl-mpi+mpiabi", "aarch64-linux-musl-mpi+mpiabi", "x86_64-apple-darwin-mpi+mpiabi", "aarch64-apple-darwin-mpi+mpiabi", "x86_64-unknown-freebsd-mpi+mpiabi", "aarch64-unknown-freebsd-mpi+mpiabi", "x86_64-linux-gnu-mpi+mpich", "aarch64-linux-gnu-mpi+mpich", "powerpc64le-linux-gnu-mpi+mpich", "riscv64-linux-gnu-mpi+mpich", "x86_64-linux-musl-mpi+mpich", "aarch64-linux-musl-mpi+mpich", "x86_64-apple-darwin-mpi+mpich", "aarch64-apple-darwin-mpi+mpich", "x86_64-unknown-freebsd-mpi+mpich", "aarch64-unknown-freebsd-mpi+mpich", "x86_64-linux-gnu-mpi+mpitrampoline", "aarch64-linux-gnu-mpi+mpitrampoline", "powerpc64le-linux-gnu-mpi+mpitrampoline", "riscv64-linux-gnu-mpi+mpitrampoline", "x86_64-apple-darwin-mpi+mpitrampoline", "aarch64-apple-darwin-mpi+mpitrampoline", "x86_64-unknown-freebsd-mpi+mpitrampoline", "aarch64-unknown-freebsd-mpi+mpitrampoline", "x86_64-w64-mingw32-mpi+microsoftmpi", "x86_64-linux-gnu-mpi+openmpi", "aarch64-linux-gnu-mpi+openmpi", "powerpc64le-linux-gnu-mpi+openmpi", "riscv64-linux-gnu-mpi+openmpi", "x86_64-linux-musl-mpi+openmpi", "aarch64-linux-musl-mpi+openmpi", "x86_64-apple-darwin-mpi+openmpi", "aarch64-apple-darwin-mpi+openmpi", "x86_64-unknown-freebsd-mpi+openmpi", "aarch64-unknown-freebsd-mpi+openmpi"]
+script = """cd $WORKSPACE/srcdir/hypre/src\n\nsed -i '$i\\\n\\\n/* HYPRE64 override: rename external BLAS\\/LAPACK calls to _64_-suffixed names\\\n   so they resolve to libblastrampoline'\\''s ILP64 slot. */\\\n#undef hypre_F90_NAME_BLAS\\\n#undef hypre_F90_NAME_LAPACK\\\n#define hypre_F90_NAME_BLAS(name,NAME)   name##_64_\\\n#define hypre_F90_NAME_LAPACK(name,NAME) name##_64_\\\n' utilities/_hypre_fortran.h\n\nif [[ \"${target}\" == *mingw* ]]; then\n    LBT=(-lblastrampoline-5)\nelse\n    LBT=(-lblastrampoline)\nfi\n\nMPI_SETTINGS=(-DMPI_HOME=${prefix})\nif [[ \"${target}\" == x86_64-w64-mingw32 ]]; then\n    MPI_SETTINGS+=(\n        -DMPI_GUESS_LIBRARY_NAME=MSMPI\n        -DMPI_C_LIBRARIES=msmpi64\n        -DMPI_CXX_LIBRARIES=msmpi64\n    )\nfi\n\nmkdir build\ncd build\n\ncmake .. \\\n    -DCMAKE_INSTALL_PREFIX=$prefix \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DBUILD_SHARED_LIBS=ON \\\n    -DHYPRE_ENABLE_BIGINT=ON \\\n    -DHYPRE_ENABLE_HYPRE_BLAS=OFF \\\n    -DHYPRE_ENABLE_HYPRE_LAPACK=OFF \\\n    -DTPL_BLAS_LIBRARIES=\"${LBT[*]}\" \\\n    -DTPL_LAPACK_LIBRARIES=\"${LBT[*]}\" \\\n    -DHYPRE_ENABLE_OPENMP=ON \\\n    -DHYPRE_ENABLE_CUDA_STREAMS=OFF \\\n    -DHYPRE_ENABLE_CUSPARSE=OFF \\\n    -DHYPRE_ENABLE_CURAND=OFF \\\n    \"${MPI_SETTINGS[@]}\"\n\nmake -j${nproc}\nmake install\n\ncd ${libdir}\nold_files=$(ls libHYPRE.* 2>/dev/null || true)\nfor f in $old_files; do\n    new=${f/libHYPRE/libHYPRE64}\n    if [ -L \"$f\" ]; then\n        tgt=$(readlink \"$f\")\n        rm -f \"$f\"\n        ln -sf \"${tgt/libHYPRE/libHYPRE64}\" \"$new\"\n    elif [ -f \"$f\" ]; then\n        mv -v \"$f\" \"$new\"\n    fi\ndone\n\n# Move the headers into their own subdirectory: stock HYPRE_jll installs\n# the same header names (notably HYPRE_config.h, which records the\n# integer width) into ${includedir}, and the two packages must be\n# co-installable for consumers that build against both integer widths\n# (e.g. PETSc).\nmkdir -p ${includedir}/HYPRE64\nmv ${includedir}/HYPRE*.h ${includedir}/HYPRE64/\n\nif [[ \"${target}\" == *apple* ]]; then\n    install_name_tool -id \"@rpath/libHYPRE64.${dlext}\" ${libdir}/libHYPRE64.${dlext}\nelif [[ \"${target}\" == *mingw* ]]; then\n    :\nelse\n    real_lib=$(find ${libdir} -maxdepth 1 -name 'libHYPRE64.so.*' -not -type l | head -1)\n    if [ -n \"$real_lib\" ]; then\n        soname=$(patchelf --print-soname \"$real_lib\")\n        case \"$soname\" in\n            libHYPRE64.*) ;;\n            libHYPRE.*) patchelf --set-soname \"${soname/libHYPRE/libHYPRE64}\" \"$real_lib\" ;;\n        esac\n    fi\nfi\n"""
+version = "v3.1.0"
+
+[[dependencies]]
+compat = "5.4.0"
+name = "libblastrampoline_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "8e850b90-86db-534c-a0d3-1478176c7d93"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["x86_64-linux-gnu-mpi+mpiabi", "aarch64-linux-gnu-mpi+mpiabi", "powerpc64le-linux-gnu-mpi+mpiabi", "riscv64-linux-gnu-mpi+mpiabi", "x86_64-linux-musl-mpi+mpiabi", "aarch64-linux-musl-mpi+mpiabi", "x86_64-linux-gnu-mpi+mpich", "aarch64-linux-gnu-mpi+mpich", "powerpc64le-linux-gnu-mpi+mpich", "riscv64-linux-gnu-mpi+mpich", "x86_64-linux-musl-mpi+mpich", "aarch64-linux-musl-mpi+mpich", "x86_64-linux-gnu-mpi+mpitrampoline", "aarch64-linux-gnu-mpi+mpitrampoline", "powerpc64le-linux-gnu-mpi+mpitrampoline", "riscv64-linux-gnu-mpi+mpitrampoline", "x86_64-w64-mingw32-mpi+microsoftmpi", "x86_64-linux-gnu-mpi+openmpi", "aarch64-linux-gnu-mpi+openmpi", "powerpc64le-linux-gnu-mpi+openmpi", "riscv64-linux-gnu-mpi+openmpi", "x86_64-linux-musl-mpi+openmpi", "aarch64-linux-musl-mpi+openmpi"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LLVMOpenMP_jll"
+platforms = ["x86_64-apple-darwin-mpi+mpiabi", "aarch64-apple-darwin-mpi+mpiabi", "x86_64-unknown-freebsd-mpi+mpiabi", "aarch64-unknown-freebsd-mpi+mpiabi", "x86_64-apple-darwin-mpi+mpich", "aarch64-apple-darwin-mpi+mpich", "x86_64-unknown-freebsd-mpi+mpich", "aarch64-unknown-freebsd-mpi+mpich", "x86_64-apple-darwin-mpi+mpitrampoline", "aarch64-apple-darwin-mpi+mpitrampoline", "x86_64-unknown-freebsd-mpi+mpitrampoline", "aarch64-unknown-freebsd-mpi+mpitrampoline", "x86_64-apple-darwin-mpi+openmpi", "aarch64-apple-darwin-mpi+openmpi", "x86_64-unknown-freebsd-mpi+openmpi", "aarch64-unknown-freebsd-mpi+openmpi"]
+top_level = false
+type = "dependency"
+uuid = "1d63c593-3942-5779-bab2-d838dc0a180e"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "0.1.3"
+name = "MPIABI_jll"
+platforms = ["x86_64-linux-gnu-mpi+mpiabi", "aarch64-linux-gnu-mpi+mpiabi", "powerpc64le-linux-gnu-mpi+mpiabi", "riscv64-linux-gnu-mpi+mpiabi", "x86_64-linux-musl-mpi+mpiabi", "aarch64-linux-musl-mpi+mpiabi", "x86_64-apple-darwin-mpi+mpiabi", "aarch64-apple-darwin-mpi+mpiabi", "x86_64-unknown-freebsd-mpi+mpiabi", "aarch64-unknown-freebsd-mpi+mpiabi"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "5.0.1"
+name = "MPICH_jll"
+platforms = ["x86_64-linux-gnu-mpi+mpich", "aarch64-linux-gnu-mpi+mpich", "powerpc64le-linux-gnu-mpi+mpich", "riscv64-linux-gnu-mpi+mpich", "x86_64-linux-musl-mpi+mpich", "aarch64-linux-musl-mpi+mpich", "x86_64-apple-darwin-mpi+mpich", "aarch64-apple-darwin-mpi+mpich", "x86_64-unknown-freebsd-mpi+mpich", "aarch64-unknown-freebsd-mpi+mpich"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "5.5.6"
+name = "MPItrampoline_jll"
+platforms = ["x86_64-linux-gnu-mpi+mpitrampoline", "aarch64-linux-gnu-mpi+mpitrampoline", "powerpc64le-linux-gnu-mpi+mpitrampoline", "riscv64-linux-gnu-mpi+mpitrampoline", "x86_64-apple-darwin-mpi+mpitrampoline", "aarch64-apple-darwin-mpi+mpitrampoline", "x86_64-unknown-freebsd-mpi+mpitrampoline", "aarch64-unknown-freebsd-mpi+mpitrampoline"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MicrosoftMPI_jll"
+platforms = ["x86_64-w64-mingw32-mpi+microsoftmpi"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "4.1.9, 5.0.11"
+name = "OpenMPI_jll"
+platforms = ["x86_64-linux-gnu-mpi+openmpi", "aarch64-linux-gnu-mpi+openmpi", "powerpc64le-linux-gnu-mpi+openmpi", "riscv64-linux-gnu-mpi+openmpi", "x86_64-linux-musl-mpi+openmpi", "aarch64-linux-musl-mpi+openmpi", "x86_64-apple-darwin-mpi+openmpi", "aarch64-apple-darwin-mpi+openmpi", "x86_64-unknown-freebsd-mpi+openmpi", "aarch64-unknown-freebsd-mpi+openmpi"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "0.1"
+name = "MPIPreferences"
+platforms = ["any"]
+top_level = true
+type = "dependency"
+uuid = "3da0fdf6-3ccc-4f1b-acd9-58baa6c99267"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libHYPRE64"]
+type = "lib"
+variable_name = "libHYPRE64"
+
+[[sources]]
+hash = "9dc9e18aed6a945a95f966e57daacfb1c269f6ec"
+type = "git"
+unpack_target = ""
+url = "https://github.com/hypre-space/hypre.git"
