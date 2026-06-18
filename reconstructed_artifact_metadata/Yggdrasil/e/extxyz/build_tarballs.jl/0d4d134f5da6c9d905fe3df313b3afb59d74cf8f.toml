@@ -1,0 +1,43 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "extxyz"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/extxyz\n\n# place the vendored libcleri submodule\nrm -rf libcleri\ncp -r ../libcleri libcleri\n\n# generate the key/value grammar parser sources (extxyz_kv_grammar.c/.h);\n# python3 -S skips the rootfs site module, which fails to import\ncd libextxyz\nPYLERI_DIR=$(echo $WORKSPACE/srcdir/pyleri-*)\nPYTHONPATH=$PYLERI_DIR python3 -S ../python/extxyz/extxyz_kv_grammar.py\n\n# build the vendored libcleri statically\n# (gnu99 rather than c99: libcleri uses POSIX strdup/strncasecmp)\ncd ../libcleri\nmkdir -p build\ncd build\n${CC} -O2 -fPIC -std=gnu99 -I../inc $(pcre2-config --cflags) -c ../src/*.c\nar rcs libcleri.a *.o\n\n# link the shared library\ncd ../../libextxyz\nmkdir -p ${libdir} ${includedir}\n${CC} -O2 -fPIC -std=gnu99 -shared -o ${libdir}/libextxyz.${dlext} \\\n    extxyz.c extxyz_kv_grammar.c fast_format.c extxyz_dispatch.c \\\n    -I../libcleri/inc $(pcre2-config --cflags) \\\n    ../libcleri/build/libcleri.a $(pcre2-config --libs8)\ninstall -Dv extxyz.h ${includedir}/extxyz.h\n\ninstall_license ${WORKSPACE}/srcdir/extxyz/LICENSE\n"""
+version = "v0.4.4"
+
+[[dependencies]]
+compat = ""
+name = "PCRE2_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "efcefdf7-47ab-520b-bdef-62a2eaa19f15"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libextxyz"]
+type = "lib"
+variable_name = "libextxyz"
+
+[[sources]]
+hash = "3d3f9180fd210729bcb603258260c3fa4675f5f9"
+type = "git"
+unpack_target = ""
+url = "https://github.com/libAtoms/extxyz"
+[[sources]]
+hash = "d12f5faba985e0f4a04025f84c0e6c1a025a366b"
+type = "git"
+unpack_target = ""
+url = "https://github.com/libAtoms/libcleri"
+[[sources]]
+hash = "0715a433e5b97e3d2fd8f74b4e57871e365eb3a1c7a09fb70d2f78700fd25e4c"
+type = "archive"
+unpack_target = ""
+url = "https://files.pythonhosted.org/packages/3a/0e/0e384ad4a9a603895f28da0fa32260402e372d26f3333a9ccd09de2bdf96/pyleri-1.5.0.tar.gz"
