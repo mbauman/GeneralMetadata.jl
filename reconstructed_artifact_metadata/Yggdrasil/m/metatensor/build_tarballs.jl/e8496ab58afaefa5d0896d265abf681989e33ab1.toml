@@ -1,0 +1,32 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.10"
+lazy_artifacts = false
+name = "Metatensor"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "x86_64-w64-mingw32"]
+script = """apk del cmake\n\ncd ${WORKSPACE}/srcdir/metatensor-core-*/\n\nexport EXTRA_RUST_FLAGS=\"\"\nif [[ \"$target\" == *musl* ]]; then\n    export RUSTFLAGS=\"-Ctarget-feature=-crt-static $RUSTFLAGS\"\nfi\n\nmkdir build && cd build\ncmake -DCMAKE_INSTALL_PREFIX=${prefix} \\\n      -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n      -DRUST_BUILD_TARGET=${CARGO_BUILD_TARGET} \\\n      -DCMAKE_BUILD_TYPE=Release \\\n      -DBUILD_SHARED_LIBS=ON \\\n      -DMETATENSOR_INSTALL_BOTH_STATIC_SHARED=OFF \\\n      ..\nmake -j${nproc}\nmake install\n"""
+version = "v0.2.1"
+
+[[dependencies]]
+compat = ""
+name = "CMake_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 3
+version-minor = 31
+version-patch = 9
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmetatensor", "metatensor"]
+type = "lib"
+variable_name = "libmetatensor"
+
+[[sources]]
+hash = "688751cb51900653edf2980bd80a52bbe187dff3c8b05cea9f1a1d3070b1e527"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/lab-cosmo/metatensor/releases/download/metatensor-core-v0.2.1/metatensor-core-cxx-0.2.1.tar.gz"
