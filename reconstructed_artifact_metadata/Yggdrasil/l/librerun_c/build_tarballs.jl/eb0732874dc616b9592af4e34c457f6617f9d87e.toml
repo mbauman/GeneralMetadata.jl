@@ -1,0 +1,46 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "librerun_c"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir\nfor f in ${WORKSPACE}/srcdir/patches/*.patch; do\n    atomic_patch -p1 ${f}\ndone \ncd rerun\n\n# ring (and similar cc-rs crates) compile native code for the host during the build;\n# point cc-rs at the host compiler for the host target triple.\nexport CC_$(echo $rust_host | sed \"s/-/_/g\")=$CC_BUILD\n\n# Link the system zstd (Zstd_jll) rather than zstd-sys's vendored copy, whose bundled C\n# uses qsort_r — absent from BinaryBuilder's musl libc. Zstd_jll is already patched for it.\nexport ZSTD_SYS_USE_PKG_CONFIG=1\nexport PKG_CONFIG_ALLOW_CROSS=1\n\n# Building a cdylib on musl requires disabling the default static-CRT linkage.\nif [[ \"${target}\" == *musl* ]]; then\n    export RUSTFLAGS=\"-C target-feature=-crt-static\"\nfi\n\ncmake . -B build -DCMAKE_INSTALL_PREFIX=$prefix -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} -DCMAKE_BUILD_TYPE=Release\ncmake --build build --parallel ${nproc}\ncmake --install build\ninstall_license $WORKSPACE/srcdir/rerun/LICENSE-APACHE\nexit\n"""
+version = "v0.33.0"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.5.7"
+name = "Zstd_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["librerun_c", "rerun_c"]
+type = "lib"
+variable_name = "librerun_c"
+
+[[sources]]
+hash = "86ac19fac05672f094b6b59b824249983d8d2bb0"
+type = "git"
+unpack_target = ""
+url = "https://github.com/rerun-io/rerun.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"
