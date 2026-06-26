@@ -1,0 +1,29 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "spirv2clc"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd spirv2clc\ninstall_license LICENSE\n\n# spirv2clc's CMake build requires CMake >= 3.24, newer than the one shipped in\n# the build environment, so use the one provided by CMake_jll (added as a host\n# build dependency below) instead.\napk del cmake\n\n# check-out vendored submodules (OpenCL-Headers, SPIRV-Headers, SPIRV-Tools)\n# under external/. SPIRV-Tools is built from source because spirv2clc links\n# against its internal optimizer API.\n# TODO: use JLLs?\ngit submodule update --init --recursive\n\nCMAKE_FLAGS=()\n\n# Release build for best performance\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\n\n# Install things into $prefix\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix})\n\n# Explicitly use our cmake toolchain file\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\n\n# We already initialised the submodules above, so don't let CMake do it again.\nCMAKE_FLAGS+=(-DSPIRV2CLC_UPDATE_SUBMODULES=OFF)\n\n# We don't run the (lit/clang/FileCheck-based) regression tests nor the\n# OpenCL test layer here, so skip configuring/building them entirely.\nCMAKE_FLAGS+=(-DBUILD_TESTING=OFF)\n\n# XXX: the library only has a C++ API, so we don't ship it; build just the tool.\n#CMAKE_FLAGS+=(-DBUILD_SHARED_LIBS=ON)\n\ncmake -B build -S . -GNinja ${CMAKE_FLAGS[@]}\nninja -C build -j ${nproc} spirv2clc\n\n# Install only the `tools` component, i.e. the command-line translator. The\n# build also produces libspirv2clc (a C++-only library) and vendored\n# SPIR-V/OpenCL headers, none of which are useful as a JLL.\ncmake --install build --component tools\n"""
+version = "v0.2.0"
+
+[[dependencies]]
+compat = ""
+name = "CMake_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 3
+version-minor = 31
+version-patch = 9
+
+[[products]]
+binnames = ["spirv2clc"]
+type = "exe"
+variable_name = "spirv2clc"
+
+[[sources]]
+hash = "8396e706e24a8c20820f4c534b79394f16a85a43"
+type = "git"
+unpack_target = ""
+url = "https://github.com/JuliaGPU/spirv2clc"
