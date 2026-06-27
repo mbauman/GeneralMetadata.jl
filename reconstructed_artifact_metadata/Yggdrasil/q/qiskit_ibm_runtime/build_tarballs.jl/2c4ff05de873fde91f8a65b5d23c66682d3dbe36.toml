@@ -1,0 +1,43 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "qiskit_ibm_runtime"
+platforms = ["x86_64-linux-gnu", "x86_64-linux-musl", "aarch64-linux-gnu", "aarch64-linux-musl", "x86_64-apple-darwin", "aarch64-apple-darwin"]
+script = """cd $WORKSPACE/srcdir/qiskit-ibm-runtime-c\nexport PYO3_PYTHON=/usr/bin/python3\nexport PYO3_CROSS_LIB_DIR=$WORKSPACE/destdir/lib\nexport RUSTFLAGS=\"-L ${libdir} -lqiskit\"\n\n# avoid 'cannot create cdylib' error on musl targets\n# see https://github.com/rust-lang/cargo/issues/8607\n#     https://github.com/rust-lang/rust/issues/59302\nif [[ \"${target}\" == *-musl* ]]; then\n    export RUSTFLAGS=\"${RUSTFLAGS} -C target-feature=-crt-static\"\nfi\n\ncargo build --release --locked --manifest-path ./crates/client/Cargo.toml\n\ninstall -Dvm 755 \"target/${rust_target}/release/libqiskit_ibm_runtime.${dlext}\" \"${libdir}/libqiskit_ibm_runtime.${dlext}\"\ncp -vr include/* \"${includedir}\"\ninstall_license LICENSE.txt\n"""
+version = "v0.38.1"
+
+[[dependencies]]
+compat = ""
+name = "cbindgen_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+uuid = "a52b955f-5256-5bb0-8795-313e28591558"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "~2.4.1"
+name = "Qiskit_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "b54e8e98-f244-53b3-a8e8-4727a4907f76"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libqiskit_ibm_runtime"]
+type = "lib"
+variable_name = "libqiskit_ibm_runtime"
+
+[[sources]]
+hash = "b7e4838640b56610c25d3776036dcf1ef7766fea"
+type = "git"
+unpack_target = ""
+url = "https://github.com/Qiskit/qiskit-ibm-runtime-c.git"
