@@ -1,0 +1,25 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Bazel"
+platforms = ["x86_64-linux-musl-cxx11"]
+script = """export BAZEL_DEV_VERSION_OVERRIDE=\"8.7.0\"\n# Enter the funzone\nexport JAVA_HOME=\"`pwd`/jdk-21.0.7+6\"\n\nexport BAZEL_CXXOPTS=\"-std=c++17\"\nmkdir .tmp\nexport TMPDIR=`pwd`/.tmp\nexport TMP=$TMPDIR\nexport TEMP=$TMPDIR\n\n# Set the default verbose mode in buildenv.sh so that we do not display command\n# output unless there is a failure.  We do this conditionally to offer the user\n# a chance of overriding this in case they want to do so.\n: ${VERBOSE:=no}\n\nfind . -type f -name \"*.sh\" -exec chmod +x {} +\n\nsource scripts/bootstrap/buildenv.sh\n\nmkdir -p output\n: ${BAZEL:=}\n\n#\n# Create an initial binary so we can host ourself\n#\nif [ ! -x \"${BAZEL}\" ]; then\n  new_step 'Building Bazel from scratch'\n  source scripts/bootstrap/compile.sh\nfi\n\n#\n# Bootstrap bazel using the previous bazel binary = release binary\n#\nif [ \"${EMBED_LABEL-x}\" = \"x\" ]; then\n  # Add a default label when unspecified\n  git_sha1=$(git_sha1)\n  EMBED_LABEL=\"$(get_last_version) (@${git_sha1:-non-git})\"\nfi\n\nexport EXTRA_BAZEL_ARGS=\"--tool_java_runtime_version=local_jdk --jobs ${nproc}\"\nset -o xtrace\n\nsource scripts/bootstrap/bootstrap.sh\n\nbazel_build \"src:bazel_nojdk${EXE_EXT}\" \\\n  --action_env=PATH \\\n  --host_platform=@platforms//host \\\n  --platforms=@platforms//host \\\n  --action_env=USE_CCACHE \\\n  --action_env=CCACHE_DIR \\\n  --action_env=CCACHE_NOHASHDIR=yes\n\nbazel_bin_path=\"$(get_bazel_bin_path)/src/bazel_nojdk${EXE_EXT}\"\ncp -f \"$bazel_bin_path\" \"output/bazel${EXE_EXT}\"\nchmod 0755 \"output/bazel${EXE_EXT}\"\nBAZEL=\"$(pwd)/output/bazel${EXE_EXT}\"\n\ninstall -Dvm 755 ${BAZEL} \"${bindir}/bazel\"\ninstall_license LICENSE\n"""
+version = "v8.7.0"
+
+[[products]]
+binnames = ["bazel"]
+type = "exe"
+variable_name = "bazel"
+
+[[sources]]
+hash = "79ecc4b213d21ae5c389bea13c6ed23ca4804a45b7b076983356c28105580013"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.7%2B6/OpenJDK21U-jdk_x64_alpine-linux_hotspot_21.0.7_6.tar.gz"
+[[sources]]
+hash = "75ed5aa189fd687e6e7c289ad86a3851844965a6c1479b7a5ce9b846a6e461bc"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/bazelbuild/bazel/releases/download/8.7.0/bazel-8.7.0-dist.zip"
