@@ -1,0 +1,33 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "NASM"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/nasm*\n./autogen.sh \n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} --with-zlib=${prefix}\n\n# Fix broken <stdbool.h> detection\n# (This is an autoconf problem. It is looking for macros, but C23 switched to using keywords.\n#  Future autoconfs will fix this, I'm sure.)\n# There are apparently two flavours for disabling a setting; the\n# `#undef` might be in comments or not. Handle both.\nsed -i -e 's+/\\* #undef HAVE_STDBOOL_H \\*/+#define HAVE_STDBOOL_H 1+' config/config.h\nsed -i -e 's+/#undef HAVE_STDBOOL_H/+#define HAVE_STDBOOL_H 1+' config/config.h\n\nmake -j${nproc}\n\n# Create fake manpages to make the installer happy\n:> nasm.1\n:> ndisasm.1\n\nmake install\n\n# Uninstall the fake manpages\nrm ${prefix}/share/man/man1/nasm.1\nrm ${prefix}/share/man/man1/ndisasm.1\n\ninstall_license LICENSE\n"""
+version = "v3.2.0"
+
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["ndisasm"]
+type = "exe"
+variable_name = "ndisasm"
+[[products]]
+binnames = ["nasm"]
+type = "exe"
+variable_name = "nasm"
+
+[[sources]]
+hash = "4a56d66ed9626d5a3ded5414c9d8b7f1a48ce065"
+type = "git"
+unpack_target = ""
+url = "https://github.com/netwide-assembler/nasm"

@@ -1,0 +1,81 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "SLEEF"
+platforms = ["x86_64-linux-gnu", "aarch64-linux-gnu", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "x86_64-linux-musl", "aarch64-linux-musl", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd"]
+script = """if [[ \"${target}\" == *-apple-darwin* ]]; then\n    # SLEEF needs the macOS 14.5 SDK (for C++20). The toolchain's sys-root lives on a\n    # read-only overlay where removing/replacing the System tree fails with I/O errors (and\n    # merging the SDK on top hits symlink-vs-directory conflicts). So assemble a writable\n    # scratch sysroot -- a copy of the real one (which keeps the toolchain's C++ headers and\n    # the OpenMP runtime that libsleefdft needs) with System replaced by the newer SDK -- and\n    # point the cross toolchain at it. Mirrors the non-destructive setup in P/pocl/common.jl.\n    apple_sysroot=$WORKSPACE/srcdir/sysroot\n    cp -a /opt/${target}/${target}/sys-root $apple_sysroot\n    tar --extract --file=${WORKSPACE}/srcdir/MacOSX14.5.sdk.tar.xz \\\n        --directory=$WORKSPACE/srcdir --warning=no-unknown-keyword \\\n        MacOSX14.5.sdk/System MacOSX14.5.sdk/usr\n    # Drop the dirs the SDK will provide so the overlay can't hit symlink-vs-directory /\n    # \"File exists\" conflicts (the toolchain's libc++ headers vs the SDK's, and libxml2).\n    rm -rf $apple_sysroot/System $apple_sysroot/usr/include/c++ $apple_sysroot/usr/include/libxml2\n    cp -ra $WORKSPACE/srcdir/MacOSX14.5.sdk/System $apple_sysroot/.\n    cp -ra $WORKSPACE/srcdir/MacOSX14.5.sdk/usr/* $apple_sysroot/usr/.\n    # redirect every sys-root reference (--sysroot / -isysroot) at the scratch copy\n    sed -i \"s!/opt/${target}/${target}/sys-root!$apple_sysroot!g\" ${CMAKE_TARGET_TOOLCHAIN}\n    sed -i \"s!/opt/${target}/${target}/sys-root!$apple_sysroot!g\" $(find /opt/bin/${bb_full_target} -type f) 2>/dev/null || true\n    export MACOSX_DEPLOYMENT_TARGET=14.5\nfi\n\ncd $WORKSPACE/srcdir/sleef\n\n# The respective file does not exist any more on the master branch\natomic_patch -p1 ../patches/windows.patch\n\nmkdir build-native\ncd build-native\ncmake \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_HOST_TOOLCHAIN} \\\n    -G Ninja \\\n    -DSLEEF_BUILD_DFT=TRUE \\\n    -DSLEEF_BUILD_QUAD=TRUE \\\n    -DSLEEF_BUILD_SCALAR_LIB=TRUE \\\n    -DSLEEF_BUILD_SHARED_LIBS=TRUE \\\n    -DSLEEF_BUILD_TESTS=OFF \\\n    ..\nninja all\n\ncd $WORKSPACE/srcdir/sleef\nmkdir build-cross\ncd build-cross\ncmake \\\n    -DCMAKE_INSTALL_PREFIX=$prefix \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -G Ninja \\\n    -DNATIVE_BUILD_DIR=$WORKSPACE/srcdir/sleef/build-native \\\n    -DSLEEF_SHOW_CONFIG=1 \\\n    -DSLEEF_BUILD_DFT=TRUE \\\n    -DSLEEF_BUILD_QUAD=TRUE \\\n    -DSLEEF_BUILD_SCALAR_LIB=TRUE \\\n    -DSLEEF_BUILD_SHARED_LIBS=TRUE \\\n    -DSLEEF_BUILD_TESTS=OFF \\\n    ..\nninja all\nninja install\n\n# Also build static (PIC) archives, so consumers can link SLEEF in directly with no\n# run-time .so dependency. The motivating case is `pocl_standalone`, which ships as a\n# self-contained library and cannot take a JLL dependency: it links `libsleefgnuabi.a`\n# (the GNU vector-ABI / drop-in libmvec compat library) to vectorize OpenCL math builtins\n# without redistributing libsleef. Install to a staging prefix and copy only the archives\n# into ${prefix}, leaving the shared build's headers/CMake config/.so untouched. PIC is\n# required because the archive gets linked into shared libraries. The glob just copies\n# whatever archives the platform built (libsleefgnuabi.a is absent on macOS, which has no\n# GNUABI variant).\ncd $WORKSPACE/srcdir/sleef\nmkdir build-cross-static\ncd build-cross-static\ncmake \\\n    -DCMAKE_INSTALL_PREFIX=$WORKSPACE/sleef-static \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -G Ninja \\\n    -DNATIVE_BUILD_DIR=$WORKSPACE/srcdir/sleef/build-native \\\n    -DSLEEF_SHOW_CONFIG=1 \\\n    -DSLEEF_BUILD_DFT=TRUE \\\n    -DSLEEF_BUILD_QUAD=TRUE \\\n    -DSLEEF_BUILD_SCALAR_LIB=TRUE \\\n    -DSLEEF_BUILD_SHARED_LIBS=FALSE \\\n    -DCMAKE_POSITION_INDEPENDENT_CODE=ON \\\n    -DSLEEF_BUILD_TESTS=OFF \\\n    ..\nninja all\nninja install\ncp $WORKSPACE/sleef-static/lib/*.a ${prefix}/lib/\n\ninstall_license $WORKSPACE/srcdir/sleef/LICENSE.txt\n"""
+version = "v3.9.0"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["x86_64-linux-gnu", "aarch64-linux-gnu", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "x86_64-linux-musl", "aarch64-linux-musl"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LLVMOpenMP_jll"
+platforms = ["x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd"]
+top_level = false
+type = "dependency"
+uuid = "1d63c593-3942-5779-bab2-d838dc0a180e"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsleef"]
+type = "lib"
+variable_name = "libsleef"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsleefdft"]
+type = "lib"
+variable_name = "libsleefdft"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsleefquad"]
+type = "lib"
+variable_name = "libsleefquad"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsleefscalar"]
+type = "lib"
+variable_name = "libsleefscalar"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsleefgnuabi"]
+type = "lib"
+variable_name = "libsleefgnuabi"
+
+[[sources]]
+hash = "906ca7512ee483296780a81a21b9ca715d40dfe1"
+type = "git"
+unpack_target = ""
+url = "https://github.com/shibatch/sleef.git"
+[[sources]]
+follow_symlinks = false
+path = "bundled"
+target = ""
+type = "directory"
+[[sources]]
+filename = "MacOSX14.5.sdk.tar.xz"
+hash = "d2b7784a8b63cfcc686059aef6f1065dc8d2aaeddc39245738f4c0cd9ca6165a"
+type = "file"
+url = "https://github.com/roblabla/MacOSX-SDKs/releases/download/macosx14.5/MacOSX14.5.sdk.tar.xz"
