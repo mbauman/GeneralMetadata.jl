@@ -1,0 +1,77 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Binaryen"
+platforms = ["i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx11", "riscv64-linux-gnu-cxx11", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx11"]
+script = """macos_sdk_version=14.0\nmacosx_deployment_target=14.0\nif [[ \"${target}\" == *-apple-darwin* ]]; then\n    # Extract SDK\n    echo \"Extracting MacOSX${macos_sdk_version}.sdk.tar.xz (this may take a while)\"\n    tar \\\n        --extract \\\n        --file=${WORKSPACE}/srcdir/MacOSX${macos_sdk_version}.sdk.tar.xz \\\n        --directory=${WORKSPACE}/srcdir \\\n        --warning=no-unknown-keyword\n    old_sdkroot=${SDKROOT}\n    new_sdkroot=${WORKSPACE}/srcdir/MacOSX${macos_sdk_version}.sdk\n    # Point to C++ header files (these are not shipped with the SDK)\n    ln -s ${old_sdkroot}/usr/include/c++ ${new_sdkroot}/usr/include/c++\n    # Fix toolchain files\n    sed -i -e \"s+${old_sdkroot}+${new_sdkroot}+\" ${MESON_TARGET_TOOLCHAIN} ${CMAKE_TARGET_TOOLCHAIN}\n    # Fix compiler wrappers\n    sed -i -e \"s+${old_sdkroot}+${new_sdkroot}+\" $(find /opt/bin/${target}* -type f -print)\n    SDKROOT=${new_sdkroot}\n    export MACOSX_DEPLOYMENT_TARGET=${macosx_deployment_target}\nfi\ncd $WORKSPACE/srcdir/binaryen\n\natomic_patch -p1 ../patches/fix.patch\n\nmkdir build\ncd build\n\ncmake -DCMAKE_INSTALL_PREFIX=$prefix \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DBUILD_TESTS=OFF \\\n    -DBUILD_SHARED_LIBS=ON \\\n    ..\n\nmake -j${nproc}\nmake install\ninstall_license ${WORKSPACE}/srcdir/binaryen/LICENSE\n"""
+version = "v0.130.0"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libbinaryen"]
+type = "lib"
+variable_name = "libbinaryen"
+[[products]]
+binnames = ["wasm2js"]
+type = "exe"
+variable_name = "wasm2js"
+[[products]]
+binnames = ["wasm-opt"]
+type = "exe"
+variable_name = "wasmopt"
+[[products]]
+binnames = ["wasm-reduce"]
+type = "exe"
+variable_name = "wasmreduce"
+[[products]]
+binnames = ["wasm-merge"]
+type = "exe"
+variable_name = "wasmmerge"
+[[products]]
+binnames = ["wasm-split"]
+type = "exe"
+variable_name = "wasmsplit"
+[[products]]
+binnames = ["wasm-shell"]
+type = "exe"
+variable_name = "wasmshell"
+[[products]]
+binnames = ["wasm-metadce"]
+type = "exe"
+variable_name = "wasmmetadce"
+[[products]]
+binnames = ["wasm-dis"]
+type = "exe"
+variable_name = "wasmdis"
+[[products]]
+binnames = ["wasm-as"]
+type = "exe"
+variable_name = "wasmas"
+[[products]]
+binnames = ["wasm-ctor-eval"]
+type = "exe"
+variable_name = "wasmctoreval"
+[[products]]
+binnames = ["wasm-fuzz-types"]
+type = "exe"
+variable_name = "wasmfuzztypes"
+
+[[sources]]
+hash = "5d704ad52bc77a258e8fa3f9d34fcc5e8799c1c3"
+type = "git"
+unpack_target = ""
+url = "https://github.com/WebAssembly/binaryen.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"
+[[sources]]
+filename = "MacOSX14.0.sdk.tar.xz"
+hash = "4a31565fd2644d1aec23da3829977f83632a20985561a2038e198681e7e7bf49"
+type = "file"
+url = "https://github.com/roblabla/MacOSX-SDKs/releases/download/macosx14.0/MacOSX14.0.sdk.tar.xz"

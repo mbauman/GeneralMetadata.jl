@@ -1,0 +1,31 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "LibFramehopUnwind"
+platforms = ["x86_64-linux-gnu", "aarch64-linux-gnu", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "x86_64-w64-mingw32"]
+script = """cd ${WORKSPACE}/srcdir/framehopunwind\n\n# `crate-type = [\"staticlib\", \"cdylib\", \"rlib\"]` produces both a C-callable\n# shared library and a static library. Cargo.lock is committed and the crate\n# emphasises reproducible builds, so build with --locked. Frame pointers are\n# forced on via the crate's own .cargo/config.toml.\ncargo build --release --locked -j${nproc} --target=${rust_target}\n\nRELDIR=\"target/${rust_target}/release\"\n\n# Shared library (cdylib). On Windows the DLL has no \"lib\" prefix, so rename it\n# on install to keep a single library name across platforms.\nif [[ \"${target}\" == *-w64-mingw32* ]]; then\n    install -Dvm 0755 \"${RELDIR}/framehopunwind.${dlext}\" \"${libdir}/libframehopunwind.${dlext}\"\nelse\n    install -Dvm 0755 \"${RELDIR}/libframehopunwind.${dlext}\" \"${libdir}/libframehopunwind.${dlext}\"\nfi\n\n# Static library (staticlib) — shipped so downstream can link either flavour.\ninstall -Dvm 0644 \"${RELDIR}/libframehopunwind.a\" \"${prefix}/lib/libframehopunwind.a\"\n\n# Public C header.\ninstall -Dvm 0644 include/framehopunwind.h \"${includedir}/framehopunwind.h\"\n\ninstall_license LICENSE-MIT LICENSE-APACHE\n"""
+version = "v0.1.0"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libframehopunwind"]
+type = "lib"
+variable_name = "libframehopunwind"
+[[products]]
+paths = ["lib/libframehopunwind.a"]
+type = "file"
+variable_name = "libframehopunwind_a"
+[[products]]
+paths = ["include/framehopunwind.h"]
+type = "file"
+variable_name = "framehopunwind_h"
+
+[[sources]]
+hash = "88850c5c6c38424f699130f18e814142c8644d05"
+type = "git"
+unpack_target = ""
+url = "https://github.com/gbaraldi/framehopunwind.git"

@@ -1,0 +1,76 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "~1.10, ~1.11, ~1.12, ~1.13, ~1.14"
+lazy_artifacts = false
+name = "Musica"
+platforms = ["i686-linux-gnu-cxx11-julia_version+1.10.0", "x86_64-linux-gnu-cxx11-julia_version+1.10.0", "aarch64-linux-gnu-cxx11-julia_version+1.10.0", "powerpc64le-linux-gnu-cxx11-julia_version+1.10.0", "x86_64-linux-musl-cxx11-julia_version+1.10.0", "aarch64-linux-musl-cxx11-julia_version+1.10.0", "x86_64-apple-darwin-julia_version+1.10.0", "aarch64-apple-darwin-julia_version+1.10.0", "x86_64-unknown-freebsd-julia_version+1.10.0", "i686-w64-mingw32-cxx11-julia_version+1.10.0", "x86_64-w64-mingw32-cxx11-julia_version+1.10.0", "i686-linux-gnu-cxx11-julia_version+1.11.1", "x86_64-linux-gnu-cxx11-julia_version+1.11.1", "aarch64-linux-gnu-cxx11-julia_version+1.11.1", "powerpc64le-linux-gnu-cxx11-julia_version+1.11.1", "x86_64-linux-musl-cxx11-julia_version+1.11.1", "aarch64-linux-musl-cxx11-julia_version+1.11.1", "x86_64-apple-darwin-julia_version+1.11.1", "aarch64-apple-darwin-julia_version+1.11.1", "x86_64-unknown-freebsd-julia_version+1.11.1", "i686-w64-mingw32-cxx11-julia_version+1.11.1", "x86_64-w64-mingw32-cxx11-julia_version+1.11.1", "i686-linux-gnu-cxx11-julia_version+1.12.0", "x86_64-linux-gnu-cxx11-julia_version+1.12.0", "aarch64-linux-gnu-cxx11-julia_version+1.12.0", "powerpc64le-linux-gnu-cxx11-julia_version+1.12.0", "x86_64-linux-musl-cxx11-julia_version+1.12.0", "aarch64-linux-musl-cxx11-julia_version+1.12.0", "x86_64-apple-darwin-julia_version+1.12.0", "aarch64-apple-darwin-julia_version+1.12.0", "x86_64-unknown-freebsd-julia_version+1.12.0", "aarch64-unknown-freebsd-julia_version+1.12.0", "i686-w64-mingw32-cxx11-julia_version+1.12.0", "x86_64-w64-mingw32-cxx11-julia_version+1.12.0", "i686-linux-gnu-cxx11-julia_version+1.13.0", "x86_64-linux-gnu-cxx11-julia_version+1.13.0", "aarch64-linux-gnu-cxx11-julia_version+1.13.0", "powerpc64le-linux-gnu-cxx11-julia_version+1.13.0", "riscv64-linux-gnu-cxx11-julia_version+1.13.0", "x86_64-linux-musl-cxx11-julia_version+1.13.0", "aarch64-linux-musl-cxx11-julia_version+1.13.0", "x86_64-apple-darwin-julia_version+1.13.0", "aarch64-apple-darwin-julia_version+1.13.0", "x86_64-unknown-freebsd-julia_version+1.13.0", "aarch64-unknown-freebsd-julia_version+1.13.0", "i686-w64-mingw32-cxx11-julia_version+1.13.0", "x86_64-w64-mingw32-cxx11-julia_version+1.13.0", "i686-linux-gnu-cxx11-julia_version+1.14.0", "x86_64-linux-gnu-cxx11-julia_version+1.14.0", "aarch64-linux-gnu-cxx11-julia_version+1.14.0", "powerpc64le-linux-gnu-cxx11-julia_version+1.14.0", "riscv64-linux-gnu-cxx11-julia_version+1.14.0", "x86_64-linux-musl-cxx11-julia_version+1.14.0", "aarch64-linux-musl-cxx11-julia_version+1.14.0", "x86_64-apple-darwin-julia_version+1.14.0", "aarch64-apple-darwin-julia_version+1.14.0", "x86_64-unknown-freebsd-julia_version+1.14.0", "aarch64-unknown-freebsd-julia_version+1.14.0", "i686-w64-mingw32-cxx11-julia_version+1.14.0", "x86_64-w64-mingw32-cxx11-julia_version+1.14.0"]
+script = """macos_sdk_version=14.5\nmacosx_deployment_target=14.5\nif [[ \"${target}\" == *-apple-darwin* ]]; then\n    # Extract SDK\n    echo \"Extracting MacOSX${macos_sdk_version}.sdk.tar.xz (this may take a while)\"\n    tar \\\n        --extract \\\n        --file=${WORKSPACE}/srcdir/MacOSX${macos_sdk_version}.sdk.tar.xz \\\n        --directory=${WORKSPACE}/srcdir \\\n        --warning=no-unknown-keyword\n    old_sdkroot=${SDKROOT}\n    new_sdkroot=${WORKSPACE}/srcdir/MacOSX${macos_sdk_version}.sdk\n    # Point to C++ header files (these are not shipped with the SDK)\n    ln -s ${old_sdkroot}/usr/include/c++ ${new_sdkroot}/usr/include/c++\n    # Fix toolchain files\n    sed -i -e \"s+${old_sdkroot}+${new_sdkroot}+\" ${MESON_TARGET_TOOLCHAIN} ${CMAKE_TARGET_TOOLCHAIN}\n    # Fix compiler wrappers\n    sed -i -e \"s+${old_sdkroot}+${new_sdkroot}+\" $(find /opt/bin/${target}* -type f -print)\n    SDKROOT=${new_sdkroot}\n    export MACOSX_DEPLOYMENT_TARGET=${macosx_deployment_target}\nfi\n\ncd $WORKSPACE/srcdir/musica\n\n# Needs cmake >= 3.24 provided by jll\napk del cmake\n\n# Configure MUSICA with Julia wrapper enabled\ncmake -B build -G Ninja \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DCMAKE_PREFIX_PATH=\"${prefix}\" \\\n    -DJulia_PREFIX=${prefix} \\\n    -DMUSICA_BUILD_C_CXX_INTERFACE=ON \\\n    -DMUSICA_ENABLE_JULIA=ON \\\n    -DMUSICA_ENABLE_MICM=ON \\\n    -DMUSICA_ENABLE_TUVX=OFF \\\n    -DMUSICA_ENABLE_CARMA=OFF \\\n    -DMUSICA_ENABLE_TESTS=OFF \\\n    -DMUSICA_ENABLE_INSTALL=ON \\\n    -DMUSICA_BUILD_SHARED_LIBS=ON \n\ncmake --build build --parallel ${nproc}\ncmake --install build\n\ninstall_license LICENSE\n\n# On Windows, CMake installs DLLs for LIBRARY targets to lib/ instead of bin/\n# BinaryBuilder requires all DLLs to be in bin/\nif [[ \"${target}\" == *-mingw* ]]; then\n    mv -vf \"${prefix}/lib/\"*.dll \"${libdir}/\" || true\nfi\n"""
+version = "v0.16.0"
+
+[[dependencies]]
+compat = ""
+name = "libjulia_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "~0.14.9"
+name = "libcxxwrap_julia_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CMake_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 3
+version-minor = 31
+version-patch = 9
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmusica_julia"]
+type = "lib"
+variable_name = "libmusica_julia"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmusica"]
+type = "lib"
+variable_name = "libmusica"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmechanism_configuration"]
+type = "lib"
+variable_name = "libmechanism_configuration"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libyaml-cpp"]
+type = "lib"
+variable_name = "libyaml_cpp"
+
+[[sources]]
+hash = "f5c24f6c59fea0a0ccaeca6906b6e7032add0591"
+type = "git"
+unpack_target = ""
+url = "https://github.com/NCAR/musica.git"
+[[sources]]
+filename = "MacOSX14.5.sdk.tar.xz"
+hash = "d2b7784a8b63cfcc686059aef6f1065dc8d2aaeddc39245738f4c0cd9ca6165a"
+type = "file"
+url = "https://github.com/roblabla/MacOSX-SDKs/releases/download/macosx14.5/MacOSX14.5.sdk.tar.xz"
