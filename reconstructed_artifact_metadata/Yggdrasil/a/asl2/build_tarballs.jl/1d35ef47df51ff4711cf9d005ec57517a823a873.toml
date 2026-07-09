@@ -1,0 +1,23 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "ASL2"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/asl\n\n# (1) x86 cross branch writes arith.h to the wrong dir\nsed -i 's|file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/arith.h|file(WRITE ${GENERATED_INCLUDE_DIR}/arith.h|' CMakeLists.txt\n\n# (2) ASL appends x86-only -m32/-m64 to anything UNIX that isn't ARM, so aarch64,\n#     riscv64, s390x, ... all get a flag their compiler rejects. Make the flag\n#     guard an x86 allowlist (keeping the AIX -maix64 case) instead of an ARM blocklist\nsed -i 's@if(UNIX AND NOT CPUARCH MATCHES \"arm\")@if(UNIX AND (CPUARCH MATCHES \"^(i386|x86_64)$\" OR (CPUARCH MATCHES \"ppc64\" AND CMAKE_SYSTEM_NAME STREQUAL \"AIX\")))@' support/cmake/setArchitecture.cmake\n\n# (3) file_kind() uses the raw S_IFDIR/S_IFREG constants, which FreeBSD gates behind\n#     __XSI_VISIBLE; use the always-defined POSIX S_ISDIR/S_ISREG macros instead\n#     (also fixes a latent bug: the raw test doesn't mask S_IFMT)\nsed -i 's/sb\\.st_mode & S_IFDIR/S_ISDIR(sb.st_mode)/; s/sb\\.st_mode & S_IFREG/S_ISREG(sb.st_mode)/' \\\n    src/solvers/funcadd1.c src/solvers2/funcadd1.c\n\n# (4) install() couples asl + asl2; we only ship libasl2, so drop asl from the\n#     install/export rule. This lets us build asl2 alone and reuse CMake's own\n#     per-platform install logic (RUNTIME/LIBRARY/ARCHIVE destinations)\nsed -i 's/install(TARGETS asl asl2 /install(TARGETS asl2 /' CMakeLists.txt\n\ncmake -S . -B build \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DBUILD_SHARED_LIBS=ON\ncmake --build build --parallel\ncmake --install build\nrm -rf ${prefix}/include/asl\ninstall_license LICENSE\n"""
+version = "v2025.11.21"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libasl2"]
+type = "lib"
+variable_name = "libasl2"
+
+[[sources]]
+hash = "3d477ba78a3392b8b7b05a2fd843ae7f9df70252"
+type = "git"
+unpack_target = ""
+url = "https://github.com/ampl/asl"
