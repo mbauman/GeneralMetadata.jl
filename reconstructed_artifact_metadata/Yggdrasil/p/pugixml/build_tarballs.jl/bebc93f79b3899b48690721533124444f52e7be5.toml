@@ -1,0 +1,35 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "pugixml"
+platforms = ["i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx11", "riscv64-linux-gnu-cxx11", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir/pugixml*\ncmake -B build \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DBUILD_SHARED_LIBS=ON\ncmake --build build --parallel ${nproc}\ncmake --install build\n\ncd $WORKSPACE/srcdir/xmlstructpugixmlshim\nmkdir -vp \"${libdir}\"\n${CXX} -O2 -std=c++14 -fPIC -shared \\\n    -I\"${includedir}\" \\\n    -o \"${libdir}/libxmlstructpugixmlshim.${dlext}\" \\\n    shim.cpp \\\n    -L\"${libdir}\" -lpugixml\ninstall_license LICENSE\n"""
+version = "v1.16.0"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libpugixml"]
+type = "lib"
+variable_name = "libpugixml"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libxmlstructpugixmlshim"]
+type = "lib"
+variable_name = "libxmlstructpugixmlshim"
+
+[[sources]]
+hash = "4cee1ca4aad395170f4c7a07824f3bdd41f28316c6e1e1090a1425b278ec0b4b"
+type = "archive"
+unpack_target = ""
+url = "http://github.com/zeux/pugixml/releases/download/v1.16/pugixml-1.16.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

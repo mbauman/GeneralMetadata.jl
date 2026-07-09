@@ -1,0 +1,118 @@
+augment_platform_block = """using Base.BinaryPlatforms\n\ntry\n    using CUDA_Runtime_jll\ncatch\n    # during initial package installation, CUDA_Runtime_jll may not be available.\n    # in that case, we just won't select an artifact.\nend\n\n# can't use Preferences for the same reason\nconst CUDA_Runtime_jll_uuid = Base.UUID(\"76a88914-d11a-5bdc-97e0-2f5a05c973a2\")\nconst preferences = Base.get_preferences(CUDA_Runtime_jll_uuid)\nBase.record_compiletime_preference(CUDA_Runtime_jll_uuid, \"version\")\nBase.record_compiletime_preference(CUDA_Runtime_jll_uuid, \"local\")\nconst local_toolkit = something(tryparse(Bool, get(preferences, \"local\", \"false\")), false)\n\nfunction cuda_comparison_strategy(_a::String, _b::String, a_requested::Bool, b_requested::Bool)\n    # if we're using a local toolkit, we can't use artifacts\n    if local_toolkit\n        return false\n    end\n\n    # if either isn't a version number (e.g. \"none\"), perform a simple equality check\n    a = tryparse(VersionNumber, _a)\n    b = tryparse(VersionNumber, _b)\n    if a === nothing || b === nothing\n        return _a == _b\n    end\n\n    # if both b and a requested, then we fall back to equality\n    if a_requested && b_requested\n        return Base.thisminor(a) == Base.thisminor(b)\n    end\n\n    # otherwise, do the comparison between the the single version cap and the single version:\n    function is_compatible(artifact::VersionNumber, host::VersionNumber)\n        if host >= v\"11.0\"\n            # enhanced compatibility, semver-style\n            artifact.major == host.major &&\n            Base.thisminor(artifact) <= Base.thisminor(host)\n        else\n            Base.thisminor(artifact) == Base.thisminor(host)\n        end\n    end\n    if a_requested\n        is_compatible(b, a)\n    else\n        is_compatible(a, b)\n    end\nend\n\nfunction augment_platform!(platform::Platform)\n    if !@isdefined(CUDA_Runtime_jll)\n        # don't set to nothing or Pkg will download any artifact\n        platform[\"cuda\"] = \"none\"\n    end\n\n    if !haskey(platform, \"cuda\")\n        CUDA_Runtime_jll.augment_platform!(platform)\n    end\n    BinaryPlatforms.set_compare_strategy!(platform, \"cuda\", cuda_comparison_strategy)\n\n    return platform\nend"""
+init_block = ""
+julia_compat = "1.10"
+lazy_artifacts = true
+name = "cuSolverMp"
+platforms = ["x86_64-linux-gnu-cxx11-cuda+12.2", "x86_64-linux-gnu-cxx11-cuda+12.3", "x86_64-linux-gnu-cxx11-cuda+12.4", "x86_64-linux-gnu-cxx11-cuda+12.5", "x86_64-linux-gnu-cxx11-cuda+12.6", "x86_64-linux-gnu-cxx11-cuda+12.8", "x86_64-linux-gnu-cxx11-cuda+12.9", "x86_64-linux-gnu-cxx11-cuda+13.0"]
+script = """\ncd ${WORKSPACE}/srcdir/libcusolvermp*\n\ninstall_license LICENSE\n\n# libraries (just copy everything in lib/)\nmkdir -p ${libdir}\ncp -av lib/* ${libdir}/\n\n# headers\nmkdir -p ${includedir}\ncp -av include/* ${includedir}/\n"""
+version = "v0.8.0"
+
+[[dependencies]]
+compat = "2.28.9"
+name = "NCCL_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 2
+version-patch = 2
+[[dependencies]]
+compat = ""
+name = "CUDA_Runtime_jll"
+platforms = ["any"]
+top_level = false
+type = "runtimedependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 3
+version-patch = 2
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 4
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 5
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 6
+version-patch = 3
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 8
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 9
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 13
+version-minor = 0
+version-patch = 2
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcusolverMp"]
+type = "lib"
+variable_name = "libcusolvermp"
+
+[[sources]]
+hash = "3215039d5e5ab2a2c47b53e15f0dbc2341bd757a747e5400a049008a3dd65883"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cusolvermp/redist/libcusolvermp/linux-x86_64/libcusolvermp-linux-x86_64-0.8.0.3126_cuda12-archive.tar.xz"
+[[sources]]
+hash = "9cc471e19cd1593bc5dd95dca3cd0b444c1bb206293550f15e3b3a202d3441f5"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cusolvermp/redist/libcusolvermp/linux-x86_64/libcusolvermp-linux-x86_64-0.8.0.3126_cuda13-archive.tar.xz"

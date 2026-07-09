@@ -1,0 +1,23 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "OpenCRG"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd ${WORKSPACE}/srcdir/OpenCRG*/c-api\n\nmkdir -p \"${libdir}\" \"${includedir}\"\n\n# Matches upstream: libm is linked only on non-Apple Unix targets.\nEXTRA_LIBS=\"\"\nif [[ \"${target}\" == *-linux-* ]] || [[ \"${target}\" == *-freebsd* ]]; then\n    EXTRA_LIBS=\"-lm\"\nfi\n\n# Export all symbols: upstream marks none, so Windows needs this for a DLL.\nEXTRA_LDFLAGS=\"\"\nif [[ \"${target}\" == *-mingw* ]]; then\n    EXTRA_LDFLAGS=\"-Wl,--export-all-symbols\"\nfi\n\n${CC} ${CFLAGS} -std=c11 -O2 -fPIC -Ibaselib/inc -shared ${LDFLAGS} ${EXTRA_LDFLAGS} \\\n    -o \"${libdir}/libOpenCRG.${dlext}\" baselib/src/*.c ${EXTRA_LIBS}\ninstall -Dvm 644 baselib/inc/crgBaseLib.h \"${includedir}/crgBaseLib.h\"\ninstall_license ../LICENSE ../NOTICE\n"""
+version = "v2.0.1"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libOpenCRG"]
+type = "lib"
+variable_name = "libOpenCRG"
+
+[[sources]]
+hash = "2530b4e711989acbcfa520e2b99034976afc589c"
+type = "git"
+unpack_target = ""
+url = "https://github.com/asam-ev/OpenCRG.git"

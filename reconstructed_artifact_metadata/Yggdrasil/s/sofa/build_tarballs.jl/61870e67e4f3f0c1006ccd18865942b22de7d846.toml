@@ -1,0 +1,23 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.10"
+lazy_artifacts = false
+name = "SOFA"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/sofa\n\n# Compile every SOFA .c into a shared library.\n# -fPIC is harmless on mingw (ignored) and required on ELF/Mach-O targets.\n# Skip t_sofa_c.c — it's a test driver with main() that we don't want in the library.\n$CC -O2 -fPIC -shared -o libsofa_c.${dlext} $(ls *.c | grep -v '^t_sofa_c\\.c$') -lm\n\nmkdir -p ${libdir} ${includedir}/sofa\nmv libsofa_c.${dlext} ${libdir}/\ncp sofa.h sofam.h ${includedir}/sofa/\n\n# SOFA's licence text lives in the .c headers; ship it explicitly.\ninstall_license sofa.h\n"""
+version = "v2021.1.25"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsofa_c"]
+type = "lib"
+variable_name = "libsofa_c"
+
+[[sources]]
+hash = "2a8e793234566a226b47181b61720de225285ab6f78624005c0fe19fe282bb71"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/JuliaAstro/SOFA.jl/releases/download/sofa-c-20210125_a/sofa_c-20210125_a.tar.gz"
