@@ -1,0 +1,24 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Sol2"
+script = """cd ${WORKSPACE}/srcdir/sol2\n\nfor p in ${WORKSPACE}/srcdir/patches/*.patch; do\n    atomic_patch -p1 \"${p}\"\ndone\n\n# Lua 5.5 compatibility for the compat headers. These files ship with CRLF\n# line endings, so keep the replacements line-ending agnostic.\nsed -i 's/LUA_VERSION_NUM > 504/LUA_VERSION_NUM > 505/g' \\\n    include/sol/compatibility/compat-5.3.h\nsed -i 's/LUA_VERSION_NUM == 504/LUA_VERSION_NUM >= 504/g' \\\n    include/sol/compatibility/compat-5.4.h\n\n# Sol2 is header-only: mark its CMake version file ARCH_INDEPENDENT so the AnyPlatform\n# package is not rejected by find_package() on targets with a different pointer size.\nsed -i 's/COMPATIBILITY AnyNewerVersion)/COMPATIBILITY AnyNewerVersion ARCH_INDEPENDENT)/' CMakeLists.txt\n\ncmake -B build \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_BUILD_TYPE=Release\ncmake --build build --parallel ${nproc}\ncmake --install build\n\n# Make the AnyPlatform config-version arch-independent (else 32-bit consumers reject the 64-bit-built config).\nsed -i 's/\"8\" STREQUAL \"\"/\"\" STREQUAL \"\"/' ${prefix}/lib/cmake/sol2/sol2-config-version.cmake\n\ninstall_license LICENSE.txt\n"""
+version = "v3.3.1"
+
+[[products]]
+paths = ["include/sol/sol.hpp"]
+type = "file"
+variable_name = "sol_hpp"
+
+[[sources]]
+hash = "dca62a0f02bb45f3de296de3ce00b1275eb34c25"
+type = "git"
+unpack_target = ""
+url = "https://github.com/ThePhD/sol2.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"
