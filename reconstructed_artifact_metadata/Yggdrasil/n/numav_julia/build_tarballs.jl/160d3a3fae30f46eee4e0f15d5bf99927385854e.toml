@@ -1,0 +1,95 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "~1.10, ~1.11, ~1.12, ~1.13, ~1.14"
+lazy_artifacts = false
+name = "numav_julia"
+platforms = ["x86_64-linux-gnu-cxx11-julia_version+1.10.0", "aarch64-linux-gnu-cxx11-julia_version+1.10.0", "powerpc64le-linux-gnu-cxx11-julia_version+1.10.0", "x86_64-linux-musl-cxx11-julia_version+1.10.0", "aarch64-linux-musl-cxx11-julia_version+1.10.0", "x86_64-apple-darwin-julia_version+1.10.0", "aarch64-apple-darwin-julia_version+1.10.0", "x86_64-unknown-freebsd-julia_version+1.10.0", "x86_64-w64-mingw32-cxx11-julia_version+1.10.0", "x86_64-linux-gnu-cxx11-julia_version+1.11.1", "aarch64-linux-gnu-cxx11-julia_version+1.11.1", "powerpc64le-linux-gnu-cxx11-julia_version+1.11.1", "x86_64-linux-musl-cxx11-julia_version+1.11.1", "aarch64-linux-musl-cxx11-julia_version+1.11.1", "x86_64-apple-darwin-julia_version+1.11.1", "aarch64-apple-darwin-julia_version+1.11.1", "x86_64-unknown-freebsd-julia_version+1.11.1", "x86_64-w64-mingw32-cxx11-julia_version+1.11.1", "x86_64-linux-gnu-cxx11-julia_version+1.12.0", "aarch64-linux-gnu-cxx11-julia_version+1.12.0", "powerpc64le-linux-gnu-cxx11-julia_version+1.12.0", "x86_64-linux-musl-cxx11-julia_version+1.12.0", "aarch64-linux-musl-cxx11-julia_version+1.12.0", "x86_64-apple-darwin-julia_version+1.12.0", "aarch64-apple-darwin-julia_version+1.12.0", "x86_64-unknown-freebsd-julia_version+1.12.0", "aarch64-unknown-freebsd-julia_version+1.12.0", "x86_64-w64-mingw32-cxx11-julia_version+1.12.0", "x86_64-linux-gnu-cxx11-julia_version+1.13.0", "aarch64-linux-gnu-cxx11-julia_version+1.13.0", "powerpc64le-linux-gnu-cxx11-julia_version+1.13.0", "riscv64-linux-gnu-cxx11-julia_version+1.13.0", "x86_64-linux-musl-cxx11-julia_version+1.13.0", "aarch64-linux-musl-cxx11-julia_version+1.13.0", "x86_64-apple-darwin-julia_version+1.13.0", "aarch64-apple-darwin-julia_version+1.13.0", "x86_64-unknown-freebsd-julia_version+1.13.0", "aarch64-unknown-freebsd-julia_version+1.13.0", "x86_64-w64-mingw32-cxx11-julia_version+1.13.0", "x86_64-linux-gnu-cxx11-julia_version+1.14.0", "aarch64-linux-gnu-cxx11-julia_version+1.14.0", "powerpc64le-linux-gnu-cxx11-julia_version+1.14.0", "riscv64-linux-gnu-cxx11-julia_version+1.14.0", "x86_64-linux-musl-cxx11-julia_version+1.14.0", "aarch64-linux-musl-cxx11-julia_version+1.14.0", "x86_64-apple-darwin-julia_version+1.14.0", "aarch64-apple-darwin-julia_version+1.14.0", "x86_64-unknown-freebsd-julia_version+1.14.0", "aarch64-unknown-freebsd-julia_version+1.14.0", "x86_64-w64-mingw32-cxx11-julia_version+1.14.0"]
+script = """    # oneMKL is picked for the available platforms, otherwise Eigen is picked\n    if [[ ${target} == x86_64-linux-gnu* || ${target} == x86_64-w64* ]];\n    then\n        SOLVER=ONEMKL\n    else\n        SOLVER=EIGEN\n    fi\n    \n    cd ${WORKSPACE}/srcdir/numav && mkdir build && cd build\n    cmake \\\n        -D CMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n        -D CMAKE_BUILD_TYPE=Release \\\n        -D SOLVER=${SOLVER} \\\n        -D BIND_JULIA=TRUE \\\n        -D Julia_PREFIX=${prefix} \\\n        -D JlCxx_DIR=${prefix}/lib/cmake/JlCxx \\\n        -D Boost_DIR=${prefix}/bin/cmake/Boost-1.87.0 \\\n        -D CMAKE_FIND_ROOT_PATH=${prefix} \\\n        -D CMAKE_INSTALL_PREFIX=${prefix} \\\n        ..\n    cmake --build . --config Release --target install -- -j${nproc}\n"""
+version = "v0.2.0"
+
+[[dependencies]]
+compat = "0.14.10"
+name = "libcxxwrap_julia_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "2.1"
+name = "HDF5_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.15.0"
+name = "spdlog_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "libjulia_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 1
+version-minor = 11
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Eigen_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 5
+version-minor = 0
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "boost_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 1
+version-minor = 87
+version-patch = 0
+[[dependencies]]
+compat = "=2025.2.0"
+name = "MKL_jll"
+platforms = ["x86_64-linux-gnu-cxx11-julia_version+1.10.0", "x86_64-w64-mingw32-cxx11-julia_version+1.10.0", "x86_64-linux-gnu-cxx11-julia_version+1.11.1", "x86_64-w64-mingw32-cxx11-julia_version+1.11.1", "x86_64-linux-gnu-cxx11-julia_version+1.12.0", "x86_64-w64-mingw32-cxx11-julia_version+1.12.0", "x86_64-linux-gnu-cxx11-julia_version+1.13.0", "x86_64-w64-mingw32-cxx11-julia_version+1.13.0", "x86_64-linux-gnu-cxx11-julia_version+1.14.0", "x86_64-w64-mingw32-cxx11-julia_version+1.14.0"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MKL_Headers_jll"
+platforms = ["x86_64-linux-gnu-cxx11-julia_version+1.10.0", "x86_64-w64-mingw32-cxx11-julia_version+1.10.0", "x86_64-linux-gnu-cxx11-julia_version+1.11.1", "x86_64-w64-mingw32-cxx11-julia_version+1.11.1", "x86_64-linux-gnu-cxx11-julia_version+1.12.0", "x86_64-w64-mingw32-cxx11-julia_version+1.12.0", "x86_64-linux-gnu-cxx11-julia_version+1.13.0", "x86_64-w64-mingw32-cxx11-julia_version+1.13.0", "x86_64-linux-gnu-cxx11-julia_version+1.14.0", "x86_64-w64-mingw32-cxx11-julia_version+1.14.0"]
+top_level = false
+type = "builddependency"
+version-major = 2025
+version-minor = 2
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnumav_julia"]
+type = "lib"
+variable_name = "libnumav_julia"
+
+[[sources]]
+hash = "2e4f51b7c8ecceca09a4f9a7464f0017778daeb0"
+type = "git"
+unpack_target = ""
+url = "https://github.com/mmfiuza/numav.git"

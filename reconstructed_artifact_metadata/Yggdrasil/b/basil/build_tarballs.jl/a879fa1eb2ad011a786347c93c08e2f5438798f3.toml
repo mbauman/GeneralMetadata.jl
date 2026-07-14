@@ -1,0 +1,66 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "basil"
+platforms = ["i686-linux-gnu-libgfortran5-cxx11", "x86_64-linux-gnu-libgfortran5-cxx11", "aarch64-linux-gnu-libgfortran5-cxx11", "armv6l-linux-gnueabihf-libgfortran5-cxx11", "armv7l-linux-gnueabihf-libgfortran5-cxx11", "powerpc64le-linux-gnu-libgfortran5-cxx11", "riscv64-linux-gnu-libgfortran5-cxx11", "x86_64-linux-musl-libgfortran5-cxx11", "aarch64-linux-musl-libgfortran5-cxx11", "armv6l-linux-musleabihf-libgfortran5-cxx11", "armv7l-linux-musleabihf-libgfortran5-cxx11", "x86_64-apple-darwin-libgfortran5", "aarch64-apple-darwin-libgfortran5", "x86_64-unknown-freebsd-libgfortran5", "aarch64-unknown-freebsd-libgfortran5"]
+script = """cd ${WORKSPACE}/srcdir/basil\n\n# Restores the NOR() node-renumbering indirection that the upstream 1.7.7c ->\n# 1.8.2g merge dropped; without it every regular-mesh case dies during assembly.\n# A no-op on the triangle-mesh path. Not yet upstream.\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/0001-fix-regular-mesh-NOR-regression.patch\n\n# Upstream's top-level Makefile is imake-generated and host-specific; we drive\n# the hand-written MakeSimple files instead and never invoke imake.\nrm -f objs/*.o basilsrc/*.o basilsrc/*.mod sybilsrc/*.o xpoly/*.o\nmkdir -p objs bin\n\n# Do NOT add -fallow-argument-mismatch: the default compiler for libgfortran5 is\n# GCC 8.1 and that option only exists from GCC 10. The F77 needs no such flag.\nFFLAGS=\"-O2 -std=legacy\"\nCFLAGS=\"-O2\"\n\n# triangle.c's x87 precision clamp needs fpu_control.h, which is glibc-only.\nif [[ \"${target}\" == *-linux-gnu* ]]; then\n    CFLAGS=\"${CFLAGS} -DLINUX\"\nfi\n\n# MakeSimple hardcodes -lstdc++; Darwin and FreeBSD use clang with libc++.\nif [[ \"${target}\" == *-apple-darwin* ]] || [[ \"${target}\" == *freebsd* ]]; then\n    CXXLIB=\"-lc++\"\nelse\n    CXXLIB=\"-lstdc++\"\nfi\n\n# The solver. CPP is what MakeSimple uses to compile polyutils.cc, and it\n# defaults to `gcc`; point it at the real C++ compiler. -DGFORTRAN is consumed\n# by the preprocessed basil.F and ignored by the .f compiles.\nmake -C basilsrc -f MakeSimple -j${nproc} \\\n    FOR=\"${FC}\" CC=\"${CC}\" CPP=\"${CXX}\" \\\n    FFLAGS=\"${FFLAGS} -DGFORTRAN\" CFLAGS=\"${CFLAGS}\" LDFLAGS=\"${CXXLIB}\"\n\n# Name the sybilps target explicitly: the default `all` would also build the\n# Motif/X11 GUI `sybil`, which we do not ship.\nmake -C sybilsrc -f MakeSimple -j${nproc} \\\n    FOR=\"${FC}\" CC=\"${CC}\" FFLAGS=\"${FFLAGS}\" CFLAGS=\"${CFLAGS}\" \\\n    ../bin/sybilps\n\n# Mesh, inversion and post-processing helpers (single-file Fortran each).\nmake -C xpoly -f MakeSimple -j${nproc} FOR=\"${FC}\" FFLAGS=\"${FFLAGS}\"\n\nfor exe in basil sybilps xpoly polyfix selvect mdcomp basinv circles corotate; do\n    install -Dvm755 \"bin/${exe}\" \"${bindir}/${exe}\"\ndone\n\ninstall_license LICENSE\n"""
+version = "v1.8.2"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["basil"]
+type = "exe"
+variable_name = "basil"
+[[products]]
+binnames = ["sybilps"]
+type = "exe"
+variable_name = "sybilps"
+[[products]]
+binnames = ["xpoly"]
+type = "exe"
+variable_name = "xpoly"
+[[products]]
+binnames = ["polyfix"]
+type = "exe"
+variable_name = "polyfix"
+[[products]]
+binnames = ["selvect"]
+type = "exe"
+variable_name = "selvect"
+[[products]]
+binnames = ["mdcomp"]
+type = "exe"
+variable_name = "mdcomp"
+[[products]]
+binnames = ["basinv"]
+type = "exe"
+variable_name = "basinv"
+[[products]]
+binnames = ["circles"]
+type = "exe"
+variable_name = "circles"
+[[products]]
+binnames = ["corotate"]
+type = "exe"
+variable_name = "corotate"
+
+[[sources]]
+hash = "a06c9ff6d05e3ee045120589b246bd5876c2fff8"
+type = "git"
+unpack_target = ""
+url = "https://github.com/greg-houseman/basil.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"
