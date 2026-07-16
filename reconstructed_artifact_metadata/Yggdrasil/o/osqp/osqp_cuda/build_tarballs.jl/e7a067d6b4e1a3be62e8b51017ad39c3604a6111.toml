@@ -1,0 +1,305 @@
+augment_platform_block = """using Base.BinaryPlatforms\n\ntry\n    using CUDA_Runtime_jll\ncatch\n    # during initial package installation, CUDA_Runtime_jll may not be available.\n    # in that case, we just won't select an artifact.\nend\n\n# can't use Preferences for the same reason\nconst CUDA_Runtime_jll_uuid = Base.UUID(\"76a88914-d11a-5bdc-97e0-2f5a05c973a2\")\nconst preferences = Base.get_preferences(CUDA_Runtime_jll_uuid)\nBase.record_compiletime_preference(CUDA_Runtime_jll_uuid, \"version\")\nBase.record_compiletime_preference(CUDA_Runtime_jll_uuid, \"local\")\nconst local_toolkit = something(tryparse(Bool, get(preferences, \"local\", \"false\")), false)\n\nfunction cuda_comparison_strategy(_a::String, _b::String, a_requested::Bool, b_requested::Bool)\n    # if we're using a local toolkit, we can't use artifacts\n    if local_toolkit\n        return false\n    end\n\n    # if either isn't a version number (e.g. \"none\"), perform a simple equality check\n    a = tryparse(VersionNumber, _a)\n    b = tryparse(VersionNumber, _b)\n    if a === nothing || b === nothing\n        return _a == _b\n    end\n\n    # if both b and a requested, then we fall back to equality\n    if a_requested && b_requested\n        return Base.thisminor(a) == Base.thisminor(b)\n    end\n\n    # otherwise, do the comparison between the the single version cap and the single version:\n    function is_compatible(artifact::VersionNumber, host::VersionNumber)\n        if host >= v\"11.0\"\n            # enhanced compatibility, semver-style\n            artifact.major == host.major &&\n            Base.thisminor(artifact) <= Base.thisminor(host)\n        else\n            Base.thisminor(artifact) == Base.thisminor(host)\n        end\n    end\n    if a_requested\n        is_compatible(b, a)\n    else\n        is_compatible(a, b)\n    end\nend\n\nfunction augment_platform!(platform::Platform)\n    if !@isdefined(CUDA_Runtime_jll)\n        # don't set to nothing or Pkg will download any artifact\n        platform[\"cuda\"] = \"none\"\n    end\n\n    if !haskey(platform, \"cuda\")\n        CUDA_Runtime_jll.augment_platform!(platform)\n    end\n    BinaryPlatforms.set_compare_strategy!(platform, \"cuda\", cuda_comparison_strategy)\n\n    return platform\nend"""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = true
+name = "OSQP_CUDA"
+platforms = ["x86_64-linux-gnu-cxx11-cuda+11.8", "x86_64-linux-gnu-cxx11-cuda+12.0", "x86_64-linux-gnu-cxx11-cuda+12.1", "x86_64-linux-gnu-cxx11-cuda+12.2", "x86_64-linux-gnu-cxx11-cuda+12.3", "x86_64-linux-gnu-cxx11-cuda+12.4", "x86_64-linux-gnu-cxx11-cuda+12.5", "x86_64-linux-gnu-cxx11-cuda+12.6", "x86_64-linux-gnu-cxx11-cuda+12.8", "x86_64-linux-gnu-cxx11-cuda+12.9", "x86_64-linux-gnu-cxx11-cuda+13.0", "x86_64-linux-gnu-cxx11-cuda+13.1", "x86_64-linux-gnu-cxx11-cuda+13.2", "x86_64-linux-gnu-cxx11-cuda+13.3"]
+script = ["""export CUDAARCHS=\"75;80;86;89\"\n## CUDA setup\n# nvcc writes to /tmp, which is a small tmpfs in our sandbox.\n# make it use the workspace instead\nexport TMPDIR=${WORKSPACE}/tmpdir\nmkdir ${TMPDIR}\n\nexport CUDA_HOME=${WORKSPACE}/destdir/cuda;\nexport PATH=$PATH:$CUDA_HOME/bin\nexport CUDACXX=$CUDA_HOME/bin/nvcc\n\nln -s ${WORKSPACE}/destdir/cuda/lib ${WORKSPACE}/destdir/cuda/lib64\n# OSQP requires CMake > 3.18, the base image has 3.17.2 currently, so use the JLL-provided CMake\napk del cmake\n\ncd $WORKSPACE/srcdir/osqp\ngit submodule update --init --recursive\n\n# Apply any patches\nfor p in ${WORKSPACE}/srcdir/patches/*.patch; do\n    atomic_patch -p1 \"${p}\" || true\ndone\nOSQP_VERSION=\"1.0.0\"\nOSQP_ALGEBRA=\"cuda\"\nOSQP_LIB_SUFFIX=\"cuda_double\"\nOSQP_FLOAT=OFF\nBUILD_DIR=\"build-double\"\nmkdir $BUILD_DIR\ncmake \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DOSQP_BUILD_UNITTESTS=OFF \\\n    -DOSQP_VERSION=$OSQP_VERSION \\\n    -DOSQP_BUILD_SHARED_LIB=ON \\\n    -DOSQP_BUILD_STATIC_LIB=OFF \\\n    -DOSQP_ALGEBRA_BACKEND=$OSQP_ALGEBRA \\\n    -DOSQP_USE_FLOAT=$OSQP_FLOAT \\\n    -DOSQP_LIB_SUFFIX=$OSQP_LIB_SUFFIX \\\n    -B $BUILD_DIR \\\n    -S .\ncmake --build $BUILD_DIR\ncmake --install $BUILD_DIR\nOSQP_VERSION=\"1.0.0\"\nOSQP_ALGEBRA=\"cuda\"\nOSQP_LIB_SUFFIX=\"cuda_single\"\nOSQP_FLOAT=ON\nBUILD_DIR=\"build-single\"\nmkdir $BUILD_DIR\ncmake \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DOSQP_BUILD_UNITTESTS=OFF \\\n    -DOSQP_VERSION=$OSQP_VERSION \\\n    -DOSQP_BUILD_SHARED_LIB=ON \\\n    -DOSQP_BUILD_STATIC_LIB=OFF \\\n    -DOSQP_ALGEBRA_BACKEND=$OSQP_ALGEBRA \\\n    -DOSQP_USE_FLOAT=$OSQP_FLOAT \\\n    -DOSQP_LIB_SUFFIX=$OSQP_LIB_SUFFIX \\\n    -B $BUILD_DIR \\\n    -S .\ncmake --build $BUILD_DIR\ncmake --install $BUILD_DIR\n""", """export CUDAARCHS=\"75;80;86;89;90\"\n## CUDA setup\n# nvcc writes to /tmp, which is a small tmpfs in our sandbox.\n# make it use the workspace instead\nexport TMPDIR=${WORKSPACE}/tmpdir\nmkdir ${TMPDIR}\n\nexport CUDA_HOME=${WORKSPACE}/destdir/cuda;\nexport PATH=$PATH:$CUDA_HOME/bin\nexport CUDACXX=$CUDA_HOME/bin/nvcc\n\nln -s ${WORKSPACE}/destdir/cuda/lib ${WORKSPACE}/destdir/cuda/lib64\n# OSQP requires CMake > 3.18, the base image has 3.17.2 currently, so use the JLL-provided CMake\napk del cmake\n\ncd $WORKSPACE/srcdir/osqp\ngit submodule update --init --recursive\n\n# Apply any patches\nfor p in ${WORKSPACE}/srcdir/patches/*.patch; do\n    atomic_patch -p1 \"${p}\" || true\ndone\nOSQP_VERSION=\"1.0.0\"\nOSQP_ALGEBRA=\"cuda\"\nOSQP_LIB_SUFFIX=\"cuda_double\"\nOSQP_FLOAT=OFF\nBUILD_DIR=\"build-double\"\nmkdir $BUILD_DIR\ncmake \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DOSQP_BUILD_UNITTESTS=OFF \\\n    -DOSQP_VERSION=$OSQP_VERSION \\\n    -DOSQP_BUILD_SHARED_LIB=ON \\\n    -DOSQP_BUILD_STATIC_LIB=OFF \\\n    -DOSQP_ALGEBRA_BACKEND=$OSQP_ALGEBRA \\\n    -DOSQP_USE_FLOAT=$OSQP_FLOAT \\\n    -DOSQP_LIB_SUFFIX=$OSQP_LIB_SUFFIX \\\n    -B $BUILD_DIR \\\n    -S .\ncmake --build $BUILD_DIR\ncmake --install $BUILD_DIR\nOSQP_VERSION=\"1.0.0\"\nOSQP_ALGEBRA=\"cuda\"\nOSQP_LIB_SUFFIX=\"cuda_single\"\nOSQP_FLOAT=ON\nBUILD_DIR=\"build-single\"\nmkdir $BUILD_DIR\ncmake \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DOSQP_BUILD_UNITTESTS=OFF \\\n    -DOSQP_VERSION=$OSQP_VERSION \\\n    -DOSQP_BUILD_SHARED_LIB=ON \\\n    -DOSQP_BUILD_STATIC_LIB=OFF \\\n    -DOSQP_ALGEBRA_BACKEND=$OSQP_ALGEBRA \\\n    -DOSQP_USE_FLOAT=$OSQP_FLOAT \\\n    -DOSQP_LIB_SUFFIX=$OSQP_LIB_SUFFIX \\\n    -B $BUILD_DIR \\\n    -S .\ncmake --build $BUILD_DIR\ncmake --install $BUILD_DIR\n""", """export CUDAARCHS=\"75;80;86;89;90;100;120\"\n## CUDA setup\n# nvcc writes to /tmp, which is a small tmpfs in our sandbox.\n# make it use the workspace instead\nexport TMPDIR=${WORKSPACE}/tmpdir\nmkdir ${TMPDIR}\n\nexport CUDA_HOME=${WORKSPACE}/destdir/cuda;\nexport PATH=$PATH:$CUDA_HOME/bin\nexport CUDACXX=$CUDA_HOME/bin/nvcc\n\nln -s ${WORKSPACE}/destdir/cuda/lib ${WORKSPACE}/destdir/cuda/lib64\n# OSQP requires CMake > 3.18, the base image has 3.17.2 currently, so use the JLL-provided CMake\napk del cmake\n\ncd $WORKSPACE/srcdir/osqp\ngit submodule update --init --recursive\n\n# Apply any patches\nfor p in ${WORKSPACE}/srcdir/patches/*.patch; do\n    atomic_patch -p1 \"${p}\" || true\ndone\nOSQP_VERSION=\"1.0.0\"\nOSQP_ALGEBRA=\"cuda\"\nOSQP_LIB_SUFFIX=\"cuda_double\"\nOSQP_FLOAT=OFF\nBUILD_DIR=\"build-double\"\nmkdir $BUILD_DIR\ncmake \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DOSQP_BUILD_UNITTESTS=OFF \\\n    -DOSQP_VERSION=$OSQP_VERSION \\\n    -DOSQP_BUILD_SHARED_LIB=ON \\\n    -DOSQP_BUILD_STATIC_LIB=OFF \\\n    -DOSQP_ALGEBRA_BACKEND=$OSQP_ALGEBRA \\\n    -DOSQP_USE_FLOAT=$OSQP_FLOAT \\\n    -DOSQP_LIB_SUFFIX=$OSQP_LIB_SUFFIX \\\n    -B $BUILD_DIR \\\n    -S .\ncmake --build $BUILD_DIR\ncmake --install $BUILD_DIR\nOSQP_VERSION=\"1.0.0\"\nOSQP_ALGEBRA=\"cuda\"\nOSQP_LIB_SUFFIX=\"cuda_single\"\nOSQP_FLOAT=ON\nBUILD_DIR=\"build-single\"\nmkdir $BUILD_DIR\ncmake \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DOSQP_BUILD_UNITTESTS=OFF \\\n    -DOSQP_VERSION=$OSQP_VERSION \\\n    -DOSQP_BUILD_SHARED_LIB=ON \\\n    -DOSQP_BUILD_STATIC_LIB=OFF \\\n    -DOSQP_ALGEBRA_BACKEND=$OSQP_ALGEBRA \\\n    -DOSQP_USE_FLOAT=$OSQP_FLOAT \\\n    -DOSQP_LIB_SUFFIX=$OSQP_LIB_SUFFIX \\\n    -B $BUILD_DIR \\\n    -S .\ncmake --build $BUILD_DIR\ncmake --install $BUILD_DIR\n""", """export CUDAARCHS=\"75;80;86;89;90;100;120;103;121\"\n## CUDA setup\n# nvcc writes to /tmp, which is a small tmpfs in our sandbox.\n# make it use the workspace instead\nexport TMPDIR=${WORKSPACE}/tmpdir\nmkdir ${TMPDIR}\n\nexport CUDA_HOME=${WORKSPACE}/destdir/cuda;\nexport PATH=$PATH:$CUDA_HOME/bin\nexport CUDACXX=$CUDA_HOME/bin/nvcc\n\nln -s ${WORKSPACE}/destdir/cuda/lib ${WORKSPACE}/destdir/cuda/lib64\n# OSQP requires CMake > 3.18, the base image has 3.17.2 currently, so use the JLL-provided CMake\napk del cmake\n\ncd $WORKSPACE/srcdir/osqp\ngit submodule update --init --recursive\n\n# Apply any patches\nfor p in ${WORKSPACE}/srcdir/patches/*.patch; do\n    atomic_patch -p1 \"${p}\" || true\ndone\nOSQP_VERSION=\"1.0.0\"\nOSQP_ALGEBRA=\"cuda\"\nOSQP_LIB_SUFFIX=\"cuda_double\"\nOSQP_FLOAT=OFF\nBUILD_DIR=\"build-double\"\nmkdir $BUILD_DIR\ncmake \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DOSQP_BUILD_UNITTESTS=OFF \\\n    -DOSQP_VERSION=$OSQP_VERSION \\\n    -DOSQP_BUILD_SHARED_LIB=ON \\\n    -DOSQP_BUILD_STATIC_LIB=OFF \\\n    -DOSQP_ALGEBRA_BACKEND=$OSQP_ALGEBRA \\\n    -DOSQP_USE_FLOAT=$OSQP_FLOAT \\\n    -DOSQP_LIB_SUFFIX=$OSQP_LIB_SUFFIX \\\n    -B $BUILD_DIR \\\n    -S .\ncmake --build $BUILD_DIR\ncmake --install $BUILD_DIR\nOSQP_VERSION=\"1.0.0\"\nOSQP_ALGEBRA=\"cuda\"\nOSQP_LIB_SUFFIX=\"cuda_single\"\nOSQP_FLOAT=ON\nBUILD_DIR=\"build-single\"\nmkdir $BUILD_DIR\ncmake \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DOSQP_BUILD_UNITTESTS=OFF \\\n    -DOSQP_VERSION=$OSQP_VERSION \\\n    -DOSQP_BUILD_SHARED_LIB=ON \\\n    -DOSQP_BUILD_STATIC_LIB=OFF \\\n    -DOSQP_ALGEBRA_BACKEND=$OSQP_ALGEBRA \\\n    -DOSQP_USE_FLOAT=$OSQP_FLOAT \\\n    -DOSQP_LIB_SUFFIX=$OSQP_LIB_SUFFIX \\\n    -B $BUILD_DIR \\\n    -S .\ncmake --build $BUILD_DIR\ncmake --install $BUILD_DIR\n"""]
+version = "v100.0.0"
+
+[[dependencies]]
+compat = ""
+name = "CMake_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 11
+version-minor = 8
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CUDA_Runtime_jll"
+platforms = ["any"]
+top_level = false
+type = "runtimedependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_static_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 11
+version-minor = 8
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 0
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_static_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 0
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 1
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_static_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 1
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 2
+version-patch = 2
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_static_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 2
+version-patch = 2
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 3
+version-patch = 2
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_static_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 3
+version-patch = 2
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 4
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_static_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 4
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 5
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_static_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 5
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 6
+version-patch = 3
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_static_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 6
+version-patch = 3
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 8
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_static_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 8
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 9
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_static_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 9
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 13
+version-minor = 0
+version-patch = 2
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_static_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 13
+version-minor = 0
+version-patch = 2
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 13
+version-minor = 1
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_static_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 13
+version-minor = 1
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 13
+version-minor = 2
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_static_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 13
+version-minor = 2
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 13
+version-minor = 3
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_static_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 13
+version-minor = 3
+version-patch = 1
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libosqp_cuda_single"]
+type = "lib"
+variable_name = "osqp_cuda_single"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libosqp_cuda_double"]
+type = "lib"
+variable_name = "osqp_cuda_double"
+
+[[sources]]
+hash = "236713ce9a56c182ac3230d52108f952afce1523"
+type = "git"
+unpack_target = ""
+url = "https://github.com/osqp/osqp.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

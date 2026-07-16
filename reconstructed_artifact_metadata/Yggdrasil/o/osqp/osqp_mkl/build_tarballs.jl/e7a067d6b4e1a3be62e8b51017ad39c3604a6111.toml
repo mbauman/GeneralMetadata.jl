@@ -1,0 +1,77 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "OSQP_MKL"
+platforms = ["x86_64-linux-gnu", "x86_64-apple-darwin", "x86_64-w64-mingw32"]
+script = """# OSQP requires CMake > 3.18, the base image has 3.17.2 currently, so use the JLL-provided CMake\napk del cmake\n\ncd $WORKSPACE/srcdir/osqp\ngit submodule update --init --recursive\n\n# Apply any patches\nfor p in ${WORKSPACE}/srcdir/patches/*.patch; do\n    atomic_patch -p1 \"${p}\" || true\ndone\nOSQP_VERSION=\"1.0.0\"\nOSQP_ALGEBRA=\"mkl\"\nOSQP_LIB_SUFFIX=\"mkl\"\nOSQP_FLOAT=OFF\nBUILD_DIR=\"build\"\nmkdir $BUILD_DIR\ncmake \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DOSQP_BUILD_UNITTESTS=OFF \\\n    -DOSQP_VERSION=$OSQP_VERSION \\\n    -DOSQP_BUILD_SHARED_LIB=ON \\\n    -DOSQP_BUILD_STATIC_LIB=OFF \\\n    -DOSQP_ALGEBRA_BACKEND=$OSQP_ALGEBRA \\\n    -DOSQP_USE_FLOAT=$OSQP_FLOAT \\\n    -DOSQP_LIB_SUFFIX=$OSQP_LIB_SUFFIX \\\n    -B $BUILD_DIR \\\n    -S .\ncmake --build $BUILD_DIR\ncmake --install $BUILD_DIR\n"""
+version = "v100.0.0"
+
+[[dependencies]]
+compat = ""
+name = "CMake_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MKL_jll"
+platforms = ["any"]
+top_level = false
+type = "runtimedependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MKL_jll"
+platforms = ["x86_64-linux-gnu", "x86_64-w64-mingw32"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MKL_Headers_jll"
+platforms = ["x86_64-linux-gnu", "x86_64-w64-mingw32"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MKL_jll"
+platforms = ["x86_64-apple-darwin"]
+top_level = false
+type = "builddependency"
+version-major = 2023
+version-minor = 2
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MKL_Headers_jll"
+platforms = ["x86_64-apple-darwin"]
+top_level = false
+type = "builddependency"
+version-major = 2023
+version-minor = 2
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libosqp_mkl"]
+type = "lib"
+variable_name = "osqp_mkl"
+
+[[sources]]
+hash = "236713ce9a56c182ac3230d52108f952afce1523"
+type = "git"
+unpack_target = ""
+url = "https://github.com/osqp/osqp.git"

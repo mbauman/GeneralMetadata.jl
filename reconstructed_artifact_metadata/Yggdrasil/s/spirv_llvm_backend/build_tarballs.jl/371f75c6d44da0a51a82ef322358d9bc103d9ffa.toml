@@ -1,0 +1,34 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "SPIRV_LLVM_Backend"
+platforms = ["i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx11", "riscv64-linux-gnu-cxx11", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx11"]
+script = """mv llvm-project-* llvm-project\n\ncd llvm-project/llvm\nLLVM_SRCDIR=$(pwd)\n\n# Workaround for building with an old macOS SDK that lacks a working\n# __builtin_available (still applicable on LLVM 22).\natomic_patch -p1 $WORKSPACE/srcdir/patches/avoid_builtin_available.patch\n# https://github.com/llvm/llvm-project/pull/164175 (fixes #163777); landed on\n# main after the release/22.x branch, so still needed on 22.1.7.\natomic_patch -p1 $WORKSPACE/srcdir/patches/alloca_aggregate_type.patch\n# Backport of the composite-constant-arm fix from\n# https://github.com/llvm/llvm-project/pull/201417 (\"[SPIR-V] Lower select\n# instructions with aggregate operands\").\natomic_patch -p1 $WORKSPACE/srcdir/patches/select_composite_constant.patch\n# Backport of https://github.com/llvm/llvm-project/pull/201523\natomic_patch -p1 $WORKSPACE/srcdir/patches/printf_format_string_lookup.patch\n# Backport of https://github.com/llvm/llvm-project/pull/204231\natomic_patch -p1 $WORKSPACE/srcdir/patches/minmax_i1.patch\n# Backport of https://github.com/llvm/llvm-project/pull/204239\natomic_patch -p1 $WORKSPACE/srcdir/patches/nested_aggregate_insertvalue.patch\n# release/22.x backport for aggregate PHI value-id operands. Main already has a\n# broader aggregate PHI/select/freeze lowering path.\natomic_patch -p1 $WORKSPACE/srcdir/patches/aggregate_phi_value_id.patch\n# Fix direct returns of aggregate extractvalue results, such as the LLVM IR\n# emitted for non-inlined SMatrix{1,1} returns.\natomic_patch -p1 $WORKSPACE/srcdir/patches/aggregate_extractvalue_return.patch\n\ninstall_license LICENSE.TXT\n\n# The very first thing we need to do is to build llvm-tblgen for x86_64-linux-muslc\n# This is because LLVM's cross-compile setup is kind of borked, so we just\n# build the tools natively ourselves, directly.  :/\n\n# Build llvm-tblgen and llvm-config\nmkdir ${WORKSPACE}/bootstrap\npushd ${WORKSPACE}/bootstrap\nCMAKE_FLAGS=()\nCMAKE_FLAGS+=(-DLLVM_TARGETS_TO_BUILD:STRING=host)\nCMAKE_FLAGS+=(-DLLVM_HOST_TRIPLE=${MACHTYPE})\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\nCMAKE_FLAGS+=(-DLLVM_ENABLE_PROJECTS='llvm')\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING=False)\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_HOST_TOOLCHAIN})\ncmake -GNinja ${LLVM_SRCDIR} ${CMAKE_FLAGS[@]}\nninja -j${nproc} llvm-tblgen llvm-config\npopd\n\n# Let's do the actual build within the `build` subdirectory\nmkdir ${WORKSPACE}/build && cd ${WORKSPACE}/build\nCMAKE_FLAGS=()\n\n# Tell LLVM where our pre-built tblgen tools are\nCMAKE_FLAGS+=(-DLLVM_TABLEGEN=${WORKSPACE}/bootstrap/bin/llvm-tblgen)\nCMAKE_FLAGS+=(-DLLVM_CONFIG_PATH=${WORKSPACE}/bootstrap/bin/llvm-config)\n\n# Install things into $prefix\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix})\n\n# Explicitly use our cmake toolchain file and tell CMake we're cross-compiling\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING:BOOL=ON)\n\n# Release build for best performance\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\n\n# Only build the SPIR-V back-end\nCMAKE_FLAGS+=(-DLLVM_TARGETS_TO_BUILD=SPIRV)\n\n# Turn on ZLIB\nCMAKE_FLAGS+=(-DLLVM_ENABLE_ZLIB=ON)\n# Turn off XML2 and ZSTD to avoid unnecessary dependencies\nCMAKE_FLAGS+=(-DLLVM_ENABLE_ZSTD=OFF)\nCMAKE_FLAGS+=(-DLLVM_ENABLE_LIBXML2=OFF)\n\n# Disable useless things like docs, terminfo, etc....\nCMAKE_FLAGS+=(-DLLVM_INCLUDE_DOCS=Off)\nCMAKE_FLAGS+=(-DLLVM_ENABLE_TERMINFO=Off)\nCMAKE_FLAGS+=(-DHAVE_HISTEDIT_H=Off)\nCMAKE_FLAGS+=(-DHAVE_LIBEDIT=Off)\n\ncmake -GNinja ${LLVM_SRCDIR} ${CMAKE_FLAGS[@]}\nninja -j${nproc} tools/llc/install\n"""
+version = "v22.1.8"
+
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["llc"]
+type = "exe"
+variable_name = "llc"
+
+[[sources]]
+hash = "922f1817a0df7b1489272d18134ee0087a8b068828f87ac63b9861b1a9965888"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/llvm/llvm-project/releases/download/llvmorg-22.1.8/llvm-project-22.1.8.src.tar.xz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"
