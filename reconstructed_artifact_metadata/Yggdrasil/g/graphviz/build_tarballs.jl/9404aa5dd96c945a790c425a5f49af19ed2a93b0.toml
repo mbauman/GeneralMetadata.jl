@@ -1,0 +1,245 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Graphviz"
+platforms = ["i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx11", "riscv64-linux-gnu-cxx11", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir/graphviz-*/\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    export LDFLAGS=\"-lexpat\"\n    export EXTRA_LDFLAGS=\"-no-undefined\"\nelif [[ \"${target}\" == *-linux* ]]; then\n    # ld needs -rpath-link to resolve the DT_NEEDEDs of the libraries the\n    # executables link against (it does not search libtool's -rpath\n    # entries, and on x86_64-musl the fallback finds the host's\n    # incompatible /usr/lib libraries)\n    LDFLAGS=\"-Wl,-rpath-link,${libdir}\"\n    for d in cdt pathplan xdot cgraph gvc; do\n        LDFLAGS=\"${LDFLAGS} -Wl,-rpath-link,$(pwd)/lib/${d}/.libs\"\n    done\n    export LDFLAGS\nelif [[ \"${target}\" == *-darwin* ]]; then\n    # Paired with the @rpath install names set below; the second entry lets\n    # dot_builtins find the plugin dylibs it links directly\n    export LDFLAGS=\"-Wl,-rpath,@loader_path/../lib -Wl,-rpath,@loader_path/../lib/graphviz\"\nfi\n\n# ld64.lld's deprecation warning for -single_module makes libtool's probe\n# fail, degrading its C++ dylib support; pre-seed the correct answer\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} --enable-shared \\\n    lt_cv_apple_cc_single_mod=yes\n\nif [[ \"${target}\" == *-darwin* ]]; then\n    # Use @rpath install names so the auditor does not need to rewrite the\n    # installed binaries. Our executables link 5-7 internal dylibs each,\n    # which reliably trips a race in the auditor's rewrite path; see\n    # https://github.com/JuliaPackaging/BinaryBuilder.jl/pull/1442\n    sed -i 's|-install_name [\\\\]*\\$rpath/|-install_name @rpath/|g' libtool\n    grep -q -- '-install_name @rpath/' libtool\nfi\n\nmake -j${nproc} LDFLAGS=\"${LDFLAGS} ${EXTRA_LDFLAGS}\"\nmake install\n\n# `dot -c` cannot be run during a cross-compilation, so ship a pregenerated\n# plugin config (config$GVPLUGIN_CURRENT, currently config8).\nif [[ \"${target}\" == *-linux* || \"${target}\" == *-freebsd* ]]; then\n    install -Dvm 755 ../config8-linux ${prefix}/lib/graphviz/config8\nelif [[ \"${target}\" == *-mingw* ]]; then\n    install -Dvm 755 ../config8-mingw ${prefix}/bin/config8\nelif [[ \"${target}\" == *-darwin* ]]; then\n    install -Dvm 755 ../config8-darwin ${prefix}/lib/graphviz/config8\nfi\n\ninstall_license COPYING\n"""
+version = "v15.1.0"
+
+[[dependencies]]
+compat = ""
+name = "Cairo_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "83423d85-b0ee-5818-9007-b63ccbeb887a"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "2.2.10"
+name = "Expat_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.47.0"
+name = "Pango_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_xorgproto_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcdt"]
+type = "lib"
+variable_name = "libcdt"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libcgraph"]
+type = "lib"
+variable_name = "libcgraph"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgvc"]
+type = "lib"
+variable_name = "libgvc"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libgvpr"]
+type = "lib"
+variable_name = "libgvpr"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libpathplan"]
+type = "lib"
+variable_name = "libpathplan"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libxdot"]
+type = "lib"
+variable_name = "libxdot"
+[[products]]
+binnames = ["acyclic"]
+type = "exe"
+variable_name = "acyclic"
+[[products]]
+binnames = ["bcomps"]
+type = "exe"
+variable_name = "bcomps"
+[[products]]
+binnames = ["ccomps"]
+type = "exe"
+variable_name = "ccomps"
+[[products]]
+binnames = ["circo"]
+type = "exe"
+variable_name = "circo"
+[[products]]
+binnames = ["cluster"]
+type = "exe"
+variable_name = "cluster"
+[[products]]
+binnames = ["dijkstra"]
+type = "exe"
+variable_name = "dijkstra"
+[[products]]
+binnames = ["dot"]
+type = "exe"
+variable_name = "dot"
+[[products]]
+binnames = ["dot2gxl"]
+type = "exe"
+variable_name = "dot2gxl"
+[[products]]
+binnames = ["dot_builtins"]
+type = "exe"
+variable_name = "dot_builtins"
+[[products]]
+binnames = ["edgepaint"]
+type = "exe"
+variable_name = "edgepaint"
+[[products]]
+binnames = ["fdp"]
+type = "exe"
+variable_name = "fdp"
+[[products]]
+binnames = ["gc"]
+type = "exe"
+variable_name = "gc"
+[[products]]
+binnames = ["gml2gv"]
+type = "exe"
+variable_name = "gml2gv"
+[[products]]
+binnames = ["graphml2gv"]
+type = "exe"
+variable_name = "graphml2gv"
+[[products]]
+binnames = ["gv2gml"]
+type = "exe"
+variable_name = "gv2gml"
+[[products]]
+binnames = ["gv2gxl"]
+type = "exe"
+variable_name = "gv2gxl"
+[[products]]
+binnames = ["gvcolor"]
+type = "exe"
+variable_name = "gvcolor"
+[[products]]
+binnames = ["gvgen"]
+type = "exe"
+variable_name = "gvgen"
+[[products]]
+binnames = ["gvmap"]
+type = "exe"
+variable_name = "gvmap"
+[[products]]
+binnames = ["gvpack"]
+type = "exe"
+variable_name = "gvpack"
+[[products]]
+binnames = ["gvpr"]
+type = "exe"
+variable_name = "gvpr"
+[[products]]
+binnames = ["gxl2dot"]
+type = "exe"
+variable_name = "gxl2dot"
+[[products]]
+binnames = ["gxl2gv"]
+type = "exe"
+variable_name = "gxl2gv"
+[[products]]
+binnames = ["mm2gv"]
+type = "exe"
+variable_name = "mm2gv"
+[[products]]
+binnames = ["neato"]
+type = "exe"
+variable_name = "neato"
+[[products]]
+binnames = ["nop"]
+type = "exe"
+variable_name = "nop"
+[[products]]
+binnames = ["osage"]
+type = "exe"
+variable_name = "osage"
+[[products]]
+binnames = ["patchwork"]
+type = "exe"
+variable_name = "patchwork"
+[[products]]
+binnames = ["prune"]
+type = "exe"
+variable_name = "prune"
+[[products]]
+binnames = ["sccmap"]
+type = "exe"
+variable_name = "sccmap"
+[[products]]
+binnames = ["sfdp"]
+type = "exe"
+variable_name = "sfdp"
+[[products]]
+binnames = ["tred"]
+type = "exe"
+variable_name = "tred"
+[[products]]
+binnames = ["twopi"]
+type = "exe"
+variable_name = "twopi"
+[[products]]
+binnames = ["unflatten"]
+type = "exe"
+variable_name = "unflatten"
+
+[[sources]]
+hash = "7aee43f186d6d72d32cbdb243baaa98880d4e709a2937c1ccf0dcc61abd79ec2"
+type = "archive"
+unpack_target = ""
+url = "https://gitlab.com/api/v4/projects/4207231/packages/generic/graphviz-releases/15.1.0/graphviz-15.1.0.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"
