@@ -1,0 +1,69 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.10"
+lazy_artifacts = false
+name = "mlir_aie"
+platforms = ["x86_64-linux-gnu-cxx11"]
+script = """# Remove the old system CMake so that the modern HostBuildDependency version takes precedence\napk del cmake\n\n# Phase 1: LLVM + MLIR, as mlir-aie configures it (utils/build-llvm.sh)\n#\n# Only x86_64-linux-gnu is built, and the builder is x86_64-linux-gnu, so the\n# tablegen binaries this produces run here and no native bootstrap is needed. Adding\n# a platform means adding a bootstrap phase first, the way C/CUDA/CUDA_Tile does:\n# tablegen has to execute during the mlir-aie build.\ncd ${WORKSPACE}/srcdir/llvm-project\n\nCMAKE_FLAGS=()\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${WORKSPACE}/srcdir/llvm-install)\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\nCMAKE_FLAGS+=(-DLLVM_ENABLE_PROJECTS=mlir)\nCMAKE_FLAGS+=(-DLLVM_TARGETS_TO_BUILD=host)\nCMAKE_FLAGS+=(-DLLVM_BUILD_EXAMPLES=OFF)\nCMAKE_FLAGS+=(-DLLVM_INCLUDE_EXAMPLES=OFF)\nCMAKE_FLAGS+=(-DLLVM_INCLUDE_TESTS=OFF)\nCMAKE_FLAGS+=(-DLLVM_INCLUDE_BENCHMARKS=OFF)\nCMAKE_FLAGS+=(-DLLVM_ENABLE_OCAMLDOC=OFF)\nCMAKE_FLAGS+=(-DLLVM_ENABLE_BINDINGS=OFF)\nCMAKE_FLAGS+=(-DLLVM_OPTIMIZED_TABLEGEN=OFF)\n# mlir-aie is built with RTTI, so MLIR has to be too or the link fails.\nCMAKE_FLAGS+=(-DLLVM_ENABLE_RTTI=ON)\nCMAKE_FLAGS+=(-DLLVM_INSTALL_UTILS=ON)\nCMAKE_FLAGS+=(-DLLVM_ENABLE_ASSERTIONS=OFF)\nCMAKE_FLAGS+=(-DMLIR_ENABLE_BINDINGS_PYTHON=OFF)\nCMAKE_FLAGS+=(-DLLVM_ENABLE_ZSTD=OFF)\nCMAKE_FLAGS+=(-DLLVM_ENABLE_LIBXML2=OFF)\n\ncmake -B build -S llvm -GNinja ${CMAKE_FLAGS[@]}\nninja -C build -j${nproc} install\n\n\n# Phase 2: mlir-aie\ncd ${WORKSPACE}/srcdir/mlir-aie\n\n# Fetch third-party submodules (like bootgen) that GitSource ignores by default\ngit submodule update --init --recursive\n\n# Fix permissions on Python generation scripts so the build system can execute them\nchmod +x utils/*.py\nchmod +x utils/*.sh\n\ninstall_license LICENSE\n\nCMAKE_FLAGS=()\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix})\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=Release)\n\nCMAKE_FLAGS+=(-DLLVM_DIR=${WORKSPACE}/srcdir/llvm-install/lib/cmake/llvm)\nCMAKE_FLAGS+=(-DMLIR_DIR=${WORKSPACE}/srcdir/llvm-install/lib/cmake/mlir)\nCMAKE_FLAGS+=(-DCMAKE_MODULE_PATH=${WORKSPACE}/srcdir/mlir-aie/cmake/modulesXilinx)\n\nCMAKE_FLAGS+=(-DLLVM_ENABLE_RTTI=ON)\nCMAKE_FLAGS+=(-DLLVM_ENABLE_ASSERTIONS=OFF)\n\n# The Python bindings want an interpreter and pybind at build time; the tools below\n# are this JLL's interface instead.\nCMAKE_FLAGS+=(-DAIE_ENABLE_BINDINGS_PYTHON=OFF)\nCMAKE_FLAGS+=(-DAIE_ENABLE_PYTHON_PASSES=OFF)\nCMAKE_FLAGS+=(-DAIE_ENABLE_XRT_PYTHON_BINDINGS=OFF)\n\n# chess-clang needs the proprietary Vitis toolchain; the visualizer and LSP server\n# are editor conveniences rather than part of the compile path.\nCMAKE_FLAGS+=(-DAIE_BUILD_CHESS_CLANG=OFF)\nCMAKE_FLAGS+=(-DAIE_BUILD_VISUALIZE=OFF)\nCMAKE_FLAGS+=(-DAIE_BUILD_LSP_SERVER=OFF)\n\n# The AIE runtime libraries are compiled *for the accelerator* by Peano, a separate\n# LLVM fork that is not here; this builds the host tools only.\nCMAKE_FLAGS+=(-DAIE_RUNTIME_TARGETS=)\nCMAKE_FLAGS+=(-DAIE_RUNTIME_TEST_TARGET=)\n\n# bootgen vendors lms-hash-sigs, which ships its own endian.h stub and puts that\n# directory on the include path (tools/bootgen/CMakeLists.txt). glibc's internal\n# `#include <endian.h>` then resolves to that stub instead of the system header,\n# so __BYTE_ORDER is left undefined and <bits/waitstatus.h> compiles *both*\n# endianness branches of `union wait` -> \"duplicate member __w_retcode ...\".\n# Define the byte-order macros ourselves, matching glibc's exact bodies so the\n# normal (non-shadowed) translation units see no redefinition. x86_64 is little\n# endian. Applied to C and C++ (bootgen has both). The array is expanded quoted\n# below so the spaces in the flag value survive word-splitting.\nENDIAN_DEFS=\"-D__LITTLE_ENDIAN=1234 -D__BIG_ENDIAN=4321 -D__PDP_ENDIAN=3412 -D__BYTE_ORDER=__LITTLE_ENDIAN\"\nCMAKE_FLAGS+=(-DCMAKE_C_FLAGS=\"${ENDIAN_DEFS}\")\nCMAKE_FLAGS+=(-DCMAKE_CXX_FLAGS=\"${ENDIAN_DEFS}\")\n\ncmake -B build -S . -GNinja \"${CMAKE_FLAGS[@]}\"\n# aiecc is the compile driver: it orchestrates the full lowering and links\n# bootgen-lib (built from third_party/bootgen, needs OpenSSL) for direct PDI\n# generation, so a design can be taken to a PDI without the Python stack. CDO\n# and the NPU instruction stream are emitted by aie-translate, which already\n# links xaienginecdo_static from the same submodule. `add_subdirectory(bootgen)`\n# and `add_subdirectory(aiecc)` are unconditional, so no extra flags are needed.\nninja -C build -j${nproc} aie-opt aie-translate aiecc\n\ninstall -Dm755 build/bin/aie-opt \"${bindir}/aie-opt${exeext}\"\ninstall -Dm755 build/bin/aie-translate \"${bindir}/aie-translate${exeext}\"\ninstall -Dm755 build/bin/aiecc \"${bindir}/aiecc${exeext}\"\n"""
+version = "v1.3.5"
+
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenSSL_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CMake_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["aie-opt"]
+type = "exe"
+variable_name = "aie_opt"
+[[products]]
+binnames = ["aie-translate"]
+type = "exe"
+variable_name = "aie_translate"
+[[products]]
+binnames = ["aiecc"]
+type = "exe"
+variable_name = "aiecc"
+
+[[sources]]
+hash = "54777cfabfe42908b10da7cc1b31224f8865cb31"
+type = "git"
+unpack_target = ""
+url = "https://github.com/Xilinx/mlir-aie.git"
+[[sources]]
+hash = "46fcb339fb61119b337f973c7ca9e710a319fdd0"
+type = "git"
+unpack_target = ""
+url = "https://github.com/ROCm/llvm-project.git"
