@@ -1,0 +1,45 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.10"
+lazy_artifacts = false
+name = "AIE_LLVM_Toolchain"
+platforms = ["x86_64-linux-gnu-cxx11"]
+script = """cd ${WORKSPACE}/srcdir/llvm-aie\n\n# llvm-libc's header generator (libc/utils/hdrgen) runs under the build image's\n# Python and imports PyYAML, which the base image lacks.\napk add py3-yaml\n\n# Trim the upstream distribution to what aiecc actually shells out to at runtime:\n# clang, lld (spawned by clang's core-ELF link step), llc and opt. The cache's\n# LLVM_TOOLCHAIN_TOOLS also installs eight llvm-* utilities (~100 MiB). The\n# runtime sub-builds *build* ar/nm/objdump/readelf from build/bin regardless (via\n# the BUILTINS_*/RUNTIMES_* forwarding below), so nothing here needs them\n# installed, and cxxfilt/dwarfdump/size/symbolizer aren't used at all -- dropping\n# them from LLVM_TOOLCHAIN_TOOLS (which feeds LLVM_DISTRIBUTION_COMPONENTS) leaves\n# only llc and opt. Likewise drop clang-tools-extra from LLVM_ENABLE_PROJECTS:\n# nothing in the distribution depends on it, so it's pure configure/build cost.\nsed -i '/^  llvm-/d' clang/cmake/caches/Peano-AIE.cmake\nsed -i '/^      clang-tools-extra$/d' clang/cmake/caches/Peano-AIE.cmake\n\nCMAKE_FLAGS=()\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix})\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\n\n# The authoritative llvm-aie build configuration (host tools + per-target AIE\n# runtimes). It sets LLVM_ENABLE_PROJECTS, the AIE experimental target,\n# LLVM_ENABLE_RUNTIMES (compiler-rt;libc;libcxx;libcxxabi), the per-target\n# BUILTINS_*/RUNTIMES_* options, and the distribution component list.\nCMAKE_FLAGS+=(-C clang/cmake/caches/Peano-AIE.cmake)\n\n# Reproducibility / avoid linking host libraries, matching the rest of the JLL toolchain.\nCMAKE_FLAGS+=(-DLLVM_ENABLE_ZSTD=OFF)\nCMAKE_FLAGS+=(-DLLVM_ENABLE_LIBXML2=OFF)\nCMAKE_FLAGS+=(-DLLVM_ENABLE_ZLIB=FORCE_ON)\n\n# The AIE runtimes (compiler-rt builtins, llvm-libc, libc++) must be compiled by the\n# freshly built clang -- BB's gcc can't target AIE (`--target=aie2p-none-unknown-elf`).\n# LLVM's own \"use the just-built toolchain\" path is inert here: it filters the\n# toolchain tools by `if(TARGET clang)`, and clang is not yet a target when the\n# runtimes register, so the runtime sub-builds neither pick up clang nor depend on it\n# and just auto-detect gcc. So force the compiler for every per-target sub-build via\n# the BUILTINS_*/RUNTIMES_* forwarding (which bypasses that TARGET check), pointing at\n# the built clang and llvm-ar. This works because build == host -- the built clang is\n# an x86_64-linux binary that runs on the builder; a host != build Peano (e.g. Windows)\n# would instead need a build-native bootstrap clang here.\nLLVM_BIN=${WORKSPACE}/srcdir/llvm-aie/build/bin\n# The full set of tools LLVM's USE_TOOLCHAIN path would point a runtime build at\n# (compiler, archiver, and the binutils replacements), so archiving/stripping AIE\n# objects also goes through the LLVM tools rather than the host binutils.\nTOOLS=\"CMAKE_C_COMPILER=clang CMAKE_CXX_COMPILER=clang++ CMAKE_ASM_COMPILER=clang \\\nCMAKE_AR=llvm-ar CMAKE_RANLIB=llvm-ranlib CMAKE_NM=llvm-nm CMAKE_OBJCOPY=llvm-objcopy \\\nCMAKE_STRIP=llvm-strip CMAKE_READELF=llvm-readelf CMAKE_OBJDUMP=llvm-objdump\"\nfor tt in aie aie2 aie2p aie2ps; do\n    t=${tt}-none-unknown-elf\n    for pfx in BUILTINS RUNTIMES; do\n        for kv in ${TOOLS}; do\n            CMAKE_FLAGS+=(-D${pfx}_${t}_${kv%=*}=${LLVM_BIN}/${kv#*=})\n        done\n    done\ndone\n\n# The LLVM build system expects to be run from the 'llvm' subdirectory.\ncmake -B build -S llvm -GNinja ${CMAKE_FLAGS[@]}\n\n# Build that toolchain before the runtime sub-builds run: they only depend on\n# clang-resource-headers, not the tool binaries, so nothing otherwise orders them\n# ahead of the sub-builds, and CMake's project() rejects a compiler path that does\n# not exist yet (CMAKE_C_COMPILER_WORKS skips only the functionality test, not this).\nninja -C build -j${nproc} clang lld llvm-ar llvm-ranlib llvm-nm llvm-objcopy \\\n    llvm-strip llvm-readelf llvm-objdump clang-resource-headers\n\n# `install-distribution` builds and installs just the components the cache lists:\n# the host tools plus builtins-<triple>/runtimes-<triple> for aie2/aie2p/aie2ps.\nninja -C build -j${nproc} install-distribution\n\ninstall_license llvm/LICENSE.TXT\n"""
+version = "v21.0.0"
+
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["clang"]
+type = "exe"
+variable_name = "clang"
+[[products]]
+binnames = ["clang++"]
+type = "exe"
+variable_name = "clangxx"
+[[products]]
+binnames = ["lld"]
+type = "exe"
+variable_name = "lld"
+[[products]]
+binnames = ["llc"]
+type = "exe"
+variable_name = "llc"
+[[products]]
+binnames = ["opt"]
+type = "exe"
+variable_name = "opt"
+
+[[sources]]
+hash = "fb4dce4d1f515d590ae75233a0e88c8d00af977b"
+type = "git"
+unpack_target = ""
+url = "https://github.com/Xilinx/llvm-aie.git"
