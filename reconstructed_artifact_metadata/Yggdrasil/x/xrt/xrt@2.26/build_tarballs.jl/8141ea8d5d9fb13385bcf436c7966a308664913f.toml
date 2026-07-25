@@ -1,0 +1,220 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "xrt"
+platforms = ["x86_64-linux-gnu-cxx11", "x86_64-w64-mingw32-cxx11"]
+script = """cd ${WORKSPACE}/srcdir/XRT\ninstall_license LICENSE\n\n# aiebu (a submodule) requires CMake >= 3.24 on Windows, newer than the image's\n# 3.21. Drop the old system cmake so the HostBuildDependency CMake_jll below wins.\napk del cmake\n\n# Fetch submodules for XRT\ngit submodule update --init --recursive\n\nif [[ \"${target}\" == *-linux-* ]]; then\n    # Missing define for a large shift in the PCIe shim.\n    atomic_patch -p1 ../patches/linux/huge_shift.patch\nfi\n\n# Quiet by default\natomic_patch -p1 ../patches/quiet-verbosity.patch\n\n# fix \"bad any_cast\" in xrt::device::get_info's kdma case\natomic_patch -p1 ../patches/kdma_any_cast.patch\n\nif [[ \"${target}\" == *-w64-* ]]; then\n    atomic_patch -p1 ../patches/windows/aligned_malloc.patch\n    atomic_patch -p1 ../patches/windows/no_static_boost.patch\n    atomic_patch -p1 ../patches/windows/disable_trace.patch\n    atomic_patch -p1 ../patches/windows/remove_duplicate_type_defs.patch\n    atomic_patch -p1 ../patches/windows/fix_aie-pdi-transform.patch\n    atomic_patch -p1 ../patches/windows/fix_aiebu_cmake.patch\n    atomic_patch -p1 ../patches/windows/fix_XRT_CORE_COMMON_EXPORT.patch\n    atomic_patch -p1 ../patches/windows/fix_aiebu_metrics.patch\n    atomic_patch -p1 ../patches/windows/export_all_symbols.patch\n    atomic_patch -p1 ../patches/windows/no_dupenv.patch\n    atomic_patch -p1 ../patches/windows/fix_smi_symbols_export.patch\n    atomic_patch -p1 ../patches/windows/fix_OpenCL_dll_install.patch\n    # without -DXRT_API_SOURCE, gcc complains about `error: function ‘xrt::elf::elf(std::shared_ptr<xrt::elf_impl>)’ definition is marked dllimport`\n    # in XRT/src/runtime_src/core/include/xrt/experimental/xrt_elf.h:197:3\n    export ADDITIONAL_CMAKE_CXX_FLAGS=\"-fpermissive -D_WINDOWS -DXRT_API_SOURCE\"\nfi\n\n# Statically link to boost\nexport XRT_BOOST_INSTALL=${WORKSPACE}/destdir\n\n# 1. BUILD XRT\ncd src\ncmake -S . -B build \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_CXX_FLAGS=\"${ADDITIONAL_CMAKE_CXX_FLAGS}\" \\\n    -DXRT_RC_VERSION=202610.2.23.0 \\\n    -DCMAKE_BUILD_TYPE=Release\ncmake --build build --parallel ${nproc}\ncmake --install build\n\nif [[ \"${target}\" == *-w64-* ]]; then\n    cd ${prefix}\n    mv *.dll ${libdir}/\n    mv *.exe ${bindir}/\n    mv unwrapped ${bindir}/\n    mv setup.bat xball xbmgmt xbmgmt.bat xclbinutil xclbinutil.bat xrt-smi xrt-smi.bat ${bindir}/\nfi\n\n# 2. BUILD XDNA SHIM (Linux x86_64 only, where the NPU host lives)\nif [[ \"${target}\" == *-linux-* ]]; then\n    cd ${WORKSPACE}/srcdir/xdna-driver\n\n    # the distro-detection check is fatal off a known distro; make it non-fatal.\n    sed -i 's/message(FATAL_ERROR/message(STATUS/g' CMake/pkg.cmake\n\n    # drop -Werror so upstream warnings don't fail the build.\n    find . -type f -name \"CMakeLists.txt\" -exec sed -i 's/-Werror//g' {} \\;\n\n    # device.cpp uses pidfd syscalls with no fallback; define the x86_64 numbers.\n    printf '#include <sys/syscall.h>\\n#ifndef SYS_pidfd_open\\n#define SYS_pidfd_open 434\\n#endif\\n#ifndef SYS_pidfd_getfd\\n#define SYS_pidfd_getfd 438\\n#endif\\n' | cat - src/shim/device.cpp > device.tmp\n    mv device.tmp src/shim/device.cpp\n\n    # host/platform_host.cpp includes <drm/drm.h>, but the shim never puts libdrm\n    # on its include path. Prepend it (CMAKE_CXX_FLAGS gets overwritten downstream).\n    printf 'include_directories(\"%s/include/libdrm\" \"%s/include\")\\n' \"${prefix}\" \"${prefix}\" | cat - src/shim/CMakeLists.txt > shim_cmake.tmp\n    mv shim_cmake.tmp src/shim/CMakeLists.txt\n\n    # drop the virtio-gpu (VM-guest) backend -- it needs VIRTGPU blob/context UAPI\n    # libdrm lacks, and a native host never uses it (backends self-register, so the\n    # virtgpu driver just goes unregistered).\n    rm -f src/shim/virtio/*.cpp\n\n    # link libdl (dladdr) and libpthread (pthread_create); the shim omits both,\n    # and BB's split glibc + -Wl,-z,defs make the missing symbols fatal.\n    echo 'find_package(Threads REQUIRED)' >> src/shim/CMakeLists.txt\n    echo 'target_link_libraries(xrt_driver_xdna PRIVATE ${CMAKE_DL_LIBS} Threads::Threads)' >> src/shim/CMakeLists.txt\n\n    # The shim builds XRT via add_subdirectory(xrt/src); point that at our patched tree.\n    rm -rf xrt\n    ln -s ${WORKSPACE}/srcdir/XRT xrt\n\n    # SKIP_KMOD=1 builds only the userspace shim.\n    cmake -S . -B build \\\n        -DCMAKE_INSTALL_PREFIX=${prefix} \\\n        -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n        -DCMAKE_CXX_STANDARD=17 \\\n        -DCMAKE_CXX_STANDARD_REQUIRED=ON \\\n        -DSKIP_KMOD=1 \\\n        -DCMAKE_BUILD_TYPE=Release\n\n    cmake --build build --parallel ${nproc}\n\n    # Co-locate the shim with libxrt_core so driver_plugin_paths() finds it.\n    cp build/src/shim/libxrt_driver_xdna.so* ${prefix}/lib/\nfi\n"""
+version = "v2.26.0"
+
+[[dependencies]]
+compat = ""
+name = "boost_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 1
+version-minor = 79
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "ELFIO_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenCL_Headers_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "ocl_icd_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "rapidjson_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "7.73, 8"
+name = "LibCURL_jll"
+platforms = ["x86_64-linux-gnu-cxx11"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "libdrm_jll"
+platforms = ["x86_64-linux-gnu-cxx11"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Libuuid_jll"
+platforms = ["x86_64-linux-gnu-cxx11"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LibYAML_jll"
+platforms = ["x86_64-linux-gnu-cxx11"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Ncurses_jll"
+platforms = ["x86_64-linux-gnu-cxx11"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "3.0.8"
+name = "OpenSSL_jll"
+platforms = ["x86_64-linux-gnu-cxx11"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "protobuf_c_jll"
+platforms = ["x86_64-linux-gnu-cxx11"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "systemd_jll"
+platforms = ["x86_64-linux-gnu-cxx11"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "systemtap_jll"
+platforms = ["x86_64-linux-gnu-cxx11"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CMake_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libxrt_coreutil"]
+type = "lib"
+variable_name = "libxrt_coreutil"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libxilinxopencl"]
+type = "lib"
+variable_name = "libxilinxopencl"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libxrt_core"]
+type = "lib"
+variable_name = "libxrt_core"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libxdp_core"]
+type = "lib"
+variable_name = "libxdp_core"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libxrt++"]
+type = "lib"
+variable_name = "libxrtxx"
+[[products]]
+binnames = ["xclbinutil", "unwrapped/xclbinutil.exe"]
+type = "exe"
+variable_name = "xclbinutil"
+[[products]]
+binnames = ["xbmgmt", "unwrapped/xbmgmt.exe"]
+type = "exe"
+variable_name = "xbmgmt"
+[[products]]
+binnames = ["unwrapped/xrt-capture"]
+type = "exe"
+variable_name = "xrt_capture"
+[[products]]
+binnames = ["unwrapped/xrt-replay"]
+type = "exe"
+variable_name = "xrt_replay"
+[[products]]
+binnames = ["unwrapped/xrt-runner"]
+type = "exe"
+variable_name = "xrt_runner"
+[[products]]
+binnames = ["xrt-smi", "unwrapped/xrt-smi.exe"]
+type = "exe"
+variable_name = "xrt_smi"
+
+[[sources]]
+hash = "b4bbf24c54b355b585d59f15264aba47d9aa54b9"
+type = "git"
+unpack_target = ""
+url = "https://github.com/Xilinx/XRT.git"
+[[sources]]
+hash = "0697b1720fc539f57bdc8d5854ddf7c7014ae160"
+type = "git"
+unpack_target = ""
+url = "https://github.com/amd/xdna-driver.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

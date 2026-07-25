@@ -1,0 +1,146 @@
+augment_platform_block = """    using Base.BinaryPlatforms\n    using Libdl: dlopen, dlsym\n\nfunction augment_llvm!(platform::Platform)\n    haskey(platform, \"llvm_version\") && return platform\n\n    llvm_version = Base.libllvm_version\n    # does our LLVM build use assertions?\n    llvm_assertions = try\n        dlsym(dlopen(Base.libllvm_path()), \"_ZN4llvm24DisableABIBreakingChecksE\")\n        false\n    catch\n        true\n    end\n    platform[\"llvm_version\"] = if llvm_assertions\n        \"$(llvm_version.major).asserts\"\n    else\n        \"$(llvm_version.major)\"\n    end\n    return platform\nend\n\n    augment_platform!(platform::Platform) = augment_llvm!(platform)\n"""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = true
+name = "LLVMExtra"
+platforms = ["i686-linux-gnu-cxx11-llvm_version+15", "x86_64-linux-gnu-cxx11-llvm_version+15", "aarch64-linux-gnu-cxx11-llvm_version+15", "armv6l-linux-gnueabihf-cxx11-llvm_version+15", "armv7l-linux-gnueabihf-cxx11-llvm_version+15", "powerpc64le-linux-gnu-cxx11-llvm_version+15", "x86_64-linux-musl-cxx11-llvm_version+15", "aarch64-linux-musl-cxx11-llvm_version+15", "armv6l-linux-musleabihf-cxx11-llvm_version+15", "armv7l-linux-musleabihf-cxx11-llvm_version+15", "x86_64-apple-darwin-llvm_version+15", "aarch64-apple-darwin-llvm_version+15", "x86_64-unknown-freebsd-llvm_version+15", "i686-w64-mingw32-cxx11-llvm_version+15", "x86_64-w64-mingw32-cxx11-llvm_version+15", "i686-linux-gnu-cxx11-llvm_version+15.asserts", "x86_64-linux-gnu-cxx11-llvm_version+15.asserts", "aarch64-linux-gnu-cxx11-llvm_version+15.asserts", "armv6l-linux-gnueabihf-cxx11-llvm_version+15.asserts", "armv7l-linux-gnueabihf-cxx11-llvm_version+15.asserts", "powerpc64le-linux-gnu-cxx11-llvm_version+15.asserts", "x86_64-linux-musl-cxx11-llvm_version+15.asserts", "aarch64-linux-musl-cxx11-llvm_version+15.asserts", "armv6l-linux-musleabihf-cxx11-llvm_version+15.asserts", "armv7l-linux-musleabihf-cxx11-llvm_version+15.asserts", "x86_64-apple-darwin-llvm_version+15.asserts", "aarch64-apple-darwin-llvm_version+15.asserts", "x86_64-unknown-freebsd-llvm_version+15.asserts", "i686-w64-mingw32-cxx11-llvm_version+15.asserts", "x86_64-w64-mingw32-cxx11-llvm_version+15.asserts", "i686-linux-gnu-cxx11-llvm_version+16", "x86_64-linux-gnu-cxx11-llvm_version+16", "aarch64-linux-gnu-cxx11-llvm_version+16", "armv6l-linux-gnueabihf-cxx11-llvm_version+16", "armv7l-linux-gnueabihf-cxx11-llvm_version+16", "powerpc64le-linux-gnu-cxx11-llvm_version+16", "x86_64-linux-musl-cxx11-llvm_version+16", "aarch64-linux-musl-cxx11-llvm_version+16", "armv6l-linux-musleabihf-cxx11-llvm_version+16", "armv7l-linux-musleabihf-cxx11-llvm_version+16", "x86_64-apple-darwin-llvm_version+16", "aarch64-apple-darwin-llvm_version+16", "x86_64-unknown-freebsd-llvm_version+16", "i686-w64-mingw32-cxx11-llvm_version+16", "x86_64-w64-mingw32-cxx11-llvm_version+16", "i686-linux-gnu-cxx11-llvm_version+16.asserts", "x86_64-linux-gnu-cxx11-llvm_version+16.asserts", "aarch64-linux-gnu-cxx11-llvm_version+16.asserts", "armv6l-linux-gnueabihf-cxx11-llvm_version+16.asserts", "armv7l-linux-gnueabihf-cxx11-llvm_version+16.asserts", "powerpc64le-linux-gnu-cxx11-llvm_version+16.asserts", "x86_64-linux-musl-cxx11-llvm_version+16.asserts", "aarch64-linux-musl-cxx11-llvm_version+16.asserts", "armv6l-linux-musleabihf-cxx11-llvm_version+16.asserts", "armv7l-linux-musleabihf-cxx11-llvm_version+16.asserts", "x86_64-apple-darwin-llvm_version+16.asserts", "aarch64-apple-darwin-llvm_version+16.asserts", "x86_64-unknown-freebsd-llvm_version+16.asserts", "i686-w64-mingw32-cxx11-llvm_version+16.asserts", "x86_64-w64-mingw32-cxx11-llvm_version+16.asserts", "i686-linux-gnu-cxx11-llvm_version+18", "x86_64-linux-gnu-cxx11-llvm_version+18", "aarch64-linux-gnu-cxx11-llvm_version+18", "armv6l-linux-gnueabihf-cxx11-llvm_version+18", "armv7l-linux-gnueabihf-cxx11-llvm_version+18", "powerpc64le-linux-gnu-cxx11-llvm_version+18", "x86_64-linux-musl-cxx11-llvm_version+18", "aarch64-linux-musl-cxx11-llvm_version+18", "armv6l-linux-musleabihf-cxx11-llvm_version+18", "armv7l-linux-musleabihf-cxx11-llvm_version+18", "x86_64-apple-darwin-llvm_version+18", "aarch64-apple-darwin-llvm_version+18", "x86_64-unknown-freebsd-llvm_version+18", "i686-w64-mingw32-cxx11-llvm_version+18", "x86_64-w64-mingw32-cxx11-llvm_version+18", "i686-linux-gnu-cxx11-llvm_version+18.asserts", "x86_64-linux-gnu-cxx11-llvm_version+18.asserts", "aarch64-linux-gnu-cxx11-llvm_version+18.asserts", "armv6l-linux-gnueabihf-cxx11-llvm_version+18.asserts", "armv7l-linux-gnueabihf-cxx11-llvm_version+18.asserts", "powerpc64le-linux-gnu-cxx11-llvm_version+18.asserts", "x86_64-linux-musl-cxx11-llvm_version+18.asserts", "aarch64-linux-musl-cxx11-llvm_version+18.asserts", "armv6l-linux-musleabihf-cxx11-llvm_version+18.asserts", "armv7l-linux-musleabihf-cxx11-llvm_version+18.asserts", "x86_64-apple-darwin-llvm_version+18.asserts", "aarch64-apple-darwin-llvm_version+18.asserts", "x86_64-unknown-freebsd-llvm_version+18.asserts", "i686-w64-mingw32-cxx11-llvm_version+18.asserts", "x86_64-w64-mingw32-cxx11-llvm_version+18.asserts", "i686-linux-gnu-cxx11-llvm_version+20", "x86_64-linux-gnu-cxx11-llvm_version+20", "aarch64-linux-gnu-cxx11-llvm_version+20", "armv6l-linux-gnueabihf-cxx11-llvm_version+20", "armv7l-linux-gnueabihf-cxx11-llvm_version+20", "powerpc64le-linux-gnu-cxx11-llvm_version+20", "riscv64-linux-gnu-cxx11-llvm_version+20", "x86_64-linux-musl-cxx11-llvm_version+20", "aarch64-linux-musl-cxx11-llvm_version+20", "armv6l-linux-musleabihf-cxx11-llvm_version+20", "armv7l-linux-musleabihf-cxx11-llvm_version+20", "x86_64-apple-darwin-llvm_version+20", "aarch64-apple-darwin-llvm_version+20", "x86_64-unknown-freebsd-llvm_version+20", "i686-w64-mingw32-cxx11-llvm_version+20", "x86_64-w64-mingw32-cxx11-llvm_version+20", "i686-linux-gnu-cxx11-llvm_version+20.asserts", "x86_64-linux-gnu-cxx11-llvm_version+20.asserts", "aarch64-linux-gnu-cxx11-llvm_version+20.asserts", "armv6l-linux-gnueabihf-cxx11-llvm_version+20.asserts", "armv7l-linux-gnueabihf-cxx11-llvm_version+20.asserts", "powerpc64le-linux-gnu-cxx11-llvm_version+20.asserts", "riscv64-linux-gnu-cxx11-llvm_version+20.asserts", "x86_64-linux-musl-cxx11-llvm_version+20.asserts", "aarch64-linux-musl-cxx11-llvm_version+20.asserts", "armv6l-linux-musleabihf-cxx11-llvm_version+20.asserts", "armv7l-linux-musleabihf-cxx11-llvm_version+20.asserts", "x86_64-apple-darwin-llvm_version+20.asserts", "aarch64-apple-darwin-llvm_version+20.asserts", "x86_64-unknown-freebsd-llvm_version+20.asserts", "i686-w64-mingw32-cxx11-llvm_version+20.asserts", "x86_64-w64-mingw32-cxx11-llvm_version+20.asserts", "i686-linux-gnu-cxx11-llvm_version+21", "x86_64-linux-gnu-cxx11-llvm_version+21", "aarch64-linux-gnu-cxx11-llvm_version+21", "armv6l-linux-gnueabihf-cxx11-llvm_version+21", "armv7l-linux-gnueabihf-cxx11-llvm_version+21", "powerpc64le-linux-gnu-cxx11-llvm_version+21", "riscv64-linux-gnu-cxx11-llvm_version+21", "x86_64-linux-musl-cxx11-llvm_version+21", "aarch64-linux-musl-cxx11-llvm_version+21", "armv6l-linux-musleabihf-cxx11-llvm_version+21", "armv7l-linux-musleabihf-cxx11-llvm_version+21", "x86_64-apple-darwin-llvm_version+21", "aarch64-apple-darwin-llvm_version+21", "x86_64-unknown-freebsd-llvm_version+21", "i686-w64-mingw32-cxx11-llvm_version+21", "x86_64-w64-mingw32-cxx11-llvm_version+21", "i686-linux-gnu-cxx11-llvm_version+21.asserts", "x86_64-linux-gnu-cxx11-llvm_version+21.asserts", "aarch64-linux-gnu-cxx11-llvm_version+21.asserts", "armv6l-linux-gnueabihf-cxx11-llvm_version+21.asserts", "armv7l-linux-gnueabihf-cxx11-llvm_version+21.asserts", "powerpc64le-linux-gnu-cxx11-llvm_version+21.asserts", "riscv64-linux-gnu-cxx11-llvm_version+21.asserts", "x86_64-linux-musl-cxx11-llvm_version+21.asserts", "aarch64-linux-musl-cxx11-llvm_version+21.asserts", "armv6l-linux-musleabihf-cxx11-llvm_version+21.asserts", "armv7l-linux-musleabihf-cxx11-llvm_version+21.asserts", "x86_64-apple-darwin-llvm_version+21.asserts", "aarch64-apple-darwin-llvm_version+21.asserts", "x86_64-unknown-freebsd-llvm_version+21.asserts", "i686-w64-mingw32-cxx11-llvm_version+21.asserts", "x86_64-w64-mingw32-cxx11-llvm_version+21.asserts"]
+script = """macos_sdk_version=10.14\nmacosx_deployment_target=10.14\n# Move the SDK tarball out of `srcdir` on all platforms: any extra entry\n# in there defeats the automatic installation of license files, which\n# expects `srcdir` to contain a single top-level source directory.\nmv ${WORKSPACE}/srcdir/MacOSX${macos_sdk_version}.sdk.tar.xz ${WORKSPACE}/\nif [[ \"${target}\" == x86_64-apple-darwin* ]]; then\n    # Extract SDK. Also outside of `srcdir`, for the same reason.\n    echo \"Extracting MacOSX${macos_sdk_version}.sdk.tar.xz (this may take a while)\"\n    tar \\\n        --extract \\\n        --file=${WORKSPACE}/MacOSX${macos_sdk_version}.sdk.tar.xz \\\n        --directory=${WORKSPACE} \\\n        --warning=no-unknown-keyword\n    old_sdkroot=${SDKROOT}\n    new_sdkroot=${WORKSPACE}/MacOSX${macos_sdk_version}.sdk\n    # Make sure libc++ header files are available at `usr/include/c++/v1`.\n    # Some SDKs ship their own (e.g. 15.0), which we leave alone; for those\n    # that don't, symlink the ones from the default SDK. Note we symlink\n    # the `v1` subdirectory rather than the whole `c++` directory: some\n    # SDKs (e.g. 10.13) contain `usr/include/c++/4.2.1` (but no `v1`), and\n    # symlinking `c++` onto that existing directory would silently create\n    # a nested `c++/c++` link, so libc++ headers like <new> are not found.\n    if [[ ! -d ${new_sdkroot}/usr/include/c++/v1 ]]; then\n        mkdir -p ${new_sdkroot}/usr/include/c++\n        ln -sT ${old_sdkroot}/usr/include/c++/v1 ${new_sdkroot}/usr/include/c++/v1\n    fi\n    # In the build environment `usr/local` of the default sys-root is a\n    # symlink to the destdir prefix, which puts the header files of the\n    # dependencies on the compilers' default search path. No SDK ships a\n    # `usr/local`, so replicate that symlink in the new SDK. `-T` makes\n    # this fail loudly should some SDK ship a `usr/local` after all,\n    # instead of silently creating a nested `usr/local/local` link.\n    ln -sT ${old_sdkroot}/usr/local ${new_sdkroot}/usr/local\n    # Fix toolchain files\n    sed -i -e \"s+${old_sdkroot}+${new_sdkroot}+\" ${MESON_TARGET_TOOLCHAIN} ${CMAKE_TARGET_TOOLCHAIN}\n    # Fix compiler wrappers\n    sed -i -e \"s+${old_sdkroot}+${new_sdkroot}+\" $(find /opt/bin/${target}* -type f -print)\n    SDKROOT=${new_sdkroot}\n    export MACOSX_DEPLOYMENT_TARGET=${macosx_deployment_target}\nfi\ncd LLVM.jl/deps/LLVMExtra\n\nCMAKE_FLAGS=()\n# Release build for best performance\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=RelWithDebInfo)\n# Install things into $prefix\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix})\n# Explicitly use our cmake toolchain file and tell CMake we're cross-compiling\nCMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING:BOOL=ON)\n# Tell CMake where LLVM is\nCMAKE_FLAGS+=(-DLLVM_DIR=\"${prefix}/lib/cmake/llvm\")\n# Force linking against shared lib\nCMAKE_FLAGS+=(-DLLVM_LINK_LLVM_DYLIB=ON)\n# Build the library\nCMAKE_FLAGS+=(-DBUILD_SHARED_LIBS=ON)\ncmake -B build -S . -GNinja ${CMAKE_FLAGS[@]}\n\nninja -C build -j ${nproc} install\n\ninstall_license LICENSE-APACHE LICENSE-MIT\n"""
+version = "v0.0.44"
+
+[[dependencies]]
+compat = ""
+name = "LLVM_full_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 15
+version-minor = 0
+version-patch = 7
+[[dependencies]]
+compat = ""
+name = "LLVM_full_assert_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 15
+version-minor = 0
+version-patch = 7
+[[dependencies]]
+compat = ""
+name = "LLVM_full_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 16
+version-minor = 0
+version-patch = 6
+[[dependencies]]
+compat = ""
+name = "LLVM_full_assert_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 16
+version-minor = 0
+version-patch = 6
+[[dependencies]]
+compat = ""
+name = "LLVM_full_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 18
+version-minor = 1
+version-patch = 7
+[[dependencies]]
+compat = ""
+name = "LLVM_full_assert_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 18
+version-minor = 1
+version-patch = 7
+[[dependencies]]
+compat = ""
+name = "LLVM_full_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 20
+version-minor = 1
+version-patch = 8
+[[dependencies]]
+compat = ""
+name = "LLVM_full_assert_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 20
+version-minor = 1
+version-patch = 8
+[[dependencies]]
+compat = ""
+name = "LLVM_full_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 21
+version-minor = 1
+version-patch = 8
+[[dependencies]]
+compat = ""
+name = "LLVM_full_assert_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 21
+version-minor = 1
+version-patch = 8
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libLLVMExtra-15", "libLLVMExtra"]
+type = "lib"
+variable_name = "libLLVMExtra"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libLLVMExtra-16", "libLLVMExtra"]
+type = "lib"
+variable_name = "libLLVMExtra"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libLLVMExtra-18", "libLLVMExtra"]
+type = "lib"
+variable_name = "libLLVMExtra"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libLLVMExtra-20", "libLLVMExtra"]
+type = "lib"
+variable_name = "libLLVMExtra"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libLLVMExtra-21", "libLLVMExtra"]
+type = "lib"
+variable_name = "libLLVMExtra"
+
+[[sources]]
+hash = "1f965b077d367c5d890083c61e6f7b212d2575a6"
+type = "git"
+unpack_target = ""
+url = "https://github.com/maleadt/LLVM.jl.git"
+[[sources]]
+filename = "MacOSX10.14.sdk.tar.xz"
+hash = "0f03869f72df8705b832910517b47dd5b79eb4e160512602f593ed243b28715f"
+type = "file"
+url = "https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.14.sdk.tar.xz"

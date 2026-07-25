@@ -1,0 +1,84 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = true
+name = "LLVMDowngrader"
+platforms = ["i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx11", "riscv64-linux-gnu-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx11"]
+script = """macos_sdk_version=10.14\nmacosx_deployment_target=10.14\n# Move the SDK tarball out of `srcdir` on all platforms: any extra entry\n# in there defeats the automatic installation of license files, which\n# expects `srcdir` to contain a single top-level source directory.\nmv ${WORKSPACE}/srcdir/MacOSX${macos_sdk_version}.sdk.tar.xz ${WORKSPACE}/\nif [[ \"${target}\" == x86_64-apple-darwin* ]]; then\n    # Extract SDK. Also outside of `srcdir`, for the same reason.\n    echo \"Extracting MacOSX${macos_sdk_version}.sdk.tar.xz (this may take a while)\"\n    tar \\\n        --extract \\\n        --file=${WORKSPACE}/MacOSX${macos_sdk_version}.sdk.tar.xz \\\n        --directory=${WORKSPACE} \\\n        --warning=no-unknown-keyword\n    old_sdkroot=${SDKROOT}\n    new_sdkroot=${WORKSPACE}/MacOSX${macos_sdk_version}.sdk\n    # Make sure libc++ header files are available at `usr/include/c++/v1`.\n    # Some SDKs ship their own (e.g. 15.0), which we leave alone; for those\n    # that don't, symlink the ones from the default SDK. Note we symlink\n    # the `v1` subdirectory rather than the whole `c++` directory: some\n    # SDKs (e.g. 10.13) contain `usr/include/c++/4.2.1` (but no `v1`), and\n    # symlinking `c++` onto that existing directory would silently create\n    # a nested `c++/c++` link, so libc++ headers like <new> are not found.\n    if [[ ! -d ${new_sdkroot}/usr/include/c++/v1 ]]; then\n        mkdir -p ${new_sdkroot}/usr/include/c++\n        ln -sT ${old_sdkroot}/usr/include/c++/v1 ${new_sdkroot}/usr/include/c++/v1\n    fi\n    # In the build environment `usr/local` of the default sys-root is a\n    # symlink to the destdir prefix, which puts the header files of the\n    # dependencies on the compilers' default search path. No SDK ships a\n    # `usr/local`, so replicate that symlink in the new SDK. `-T` makes\n    # this fail loudly should some SDK ship a `usr/local` after all,\n    # instead of silently creating a nested `usr/local/local` link.\n    ln -sT ${old_sdkroot}/usr/local ${new_sdkroot}/usr/local\n    # Fix toolchain files\n    sed -i -e \"s+${old_sdkroot}+${new_sdkroot}+\" ${MESON_TARGET_TOOLCHAIN} ${CMAKE_TARGET_TOOLCHAIN}\n    # Fix compiler wrappers\n    sed -i -e \"s+${old_sdkroot}+${new_sdkroot}+\" $(find /opt/bin/${target}* -type f -print)\n    SDKROOT=${new_sdkroot}\n    export MACOSX_DEPLOYMENT_TARGET=${macosx_deployment_target}\nfi\ncd ${WORKSPACE}/srcdir/llvm-downgrade\ninstall_license LICENSE.TXT\n\n# Build out-of-tree against the prebuilt LLVM from LLVM_full_jll, statically\n# linking the LLVM component archives so `llvm-downgrade` has no runtime libLLVM\n# dependency. The test suite needs legacy disassemblers we don't ship here, so\n# it is disabled for the package build.\ncmake -B build -S . -GNinja \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_CROSSCOMPILING:BOOL=ON \\\n    -DLLVM_DIR=${prefix}/lib/cmake/llvm \\\n    -DLLVM_LINK_LLVM_DYLIB=OFF \\\n    -DLLVMDG_BUILD_TESTS=OFF\nninja -C build -j${nproc} install\n\n# Build `llvm-dis` from the old LLVM releases whose bitcode the downgrader emits,\n# so the downgraded IR can be disassembled with a matching disassembler. These are\n# self-contained source builds (no LLVM_full_jll): a native llvm-tblgen/llvm-config\n# bootstrap, then a cross build of just `llvm-dis` (no backends) to keep it quick.\n# The ancient releases (5/7) need a couple of source tweaks to build with a modern\n# CMake/toolchain (see bundled/patches); LLVM 14 builds cleanly, so the patch is\n# applied only when one exists.\nbuild_old_llvm_dis() {\n    local llvm_src=\"$1\"\n    local suffix=\"$2\"\n\n    # apply the build-compatibility patches, if this release needs any\n    local patch=\"${WORKSPACE}/srcdir/patches/llvm${suffix}-cmake-policy-and-regex-guard.patch\"\n    if [ -f \"${patch}\" ]; then\n        pushd \"${llvm_src}\"\n        atomic_patch -p1 \"${patch}\"\n        popd\n    fi\n\n    # native bootstrap: build a host llvm-tblgen/llvm-config matching this version\n    mkdir -p \"${WORKSPACE}/dis-bootstrap-${suffix}\"\n    pushd \"${WORKSPACE}/dis-bootstrap-${suffix}\"\n    cmake -GNinja \"${llvm_src}\" \\\n        -DCMAKE_BUILD_TYPE=Release \\\n        -DCMAKE_CROSSCOMPILING=False \\\n        -DCMAKE_TOOLCHAIN_FILE=\"${CMAKE_HOST_TOOLCHAIN}\" \\\n        -DLLVM_HOST_TRIPLE=\"${MACHTYPE}\" \\\n        -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \\\n        -DLLVM_TARGETS_TO_BUILD=\"\" \\\n        -DLLVM_INCLUDE_TESTS=OFF \\\n        -DLLVM_INCLUDE_EXAMPLES=OFF \\\n        -DLLVM_INCLUDE_BENCHMARKS=OFF \\\n        -DLLVM_INCLUDE_DOCS=OFF \\\n        -DLLVM_ENABLE_TERMINFO=OFF \\\n        -DLLVM_ENABLE_ZLIB=OFF \\\n        -DLLVM_ENABLE_ZSTD=OFF \\\n        -DLLVM_ENABLE_LIBXML2=OFF\n    ninja -j${nproc} llvm-tblgen llvm-config\n    popd\n\n    # cross build: just `llvm-dis`, then install + rename to `llvm-dis-${suffix}`\n    mkdir -p \"${WORKSPACE}/dis-build-${suffix}\"\n    pushd \"${WORKSPACE}/dis-build-${suffix}\"\n    cmake -GNinja \"${llvm_src}\" \\\n        -DCMAKE_BUILD_TYPE=Release \\\n        -DCMAKE_CROSSCOMPILING:BOOL=ON \\\n        -DCMAKE_TOOLCHAIN_FILE=\"${CMAKE_TARGET_TOOLCHAIN}\" \\\n        -DCMAKE_INSTALL_PREFIX=\"${prefix}\" \\\n        -DLLVM_TABLEGEN=\"${WORKSPACE}/dis-bootstrap-${suffix}/bin/llvm-tblgen\" \\\n        -DLLVM_CONFIG_PATH=\"${WORKSPACE}/dis-bootstrap-${suffix}/bin/llvm-config\" \\\n        -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \\\n        -DLLVM_TARGETS_TO_BUILD=\"\" \\\n        -DLLVM_INCLUDE_TESTS=OFF \\\n        -DLLVM_INCLUDE_EXAMPLES=OFF \\\n        -DLLVM_INCLUDE_BENCHMARKS=OFF \\\n        -DLLVM_INCLUDE_DOCS=OFF \\\n        -DLLVM_ENABLE_TERMINFO=OFF \\\n        -DLLVM_ENABLE_ZLIB=OFF \\\n        -DLLVM_ENABLE_ZSTD=OFF \\\n        -DLLVM_ENABLE_LIBXML2=OFF \\\n        -DHAVE_HISTEDIT_H=OFF \\\n        -DHAVE_LIBEDIT=OFF\n    ninja -j${nproc} tools/llvm-dis/install\n    mv \"${bindir}/llvm-dis${exeext}\" \"${bindir}/llvm-dis-${suffix}${exeext}\"\n    popd\n}\n\nbuild_old_llvm_dis \"${WORKSPACE}/srcdir/llvm-5.0.2.src\" 5\nbuild_old_llvm_dis \"${WORKSPACE}/srcdir/llvm-7.1.0.src\" 7\nbuild_old_llvm_dis \"${WORKSPACE}/srcdir/llvm-14.0.6.src\" 14\n"""
+version = "v0.8.3"
+
+[[dependencies]]
+compat = ""
+name = "LLVM_full_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 21
+version-minor = 1
+version-patch = 8
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zstd_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["llvm-downgrade"]
+type = "exe"
+variable_name = "llvm_downgrade"
+[[products]]
+binnames = ["llvm-dis-5"]
+type = "exe"
+variable_name = "llvm_dis_5"
+[[products]]
+binnames = ["llvm-dis-7"]
+type = "exe"
+variable_name = "llvm_dis_7"
+[[products]]
+binnames = ["llvm-dis-14"]
+type = "exe"
+variable_name = "llvm_dis_14"
+
+[[sources]]
+hash = "5995472423989b01a3368611c993c9b0d6197622"
+type = "git"
+unpack_target = ""
+url = "https://github.com/JuliaLLVM/llvm-downgrade"
+[[sources]]
+hash = "d522eda97835a9c75f0b88ddc81437e5edbb87dc2740686cb8647763855c2b3c"
+type = "archive"
+unpack_target = ""
+url = "https://releases.llvm.org/5.0.2/llvm-5.0.2.src.tar.xz"
+[[sources]]
+hash = "1bcc9b285074ded87b88faaedddb88e6b5d6c331dfcfb57d7f3393dd622b3764"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/llvm/llvm-project/releases/download/llvmorg-7.1.0/llvm-7.1.0.src.tar.xz"
+[[sources]]
+hash = "050922ecaaca5781fdf6631ea92bc715183f202f9d2f15147226f023414f619a"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/llvm/llvm-project/releases/download/llvmorg-14.0.6/llvm-14.0.6.src.tar.xz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"
+[[sources]]
+filename = "MacOSX10.14.sdk.tar.xz"
+hash = "0f03869f72df8705b832910517b47dd5b79eb4e160512602f593ed243b28715f"
+type = "file"
+url = "https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.14.sdk.tar.xz"
