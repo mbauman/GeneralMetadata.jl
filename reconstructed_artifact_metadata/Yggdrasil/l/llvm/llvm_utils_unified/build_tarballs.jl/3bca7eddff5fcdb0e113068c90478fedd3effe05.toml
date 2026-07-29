@@ -1,0 +1,568 @@
+augment_platform_block = """    using Base.BinaryPlatforms\n\n    using Libdl: dlopen, dlsym\n\nfunction augment_llvm!(platform::Platform)\n    haskey(platform, \"llvm_version\") && return platform\n\n    llvm_version = Base.libllvm_version\n    # does our LLVM build use assertions?\n    llvm_assertions = try\n        dlsym(dlopen(Base.libllvm_path()), \"_ZN4llvm24DisableABIBreakingChecksE\")\n        false\n    catch\n        true\n    end\n    platform[\"llvm_version\"] = if llvm_assertions\n        \"$(llvm_version.major).asserts\"\n    else\n        \"$(llvm_version.major)\"\n    end\n    return platform\nend\n\n\n    augment_platform!(platform::Platform) = augment_llvm!(platform)\n"""
+init_block = ""
+julia_compat = "1.10"
+lazy_artifacts = false
+name = "LLVM_utils_unified"
+platforms = ["i686-linux-gnu-cxx11-llvm_version+15", "x86_64-linux-gnu-cxx11-llvm_version+15", "aarch64-linux-gnu-cxx11-llvm_version+15", "armv6l-linux-gnueabihf-cxx11-llvm_version+15", "armv7l-linux-gnueabihf-cxx11-llvm_version+15", "powerpc64le-linux-gnu-cxx11-llvm_version+15", "x86_64-linux-musl-cxx11-llvm_version+15", "aarch64-linux-musl-cxx11-llvm_version+15", "armv6l-linux-musleabihf-cxx11-llvm_version+15", "armv7l-linux-musleabihf-cxx11-llvm_version+15", "x86_64-apple-darwin-llvm_version+15", "aarch64-apple-darwin-llvm_version+15", "x86_64-unknown-freebsd-llvm_version+15", "i686-w64-mingw32-cxx11-llvm_version+15", "x86_64-w64-mingw32-cxx11-llvm_version+15", "x86_64-linux-gnu-cxx11-sanitize+memory-llvm_version+15", "i686-linux-gnu-cxx11-llvm_version+16", "x86_64-linux-gnu-cxx11-llvm_version+16", "aarch64-linux-gnu-cxx11-llvm_version+16", "armv6l-linux-gnueabihf-cxx11-llvm_version+16", "armv7l-linux-gnueabihf-cxx11-llvm_version+16", "powerpc64le-linux-gnu-cxx11-llvm_version+16", "x86_64-linux-musl-cxx11-llvm_version+16", "aarch64-linux-musl-cxx11-llvm_version+16", "armv6l-linux-musleabihf-cxx11-llvm_version+16", "armv7l-linux-musleabihf-cxx11-llvm_version+16", "x86_64-apple-darwin-llvm_version+16", "aarch64-apple-darwin-llvm_version+16", "x86_64-unknown-freebsd-llvm_version+16", "i686-w64-mingw32-cxx11-llvm_version+16", "x86_64-w64-mingw32-cxx11-llvm_version+16", "x86_64-linux-gnu-cxx11-sanitize+memory-llvm_version+16", "i686-linux-gnu-cxx11-llvm_version+18", "x86_64-linux-gnu-cxx11-llvm_version+18", "aarch64-linux-gnu-cxx11-llvm_version+18", "armv6l-linux-gnueabihf-cxx11-llvm_version+18", "armv7l-linux-gnueabihf-cxx11-llvm_version+18", "powerpc64le-linux-gnu-cxx11-llvm_version+18", "x86_64-linux-musl-cxx11-llvm_version+18", "aarch64-linux-musl-cxx11-llvm_version+18", "armv6l-linux-musleabihf-cxx11-llvm_version+18", "armv7l-linux-musleabihf-cxx11-llvm_version+18", "x86_64-apple-darwin-llvm_version+18", "aarch64-apple-darwin-llvm_version+18", "x86_64-unknown-freebsd-llvm_version+18", "aarch64-unknown-freebsd-llvm_version+18", "i686-w64-mingw32-cxx11-llvm_version+18", "x86_64-w64-mingw32-cxx11-llvm_version+18", "x86_64-linux-gnu-cxx11-sanitize+memory-llvm_version+18", "i686-linux-gnu-cxx11-llvm_version+20", "x86_64-linux-gnu-cxx11-llvm_version+20", "aarch64-linux-gnu-cxx11-llvm_version+20", "armv6l-linux-gnueabihf-cxx11-llvm_version+20", "armv7l-linux-gnueabihf-cxx11-llvm_version+20", "powerpc64le-linux-gnu-cxx11-llvm_version+20", "riscv64-linux-gnu-cxx11-llvm_version+20", "x86_64-linux-musl-cxx11-llvm_version+20", "aarch64-linux-musl-cxx11-llvm_version+20", "armv6l-linux-musleabihf-cxx11-llvm_version+20", "armv7l-linux-musleabihf-cxx11-llvm_version+20", "x86_64-apple-darwin-llvm_version+20", "aarch64-apple-darwin-llvm_version+20", "x86_64-unknown-freebsd-llvm_version+20", "aarch64-unknown-freebsd-llvm_version+20", "i686-w64-mingw32-cxx11-llvm_version+20", "x86_64-w64-mingw32-cxx11-llvm_version+20", "x86_64-linux-gnu-cxx11-sanitize+memory-llvm_version+20", "i686-linux-gnu-cxx11-llvm_version+21", "x86_64-linux-gnu-cxx11-llvm_version+21", "aarch64-linux-gnu-cxx11-llvm_version+21", "armv6l-linux-gnueabihf-cxx11-llvm_version+21", "armv7l-linux-gnueabihf-cxx11-llvm_version+21", "powerpc64le-linux-gnu-cxx11-llvm_version+21", "riscv64-linux-gnu-cxx11-llvm_version+21", "x86_64-linux-musl-cxx11-llvm_version+21", "aarch64-linux-musl-cxx11-llvm_version+21", "armv6l-linux-musleabihf-cxx11-llvm_version+21", "armv7l-linux-musleabihf-cxx11-llvm_version+21", "x86_64-apple-darwin-llvm_version+21", "aarch64-apple-darwin-llvm_version+21", "x86_64-unknown-freebsd-llvm_version+21", "aarch64-unknown-freebsd-llvm_version+21", "i686-w64-mingw32-cxx11-llvm_version+21", "x86_64-w64-mingw32-cxx11-llvm_version+21", "x86_64-linux-gnu-cxx11-sanitize+memory-llvm_version+21", "i686-linux-gnu-cxx11-llvm_version+22", "x86_64-linux-gnu-cxx11-llvm_version+22", "aarch64-linux-gnu-cxx11-llvm_version+22", "armv6l-linux-gnueabihf-cxx11-llvm_version+22", "armv7l-linux-gnueabihf-cxx11-llvm_version+22", "powerpc64le-linux-gnu-cxx11-llvm_version+22", "riscv64-linux-gnu-cxx11-llvm_version+22", "x86_64-linux-musl-cxx11-llvm_version+22", "aarch64-linux-musl-cxx11-llvm_version+22", "armv6l-linux-musleabihf-cxx11-llvm_version+22", "armv7l-linux-musleabihf-cxx11-llvm_version+22", "x86_64-apple-darwin-llvm_version+22", "aarch64-apple-darwin-llvm_version+22", "x86_64-unknown-freebsd-llvm_version+22", "aarch64-unknown-freebsd-llvm_version+22", "i686-w64-mingw32-cxx11-llvm_version+22", "x86_64-w64-mingw32-cxx11-llvm_version+22", "x86_64-linux-gnu-cxx11-sanitize+memory-llvm_version+22", "i686-linux-gnu-cxx11-llvm_version+15.asserts", "x86_64-linux-gnu-cxx11-llvm_version+15.asserts", "aarch64-linux-gnu-cxx11-llvm_version+15.asserts", "armv6l-linux-gnueabihf-cxx11-llvm_version+15.asserts", "armv7l-linux-gnueabihf-cxx11-llvm_version+15.asserts", "powerpc64le-linux-gnu-cxx11-llvm_version+15.asserts", "x86_64-linux-musl-cxx11-llvm_version+15.asserts", "aarch64-linux-musl-cxx11-llvm_version+15.asserts", "armv6l-linux-musleabihf-cxx11-llvm_version+15.asserts", "armv7l-linux-musleabihf-cxx11-llvm_version+15.asserts", "x86_64-apple-darwin-llvm_version+15.asserts", "aarch64-apple-darwin-llvm_version+15.asserts", "x86_64-unknown-freebsd-llvm_version+15.asserts", "i686-w64-mingw32-cxx11-llvm_version+15.asserts", "x86_64-w64-mingw32-cxx11-llvm_version+15.asserts", "x86_64-linux-gnu-cxx11-sanitize+memory-llvm_version+15.asserts", "i686-linux-gnu-cxx11-llvm_version+16.asserts", "x86_64-linux-gnu-cxx11-llvm_version+16.asserts", "aarch64-linux-gnu-cxx11-llvm_version+16.asserts", "armv6l-linux-gnueabihf-cxx11-llvm_version+16.asserts", "armv7l-linux-gnueabihf-cxx11-llvm_version+16.asserts", "powerpc64le-linux-gnu-cxx11-llvm_version+16.asserts", "x86_64-linux-musl-cxx11-llvm_version+16.asserts", "aarch64-linux-musl-cxx11-llvm_version+16.asserts", "armv6l-linux-musleabihf-cxx11-llvm_version+16.asserts", "armv7l-linux-musleabihf-cxx11-llvm_version+16.asserts", "x86_64-apple-darwin-llvm_version+16.asserts", "aarch64-apple-darwin-llvm_version+16.asserts", "x86_64-unknown-freebsd-llvm_version+16.asserts", "i686-w64-mingw32-cxx11-llvm_version+16.asserts", "x86_64-w64-mingw32-cxx11-llvm_version+16.asserts", "x86_64-linux-gnu-cxx11-sanitize+memory-llvm_version+16.asserts", "i686-linux-gnu-cxx11-llvm_version+18.asserts", "x86_64-linux-gnu-cxx11-llvm_version+18.asserts", "aarch64-linux-gnu-cxx11-llvm_version+18.asserts", "armv6l-linux-gnueabihf-cxx11-llvm_version+18.asserts", "armv7l-linux-gnueabihf-cxx11-llvm_version+18.asserts", "powerpc64le-linux-gnu-cxx11-llvm_version+18.asserts", "x86_64-linux-musl-cxx11-llvm_version+18.asserts", "aarch64-linux-musl-cxx11-llvm_version+18.asserts", "armv6l-linux-musleabihf-cxx11-llvm_version+18.asserts", "armv7l-linux-musleabihf-cxx11-llvm_version+18.asserts", "x86_64-apple-darwin-llvm_version+18.asserts", "aarch64-apple-darwin-llvm_version+18.asserts", "x86_64-unknown-freebsd-llvm_version+18.asserts", "aarch64-unknown-freebsd-llvm_version+18.asserts", "i686-w64-mingw32-cxx11-llvm_version+18.asserts", "x86_64-w64-mingw32-cxx11-llvm_version+18.asserts", "x86_64-linux-gnu-cxx11-sanitize+memory-llvm_version+18.asserts", "i686-linux-gnu-cxx11-llvm_version+20.asserts", "x86_64-linux-gnu-cxx11-llvm_version+20.asserts", "aarch64-linux-gnu-cxx11-llvm_version+20.asserts", "armv6l-linux-gnueabihf-cxx11-llvm_version+20.asserts", "armv7l-linux-gnueabihf-cxx11-llvm_version+20.asserts", "powerpc64le-linux-gnu-cxx11-llvm_version+20.asserts", "riscv64-linux-gnu-cxx11-llvm_version+20.asserts", "x86_64-linux-musl-cxx11-llvm_version+20.asserts", "aarch64-linux-musl-cxx11-llvm_version+20.asserts", "armv6l-linux-musleabihf-cxx11-llvm_version+20.asserts", "armv7l-linux-musleabihf-cxx11-llvm_version+20.asserts", "x86_64-apple-darwin-llvm_version+20.asserts", "aarch64-apple-darwin-llvm_version+20.asserts", "x86_64-unknown-freebsd-llvm_version+20.asserts", "aarch64-unknown-freebsd-llvm_version+20.asserts", "i686-w64-mingw32-cxx11-llvm_version+20.asserts", "x86_64-w64-mingw32-cxx11-llvm_version+20.asserts", "x86_64-linux-gnu-cxx11-sanitize+memory-llvm_version+20.asserts", "i686-linux-gnu-cxx11-llvm_version+21.asserts", "x86_64-linux-gnu-cxx11-llvm_version+21.asserts", "aarch64-linux-gnu-cxx11-llvm_version+21.asserts", "armv6l-linux-gnueabihf-cxx11-llvm_version+21.asserts", "armv7l-linux-gnueabihf-cxx11-llvm_version+21.asserts", "powerpc64le-linux-gnu-cxx11-llvm_version+21.asserts", "riscv64-linux-gnu-cxx11-llvm_version+21.asserts", "x86_64-linux-musl-cxx11-llvm_version+21.asserts", "aarch64-linux-musl-cxx11-llvm_version+21.asserts", "armv6l-linux-musleabihf-cxx11-llvm_version+21.asserts", "armv7l-linux-musleabihf-cxx11-llvm_version+21.asserts", "x86_64-apple-darwin-llvm_version+21.asserts", "aarch64-apple-darwin-llvm_version+21.asserts", "x86_64-unknown-freebsd-llvm_version+21.asserts", "aarch64-unknown-freebsd-llvm_version+21.asserts", "i686-w64-mingw32-cxx11-llvm_version+21.asserts", "x86_64-w64-mingw32-cxx11-llvm_version+21.asserts", "x86_64-linux-gnu-cxx11-sanitize+memory-llvm_version+21.asserts", "i686-linux-gnu-cxx11-llvm_version+22.asserts", "x86_64-linux-gnu-cxx11-llvm_version+22.asserts", "aarch64-linux-gnu-cxx11-llvm_version+22.asserts", "armv6l-linux-gnueabihf-cxx11-llvm_version+22.asserts", "armv7l-linux-gnueabihf-cxx11-llvm_version+22.asserts", "powerpc64le-linux-gnu-cxx11-llvm_version+22.asserts", "riscv64-linux-gnu-cxx11-llvm_version+22.asserts", "x86_64-linux-musl-cxx11-llvm_version+22.asserts", "aarch64-linux-musl-cxx11-llvm_version+22.asserts", "armv6l-linux-musleabihf-cxx11-llvm_version+22.asserts", "armv7l-linux-musleabihf-cxx11-llvm_version+22.asserts", "x86_64-apple-darwin-llvm_version+22.asserts", "aarch64-apple-darwin-llvm_version+22.asserts", "x86_64-unknown-freebsd-llvm_version+22.asserts", "aarch64-unknown-freebsd-llvm_version+22.asserts", "i686-w64-mingw32-cxx11-llvm_version+22.asserts", "x86_64-w64-mingw32-cxx11-llvm_version+22.asserts", "x86_64-linux-gnu-cxx11-sanitize+memory-llvm_version+22.asserts"]
+script = """# First, find (true) LLVM library directory in ~/.artifacts somewhere\nLLVM_ARTIFACT_DIR=$(dirname $(dirname $(realpath ${prefix}/tools/opt${exeext})))\n\n# Clear out our `${prefix}`\nrm -rf ${prefix}/*\n\n# Copy over everything, but we are only keeping the small tools\nmv -v ${LLVM_ARTIFACT_DIR}/* ${prefix}/\nrm -vrf ${prefix}/include\nrm -vrf ${prefix}/bin\nrm -vrf ${prefix}/lib\nrm -vrf ${prefix}/libexec\nrm -vrf ${prefix}/share\nrm -vrf ${prefix}/tools/{*lld,wasm-ld,dsymutil,clang,llvm-config,mlir,c-index-test,llvm-exegesis}*\n# Windows has dlls in tools as well so remove them too\nrm -vrf ${prefix}/tools/*.${dlext}*\n\n"""
+sources = []
+version = "v0.1.1"
+
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LLVM_full_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+uuid = "a3ccf953-465e-511d-b87f-60a6490c289d"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "libLLVM_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zstd_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LLVM_full_assert_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+uuid = "6ec703ca-3f29-566b-9bb1-b5c9e844abaf"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["bugpoint"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_bugpoint"
+[[products]]
+binnames = ["count"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_count"
+[[products]]
+binnames = ["diagtool"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_diagtool"
+[[products]]
+binnames = ["FileCheck"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_FileCheck"
+[[products]]
+binnames = ["find-all-symbols"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_find_all_symbols"
+[[products]]
+binnames = ["llc"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llc"
+[[products]]
+binnames = ["lli"]
+dir_path = "tools"
+type = "exe"
+variable_name = "lli"
+[[products]]
+binnames = ["lli-child-target"]
+dir_path = "tools"
+type = "exe"
+variable_name = "lli_child_target"
+[[products]]
+binnames = ["llvm-addr2line"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_addr2line"
+[[products]]
+binnames = ["llvm-ar"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_ar"
+[[products]]
+binnames = ["llvm-as"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_as"
+[[products]]
+binnames = ["llvm-bcanalyzer"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_bcanalyzer"
+[[products]]
+binnames = ["llvm-bitcode-strip"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_bitcode_strip"
+[[products]]
+binnames = ["llvm-cat"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_cat"
+[[products]]
+binnames = ["llvm-cfi-verify"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_cfi_verify"
+[[products]]
+binnames = ["llvm-cov"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_cov"
+[[products]]
+binnames = ["llvm-c-test"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_c_test"
+[[products]]
+binnames = ["llvm-cvtres"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_cvtres"
+[[products]]
+binnames = ["llvm-cxxdump"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_cxxdump"
+[[products]]
+binnames = ["llvm-cxxfilt"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_cxxfilt"
+[[products]]
+binnames = ["llvm-cxxmap"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_cxxmap"
+[[products]]
+binnames = ["llvm-debuginfod"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_debuginfod"
+[[products]]
+binnames = ["llvm-debuginfod-find"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_debuginfod_find"
+[[products]]
+binnames = ["llvm-diff"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_diff"
+[[products]]
+binnames = ["llvm-dis"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_dis"
+[[products]]
+binnames = ["llvm-dlltool"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_dlltool"
+[[products]]
+binnames = ["llvm-dwarfdump"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_dwarfdump"
+[[products]]
+binnames = ["llvm-dwarfutil"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_dwarfutil"
+[[products]]
+binnames = ["llvm-dwp"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_dwp"
+[[products]]
+binnames = ["llvm-extract"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_extract"
+[[products]]
+binnames = ["llvm-gsymutil"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_gsymutil"
+[[products]]
+binnames = ["llvm-ifs"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_ifs"
+[[products]]
+binnames = ["llvm-install-name-tool"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_install_name_tool"
+[[products]]
+binnames = ["llvm-jitlink"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_jitlink"
+[[products]]
+binnames = ["llvm-jitlink-executor"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_jitlink_executor"
+[[products]]
+binnames = ["llvm-lib"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_lib"
+[[products]]
+binnames = ["llvm-libtool-darwin"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_libtool_darwin"
+[[products]]
+binnames = ["llvm-link"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_link"
+[[products]]
+binnames = ["llvm-lipo"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_lipo"
+[[products]]
+binnames = ["llvm-lto"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_lto"
+[[products]]
+binnames = ["llvm-lto2"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_lto2"
+[[products]]
+binnames = ["llvm-mc"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_mc"
+[[products]]
+binnames = ["llvm-mca"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_mca"
+[[products]]
+binnames = ["llvm-ml"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_ml"
+[[products]]
+binnames = ["llvm-modextract"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_modextract"
+[[products]]
+binnames = ["llvm-mt"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_mt"
+[[products]]
+binnames = ["llvm-nm"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_nm"
+[[products]]
+binnames = ["llvm-objcopy"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_objcopy"
+[[products]]
+binnames = ["llvm-objdump"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_objdump"
+[[products]]
+binnames = ["llvm-opt-report"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_opt_report"
+[[products]]
+binnames = ["llvm-otool"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_otool"
+[[products]]
+binnames = ["llvm-pdbutil"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_pdbutil"
+[[products]]
+binnames = ["llvm-PerfectShuffle"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_PerfectShuffle"
+[[products]]
+binnames = ["llvm-profdata"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_profdata"
+[[products]]
+binnames = ["llvm-profgen"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_profgen"
+[[products]]
+binnames = ["llvm-ranlib"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_ranlib"
+[[products]]
+binnames = ["llvm-rc"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_rc"
+[[products]]
+binnames = ["llvm-readelf"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_readelf"
+[[products]]
+binnames = ["llvm-readobj"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_readobj"
+[[products]]
+binnames = ["llvm-reduce"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_reduce"
+[[products]]
+binnames = ["llvm-remark-size-diff"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_remark_size_diff"
+[[products]]
+binnames = ["llvm-rtdyld"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_rtdyld"
+[[products]]
+binnames = ["llvm-sim"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_sim"
+[[products]]
+binnames = ["llvm-size"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_size"
+[[products]]
+binnames = ["llvm-split"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_split"
+[[products]]
+binnames = ["llvm-stress"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_stress"
+[[products]]
+binnames = ["llvm-strings"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_strings"
+[[products]]
+binnames = ["llvm-strip"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_strip"
+[[products]]
+binnames = ["llvm-symbolizer"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_symbolizer"
+[[products]]
+binnames = ["llvm-tapi-diff"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_tapi_diff"
+[[products]]
+binnames = ["llvm-tblgen"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_tblgen"
+[[products]]
+binnames = ["llvm-tli-checker"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_tli_checker"
+[[products]]
+binnames = ["llvm-undname"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_undname"
+[[products]]
+binnames = ["llvm-windres"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_windres"
+[[products]]
+binnames = ["llvm-xray"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_xray"
+[[products]]
+binnames = ["modularize"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_modularize"
+[[products]]
+binnames = ["not"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_not"
+[[products]]
+binnames = ["obj2yaml"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_obj2yaml"
+[[products]]
+binnames = ["opt"]
+dir_path = "tools"
+type = "exe"
+variable_name = "opt"
+[[products]]
+binnames = ["pp-trace"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_pp_trace"
+[[products]]
+binnames = ["sancov"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_sancov"
+[[products]]
+binnames = ["sanstats"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_sanstats"
+[[products]]
+binnames = ["split-file"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_split_file"
+[[products]]
+binnames = ["UnicodeNameMappingGenerator"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_UnicodeNameMappingGenerator"
+[[products]]
+binnames = ["verify-uselistorder"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_verify_uselistorder"
+[[products]]
+binnames = ["yaml2obj"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_yaml2obj"
+[[products]]
+binnames = ["yaml-bench"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_yaml_bench"
+[[products]]
+binnames = ["amdgpu-arch"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_amdgpu_arch"
+[[products]]
+binnames = ["llvm-debuginfo-analyzer"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_debuginfo_analyzer"
+[[products]]
+binnames = ["llvm-remarkutil"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_remarkutil"
+[[products]]
+binnames = ["nvptx-arch"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_nvptx_arch"
+[[products]]
+binnames = ["llvm-readtapi"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_readtapi"
+[[products]]
+binnames = ["llvm-cgdata"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_cgdata"
+[[products]]
+binnames = ["llvm-ctxprof-util"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_ctxprof_util"
+[[products]]
+binnames = ["reduce-chunk-list"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_reduce_chunk_list"
+[[products]]
+binnames = ["llvm-ml64"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_ml64"
+[[products]]
+binnames = ["llvm-test-mustache-spec"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_test_mustache_spec"
+[[products]]
+binnames = ["offload-arch"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_offload_arch"
+[[products]]
+binnames = ["llvm-cas"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_cas"
+[[products]]
+binnames = ["llvm-ir2vec"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_ir2vec"
+[[products]]
+binnames = ["llvm-offload-binary"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_offload_binary"
+[[products]]
+binnames = ["llvm-offload-wrapper"]
+dir_path = "tools"
+type = "exe"
+variable_name = "llvm_offload_wrapper"
