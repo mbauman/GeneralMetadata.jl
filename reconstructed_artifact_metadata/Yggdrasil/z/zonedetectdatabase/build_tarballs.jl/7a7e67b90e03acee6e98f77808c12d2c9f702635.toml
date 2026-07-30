@@ -1,0 +1,66 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "ZoneDetectDatabase"
+script = """cd ${WORKSPACE}/srcdir/ZoneDetect/database/builder\n\n# `builder.cpp` assumes, without checking, that these are in the current directory, so link them here\nln -s ${WORKSPACE}/srcdir/naturalearth ./naturalearth\nln -s ${WORKSPACE}/srcdir/timezone ./timezone\n\n${HOSTCXX} builder.cpp --std=c++11 -o builder -I${host_includedir} -L${host_libdir} -Wl,-rpath=${host_libdir} -lshp\n\noutdir=${WORKSPACE}/destdir/share/zonedetect\n\nfor v in 0 1; do\n    mkdir -p ${outdir}/v${v}\n    for r in 16 21; do\n        ./builder C \"${WORKSPACE}/srcdir/naturalearth/ne_10m_admin_0_countries_lakes\" \"${outdir}/v${v}/country${r}.bin\" ${r} \"Made with Natural Earth, placed in the Public Domain.\" ${v}\n        ./builder T \"${WORKSPACE}/srcdir/timezone/combined-shapefile-with-oceans\" \"${outdir}/v${v}/timezone${r}.bin\" ${r} \"Contains data from Natural Earth, placed in the Public Domain. Contains information from https://github.com/evansiroky/timezone-boundary-builder, which is made available here under the Open Database License \\(ODbL\\).\" ${v}\n    done\ndone\n\ninstall_license ../country_DATA_LICENSE ../timezone_DATA_LICENSE\n"""
+version = "v1.0.0"
+
+[[dependencies]]
+compat = ""
+name = "ShapeLib_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 1
+version-minor = 6
+version-patch = 3
+
+[[products]]
+paths = ["share/zonedetect/v0/country16.bin"]
+type = "file"
+variable_name = "country16_v0"
+[[products]]
+paths = ["share/zonedetect/v0/country21.bin"]
+type = "file"
+variable_name = "country21_v0"
+[[products]]
+paths = ["share/zonedetect/v0/timezone16.bin"]
+type = "file"
+variable_name = "timezone16_v0"
+[[products]]
+paths = ["share/zonedetect/v0/timezone21.bin"]
+type = "file"
+variable_name = "timezone21_v0"
+[[products]]
+paths = ["share/zonedetect/v1/country16.bin"]
+type = "file"
+variable_name = "country16_v1"
+[[products]]
+paths = ["share/zonedetect/v1/country21.bin"]
+type = "file"
+variable_name = "country21_v1"
+[[products]]
+paths = ["share/zonedetect/v1/timezone16.bin"]
+type = "file"
+variable_name = "timezone16_v1"
+[[products]]
+paths = ["share/zonedetect/v1/timezone21.bin"]
+type = "file"
+variable_name = "timezone21_v1"
+
+[[sources]]
+hash = "082fa6b14815340d0f0d9e23b1ded318ba77c82c"
+type = "git"
+unpack_target = ""
+url = "https://github.com/BertoldVdb/ZoneDetect"
+[[sources]]
+hash = "3f1596b05b4a19bd97f3a54731497cffbb4dbed4cda494084e73dd6dd3d37264"
+type = "archive"
+unpack_target = "naturalearth"
+url = "https://naciscdn.org/naturalearth/10m/cultural/ne_10m_admin_0_countries_lakes.zip"
+[[sources]]
+hash = "d27714f476799ff57c6c1836df6c910b960f1022af8cfb1cea09c8469f3be2ea"
+type = "archive"
+unpack_target = "timezone"
+url = "https://github.com/evansiroky/timezone-boundary-builder/releases/download/2026c/timezones-with-oceans.shapefile.zip"
