@@ -1,0 +1,34 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "CMake"
+platforms = ["i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx11", "riscv64-linux-gnu-cxx11", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx11"]
+script = """cd ${WORKSPACE}/srcdir/CMake\n\n# The musl in our toolchains (1.1.19) predates pthread_getname_np (musl 1.2.3)\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/cmlibuv-musl-pthread_getname_np.patch\n\ncmake -B build -G Ninja \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_BUILD_TYPE:STRING=Release \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DBUILD_TESTING:BOOL=OFF\ncmake --build build --parallel ${nproc}\ncmake --install build\n\ninstall_license LICENSE.rst\n"""
+version = "v4.4.1"
+
+[[dependencies]]
+compat = "3.0.16"
+name = "OpenSSL_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["cmake"]
+type = "exe"
+variable_name = "cmake"
+
+[[sources]]
+hash = "d1cffecacdfd7d6fb0cda0d1e0bf1ba30b967019"
+type = "git"
+unpack_target = ""
+url = "https://github.com/Kitware/CMake"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"
