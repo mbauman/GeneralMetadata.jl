@@ -1,0 +1,85 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.10"
+lazy_artifacts = false
+name = "AOCL"
+platforms = ["x86_64-linux-gnu"]
+script = """export PATH=\"${host_bindir}:${PATH}\"\n\nAOCL_BIY=${WORKSPACE}/srcdir/aocl\nSRC=${WORKSPACE}/srcdir/aocl-src\n\nif [[ -d ${SRC}/aocl-libm-ose && ! -d ${SRC}/aocl-libm ]]; then\n    mv ${SRC}/aocl-libm-ose ${SRC}/aocl-libm\nfi\n\n# AOCL-LibM's CMake calls `ldd --version` to read the glibc version (purely for\n# a build-info string), but the musl-based build host has no working ldd.\n# Provide a shim that reports the target sysroot's actual glibc version.\nmkdir -p ${WORKSPACE}/srcdir/shim-bin\nGLIBC_VERSION=$(grep -aoE 'GNU C Library.* version [0-9]+\\.[0-9]+' \\\n    \"$(cc -print-file-name=libc.so.6)\" | grep -oE '[0-9]+\\.[0-9]+' | head -1)\ncat > ${WORKSPACE}/srcdir/shim-bin/ldd <<EOF\n#!/bin/bash\necho \"ldd (GNU libc) ${GLIBC_VERSION}\"\nEOF\nchmod +x ${WORKSPACE}/srcdir/shim-bin/ldd\nexport PATH=\"${WORKSPACE}/srcdir/shim-bin:${PATH}\"\n\ncd ${AOCL_BIY}\n\n# Build one AOCL variant. Args: <cmake-preset> [extra cmake args...]\n# The unified library name is controlled by AOCL_SINGLE_LIBRARY_NAME, which sets\n# both the file name (libaocl.so) and the SONAME. The ILP64 variant overrides it\n# to \"aocl64\" so libaocl64.so gets a distinct SONAME; a plain rename would leave\n# the SONAME as libaocl.so and make the dynamic linker dedup the two variants\n# when both are loaded in the same process.\nbuild_aocl_variant() {\n    local preset=\"$1\"; shift\n    rm -rf ${AOCL_BIY}/build\n    cmake --preset ${preset} \\\n        -DCMAKE_INSTALL_PREFIX=${prefix} \\\n        -DCMAKE_Fortran_COMPILER=$(which gfortran) \\\n        -DOpenMP_libomp_LIBRARY= \\\n        -DBUILD_CORES=${nproc} \\\n        -DUSE_SOURCES_FROM_SUBMODULES=OFF \\\n        -DENABLE_AOCL_DA=OFF \\\n        -DENABLE_AOCL_CRYPTO=OFF \\\n        -DENABLE_AOCL_LIBMEM=OFF \\\n        -DUTILS_PATH=${SRC} \\\n        -DBLAS_PATH=${SRC} \\\n        -DLAPACK_PATH=${SRC} \\\n        -DSPARSE_PATH=${SRC} \\\n        -DLIBM_PATH=${SRC} \\\n        -DCOMPRESSION_PATH=${SRC} \\\n        -DOPENRNG_PATH=${SRC}/openrng \\\n        \"$@\"\n    cmake --build ${AOCL_BIY}/build --config Release --target install -j${nproc}\n}\n\n# LP64 variant -> libaocl.so\nbuild_aocl_variant aocl-linux-make-lp-ga-gcc-config\n\n# ILP64 variant -> libaocl64.so (distinct SONAME via AOCL_SINGLE_LIBRARY_NAME)\nbuild_aocl_variant aocl-linux-make-ilp-ga-gcc-config \\\n    -DAOCL_SINGLE_LIBRARY_NAME=aocl64\n\n# AOCL always emits static archives alongside the shared libraries. Drop them.\nrm -f ${prefix}/lib/libaocl*.a\n\ninstall_license ${AOCL_BIY}/LICENSE.txt\n"""
+version = "v5.3.1"
+
+[[dependencies]]
+compat = ""
+name = "CMake_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+uuid = "3f4e10e2-61f2-5801-8945-23b9d642d0e6"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libaocl"]
+type = "lib"
+variable_name = "libaocl"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libaocl64"]
+type = "lib"
+variable_name = "libaocl64"
+
+[[sources]]
+hash = "5018beb662bca63d29ace70da51ce322e76d9909"
+type = "git"
+unpack_target = ""
+url = "https://github.com/amd/aocl.git"
+[[sources]]
+hash = "deb418767224511d146fc5e6841a55a6f69e5e79"
+type = "git"
+unpack_target = "aocl-src"
+url = "https://github.com/amd/aocl-utils.git"
+[[sources]]
+hash = "9212e3b464ef3310b093d4405222ec79afd147b4"
+type = "git"
+unpack_target = "aocl-src"
+url = "https://github.com/amd/blis.git"
+[[sources]]
+hash = "954fc2601f65b06e64eb5b55164d8881063a1ee1"
+type = "git"
+unpack_target = "aocl-src"
+url = "https://github.com/amd/libflame.git"
+[[sources]]
+hash = "2e62fd859dfc40dcc1df2fc96e5994f9fd49eef4"
+type = "git"
+unpack_target = "aocl-src"
+url = "https://github.com/amd/aocl-sparse.git"
+[[sources]]
+hash = "86223910103068db48f42d9cc59c0bf3fc46fa5f"
+type = "git"
+unpack_target = "aocl-src"
+url = "https://github.com/amd/aocl-libm-ose.git"
+[[sources]]
+hash = "ab24e65b346f48d3433f74e0fffbdc888e36736b"
+type = "git"
+unpack_target = "aocl-src"
+url = "https://github.com/amd/aocl-compression.git"
+[[sources]]
+hash = "27ade0ed417e87fddfbe7ce76f22dcda6f583cce"
+type = "git"
+unpack_target = "aocl-src"
+url = "https://github.com/amd/openrng.git"
