@@ -1,0 +1,660 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "abseil_cpp"
+platforms = ["i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx11", "riscv64-linux-gnu-cxx11", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx11"]
+script = """macos_sdk_version=10.14\nmacosx_deployment_target=10.14\n# Move the SDK tarball out of `srcdir` on all platforms: any extra entry\n# in there defeats the automatic installation of license files, which\n# expects `srcdir` to contain a single top-level source directory.\nmv ${WORKSPACE}/srcdir/MacOSX${macos_sdk_version}.sdk.tar.xz ${WORKSPACE}/\nif [[ \"${target}\" == x86_64-apple-darwin* ]]; then\n    # Extract SDK. Also outside of `srcdir`, for the same reason.\n    echo \"Extracting MacOSX${macos_sdk_version}.sdk.tar.xz (this may take a while)\"\n    tar \\\n        --extract \\\n        --file=${WORKSPACE}/MacOSX${macos_sdk_version}.sdk.tar.xz \\\n        --directory=${WORKSPACE} \\\n        --warning=no-unknown-keyword\n    old_sdkroot=${SDKROOT}\n    new_sdkroot=${WORKSPACE}/MacOSX${macos_sdk_version}.sdk\n    # Make sure libc++ header files are available at `usr/include/c++/v1`.\n    # Some SDKs ship their own (e.g. 15.0), which we leave alone; for those\n    # that don't, symlink the ones from the default SDK. Note we symlink\n    # the `v1` subdirectory rather than the whole `c++` directory: some\n    # SDKs (e.g. 10.13) contain `usr/include/c++/4.2.1` (but no `v1`), and\n    # symlinking `c++` onto that existing directory would silently create\n    # a nested `c++/c++` link, so libc++ headers like <new> are not found.\n    if [[ ! -d ${new_sdkroot}/usr/include/c++/v1 ]]; then\n        mkdir -p ${new_sdkroot}/usr/include/c++\n        ln -sT ${old_sdkroot}/usr/include/c++/v1 ${new_sdkroot}/usr/include/c++/v1\n    fi\n    # In the build environment `usr/local` of the default sys-root is a\n    # symlink to the destdir prefix, which puts the header files of the\n    # dependencies on the compilers' default search path. No SDK ships a\n    # `usr/local`, so replicate that symlink in the new SDK. `-T` makes\n    # this fail loudly should some SDK ship a `usr/local` after all,\n    # instead of silently creating a nested `usr/local/local` link.\n    ln -sT ${old_sdkroot}/usr/local ${new_sdkroot}/usr/local\n    # Fix toolchain files\n    sed -i -e \"s+${old_sdkroot}+${new_sdkroot}+\" ${MESON_TARGET_TOOLCHAIN} ${CMAKE_TARGET_TOOLCHAIN}\n    # Fix compiler wrappers\n    sed -i -e \"s+${old_sdkroot}+${new_sdkroot}+\" $(find /opt/bin/${target}* -type f -print)\n    SDKROOT=${new_sdkroot}\n    export MACOSX_DEPLOYMENT_TARGET=${macosx_deployment_target}\nfi\ncd $WORKSPACE/srcdir/abseil-cpp\n\n# abseil requires C++17, and its ABI depends on the standard used (see the\n# auto-detected options in absl/base/options.h), so propagate cxx_std_17 to\n# consumers via the installed CMake config.\ncmake -B build -G Ninja \\\n    -DABSL_PROPAGATE_CXX_STD=ON \\\n    -DBUILD_SHARED_LIBS=ON \\\n    -DBUILD_TESTING=OFF \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DCMAKE_CXX_STANDARD=17 \\\n    -DCMAKE_FIND_ROOT_PATH=${prefix} \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN}\ncmake --build build --parallel ${nproc}\ncmake --install build\ninstall_license LICENSE\n"""
+version = "v20250814.1.0"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_base"]
+type = "lib"
+variable_name = "libabsl_base"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_city"]
+type = "lib"
+variable_name = "libabsl_city"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_civil_time"]
+type = "lib"
+variable_name = "libabsl_civil_time"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_cord"]
+type = "lib"
+variable_name = "libabsl_cord"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_cord_internal"]
+type = "lib"
+variable_name = "libabsl_cord_internal"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_cordz_functions"]
+type = "lib"
+variable_name = "libabsl_cordz_functions"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_cordz_handle"]
+type = "lib"
+variable_name = "libabsl_cordz_handle"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_cordz_info"]
+type = "lib"
+variable_name = "libabsl_cordz_info"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_cordz_sample_token"]
+type = "lib"
+variable_name = "libabsl_cordz_sample_token"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_crc32c"]
+type = "lib"
+variable_name = "libabsl_crc32c"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_crc_cord_state"]
+type = "lib"
+variable_name = "libabsl_crc_cord_state"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_crc_cpu_detect"]
+type = "lib"
+variable_name = "libabsl_crc_cpu_detect"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_crc_internal"]
+type = "lib"
+variable_name = "libabsl_crc_internal"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_debugging_internal"]
+type = "lib"
+variable_name = "libabsl_debugging_internal"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_decode_rust_punycode"]
+type = "lib"
+variable_name = "libabsl_decode_rust_punycode"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_demangle_internal"]
+type = "lib"
+variable_name = "libabsl_demangle_internal"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_demangle_rust"]
+type = "lib"
+variable_name = "libabsl_demangle_rust"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_die_if_null"]
+type = "lib"
+variable_name = "libabsl_die_if_null"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_examine_stack"]
+type = "lib"
+variable_name = "libabsl_examine_stack"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_exponential_biased"]
+type = "lib"
+variable_name = "libabsl_exponential_biased"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_failure_signal_handler"]
+type = "lib"
+variable_name = "libabsl_failure_signal_handler"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_flags_commandlineflag"]
+type = "lib"
+variable_name = "libabsl_flags_commandlineflag"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_flags_commandlineflag_internal"]
+type = "lib"
+variable_name = "libabsl_flags_commandlineflag_internal"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_flags_config"]
+type = "lib"
+variable_name = "libabsl_flags_config"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_flags_internal"]
+type = "lib"
+variable_name = "libabsl_flags_internal"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_flags_marshalling"]
+type = "lib"
+variable_name = "libabsl_flags_marshalling"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_flags_parse"]
+type = "lib"
+variable_name = "libabsl_flags_parse"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_flags_private_handle_accessor"]
+type = "lib"
+variable_name = "libabsl_flags_private_handle_accessor"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_flags_program_name"]
+type = "lib"
+variable_name = "libabsl_flags_program_name"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_flags_reflection"]
+type = "lib"
+variable_name = "libabsl_flags_reflection"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_flags_usage"]
+type = "lib"
+variable_name = "libabsl_flags_usage"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_flags_usage_internal"]
+type = "lib"
+variable_name = "libabsl_flags_usage_internal"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_graphcycles_internal"]
+type = "lib"
+variable_name = "libabsl_graphcycles_internal"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_hash"]
+type = "lib"
+variable_name = "libabsl_hash"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_hashtable_profiler"]
+type = "lib"
+variable_name = "libabsl_hashtable_profiler"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_hashtablez_sampler"]
+type = "lib"
+variable_name = "libabsl_hashtablez_sampler"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_int128"]
+type = "lib"
+variable_name = "libabsl_int128"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_kernel_timeout_internal"]
+type = "lib"
+variable_name = "libabsl_kernel_timeout_internal"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_leak_check"]
+type = "lib"
+variable_name = "libabsl_leak_check"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_log_entry"]
+type = "lib"
+variable_name = "libabsl_log_entry"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_log_flags"]
+type = "lib"
+variable_name = "libabsl_log_flags"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_log_globals"]
+type = "lib"
+variable_name = "libabsl_log_globals"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_log_initialize"]
+type = "lib"
+variable_name = "libabsl_log_initialize"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_log_internal_check_op"]
+type = "lib"
+variable_name = "libabsl_log_internal_check_op"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_log_internal_conditions"]
+type = "lib"
+variable_name = "libabsl_log_internal_conditions"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_log_internal_fnmatch"]
+type = "lib"
+variable_name = "libabsl_log_internal_fnmatch"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_log_internal_format"]
+type = "lib"
+variable_name = "libabsl_log_internal_format"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_log_internal_globals"]
+type = "lib"
+variable_name = "libabsl_log_internal_globals"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_log_internal_log_sink_set"]
+type = "lib"
+variable_name = "libabsl_log_internal_log_sink_set"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_log_internal_message"]
+type = "lib"
+variable_name = "libabsl_log_internal_message"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_log_internal_nullguard"]
+type = "lib"
+variable_name = "libabsl_log_internal_nullguard"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_log_internal_proto"]
+type = "lib"
+variable_name = "libabsl_log_internal_proto"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_log_internal_structured_proto"]
+type = "lib"
+variable_name = "libabsl_log_internal_structured_proto"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_log_severity"]
+type = "lib"
+variable_name = "libabsl_log_severity"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_log_sink"]
+type = "lib"
+variable_name = "libabsl_log_sink"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_malloc_internal"]
+type = "lib"
+variable_name = "libabsl_malloc_internal"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_periodic_sampler"]
+type = "lib"
+variable_name = "libabsl_periodic_sampler"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_poison"]
+type = "lib"
+variable_name = "libabsl_poison"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_profile_builder"]
+type = "lib"
+variable_name = "libabsl_profile_builder"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_random_distributions"]
+type = "lib"
+variable_name = "libabsl_random_distributions"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_random_internal_distribution_test_util"]
+type = "lib"
+variable_name = "libabsl_random_internal_distribution_test_util"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_random_internal_entropy_pool"]
+type = "lib"
+variable_name = "libabsl_random_internal_entropy_pool"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_random_internal_platform"]
+type = "lib"
+variable_name = "libabsl_random_internal_platform"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_random_internal_randen"]
+type = "lib"
+variable_name = "libabsl_random_internal_randen"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_random_internal_randen_hwaes"]
+type = "lib"
+variable_name = "libabsl_random_internal_randen_hwaes"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_random_internal_randen_hwaes_impl"]
+type = "lib"
+variable_name = "libabsl_random_internal_randen_hwaes_impl"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_random_internal_randen_slow"]
+type = "lib"
+variable_name = "libabsl_random_internal_randen_slow"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_random_internal_seed_material"]
+type = "lib"
+variable_name = "libabsl_random_internal_seed_material"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_random_seed_gen_exception"]
+type = "lib"
+variable_name = "libabsl_random_seed_gen_exception"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_random_seed_sequences"]
+type = "lib"
+variable_name = "libabsl_random_seed_sequences"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_raw_hash_set"]
+type = "lib"
+variable_name = "libabsl_raw_hash_set"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_raw_logging_internal"]
+type = "lib"
+variable_name = "libabsl_raw_logging_internal"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_scoped_set_env"]
+type = "lib"
+variable_name = "libabsl_scoped_set_env"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_spinlock_wait"]
+type = "lib"
+variable_name = "libabsl_spinlock_wait"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_stacktrace"]
+type = "lib"
+variable_name = "libabsl_stacktrace"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_status"]
+type = "lib"
+variable_name = "libabsl_status"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_statusor"]
+type = "lib"
+variable_name = "libabsl_statusor"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_strerror"]
+type = "lib"
+variable_name = "libabsl_strerror"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_str_format_internal"]
+type = "lib"
+variable_name = "libabsl_str_format_internal"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_strings"]
+type = "lib"
+variable_name = "libabsl_strings"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_strings_internal"]
+type = "lib"
+variable_name = "libabsl_strings_internal"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_string_view"]
+type = "lib"
+variable_name = "libabsl_string_view"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_symbolize"]
+type = "lib"
+variable_name = "libabsl_symbolize"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_synchronization"]
+type = "lib"
+variable_name = "libabsl_synchronization"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_throw_delegate"]
+type = "lib"
+variable_name = "libabsl_throw_delegate"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_time"]
+type = "lib"
+variable_name = "libabsl_time"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_time_zone"]
+type = "lib"
+variable_name = "libabsl_time_zone"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_tracing_internal"]
+type = "lib"
+variable_name = "libabsl_tracing_internal"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_utf8_for_code_point"]
+type = "lib"
+variable_name = "libabsl_utf8_for_code_point"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libabsl_vlog_config_internal"]
+type = "lib"
+variable_name = "libabsl_vlog_config_internal"
+
+[[sources]]
+hash = "d38452e1ee03523a208362186fd42248ff2609f6"
+type = "git"
+unpack_target = ""
+url = "https://github.com/abseil/abseil-cpp"
+[[sources]]
+filename = "MacOSX10.14.sdk.tar.xz"
+hash = "0f03869f72df8705b832910517b47dd5b79eb4e160512602f593ed243b28715f"
+type = "file"
+url = "https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.14.sdk.tar.xz"
