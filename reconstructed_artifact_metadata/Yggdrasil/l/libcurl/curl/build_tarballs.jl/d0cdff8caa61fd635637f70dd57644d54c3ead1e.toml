@@ -1,0 +1,80 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.8"
+lazy_artifacts = false
+name = "CURL"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32", "x86_64-linux-gnu-sanitize+memory"]
+script = """THIS_IS_CURL=true\nMACOS_USE_OPENSSL=true\nMACOS_USE_SECTRUST=true\nAPPLY_ASYNC_THRDD_PATH=true\n    cd $WORKSPACE/srcdir/curl-*\n\n    if [[ ${APPLY_MEMDUP_PATCH} == true ]]; then\n        # Address <https://github.com/curl/curl/issues/12849>\n        atomic_patch -p1 $WORKSPACE/srcdir/memdup.patch\n    fi\n    if [[ ${APPLY_ASYNC_THRDD_PATH} == true ]]; then\n        # Address <https://github.com/curl/curl/pull/21476>\n        atomic_patch -p1 $WORKSPACE/srcdir/async_thrdd.patch\n    fi\n\n    # Holy crow we really configure the bitlets out of this thing\n    FLAGS=(\n        # Disable....almost everything\n        --disable-ares\n        --disable-ldap\n        --disable-ldaps\n        --disable-manual\n        --disable-static\n        --without-brotli\n        --without-gnutls\n        --without-libgsasl\n        --without-libidn2\n        --without-libpsl\n        --without-librtmp\n        --without-zsh-functions-dir\n\n        # A few things we actually enable\n\t--with-libssh2=${prefix}\n        --enable-versioned-symbols\n        --with-nghttp2=${prefix}\n        --with-zlib=${prefix}\n    )\n\n    if [[ ${HAVE_ZSTD} == true ]]; then\n        FLAGS+=(--with-zstd=${prefix})\n    fi\n\n    if [[ ${WITHOUT_NSS} == true ]]; then\n        FLAGS+=(--without-nss)\n    fi\n\n    if [[ ${bb_full_target} == *-sanitize+memory* ]]; then\n        # Install msan runtime (for clang)\n        cp -rL ${libdir}/linux/* /opt/x86_64-linux-musl/lib/clang/*/lib/linux/\n    fi\n\n    if [[ ${target} == *mingw* ]]; then\n        # We need to tell it where to find libssh2 on windows\n        FLAGS+=(LDFLAGS=\"${LDFLAGS} -L${prefix}/bin\")\n\n        # We also need to tell it to link against schannel (native TLS library)\n        FLAGS+=(--with-schannel)\n    elif [[ ${target} == *darwin* ]]; then\n        if [[ ${MACOS_USE_OPENSSL} == false ]]; then\n            # On Darwin, we need to use SecureTransport (native TLS library) for pre-8.15 versions of CURL\n            FLAGS+=(--with-secure-transport)\n\n            # We need to explicitly request a higher `-mmacosx-version-min` here, so that it doesn't\n            # complain about: `Symbol not found: ___isOSVersionAtLeast`\n            if [[ \"${target}\" == *x86_64* ]]; then\n                export CFLAGS=-mmacosx-version-min=10.11\n            fi\n        else\n            # Otherwise we use OpenSSL (but without a certificate store on 8.15 and 8.16)\n            FLAGS+=(--with-openssl)\n        fi\n        if [[ ${MACOS_USE_SECTRUST} == true ]]; then\n            # On Darwin, we use SecTrust for certificate validation starting with CURL 8.17\n            FLAGS+=(--with-apple-sectrust)\n        fi  \n    else\n        # On all other systems, we use OpenSSL\n        FLAGS+=(--with-openssl)\n    fi\n\n    if false; then\n        # Use gssapi on Linux and FreeBSD\n        FLAGS+=(--with-gssapi=${prefix})\n        if [[ \"${target}\" == *-freebsd* ]]; then\n            # Only for FreeBSD we need to hint that we need to link to libkrb5 and\n            # libcom_err to resolve some undefined symbols.\n            export LIBS=\"-lkrb5 -lcom_err\"\n        fi\n    else\n        FLAGS+=(--without-gssapi)\n    fi\n\n    ./configure --prefix=$prefix --host=$target --build=${MACHTYPE} \"${FLAGS[@]}\"\n    make -j${nproc}\n    if [[ \"${THIS_IS_CURL}\" == true ]]; then\n        # Manually install only `curl`\n        install -Dm 755 \"src/.libs/curl${exeext}\" \"${bindir}/curl${exeext}\"\n    else\n        # Install everything...\n        make install\n        # ...but remove `curl`\n        rm \"${bindir}/curl${exeext}\"\n    fi\n    install_license COPYING\n    """
+version = "v8.21.0"
+
+[[dependencies]]
+compat = ""
+name = "LibSSH2_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "nghttp2_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "3.0.16"
+name = "OpenSSL_jll"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "x86_64-linux-gnu-sanitize+memory"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LLVMCompilerRT_jll"
+platforms = ["x86_64-linux-gnu-sanitize+memory"]
+top_level = false
+type = "builddependency"
+uuid = "4e17d02c-6bf5-513e-be62-445f41c75a11"
+version-major = 13
+version-minor = 0
+version-patch = 1
+[[dependencies]]
+compat = "8.21.0"
+name = "LibCURL_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["curl"]
+type = "exe"
+variable_name = "curl"
+
+[[sources]]
+hash = "d9b327997999045a24cda50f3983e69e51c516bd8be6ef9842fc7f99135e33bb"
+type = "archive"
+unpack_target = ""
+url = "https://curl.se/download/curl-8.21.0.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "../patches"
+target = ""
+type = "directory"
