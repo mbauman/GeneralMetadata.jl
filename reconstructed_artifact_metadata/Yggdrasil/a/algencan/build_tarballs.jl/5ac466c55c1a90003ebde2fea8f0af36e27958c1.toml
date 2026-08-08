@@ -1,0 +1,46 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Algencan"
+platforms = ["i686-linux-gnu-libgfortran5", "x86_64-linux-gnu-libgfortran5", "aarch64-linux-gnu-libgfortran5", "armv6l-linux-gnueabihf-libgfortran5", "armv7l-linux-gnueabihf-libgfortran5", "powerpc64le-linux-gnu-libgfortran5", "riscv64-linux-gnu-libgfortran5", "i686-linux-musl-libgfortran5", "x86_64-linux-musl-libgfortran5", "aarch64-linux-musl-libgfortran5", "armv6l-linux-musleabihf-libgfortran5", "armv7l-linux-musleabihf-libgfortran5", "x86_64-apple-darwin-libgfortran5", "aarch64-apple-darwin-libgfortran5", "x86_64-unknown-freebsd-libgfortran5", "aarch64-unknown-freebsd-libgfortran5", "i686-w64-mingw32-libgfortran5", "x86_64-w64-mingw32-libgfortran5"]
+script = """cd ${WORKSPACE}/srcdir/algencan-*\n\n# Makes Algencan query HSL's ma57_available at run time instead of deciding at\n# compile time, so one binary uses MA57 when a licensed HSL is installed and\n# falls back to truncated Newton otherwise. Also drops Algencan's use of\n# finfo%pivot, a field only a locally patched MA57 provides.\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/algencan-3.1.1-runtime-hsl.patch\n\n# sources/algencan/Makefile selects the real lssma57.o over the stub when\n# hsl_ma57_double.mod is found in HSLSRC. Only that module is linked in, so\n# MA86 and MA97 keep their stubs.\nmkdir -p hsldetect\nln -s ${prefix}/modules/hsl_ma57_double.mod hsldetect/\n\nmake -C sources/algencan lib \\\n     FC=gfortran AR=ar \\\n     FFLAGS=\"-O3 -ffree-form -fPIC -I${prefix}/modules\" \\\n     HSLSRC=${PWD}/hsldetect\n\nmkdir -p \"${libdir}\"\n\n# Force every object in so that c_algencan survives.\nif [[ \"${target}\" == *-apple-* ]]; then\n    ${FC} -shared -o \"${libdir}/libalgencan.${dlext}\" \\\n        -Wl,-all_load sources/algencan/libalgencan.a \\\n        -L${libdir} -L${prefix}/lib -lhsl_subset -lgfortran\nelif [[ \"${target}\" == *-mingw* ]]; then\n    ${FC} -shared -o \"${libdir}/libalgencan.${dlext}\" \\\n        -Wl,--whole-archive sources/algencan/libalgencan.a -Wl,--no-whole-archive \\\n        -Wl,--export-all-symbols -L${libdir} -L${prefix}/lib -lhsl_subset -lgfortran\nelse\n    ${FC} -shared -o \"${libdir}/libalgencan.${dlext}\" \\\n        -Wl,--whole-archive sources/algencan/libalgencan.a -Wl,--no-whole-archive \\\n        -L${libdir} -L${prefix}/lib -lhsl_subset -lgfortran\nfi\n\ninstall_license license.txt\n"""
+version = "v3.1.1"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "HSL_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libalgencan"]
+type = "lib"
+variable_name = "libalgencan"
+
+[[sources]]
+hash = "ab2a5496e9da49c508f68809cc339f9a604407329be24e3299bd7c21f14d6188"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/pjssilva/NLPModelsAlgencan.jl/releases/download/algencan-3.1.1/algencan-3.1.1.tgz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"
