@@ -1,0 +1,88 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "RocksDB"
+platforms = ["i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "powerpc64le-linux-gnu-cxx11", "riscv64-linux-gnu-cxx11", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx11"]
+script = """macos_sdk_version=10.15\nmacosx_deployment_target=10.15\n# Move the SDK tarball out of `srcdir` on all platforms: any extra entry\n# in there defeats the automatic installation of license files, which\n# expects `srcdir` to contain a single top-level source directory.\nmv ${WORKSPACE}/srcdir/MacOSX${macos_sdk_version}.sdk.tar.xz ${WORKSPACE}/\nif [[ \"${target}\" == x86_64-apple-darwin* ]]; then\n    # Extract SDK. Also outside of `srcdir`, for the same reason.\n    echo \"Extracting MacOSX${macos_sdk_version}.sdk.tar.xz (this may take a while)\"\n    tar \\\n        --extract \\\n        --file=${WORKSPACE}/MacOSX${macos_sdk_version}.sdk.tar.xz \\\n        --directory=${WORKSPACE} \\\n        --warning=no-unknown-keyword\n    old_sdkroot=${SDKROOT}\n    new_sdkroot=${WORKSPACE}/MacOSX${macos_sdk_version}.sdk\n    # Make sure libc++ header files are available at `usr/include/c++/v1`.\n    # Some SDKs ship their own (e.g. 15.0), which we leave alone; for those\n    # that don't, symlink the ones from the default SDK. Note we symlink\n    # the `v1` subdirectory rather than the whole `c++` directory: some\n    # SDKs (e.g. 10.13) contain `usr/include/c++/4.2.1` (but no `v1`), and\n    # symlinking `c++` onto that existing directory would silently create\n    # a nested `c++/c++` link, so libc++ headers like <new> are not found.\n    if [[ ! -d ${new_sdkroot}/usr/include/c++/v1 ]]; then\n        mkdir -p ${new_sdkroot}/usr/include/c++\n        ln -sT ${old_sdkroot}/usr/include/c++/v1 ${new_sdkroot}/usr/include/c++/v1\n    fi\n    # In the build environment `usr/local` of the default sys-root is a\n    # symlink to the destdir prefix, which puts the header files of the\n    # dependencies on the compilers' default search path. No SDK ships a\n    # `usr/local`, so replicate that symlink in the new SDK. `-T` makes\n    # this fail loudly should some SDK ship a `usr/local` after all,\n    # instead of silently creating a nested `usr/local/local` link.\n    ln -sT ${old_sdkroot}/usr/local ${new_sdkroot}/usr/local\n    # Fix toolchain files\n    sed -i -e \"s+${old_sdkroot}+${new_sdkroot}+\" ${MESON_TARGET_TOOLCHAIN} ${CMAKE_TARGET_TOOLCHAIN}\n    # Fix compiler wrappers\n    sed -i -e \"s+${old_sdkroot}+${new_sdkroot}+\" $(find /opt/bin/${target}* -type f -print)\n    SDKROOT=${new_sdkroot}\n    export MACOSX_DEPLOYMENT_TARGET=${macosx_deployment_target}\nfi\ncd $WORKSPACE/srcdir/rocksdb*\n\nCMAKE_FLAGS=(\n    -DCMAKE_INSTALL_PREFIX=${prefix}\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN}\n    -DCMAKE_BUILD_TYPE=Release\n    -DCMAKE_PREFIX_PATH=${prefix}\n    -DPORTABLE=1\n    -DROCKSDB_BUILD_SHARED=1\n    -DWITH_GFLAGS=0\n    -DWITH_TESTS=0\n    -DWITH_TOOLS=0\n    -DWITH_CORE_TOOLS=0\n    -DWITH_BENCHMARK_TOOLS=0\n    -DFAIL_ON_WARNINGS=0\n    # Compression backends: enable the full set RocksDB supports through the\n    # BinaryBuilder-provided JLLs.\n    -DWITH_SNAPPY=1\n    -DWITH_ZLIB=1\n    -DWITH_BZ2=1\n    -DWITH_LZ4=1\n    -DWITH_ZSTD=1\n)\n\n# RocksDB's CMakeLists.txt gates its entire install() ruleset behind\n# `if(NOT WIN32 OR ROCKSDB_INSTALL_ON_WINDOWS)`, and ROCKSDB_INSTALL_ON_WINDOWS\n# defaults OFF -- without this, `cmake --install .` is a silent no-op on\n# Windows and the resulting tarball is empty.\nif [[ \"${target}\" == *mingw* ]]; then\n    CMAKE_FLAGS+=(-DROCKSDB_INSTALL_ON_WINDOWS=1)\nfi\n\n# jemalloc (WITH_JEMALLOC) was tried and deliberately left disabled: RocksDB's\n# env/io_posix.cc calls glibc's getline() (which allocates via glibc malloc)\n# and then free()s that buffer through a macro that redefines free() to\n# je_free() under WITH_JEMALLOC, freeing memory jemalloc never allocated --\n# a reproducible segfault in PosixHelper::GetQueueSysfsFileValueOfFd on every\n# DB::Open. This is an upstream RocksDB/jemalloc incompatibility, not\n# specific to this recipe.\n\n# io_uring gives RocksDB a faster async I/O backend on Linux. Upstream\n# defaults WITH_LIBURING=ON but it silently no-ops unless liburing is\n# actually discoverable; we supply it via Liburing_jll on Linux only.\n# powerpc64le and riscv64 are further excluded: Liburing_jll's static\n# archive isn't safely linkable into a shared library on either --\n# powerpc64le fails with \"ld: final link failed: bad value\" (a PLT call\n# stub missing the trailing nop the ELFv2 ABI needs to restore the TOC\n# register), riscv64 fails outright with \"relocation ... can not be used\n# when making a shared object; recompile with -fPIC\". RocksDB itself\n# compiles cleanly on both; only linking against this dependency is\n# broken, so it's skipped there rather than dropping the whole platform.\nif [[ \"${target}\" == *linux* && \"${target}\" != *powerpc64le* && \"${target}\" != *riscv64* ]]; then\n    CMAKE_FLAGS+=(-DWITH_LIBURING=1)\nelse\n    CMAKE_FLAGS+=(-DWITH_LIBURING=0)\nfi\n\nmkdir build && cd build\ncmake \"${CMAKE_FLAGS[@]}\" ..\ncmake --build . --parallel ${nproc}\ncmake --install .\n\ninstall_license ../LICENSE.Apache ../LICENSE.leveldb ../COPYING\n"""
+version = "v11.1.2"
+
+[[dependencies]]
+compat = ""
+name = "snappy_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "fe1e1685-f7be-5f59-ac9f-4ca204017dfd"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "83775a58-1f1d-513f-b197-d71354ab007a"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Bzip2_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "6e34b625-4abd-537c-b88f-471c36dfa7a0"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Lz4_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "5ced341a-0733-55b8-9ab6-a4889d929147"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zstd_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "3161d3a3-bdf6-5164-811a-617609db77b4"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Liburing_jll"
+platforms = ["i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11"]
+top_level = false
+type = "dependency"
+uuid = "6524598b-69a8-53ae-b017-622bece5ca95"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["librocksdb", "librocksdb-shared"]
+type = "lib"
+variable_name = "librocksdb"
+
+[[sources]]
+hash = "3b446089141659fad25328c5ea3e7ed283df46e4"
+type = "git"
+unpack_target = ""
+url = "https://github.com/facebook/rocksdb.git"
+[[sources]]
+filename = "MacOSX10.15.sdk.tar.xz"
+hash = "2408d07df7f324d3beea818585a6d990ba99587c218a3969f924dfcc4de93b62"
+type = "file"
+url = "https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.15.sdk.tar.xz"
