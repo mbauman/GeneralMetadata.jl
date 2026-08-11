@@ -1,0 +1,56 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "JpegTurbo"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/libjpeg-turbo*\n\n# Explicitly link against libm, this is necessary on older glibc systems\natomic_patch -p1 $WORKSPACE/srcdir/patches/libjpeg-turbo-toplevel-libm.patch\natomic_patch -p1 $WORKSPACE/srcdir/patches/libjpeg-turbo-sharedlib-libm.patch\n\noptions=(\n    -DCMAKE_INSTALL_PREFIX=${prefix}\n    -DCMAKE_TOOLCHAIN_FILE=\"${CMAKE_TARGET_TOOLCHAIN}\"\n    -DCMAKE_POSITION_INDEPENDENT_CODE=ON\n)\n\nif [[ $target == riscv64-* ]]; then\n    # Disable SIMD to avoid build error\n    options+=(-DWITH_SIMD=OFF)\nfi\n\ncmake -Bbuild \"${options[@]}\"\ncmake --build build --parallel ${nproc}\ncmake --install build\n"""
+version = "v3.2.0"
+
+[[dependencies]]
+compat = ""
+name = "NASM_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libjpeg"]
+type = "lib"
+variable_name = "libjpeg"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libturbojpeg"]
+type = "lib"
+variable_name = "libturbojpeg"
+[[products]]
+binnames = ["cjpeg"]
+type = "exe"
+variable_name = "cjpeg"
+[[products]]
+binnames = ["djpeg"]
+type = "exe"
+variable_name = "djpeg"
+[[products]]
+binnames = ["jpegtran"]
+type = "exe"
+variable_name = "jpegtran"
+
+[[sources]]
+hash = "6f30092cef9fb839779646608f4ee14ae3cbac989c47fa05e841b0841f09878e"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/libjpeg-turbo/libjpeg-turbo/releases/download/3.2.0/libjpeg-turbo-3.2.0.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "bundled"
+target = ""
+type = "directory"

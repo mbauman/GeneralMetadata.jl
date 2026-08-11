@@ -1,0 +1,28 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "LibModbus"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/libmodbus/\n# On FreeBSD, the configure check for netinet/ip.h fails without prerequisite\n# includes, leaving IPTOS_LOWDELAY undeclared in modbus-tcp.c\natomic_patch -p1 ../patches/0001-check-netinet-ip-h-with-prerequisites.patch\n./autogen.sh\n./configure --prefix=$prefix --build=${MACHTYPE} --host=${target} --disable-tests\nmake -j${nproc}\nmake install\ninstall_license COPYING.LESSER\nexit\n"""
+version = "v3.1.12"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmodbus"]
+type = "lib"
+variable_name = "libmodbus"
+
+[[sources]]
+hash = "9af6c16074df566551bca0a7c37443e48f216289"
+type = "git"
+unpack_target = ""
+url = "https://github.com/stephane/libmodbus.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

@@ -1,0 +1,32 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "MPIR"
+platforms = ["i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx11", "riscv64-linux-gnu-cxx11", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir/mpir\n\napk add texinfo\n\n# Our C compilers are too new for the configure script in this\n# package. We need to disable errors (that used to be warnings) for\n# implicit function declarations.\n\n./autogen.sh\n./configure \\\n    --enable-cxx \\\n    --prefix=${prefix} \\\n    --build=${MACHTYPE} \\\n    --host=${target} \\\n    --disable-static \\\n    --enable-shared \\\n    CC_FOR_BUILD=\"${CC_FOR_BUILD} \\\n    -Wno-error=implicit-function-declaration\" \\\n    CFLAGS=\"-Wno-error=implicit-int -Wno-error=implicit-function-declaration\"\nmake -j${nproc}\nmake install\n"""
+version = "v3.0.2"
+
+[[dependencies]]
+compat = ""
+name = "YASM_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libmpir"]
+type = "lib"
+variable_name = "libmpir"
+
+[[sources]]
+hash = "cdd444aedfcbb190f00328526ef278428702d56e"
+type = "git"
+unpack_target = ""
+url = "https://github.com/wbhart/mpir"
