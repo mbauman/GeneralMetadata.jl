@@ -1,0 +1,23 @@
+augment_platform_block = """using Base.BinaryPlatforms: arch, arch_march_isa_mapping, CPUID, HostPlatform, Platform\n\nfunction augment_microarchitecture!(platform::Platform)\n    haskey(platform, \"march\") && return platform\n\n    host_arch = arch(HostPlatform())\n    host_isas = arch_march_isa_mapping[host_arch]\n    idx = findlast(((name, isa),) -> isa <= CPUID.cpu_isa(), host_isas)\n    platform[\"march\"] = first(host_isas[idx])\n    return platform\nend\n\n\nfunction augment_platform!(platform::Platform)\n    augment_microarchitecture!(platform)\nend\n"""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = true
+name = "blasfeo"
+platforms = ["x86_64-linux-gnu-march+x86_64", "x86_64-linux-gnu-march+avx", "x86_64-linux-gnu-march+avx2", "x86_64-linux-gnu-march+avx512", "x86_64-linux-musl-march+x86_64", "x86_64-linux-musl-march+avx", "x86_64-linux-musl-march+avx2", "x86_64-linux-musl-march+avx512", "x86_64-w64-mingw32-march+x86_64", "x86_64-w64-mingw32-march+avx", "x86_64-w64-mingw32-march+avx2", "x86_64-w64-mingw32-march+avx512", "x86_64-apple-darwin-march+x86_64", "x86_64-apple-darwin-march+avx", "x86_64-apple-darwin-march+avx2", "aarch64-apple-darwin-march+apple_m1"]
+script = ["""cd $WORKSPACE/srcdir/blasfeo\necho \"\nTARGET= GENERIC\nLA= HIGH_PERFORMANCE\nOS= LINUX\nMF = PANELMAJ\nBLAS_API = 0\nPREFIX = ${prefix}\n\" > Makefile.local\nmake shared_library -j ${nproc}\nmake install_shared\n""", """cd $WORKSPACE/srcdir/blasfeo\necho \"\nTARGET= X64_INTEL_SANDY_BRIDGE\nLA= HIGH_PERFORMANCE\nOS= LINUX\nMF = PANELMAJ\nBLAS_API = 0\nPREFIX = ${prefix}\n\" > Makefile.local\nmake shared_library -j ${nproc}\nmake install_shared\n""", """cd $WORKSPACE/srcdir/blasfeo\necho \"\nTARGET= X64_INTEL_HASWELL\nLA= HIGH_PERFORMANCE\nOS= LINUX\nMF = PANELMAJ\nBLAS_API = 0\nPREFIX = ${prefix}\n\" > Makefile.local\nmake shared_library -j ${nproc}\nmake install_shared\n""", """cd $WORKSPACE/srcdir/blasfeo\necho \"\nTARGET= X64_AMD_ZEN5\nLA= HIGH_PERFORMANCE\nOS= LINUX\nMF = PANELMAJ\nBLAS_API = 0\nPREFIX = ${prefix}\n\" > Makefile.local\nmake shared_library -j ${nproc}\nmake install_shared\n""", """cd $WORKSPACE/srcdir/blasfeo\necho \"\nTARGET= GENERIC\nLA= HIGH_PERFORMANCE\nOS= WINDOWS\nMF = PANELMAJ\nBLAS_API = 0\nPREFIX = ${prefix}\n\" > Makefile.local\nmake shared_library -j ${nproc}\nmake install_shared\n""", """cd $WORKSPACE/srcdir/blasfeo\necho \"\nTARGET= X64_INTEL_SANDY_BRIDGE\nLA= HIGH_PERFORMANCE\nOS= WINDOWS\nMF = PANELMAJ\nBLAS_API = 0\nPREFIX = ${prefix}\n\" > Makefile.local\nmake shared_library -j ${nproc}\nmake install_shared\n""", """cd $WORKSPACE/srcdir/blasfeo\necho \"\nTARGET= X64_INTEL_HASWELL\nLA= HIGH_PERFORMANCE\nOS= WINDOWS\nMF = PANELMAJ\nBLAS_API = 0\nPREFIX = ${prefix}\n\" > Makefile.local\nmake shared_library -j ${nproc}\nmake install_shared\n""", """cd $WORKSPACE/srcdir/blasfeo\necho \"\nTARGET= X64_AMD_ZEN5\nLA= HIGH_PERFORMANCE\nOS= WINDOWS\nMF = PANELMAJ\nBLAS_API = 0\nPREFIX = ${prefix}\n\" > Makefile.local\nmake shared_library -j ${nproc}\nmake install_shared\n""", """cd $WORKSPACE/srcdir/blasfeo\necho \"\nTARGET= GENERIC\nLA= HIGH_PERFORMANCE\nOS= MAC\nMF = PANELMAJ\nBLAS_API = 0\nPREFIX = ${prefix}\n\" > Makefile.local\nmake shared_library -j ${nproc}\nmake install_shared\n""", """cd $WORKSPACE/srcdir/blasfeo\necho \"\nTARGET= X64_INTEL_SANDY_BRIDGE\nLA= HIGH_PERFORMANCE\nOS= MAC\nMF = PANELMAJ\nBLAS_API = 0\nPREFIX = ${prefix}\n\" > Makefile.local\nmake shared_library -j ${nproc}\nmake install_shared\n""", """cd $WORKSPACE/srcdir/blasfeo\necho \"\nTARGET= X64_INTEL_HASWELL\nLA= HIGH_PERFORMANCE\nOS= MAC\nMF = PANELMAJ\nBLAS_API = 0\nPREFIX = ${prefix}\n\" > Makefile.local\nmake shared_library -j ${nproc}\nmake install_shared\n""", """cd $WORKSPACE/srcdir/blasfeo\necho \"\nTARGET= ARMV8A_APPLE_M1\nLA= HIGH_PERFORMANCE\nOS= MAC\nMF = PANELMAJ\nBLAS_API = 0\nPREFIX = ${prefix}\n\" > Makefile.local\nmake shared_library -j ${nproc}\nmake install_shared\n"""]
+version = "v0.1.4"
+
+[[products]]
+dir_paths = ["blasfeo/lib"]
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libblasfeo"]
+type = "lib"
+variable_name = "blasfeo"
+
+[[sources]]
+hash = "0ab5db3259c009ea62318a5e35622fe6de7ae554"
+type = "git"
+unpack_target = ""
+url = "https://github.com/giaf/blasfeo.git"
