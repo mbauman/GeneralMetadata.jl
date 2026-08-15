@@ -1,0 +1,57 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "HSL"
+platforms = ["i686-linux-gnu-libgfortran5", "x86_64-linux-gnu-libgfortran5", "aarch64-linux-gnu-libgfortran5", "armv6l-linux-gnueabihf-libgfortran5", "armv7l-linux-gnueabihf-libgfortran5", "powerpc64le-linux-gnu-libgfortran5", "riscv64-linux-gnu-libgfortran5", "i686-linux-musl-libgfortran5", "x86_64-linux-musl-libgfortran5", "aarch64-linux-musl-libgfortran5", "armv6l-linux-musleabihf-libgfortran5", "armv7l-linux-musleabihf-libgfortran5", "x86_64-apple-darwin-libgfortran5", "aarch64-apple-darwin-libgfortran5", "x86_64-unknown-freebsd-libgfortran5", "aarch64-unknown-freebsd-libgfortran5", "i686-w64-mingw32-libgfortran5", "x86_64-w64-mingw32-libgfortran5"]
+script = """# Update Ninja\ncp ${host_prefix}/bin/ninja /usr/bin/ninja\n\nQUADRUPLE=\"true\"\nif [[ \"${target}\" == *arm* ]] || [[ \"${target}\" == *aarch64-linux* ]] || [[ \"${target}\" == *riscv64* ]] || [[ \"${target}\" == *aarch64-unknown-freebsd* ]] || [[ \"${target}\" == *powerpc64le-linux-gnu* ]]; then\n    QUADRUPLE=\"false\"\nfi\n\ncd $WORKSPACE/srcdir/libHSL/libhsl\nmeson setup builddir_libhsl --cross-file=${MESON_TARGET_TOOLCHAIN} --buildtype=release\nmeson compile -C builddir_libhsl\nmeson install -C builddir_libhsl\n\ncd $WORKSPACE/srcdir/libHSL/hsl_subset\nmeson setup builddir_hsl_subset -Dquadruple=${QUADRUPLE} --cross-file=${MESON_TARGET_TOOLCHAIN} --buildtype=release\nmeson compile -C builddir_hsl_subset\nmeson install -C builddir_hsl_subset\n"""
+version = "v4.0.8"
+
+[[dependencies]]
+compat = ""
+name = "Ninja_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+uuid = "76642167-d241-5cee-8c94-7a494e8cb7b7"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libhsl"]
+type = "lib"
+variable_name = "libhsl"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libhsl_subset"]
+type = "lib"
+variable_name = "libhsl_subset"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libhsl_subset_64"]
+type = "lib"
+variable_name = "libhsl_subset_64"
+
+[[sources]]
+hash = "3241c8afe76b0809a2c56476328d61a47330df76"
+type = "git"
+unpack_target = ""
+url = "https://github.com/ralna/libHSL.git"
