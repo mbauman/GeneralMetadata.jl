@@ -1,0 +1,111 @@
+augment_platform_block = """    using Base.BinaryPlatforms\n    # Can't use Preferences since we might be running this very early with a non-existing Manifest\nMPIPreferences_UUID = Base.UUID(\"3da0fdf6-3ccc-4f1b-acd9-58baa6c99267\")\nconst preferences = Base.get_preferences(MPIPreferences_UUID)\n\nconst binary_to_abi = Dict(\n    \"MPIABI_jll\" => \"MPIABI\",\n    \"MPICH_jll\" => \"MPICH\",\n    \"MPICH_CUDA_jll\" => \"MPICH\",\n    \"MPItrampoline_jll\" => \"MPItrampoline\",\n    \"MicrosoftMPI_jll\" => \"MicrosoftMPI\",\n    \"OpenMPI_jll\" => \"OpenMPI\",\n)\n\n# Keep logic in sync with MPIPreferences.jl\nfunction augment_mpi!(platform)\n    # Doesn't need to be `const` since we depend on MPIPreferences so we\n    # invalidate the cache when it changes.\n\n    # Determine which jll binary provides our MPI implementation.\n    # Use MPIPreferences if set, otherwise use either MPICH or MicrosoftMPI (on Windows).\n    # Note: MPIPreferences uses `Sys.iswindows()` without the `platform` argument.\n    binary = get(preferences, \"binary\", Sys.iswindows(platform) ? \"MicrosoftMPI_jll\" : \"MPICH_jll\")\n\n    # Convert the jll binary to an ABI\n    if binary == \"system\"\n        abi = get(preferences, \"abi\", nothing)\n        abi === nothing && error(\"MPIPreferences: Inconsistent state detected, `binary` is set to system, but `abi` is not set.\")\n    else\n        abi = get(binary_to_abi, binary, nothing)\n        abi == nothing && error(\"Unknown MPI binary: $binary\")\n    end\n\n    # Add an `mpi` entry to the platform if it's missing\n    if !haskey(platform, \"mpi\")\n        platform[\"mpi\"] = abi\n    end\n\n    return platform\nend\n\n    augment_platform!(platform::Platform) = augment_mpi!(platform)\n"""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = true
+name = "P4est"
+platforms = ["i686-linux-gnu-mpi+mpiabi", "x86_64-linux-gnu-mpi+mpiabi", "aarch64-linux-gnu-mpi+mpiabi", "armv6l-linux-gnueabihf-mpi+mpiabi", "armv7l-linux-gnueabihf-mpi+mpiabi", "powerpc64le-linux-gnu-mpi+mpiabi", "riscv64-linux-gnu-mpi+mpiabi", "i686-linux-musl-mpi+mpiabi", "x86_64-linux-musl-mpi+mpiabi", "aarch64-linux-musl-mpi+mpiabi", "armv6l-linux-musleabihf-mpi+mpiabi", "armv7l-linux-musleabihf-mpi+mpiabi", "x86_64-apple-darwin-mpi+mpiabi", "aarch64-apple-darwin-mpi+mpiabi", "x86_64-unknown-freebsd-mpi+mpiabi", "aarch64-unknown-freebsd-mpi+mpiabi", "i686-linux-gnu-mpi+mpich", "x86_64-linux-gnu-mpi+mpich", "aarch64-linux-gnu-mpi+mpich", "armv6l-linux-gnueabihf-mpi+mpich", "armv7l-linux-gnueabihf-mpi+mpich", "powerpc64le-linux-gnu-mpi+mpich", "riscv64-linux-gnu-mpi+mpich", "i686-linux-musl-mpi+mpich", "x86_64-linux-musl-mpi+mpich", "aarch64-linux-musl-mpi+mpich", "armv6l-linux-musleabihf-mpi+mpich", "armv7l-linux-musleabihf-mpi+mpich", "x86_64-apple-darwin-mpi+mpich", "aarch64-apple-darwin-mpi+mpich", "x86_64-unknown-freebsd-mpi+mpich", "aarch64-unknown-freebsd-mpi+mpich", "i686-linux-gnu-mpi+mpitrampoline", "x86_64-linux-gnu-mpi+mpitrampoline", "aarch64-linux-gnu-mpi+mpitrampoline", "armv6l-linux-gnueabihf-mpi+mpitrampoline", "armv7l-linux-gnueabihf-mpi+mpitrampoline", "powerpc64le-linux-gnu-mpi+mpitrampoline", "riscv64-linux-gnu-mpi+mpitrampoline", "x86_64-apple-darwin-mpi+mpitrampoline", "aarch64-apple-darwin-mpi+mpitrampoline", "x86_64-unknown-freebsd-mpi+mpitrampoline", "aarch64-unknown-freebsd-mpi+mpitrampoline", "x86_64-w64-mingw32-mpi+microsoftmpi"]
+script = """cd p4est-*\natomic_patch -p1 \"${WORKSPACE}/srcdir/patches/mpi-constants.patch\"\n\nif [[ \"${target}\" == *-freebsd* ]]; then\n  export LIBS=\"-lm\"\nelif [[ \"${target}\" == x86_64-linux-musl ]]; then\n  # We can't run Fortran programs for the native platform, so a check that the\n  # Fortran compiler works would fail.  Small hack: swear that we're\n  # cross-compiling.  See:\n  # https://github.com/JuliaPackaging/BinaryBuilderBase.jl/issues/50.\n  sed -i 's/cross_compiling=no/cross_compiling=yes/' configure\n  sed -i 's/cross_compiling=no/cross_compiling=yes/' sc/configure\nfi\n\n# Set default preprocessor and linker flags\nexport CPPFLAGS=\"-I${includedir}\"\nexport LDFLAGS=\"-L${libdir}\"\nexport LIBS=\"-lm\"\n\n# Special Windows treatment\nFLAGS=()\nif [[ \"${target}\" == *-mingw* ]]; then\n  # Set linker flags only at build time (see https://docs.binarybuilder.org/v0.3/troubleshooting/#Windows)\n  FLAGS+=(LDFLAGS=\"$LDFLAGS -no-undefined\")\n  # Configure does not find the correct Fortran compiler\n  export F77=\"f77\"\n  # Link against ws2_32 to use the htonl function from winsock2.h\n  export LIBS=\"-lmsmpi -lws2_32\"\n  # Disable MPI I/O on Windows since it causes p4est to crash\n  mpiopts=\"--enable-mpi --disable-mpiio\"\n  # Linker looks for libmsmpi instead of msmpi, copy existing symlink\n  cp -d ${libdir}/msmpi.dll ${libdir}/libmsmpi.dll\nelse\n  # Use MPI including MPI I/O on all other platforms\n  export MPITRAMPOLINE_CC=${CC}\n  export MPITRAMPOLINE_CXX=${CXX}\n  export CC=mpicc\n  export CXX=mpicxx\n  mpiopts=\"--enable-mpi\"\nfi\n\n# Configure, build, install\n# Note: BLAS is disabled since it is only needed for SC if it is used outside of p4est\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target} --disable-static --without-blas ${mpiopts}\nmake -j${nproc} \"${FLAGS[@]}\"\nmake install\n"""
+toplevel_block = ""
+version = "v2.8.9"
+
+[[dependencies]]
+compat = "2.14.1"
+name = "Jansson_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "83cbd138-b029-500a-bd82-26ec0fbaa0df"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "83775a58-1f1d-513f-b197-d71354ab007a"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.0.0"
+name = "MPIABI_jll"
+platforms = ["i686-linux-gnu-mpi+mpiabi", "x86_64-linux-gnu-mpi+mpiabi", "aarch64-linux-gnu-mpi+mpiabi", "armv6l-linux-gnueabihf-mpi+mpiabi", "armv7l-linux-gnueabihf-mpi+mpiabi", "powerpc64le-linux-gnu-mpi+mpiabi", "riscv64-linux-gnu-mpi+mpiabi", "i686-linux-musl-mpi+mpiabi", "x86_64-linux-musl-mpi+mpiabi", "aarch64-linux-musl-mpi+mpiabi", "armv6l-linux-musleabihf-mpi+mpiabi", "armv7l-linux-musleabihf-mpi+mpiabi", "x86_64-apple-darwin-mpi+mpiabi", "aarch64-apple-darwin-mpi+mpiabi", "x86_64-unknown-freebsd-mpi+mpiabi", "aarch64-unknown-freebsd-mpi+mpiabi"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "5.0.1"
+name = "MPICH_jll"
+platforms = ["i686-linux-gnu-mpi+mpich", "x86_64-linux-gnu-mpi+mpich", "aarch64-linux-gnu-mpi+mpich", "armv6l-linux-gnueabihf-mpi+mpich", "armv7l-linux-gnueabihf-mpi+mpich", "powerpc64le-linux-gnu-mpi+mpich", "riscv64-linux-gnu-mpi+mpich", "i686-linux-musl-mpi+mpich", "x86_64-linux-musl-mpi+mpich", "aarch64-linux-musl-mpi+mpich", "armv6l-linux-musleabihf-mpi+mpich", "armv7l-linux-musleabihf-mpi+mpich", "x86_64-apple-darwin-mpi+mpich", "aarch64-apple-darwin-mpi+mpich", "x86_64-unknown-freebsd-mpi+mpich", "aarch64-unknown-freebsd-mpi+mpich"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "5.5.6"
+name = "MPItrampoline_jll"
+platforms = ["i686-linux-gnu-mpi+mpitrampoline", "x86_64-linux-gnu-mpi+mpitrampoline", "aarch64-linux-gnu-mpi+mpitrampoline", "armv6l-linux-gnueabihf-mpi+mpitrampoline", "armv7l-linux-gnueabihf-mpi+mpitrampoline", "powerpc64le-linux-gnu-mpi+mpitrampoline", "riscv64-linux-gnu-mpi+mpitrampoline", "x86_64-apple-darwin-mpi+mpitrampoline", "aarch64-apple-darwin-mpi+mpitrampoline", "x86_64-unknown-freebsd-mpi+mpitrampoline", "aarch64-unknown-freebsd-mpi+mpitrampoline"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MicrosoftMPI_jll"
+platforms = ["x86_64-w64-mingw32-mpi+microsoftmpi"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "4.1.9, 5.0.11"
+name = "OpenMPI_jll"
+platforms = ["i686-linux-gnu-mpi+openmpi", "x86_64-linux-gnu-mpi+openmpi", "aarch64-linux-gnu-mpi+openmpi", "armv7l-linux-gnueabihf-mpi+openmpi", "powerpc64le-linux-gnu-mpi+openmpi", "riscv64-linux-gnu-mpi+openmpi", "i686-linux-musl-mpi+openmpi", "x86_64-linux-musl-mpi+openmpi", "aarch64-linux-musl-mpi+openmpi", "armv6l-linux-musleabihf-mpi+openmpi", "armv7l-linux-musleabihf-mpi+openmpi", "x86_64-apple-darwin-mpi+openmpi", "aarch64-apple-darwin-mpi+openmpi", "x86_64-unknown-freebsd-mpi+openmpi", "aarch64-unknown-freebsd-mpi+openmpi"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "0.1"
+name = "MPIPreferences"
+platforms = ["any"]
+top_level = true
+type = "dependency"
+uuid = "3da0fdf6-3ccc-4f1b-acd9-58baa6c99267"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libp4est"]
+type = "lib"
+variable_name = "libp4est"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libsc"]
+type = "lib"
+variable_name = "libsc"
+
+[[sources]]
+hash = "0a1e912f3529999ca6d62fee335d51f24b5650b586e95a03ef39ebf73936d7f4"
+type = "archive"
+unpack_target = ""
+url = "https://p4est.github.io/release/p4est-2.8.7.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "bundled"
+target = ""
+type = "directory"

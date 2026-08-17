@@ -1,0 +1,47 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Algencan"
+platforms = ["i686-linux-gnu-libgfortran5", "x86_64-linux-gnu-libgfortran5", "aarch64-linux-gnu-libgfortran5", "armv6l-linux-gnueabihf-libgfortran5", "armv7l-linux-gnueabihf-libgfortran5", "powerpc64le-linux-gnu-libgfortran5", "riscv64-linux-gnu-libgfortran5", "i686-linux-musl-libgfortran5", "x86_64-linux-musl-libgfortran5", "aarch64-linux-musl-libgfortran5", "armv6l-linux-musleabihf-libgfortran5", "armv7l-linux-musleabihf-libgfortran5", "x86_64-apple-darwin-libgfortran5", "aarch64-apple-darwin-libgfortran5", "x86_64-unknown-freebsd-libgfortran5", "aarch64-unknown-freebsd-libgfortran5", "i686-w64-mingw32-libgfortran5", "x86_64-w64-mingw32-libgfortran5"]
+script = """cd ${WORKSPACE}/srcdir/algencan-*\n\n# lssma97.f90 ships with CRLF line endings; normalise them so the patch below\n# does not have to carry CRLF context lines.\nsed -i 's/\\r$//' sources/algencan/lssma97.f90\n\n# Makes Algencan query HSL's maNN_available at run time instead of deciding at\n# compile time, so one binary may use MANN when a licensed HSL is installed.\n# If MA57 is not available it falls back to truncated Newton. Also drops\n# Algencan's use of finfo%pivot, a field only a locally patched MA57 provides.\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/algencan-3.1.1-runtime-hsl.patch\n\n# sources/algencan/Makefile picks the real lssmaNN.o over the stub for each\n# solver whose module it finds in HSLSRC. ALGENCAN still prefers MA57, and the\n# trust region accepts nothing else; MA86 and MA97 are reachable through the\n# specification file.\nmkdir -p hsldetect\nfor m in ma57 ma86 ma97; do\n    ln -s ${prefix}/modules/hsl_${m}_double.mod hsldetect/\ndone\n\n# OPENMPFLAG is defined in the root Makefile, which this call bypasses, so it\n# has to be repeated to keep upstream's default.\nmake -C sources/algencan lib \\\n     FC=gfortran AR=ar OPENMPFLAG=-fopenmp \\\n     FFLAGS=\"-O3 -ffree-form -fPIC -I${prefix}/modules\" \\\n     HSLSRC=${PWD}/hsldetect\n\nmkdir -p \"${libdir}\"\n\n# Force every object in so that c_algencan survives.\nif [[ \"${target}\" == *-apple-* ]]; then\n    ${FC} -shared -o \"${libdir}/libalgencan.${dlext}\" \\\n        -Wl,-all_load sources/algencan/libalgencan.a \\\n        -L${libdir} -L${prefix}/lib -lhsl_subset -lgfortran\nelif [[ \"${target}\" == *-mingw* ]]; then\n    ${FC} -shared -o \"${libdir}/libalgencan.${dlext}\" \\\n        -Wl,--whole-archive sources/algencan/libalgencan.a -Wl,--no-whole-archive \\\n        -Wl,--export-all-symbols -L${libdir} -L${prefix}/lib -lhsl_subset -lgfortran\nelse\n    ${FC} -shared -o \"${libdir}/libalgencan.${dlext}\" \\\n        -Wl,--whole-archive sources/algencan/libalgencan.a -Wl,--no-whole-archive \\\n        -L${libdir} -L${prefix}/lib -lhsl_subset -lgfortran\nfi\n\ninstall_license license.txt\n"""
+toplevel_block = ""
+version = "v3.1.1"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "HSL_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libalgencan"]
+type = "lib"
+variable_name = "libalgencan"
+
+[[sources]]
+hash = "ab2a5496e9da49c508f68809cc339f9a604407329be24e3299bd7c21f14d6188"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/pjssilva/NLPModelsAlgencan.jl/releases/download/algencan-3.1.1/algencan-3.1.1.tgz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"
