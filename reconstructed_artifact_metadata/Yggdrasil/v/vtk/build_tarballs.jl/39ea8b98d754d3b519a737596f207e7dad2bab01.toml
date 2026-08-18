@@ -1,0 +1,1679 @@
+augment_platform_block = """    using Base.BinaryPlatforms\n    # Can't use Preferences since we might be running this very early with a non-existing Manifest\nMPIPreferences_UUID = Base.UUID(\"3da0fdf6-3ccc-4f1b-acd9-58baa6c99267\")\nconst preferences = Base.get_preferences(MPIPreferences_UUID)\n\nconst binary_to_abi = Dict(\n    \"MPIABI_jll\" => \"MPIABI\",\n    \"MPICH_jll\" => \"MPICH\",\n    \"MPICH_CUDA_jll\" => \"MPICH\",\n    \"MPItrampoline_jll\" => \"MPItrampoline\",\n    \"MicrosoftMPI_jll\" => \"MicrosoftMPI\",\n    \"OpenMPI_jll\" => \"OpenMPI\",\n)\n\n# Keep logic in sync with MPIPreferences.jl\nfunction augment_mpi!(platform)\n    # Doesn't need to be `const` since we depend on MPIPreferences so we\n    # invalidate the cache when it changes.\n\n    # Determine which jll binary provides our MPI implementation.\n    # Use MPIPreferences if set, otherwise use either MPICH or MicrosoftMPI (on Windows).\n    # Note: MPIPreferences uses `Sys.iswindows()` without the `platform` argument.\n    binary = get(preferences, \"binary\", Sys.iswindows(platform) ? \"MicrosoftMPI_jll\" : \"MPICH_jll\")\n\n    # Convert the jll binary to an ABI\n    if binary == \"system\"\n        abi = get(preferences, \"abi\", nothing)\n        abi === nothing && error(\"MPIPreferences: Inconsistent state detected, `binary` is set to system, but `abi` is not set.\")\n    else\n        abi = get(binary_to_abi, binary, nothing)\n        abi == nothing && error(\"Unknown MPI binary: $binary\")\n    end\n\n    # Add an `mpi` entry to the platform if it's missing\n    if !haskey(platform, \"mpi\")\n        platform[\"mpi\"] = abi\n    end\n\n    return platform\nend\n\n    augment_platform!(platform::Platform) = augment_mpi!(platform)\n"""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = true
+name = "VTK"
+platforms = ["x86_64-linux-gnu-cxx11-mpi+mpiabi", "aarch64-linux-gnu-cxx11-mpi+mpiabi", "powerpc64le-linux-gnu-cxx11-mpi+mpiabi", "riscv64-linux-gnu-cxx11-mpi+mpiabi", "x86_64-linux-musl-cxx11-mpi+mpiabi", "aarch64-linux-musl-cxx11-mpi+mpiabi", "x86_64-apple-darwin-mpi+mpiabi", "aarch64-apple-darwin-mpi+mpiabi", "x86_64-unknown-freebsd-mpi+mpiabi", "aarch64-unknown-freebsd-mpi+mpiabi", "x86_64-linux-gnu-cxx11-mpi+mpich", "aarch64-linux-gnu-cxx11-mpi+mpich", "powerpc64le-linux-gnu-cxx11-mpi+mpich", "riscv64-linux-gnu-cxx11-mpi+mpich", "x86_64-linux-musl-cxx11-mpi+mpich", "aarch64-linux-musl-cxx11-mpi+mpich", "x86_64-apple-darwin-mpi+mpich", "aarch64-apple-darwin-mpi+mpich", "x86_64-unknown-freebsd-mpi+mpich", "aarch64-unknown-freebsd-mpi+mpich", "x86_64-linux-gnu-cxx11-mpi+openmpi", "aarch64-linux-gnu-cxx11-mpi+openmpi", "powerpc64le-linux-gnu-cxx11-mpi+openmpi", "riscv64-linux-gnu-cxx11-mpi+openmpi", "x86_64-linux-musl-cxx11-mpi+openmpi", "aarch64-linux-musl-cxx11-mpi+openmpi", "x86_64-apple-darwin-mpi+openmpi", "aarch64-apple-darwin-mpi+openmpi", "x86_64-unknown-freebsd-mpi+openmpi", "aarch64-unknown-freebsd-mpi+openmpi"]
+script = """macos_sdk_version=10.14\nmacosx_deployment_target=10.14\n# Move the SDK tarball out of `srcdir` on all platforms: any extra entry\n# in there defeats the automatic installation of license files, which\n# expects `srcdir` to contain a single top-level source directory.\nmv ${WORKSPACE}/srcdir/MacOSX${macos_sdk_version}.sdk.tar.xz ${WORKSPACE}/\nif [[ \"${target}\" == x86_64-apple-darwin* ]]; then\n    # Extract SDK. Also outside of `srcdir`, for the same reason.\n    echo \"Extracting MacOSX${macos_sdk_version}.sdk.tar.xz (this may take a while)\"\n    tar \\\n        --extract \\\n        --file=${WORKSPACE}/MacOSX${macos_sdk_version}.sdk.tar.xz \\\n        --directory=${WORKSPACE} \\\n        --warning=no-unknown-keyword\n    old_sdkroot=${SDKROOT}\n    new_sdkroot=${WORKSPACE}/MacOSX${macos_sdk_version}.sdk\n    # Make sure libc++ header files are available at `usr/include/c++/v1`.\n    # Some SDKs ship their own (e.g. 15.0), which we leave alone; for those\n    # that don't, symlink the ones from the default SDK. Note we symlink\n    # the `v1` subdirectory rather than the whole `c++` directory: some\n    # SDKs (e.g. 10.13) contain `usr/include/c++/4.2.1` (but no `v1`), and\n    # symlinking `c++` onto that existing directory would silently create\n    # a nested `c++/c++` link, so libc++ headers like <new> are not found.\n    if [[ ! -d ${new_sdkroot}/usr/include/c++/v1 ]]; then\n        mkdir -p ${new_sdkroot}/usr/include/c++\n        ln -sT ${old_sdkroot}/usr/include/c++/v1 ${new_sdkroot}/usr/include/c++/v1\n    fi\n    # In the build environment `usr/local` of the default sys-root is a\n    # symlink to the destdir prefix, which puts the header files of the\n    # dependencies on the compilers' default search path. No SDK ships a\n    # `usr/local`, so replicate that symlink in the new SDK. `-T` makes\n    # this fail loudly should some SDK ship a `usr/local` after all,\n    # instead of silently creating a nested `usr/local/local` link.\n    ln -sT ${old_sdkroot}/usr/local ${new_sdkroot}/usr/local\n    # Fix toolchain files\n    sed -i -e \"s+${old_sdkroot}+${new_sdkroot}+\" ${MESON_TARGET_TOOLCHAIN} ${CMAKE_TARGET_TOOLCHAIN}\n    # Fix compiler wrappers\n    sed -i -e \"s+${old_sdkroot}+${new_sdkroot}+\" $(find /opt/bin/${target}* -type f -print)\n    SDKROOT=${new_sdkroot}\n    export MACOSX_DEPLOYMENT_TARGET=${macosx_deployment_target}\nfi\ncd ${WORKSPACE}/srcdir/VTK-*\n\n# We need at least cmake 3.27.1, so we add it as HostBuildDependency below\napk del cmake\n\n# For the record:\n# If we want to build `libproj` ourselves (instead of depending on `PROJ_jll`), then we need the following:\n#     apk add sqlite\n#\n# We also need this patch. (VTK wants to run a target binary. Silly VTK.)\n#     --- a/ThirdParty/libproj/vtklibproj/CMakeLists.txt\n#     +++ b/ThirdParty/libproj/vtklibproj/CMakeLists.txt\n#     @@ -215,7 +215,7 @@\n#        message(SEND_ERROR \"sqlite3 dependency not found!\")\n#      endif()\n#      else ()\n#     -set(EXE_SQLITE3 \"$<TARGET_FILE:VTK::sqlitebin>\")\n#     +set(EXE_SQLITE3 \"/usr/bin/sqlite3\")\n#      set(SQLITE3_FOUND 1)\n#      set(SQLITE3_VERSION 3.36.0) # Might be out-of-sync; update as needed.\n#      endif ()\n\nif [[ ${target} == *mingw* ]]; then\n    apk add sqlite\nfi\n\n# powerpc64le refuses to treat long double multiplication as constexpr\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/long_double.patch\n\n# Build the tools for building VTK\nhost_opts=(\n    -DCMAKE_BUILD_TYPE=Release\n    -DCMAKE_INSTALL_PREFIX=${host_prefix}\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_HOST_TOOLCHAIN}\n    -DVTK_BUILD_COMPILE_TOOLS_ONLY=ON\n)\ncmake -Bhost_build -GNinja ${host_opts[@]}\ncmake --build host_build --parallel ${nproc}\ncmake --install host_build\n\n# For the record:\n# If we want to build `hdf5` ourselves (instead of depending on `HDF5_jll`), then we need the following:\n#     -DH5_PRINTF_LL_TEST_RUN:STRING=0\n#     -DH5_PRINTF_LL_TEST_RUN__TRYRUN_OUTPUT:STRING=9223372036854775807\n#     -DH5_LDOUBLE_TO_LONG_SPECIAL=OFF\n#     -DH5_LONG_TO_LDOUBLE_SPECIAL=OFF\n#     -DH5_LDOUBLE_TO_LLONG_ACCURATE=ON\n#     -DH5_LDOUBLE_TO_LLONG_ACCURATE=ON\n#     -DH5_LLONG_TO_LDOUBLE_CORRECT=ON\n#     -DH5_DISABLE_SOME_LDOUBLE_CONV=OFF\n#     -DH5_NO_ALIGNMENT_RESTRICTIONS=OFF\n\n# Build VTK\nopts=(\n    -DCMAKE_BUILD_TYPE=Release\n    -DCMAKE_INSTALL_PREFIX=${prefix}\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN}\n    -DVTK_GENERATE_SPDX=ON\n    -DVTK_REQUIRE_LARGE_FILE_SUPPORT=OFF\n    -DVTK_USE_MPI=ON\n    -DTEST_LFS_WORKS_RUN:STRING=0\n    -DHDF5_NO_FIND_PACKAGE_CONFIG_FILE=TRUE\n    -DHDF5_PREFER_PARALLEL=TRUE\n    -DVTK_MODULE_USE_EXTERNAL_VTK_cgns=ON\n    -DVTK_MODULE_USE_EXTERNAL_VTK_expat=ON\n    -DVTK_MODULE_USE_EXTERNAL_VTK_exprtk=ON\n    -DVTK_MODULE_USE_EXTERNAL_VTK_freetype=ON\n    -DVTK_MODULE_USE_EXTERNAL_VTK_hdf5=ON\n    -DVTK_MODULE_USE_EXTERNAL_VTK_jpeg=ON\n    -DVTK_MODULE_USE_EXTERNAL_VTK_libharu=ON\n    -DVTK_MODULE_USE_EXTERNAL_VTK_libproj=ON\n    -DVTK_MODULE_USE_EXTERNAL_VTK_libxml2=ON\n    -DVTK_MODULE_USE_EXTERNAL_VTK_lz4=ON\n    -DVTK_MODULE_USE_EXTERNAL_VTK_lzma=ON\n    -DVTK_MODULE_USE_EXTERNAL_VTK_netcdf=ON\n    -DVTK_MODULE_USE_EXTERNAL_VTK_nlohmannjson=ON\n    -DVTK_MODULE_USE_EXTERNAL_VTK_ogg=ON\n    -DVTK_MODULE_USE_EXTERNAL_VTK_png=ON\n    -DVTK_MODULE_USE_EXTERNAL_VTK_pugixml=ON\n    -DVTK_MODULE_USE_EXTERNAL_VTK_sqlite=ON\n    -DVTK_MODULE_USE_EXTERNAL_VTK_tiff=ON\n    -DVTK_MODULE_USE_EXTERNAL_VTK_zlib=ON\n)\nif [[ ${target} == *mingw* ]]; then\n    opts+=(\n        -D_vtk_thread_impl_output=win32\n        -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=ON\n        -DCMAKE_CXX_VISIBILITY_PRESET=default\n        -DCMAKE_VISIBILITY_INLINES_HIDDEN=OFF\n    )\nfi\ncmake -Bbuild -GNinja ${opts[@]}\ncmake --build build --parallel ${nproc}\ncmake --install build\n"""
+toplevel_block = ""
+version = "v9.6.3"
+
+[[dependencies]]
+compat = ""
+name = "CMake_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "4.5.2"
+name = "CGNS_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "2.7.1"
+name = "Expat_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "2.13.4"
+name = "FreeType2_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "2.2.1"
+name = "HDF5_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "3.1.2"
+name = "JpegTurbo_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "4.7.1"
+name = "Libtiff_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.10.1"
+name = "Lz4_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "401.1000.101"
+name = "NetCDF_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.3.6"
+name = "Ogg_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "902.600.200"
+name = "PROJ_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "3.48.0"
+name = "SQLite_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "~2.13.6"
+name = "XML2_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "5.8.1"
+name = "XZ_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.2.12"
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "0.0.3"
+name = "exprtk_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "2.4.5"
+name = "libharu_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.6.50"
+name = "libpng_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "3.12.0"
+name = "nlohmann_json_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.14.1"
+name = "pugixml_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_compositeproto_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_damageproto_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_dri2proto_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_dri3proto_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_fixesproto_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_glproto_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_inputproto_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_kbproto_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_randrproto_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_recordproto_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_renderproto_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_util_macros_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_xcb_proto_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_xextproto_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_xf86vidmodeproto_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_xineramaproto_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_xorgproto_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_xproto_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_libICE_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_libSM_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_libX11_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_libXScrnSaver_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_libXau_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_libXcomposite_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_libXcursor_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_libXdamage_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_libXdmcp_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_libXext_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_libXfixes_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_libXft_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_libXi_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_libXinerama_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_libXmu_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_libXpm_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_libXrandr_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_libXrender_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_libXt_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_libXtst_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_libXxf86vm_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_libpciaccess_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_libpthread_stubs_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_libxcb_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_libxkbfile_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_libxshmfence_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_scrnsaverproto_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_xcb_util_cursor_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_xcb_util_image_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_xcb_util_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_xcb_util_keysyms_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_xcb_util_renderutil_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_xcb_util_wm_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_xkbcomp_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_xkeyboard_config_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Xorg_xtrans_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.0.0"
+name = "MPIABI_jll"
+platforms = ["i686-linux-gnu-cxx11-mpi+mpiabi", "x86_64-linux-gnu-cxx11-mpi+mpiabi", "aarch64-linux-gnu-cxx11-mpi+mpiabi", "armv6l-linux-gnueabihf-cxx11-mpi+mpiabi", "armv7l-linux-gnueabihf-cxx11-mpi+mpiabi", "powerpc64le-linux-gnu-cxx11-mpi+mpiabi", "riscv64-linux-gnu-cxx11-mpi+mpiabi", "i686-linux-musl-cxx11-mpi+mpiabi", "x86_64-linux-musl-cxx11-mpi+mpiabi", "aarch64-linux-musl-cxx11-mpi+mpiabi", "armv6l-linux-musleabihf-cxx11-mpi+mpiabi", "armv7l-linux-musleabihf-cxx11-mpi+mpiabi", "x86_64-apple-darwin-mpi+mpiabi", "aarch64-apple-darwin-mpi+mpiabi", "x86_64-unknown-freebsd-mpi+mpiabi", "aarch64-unknown-freebsd-mpi+mpiabi"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "5.0.1"
+name = "MPICH_jll"
+platforms = ["i686-linux-gnu-cxx11-mpi+mpich", "x86_64-linux-gnu-cxx11-mpi+mpich", "aarch64-linux-gnu-cxx11-mpi+mpich", "armv6l-linux-gnueabihf-cxx11-mpi+mpich", "armv7l-linux-gnueabihf-cxx11-mpi+mpich", "powerpc64le-linux-gnu-cxx11-mpi+mpich", "riscv64-linux-gnu-cxx11-mpi+mpich", "i686-linux-musl-cxx11-mpi+mpich", "x86_64-linux-musl-cxx11-mpi+mpich", "aarch64-linux-musl-cxx11-mpi+mpich", "armv6l-linux-musleabihf-cxx11-mpi+mpich", "armv7l-linux-musleabihf-cxx11-mpi+mpich", "x86_64-apple-darwin-mpi+mpich", "aarch64-apple-darwin-mpi+mpich", "x86_64-unknown-freebsd-mpi+mpich", "aarch64-unknown-freebsd-mpi+mpich"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "5.5.6"
+name = "MPItrampoline_jll"
+platforms = ["i686-linux-gnu-cxx11-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-mpi+mpitrampoline", "aarch64-linux-gnu-cxx11-mpi+mpitrampoline", "armv6l-linux-gnueabihf-cxx11-mpi+mpitrampoline", "armv7l-linux-gnueabihf-cxx11-mpi+mpitrampoline", "powerpc64le-linux-gnu-cxx11-mpi+mpitrampoline", "riscv64-linux-gnu-cxx11-mpi+mpitrampoline", "x86_64-apple-darwin-mpi+mpitrampoline", "aarch64-apple-darwin-mpi+mpitrampoline", "x86_64-unknown-freebsd-mpi+mpitrampoline", "aarch64-unknown-freebsd-mpi+mpitrampoline"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MicrosoftMPI_jll"
+platforms = ["i686-w64-mingw32-cxx11-mpi+microsoftmpi", "x86_64-w64-mingw32-cxx11-mpi+microsoftmpi"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "4.1.9, 5.0.11"
+name = "OpenMPI_jll"
+platforms = ["i686-linux-gnu-cxx11-mpi+openmpi", "x86_64-linux-gnu-cxx11-mpi+openmpi", "aarch64-linux-gnu-cxx11-mpi+openmpi", "armv7l-linux-gnueabihf-cxx11-mpi+openmpi", "powerpc64le-linux-gnu-cxx11-mpi+openmpi", "riscv64-linux-gnu-cxx11-mpi+openmpi", "i686-linux-musl-cxx11-mpi+openmpi", "x86_64-linux-musl-cxx11-mpi+openmpi", "aarch64-linux-musl-cxx11-mpi+openmpi", "armv6l-linux-musleabihf-cxx11-mpi+openmpi", "armv7l-linux-musleabihf-cxx11-mpi+openmpi", "x86_64-apple-darwin-mpi+openmpi", "aarch64-apple-darwin-mpi+openmpi", "x86_64-unknown-freebsd-mpi+openmpi", "aarch64-unknown-freebsd-mpi+openmpi"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "0.1"
+name = "MPIPreferences"
+platforms = ["any"]
+top_level = true
+type = "runtimedependency"
+uuid = "3da0fdf6-3ccc-4f1b-acd9-58baa6c99267"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkWrappingTools-9.6", "libvtkWrappingTools-9", "libvtkWrappingTools"]
+type = "lib"
+variable_name = "libvtkWrappingTools"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtktoken-9.6", "libvtktoken-9", "libvtktoken"]
+type = "lib"
+variable_name = "libvtktoken"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkloguru-9.6", "libvtkloguru-9", "libvtkloguru"]
+type = "lib"
+variable_name = "libvtkloguru"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkCommonCore-9.6", "libvtkCommonCore-9", "libvtkCommonCore"]
+type = "lib"
+variable_name = "libvtkCommonCore"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkkissfft-9.6", "libvtkkissfft-9", "libvtkkissfft"]
+type = "lib"
+variable_name = "libvtkkissfft"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkCommonMath-9.6", "libvtkCommonMath-9", "libvtkCommonMath"]
+type = "lib"
+variable_name = "libvtkCommonMath"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkCommonTransforms-9.6", "libvtkCommonTransforms-9", "libvtkCommonTransforms"]
+type = "lib"
+variable_name = "libvtkCommonTransforms"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkCommonMisc-9.6", "libvtkCommonMisc-9", "libvtkCommonMisc"]
+type = "lib"
+variable_name = "libvtkCommonMisc"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkCommonSystem-9.6", "libvtkCommonSystem-9", "libvtkCommonSystem"]
+type = "lib"
+variable_name = "libvtkCommonSystem"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkCommonDataModel-9.6", "libvtkCommonDataModel-9", "libvtkCommonDataModel"]
+type = "lib"
+variable_name = "libvtkCommonDataModel"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkCommonExecutionModel-9.6", "libvtkCommonExecutionModel-9", "libvtkCommonExecutionModel"]
+type = "lib"
+variable_name = "libvtkCommonExecutionModel"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkFiltersReduction-9.6", "libvtkFiltersReduction-9", "libvtkFiltersReduction"]
+type = "lib"
+variable_name = "libvtkFiltersReduction"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkFiltersCore-9.6", "libvtkFiltersCore-9", "libvtkFiltersCore"]
+type = "lib"
+variable_name = "libvtkFiltersCore"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkCommonColor-9.6", "libvtkCommonColor-9", "libvtkCommonColor"]
+type = "lib"
+variable_name = "libvtkCommonColor"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkCommonComputationalGeometry-9.6", "libvtkCommonComputationalGeometry-9", "libvtkCommonComputationalGeometry"]
+type = "lib"
+variable_name = "libvtkCommonComputationalGeometry"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkFiltersGeometry-9.6", "libvtkFiltersGeometry-9", "libvtkFiltersGeometry"]
+type = "lib"
+variable_name = "libvtkFiltersGeometry"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkverdict-9.6", "libvtkverdict-9", "libvtkverdict"]
+type = "lib"
+variable_name = "libvtkverdict"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkFiltersVerdict-9.6", "libvtkFiltersVerdict-9", "libvtkFiltersVerdict"]
+type = "lib"
+variable_name = "libvtkFiltersVerdict"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkfmt-9.6", "libvtkfmt-9", "libvtkfmt"]
+type = "lib"
+variable_name = "libvtkfmt"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkFiltersGeneral-9.6", "libvtkFiltersGeneral-9", "libvtkFiltersGeneral"]
+type = "lib"
+variable_name = "libvtkFiltersGeneral"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkFiltersSources-9.6", "libvtkFiltersSources-9", "libvtkFiltersSources"]
+type = "lib"
+variable_name = "libvtkFiltersSources"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkRenderingCore-9.6", "libvtkRenderingCore-9", "libvtkRenderingCore"]
+type = "lib"
+variable_name = "libvtkRenderingCore"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkFiltersHyperTree-9.6", "libvtkFiltersHyperTree-9", "libvtkFiltersHyperTree"]
+type = "lib"
+variable_name = "libvtkFiltersHyperTree"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkFiltersStatistics-9.6", "libvtkFiltersStatistics-9", "libvtkFiltersStatistics"]
+type = "lib"
+variable_name = "libvtkFiltersStatistics"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkIOCore-9.6", "libvtkIOCore-9", "libvtkIOCore"]
+type = "lib"
+variable_name = "libvtkIOCore"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkFiltersCellGrid-9.6", "libvtkFiltersCellGrid-9", "libvtkFiltersCellGrid"]
+type = "lib"
+variable_name = "libvtkFiltersCellGrid"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkIOCellGrid-9.6", "libvtkIOCellGrid-9", "libvtkIOCellGrid"]
+type = "lib"
+variable_name = "libvtkIOCellGrid"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkIOLegacy-9.6", "libvtkIOLegacy-9", "libvtkIOLegacy"]
+type = "lib"
+variable_name = "libvtkIOLegacy"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkParallelCore-9.6", "libvtkParallelCore-9", "libvtkParallelCore"]
+type = "lib"
+variable_name = "libvtkParallelCore"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkIOXMLParser-9.6", "libvtkIOXMLParser-9", "libvtkIOXMLParser"]
+type = "lib"
+variable_name = "libvtkIOXMLParser"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkIOXML-9.6", "libvtkIOXML-9", "libvtkIOXML"]
+type = "lib"
+variable_name = "libvtkIOXML"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkParallelDIY-9.6", "libvtkParallelDIY-9", "libvtkParallelDIY"]
+type = "lib"
+variable_name = "libvtkParallelDIY"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkFiltersExtraction-9.6", "libvtkFiltersExtraction-9", "libvtkFiltersExtraction"]
+type = "lib"
+variable_name = "libvtkFiltersExtraction"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkInteractionStyle-9.6", "libvtkInteractionStyle-9", "libvtkInteractionStyle"]
+type = "lib"
+variable_name = "libvtkInteractionStyle"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkRenderingFreeType-9.6", "libvtkRenderingFreeType-9", "libvtkRenderingFreeType"]
+type = "lib"
+variable_name = "libvtkRenderingFreeType"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkRenderingContext2D-9.6", "libvtkRenderingContext2D-9", "libvtkRenderingContext2D"]
+type = "lib"
+variable_name = "libvtkRenderingContext2D"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkImagingCore-9.6", "libvtkImagingCore-9", "libvtkImagingCore"]
+type = "lib"
+variable_name = "libvtkImagingCore"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkImagingSources-9.6", "libvtkImagingSources-9", "libvtkImagingSources"]
+type = "lib"
+variable_name = "libvtkImagingSources"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkFiltersHybrid-9.6", "libvtkFiltersHybrid-9", "libvtkFiltersHybrid"]
+type = "lib"
+variable_name = "libvtkFiltersHybrid"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkFiltersModeling-9.6", "libvtkFiltersModeling-9", "libvtkFiltersModeling"]
+type = "lib"
+variable_name = "libvtkFiltersModeling"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkFiltersTexture-9.6", "libvtkFiltersTexture-9", "libvtkFiltersTexture"]
+type = "lib"
+variable_name = "libvtkFiltersTexture"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkImagingColor-9.6", "libvtkImagingColor-9", "libvtkImagingColor"]
+type = "lib"
+variable_name = "libvtkImagingColor"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkImagingGeneral-9.6", "libvtkImagingGeneral-9", "libvtkImagingGeneral"]
+type = "lib"
+variable_name = "libvtkImagingGeneral"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkDICOMParser-9.6", "libvtkDICOMParser-9", "libvtkDICOMParser"]
+type = "lib"
+variable_name = "libvtkDICOMParser"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkmetaio-9.6", "libvtkmetaio-9", "libvtkmetaio"]
+type = "lib"
+variable_name = "libvtkmetaio"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkIOImage-9.6", "libvtkIOImage-9", "libvtkIOImage"]
+type = "lib"
+variable_name = "libvtkIOImage"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkImagingHybrid-9.6", "libvtkImagingHybrid-9", "libvtkImagingHybrid"]
+type = "lib"
+variable_name = "libvtkImagingHybrid"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkRenderingAnnotation-9.6", "libvtkRenderingAnnotation-9", "libvtkRenderingAnnotation"]
+type = "lib"
+variable_name = "libvtkRenderingAnnotation"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkRenderingVolume-9.6", "libvtkRenderingVolume-9", "libvtkRenderingVolume"]
+type = "lib"
+variable_name = "libvtkRenderingVolume"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkInteractionWidgets-9.6", "libvtkInteractionWidgets-9", "libvtkInteractionWidgets"]
+type = "lib"
+variable_name = "libvtkInteractionWidgets"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkglad-9.6", "libvtkglad-9", "libvtkglad"]
+type = "lib"
+variable_name = "libvtkglad"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkRenderingUI-9.6", "libvtkRenderingUI-9", "libvtkRenderingUI"]
+type = "lib"
+variable_name = "libvtkRenderingUI"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkViewsCore-9.6", "libvtkViewsCore-9", "libvtkViewsCore"]
+type = "lib"
+variable_name = "libvtkViewsCore"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkInfovisCore-9.6", "libvtkInfovisCore-9", "libvtkInfovisCore"]
+type = "lib"
+variable_name = "libvtkInfovisCore"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkChartsCore-9.6", "libvtkChartsCore-9", "libvtkChartsCore"]
+type = "lib"
+variable_name = "libvtkChartsCore"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkFiltersImaging-9.6", "libvtkFiltersImaging-9", "libvtkFiltersImaging"]
+type = "lib"
+variable_name = "libvtkFiltersImaging"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkInfovisLayout-9.6", "libvtkInfovisLayout-9", "libvtkInfovisLayout"]
+type = "lib"
+variable_name = "libvtkInfovisLayout"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkRenderingLabel-9.6", "libvtkRenderingLabel-9", "libvtkRenderingLabel"]
+type = "lib"
+variable_name = "libvtkRenderingLabel"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkViewsInfovis-9.6", "libvtkViewsInfovis-9", "libvtkViewsInfovis"]
+type = "lib"
+variable_name = "libvtkViewsInfovis"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkViewsContext2D-9.6", "libvtkViewsContext2D-9", "libvtkViewsContext2D"]
+type = "lib"
+variable_name = "libvtkViewsContext2D"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkTestingCore-9.6", "libvtkTestingCore-9", "libvtkTestingCore"]
+type = "lib"
+variable_name = "libvtkTestingCore"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkTestingRendering-9.6", "libvtkTestingRendering-9", "libvtkTestingRendering"]
+type = "lib"
+variable_name = "libvtkTestingRendering"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkRenderingLOD-9.6", "libvtkRenderingLOD-9", "libvtkRenderingLOD"]
+type = "lib"
+variable_name = "libvtkRenderingLOD"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkRenderingHyperTreeGrid-9.6", "libvtkRenderingHyperTreeGrid-9", "libvtkRenderingHyperTreeGrid"]
+type = "lib"
+variable_name = "libvtkRenderingHyperTreeGrid"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkRenderingOpenGL2-9.6", "libvtkRenderingOpenGL2-9", "libvtkRenderingOpenGL2"]
+type = "lib"
+variable_name = "libvtkRenderingOpenGL2"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkRenderingLICOpenGL2-9.6", "libvtkRenderingLICOpenGL2-9", "libvtkRenderingLICOpenGL2"]
+type = "lib"
+variable_name = "libvtkRenderingLICOpenGL2"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkRenderingImage-9.6", "libvtkRenderingImage-9", "libvtkRenderingImage"]
+type = "lib"
+variable_name = "libvtkRenderingImage"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkRenderingGridAxes-9.6", "libvtkRenderingGridAxes-9", "libvtkRenderingGridAxes"]
+type = "lib"
+variable_name = "libvtkRenderingGridAxes"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkRenderingContextOpenGL2-9.6", "libvtkRenderingContextOpenGL2-9", "libvtkRenderingContextOpenGL2"]
+type = "lib"
+variable_name = "libvtkRenderingContextOpenGL2"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkRenderingCellGrid-9.6", "libvtkRenderingCellGrid-9", "libvtkRenderingCellGrid"]
+type = "lib"
+variable_name = "libvtkRenderingCellGrid"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkImagingMath-9.6", "libvtkImagingMath-9", "libvtkImagingMath"]
+type = "lib"
+variable_name = "libvtkImagingMath"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkRenderingVolumeOpenGL2-9.6", "libvtkRenderingVolumeOpenGL2-9", "libvtkRenderingVolumeOpenGL2"]
+type = "lib"
+variable_name = "libvtkRenderingVolumeOpenGL2"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkIOVeraOut-9.6", "libvtkIOVeraOut-9", "libvtkIOVeraOut"]
+type = "lib"
+variable_name = "libvtkIOVeraOut"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkIOTecplotTable-9.6", "libvtkIOTecplotTable-9", "libvtkIOTecplotTable"]
+type = "lib"
+variable_name = "libvtkIOTecplotTable"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkIOSegY-9.6", "libvtkIOSegY-9", "libvtkIOSegY"]
+type = "lib"
+variable_name = "libvtkIOSegY"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkIOParallelXML-9.6", "libvtkIOParallelXML-9", "libvtkIOParallelXML"]
+type = "lib"
+variable_name = "libvtkIOParallelXML"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkIOPLY-9.6", "libvtkIOPLY-9", "libvtkIOPLY"]
+type = "lib"
+variable_name = "libvtkIOPLY"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkIOMovie-9.6", "libvtkIOMovie-9", "libvtkIOMovie"]
+type = "lib"
+variable_name = "libvtkIOMovie"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtktheora-9.6", "libvtktheora-9", "libvtktheora"]
+type = "lib"
+variable_name = "libvtktheora"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkIOOggTheora-9.6", "libvtkIOOggTheora-9", "libvtkIOOggTheora"]
+type = "lib"
+variable_name = "libvtkIOOggTheora"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkIONetCDF-9.6", "libvtkIONetCDF-9", "libvtkIONetCDF"]
+type = "lib"
+variable_name = "libvtkIONetCDF"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkIOGeometry-9.6", "libvtkIOGeometry-9", "libvtkIOGeometry"]
+type = "lib"
+variable_name = "libvtkIOGeometry"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkIOMotionFX-9.6", "libvtkIOMotionFX-9", "libvtkIOMotionFX"]
+type = "lib"
+variable_name = "libvtkIOMotionFX"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkjsoncpp-9.6", "libvtkjsoncpp-9", "libvtkjsoncpp"]
+type = "lib"
+variable_name = "libvtkjsoncpp"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkFiltersParallel-9.6", "libvtkFiltersParallel-9", "libvtkFiltersParallel"]
+type = "lib"
+variable_name = "libvtkFiltersParallel"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkIOParallel-9.6", "libvtkIOParallel-9", "libvtkIOParallel"]
+type = "lib"
+variable_name = "libvtkIOParallel"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkIOMINC-9.6", "libvtkIOMINC-9", "libvtkIOMINC"]
+type = "lib"
+variable_name = "libvtkIOMINC"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkIOLSDyna-9.6", "libvtkIOLSDyna-9", "libvtkIOLSDyna"]
+type = "lib"
+variable_name = "libvtkIOLSDyna"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkIOLANLX3D-9.6", "libvtkIOLANLX3D-9", "libvtkIOLANLX3D"]
+type = "lib"
+variable_name = "libvtkIOLANLX3D"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkIOImport-9.6", "libvtkIOImport-9", "libvtkIOImport"]
+type = "lib"
+variable_name = "libvtkIOImport"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkexodusII-9.6", "libvtkexodusII-9", "libvtkexodusII"]
+type = "lib"
+variable_name = "libvtkexodusII"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkFiltersTemporal-9.6", "libvtkFiltersTemporal-9", "libvtkFiltersTemporal"]
+type = "lib"
+variable_name = "libvtkFiltersTemporal"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkIOHDF-9.6", "libvtkIOHDF-9", "libvtkIOHDF"]
+type = "lib"
+variable_name = "libvtkIOHDF"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkIOFLUENTCFF-9.6", "libvtkIOFLUENTCFF-9", "libvtkIOFLUENTCFF"]
+type = "lib"
+variable_name = "libvtkIOFLUENTCFF"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkIOVideo-9.6", "libvtkIOVideo-9", "libvtkIOVideo"]
+type = "lib"
+variable_name = "libvtkIOVideo"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkIOInfovis-9.6", "libvtkIOInfovis-9", "libvtkIOInfovis"]
+type = "lib"
+variable_name = "libvtkIOInfovis"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkIOFDS-9.6", "libvtkIOFDS-9", "libvtkIOFDS"]
+type = "lib"
+variable_name = "libvtkIOFDS"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkRenderingSceneGraph-9.6", "libvtkRenderingSceneGraph-9", "libvtkRenderingSceneGraph"]
+type = "lib"
+variable_name = "libvtkRenderingSceneGraph"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkRenderingVtkJS-9.6", "libvtkRenderingVtkJS-9", "libvtkRenderingVtkJS"]
+type = "lib"
+variable_name = "libvtkRenderingVtkJS"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkDomainsChemistry-9.6", "libvtkDomainsChemistry-9", "libvtkDomainsChemistry"]
+type = "lib"
+variable_name = "libvtkDomainsChemistry"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkIOExport-9.6", "libvtkIOExport-9", "libvtkIOExport"]
+type = "lib"
+variable_name = "libvtkIOExport"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkIOExportPDF-9.6", "libvtkIOExportPDF-9", "libvtkIOExportPDF"]
+type = "lib"
+variable_name = "libvtkIOExportPDF"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkgl2ps-9.6", "libvtkgl2ps-9", "libvtkgl2ps"]
+type = "lib"
+variable_name = "libvtkgl2ps"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkRenderingGL2PSOpenGL2-9.6", "libvtkRenderingGL2PSOpenGL2-9", "libvtkRenderingGL2PSOpenGL2"]
+type = "lib"
+variable_name = "libvtkRenderingGL2PSOpenGL2"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkIOExportGL2PS-9.6", "libvtkIOExportGL2PS-9", "libvtkIOExportGL2PS"]
+type = "lib"
+variable_name = "libvtkIOExportGL2PS"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkIOExodus-9.6", "libvtkIOExodus-9", "libvtkIOExodus"]
+type = "lib"
+variable_name = "libvtkIOExodus"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkIOEngys-9.6", "libvtkIOEngys-9", "libvtkIOEngys"]
+type = "lib"
+variable_name = "libvtkIOEngys"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkIOEnSight-9.6", "libvtkIOEnSight-9", "libvtkIOEnSight"]
+type = "lib"
+variable_name = "libvtkIOEnSight"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkIOERF-9.6", "libvtkIOERF-9", "libvtkIOERF"]
+type = "lib"
+variable_name = "libvtkIOERF"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkIOCityGML-9.6", "libvtkIOCityGML-9", "libvtkIOCityGML"]
+type = "lib"
+variable_name = "libvtkIOCityGML"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkIOChemistry-9.6", "libvtkIOChemistry-9", "libvtkIOChemistry"]
+type = "lib"
+variable_name = "libvtkIOChemistry"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkIOCesium3DTiles-9.6", "libvtkIOCesium3DTiles-9", "libvtkIOCesium3DTiles"]
+type = "lib"
+variable_name = "libvtkIOCesium3DTiles"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkIOCONVERGECFD-9.6", "libvtkIOCONVERGECFD-9", "libvtkIOCONVERGECFD"]
+type = "lib"
+variable_name = "libvtkIOCONVERGECFD"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkIOAsynchronous-9.6", "libvtkIOAsynchronous-9", "libvtkIOAsynchronous"]
+type = "lib"
+variable_name = "libvtkIOAsynchronous"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkFiltersAMR-9.6", "libvtkFiltersAMR-9", "libvtkFiltersAMR"]
+type = "lib"
+variable_name = "libvtkFiltersAMR"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkIOAMR-9.6", "libvtkIOAMR-9", "libvtkIOAMR"]
+type = "lib"
+variable_name = "libvtkIOAMR"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkInteractionImage-9.6", "libvtkInteractionImage-9", "libvtkInteractionImage"]
+type = "lib"
+variable_name = "libvtkInteractionImage"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkImagingStencil-9.6", "libvtkImagingStencil-9", "libvtkImagingStencil"]
+type = "lib"
+variable_name = "libvtkImagingStencil"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkImagingStatistics-9.6", "libvtkImagingStatistics-9", "libvtkImagingStatistics"]
+type = "lib"
+variable_name = "libvtkImagingStatistics"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkImagingMorphological-9.6", "libvtkImagingMorphological-9", "libvtkImagingMorphological"]
+type = "lib"
+variable_name = "libvtkImagingMorphological"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkImagingFourier-9.6", "libvtkImagingFourier-9", "libvtkImagingFourier"]
+type = "lib"
+variable_name = "libvtkImagingFourier"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkIOSQL-9.6", "libvtkIOSQL-9", "libvtkIOSQL"]
+type = "lib"
+variable_name = "libvtkIOSQL"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkGeovisCore-9.6", "libvtkGeovisCore-9", "libvtkGeovisCore"]
+type = "lib"
+variable_name = "libvtkGeovisCore"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkFiltersTopology-9.6", "libvtkFiltersTopology-9", "libvtkFiltersTopology"]
+type = "lib"
+variable_name = "libvtkFiltersTopology"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkFiltersTensor-9.6", "libvtkFiltersTensor-9", "libvtkFiltersTensor"]
+type = "lib"
+variable_name = "libvtkFiltersTensor"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkFiltersSelection-9.6", "libvtkFiltersSelection-9", "libvtkFiltersSelection"]
+type = "lib"
+variable_name = "libvtkFiltersSelection"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkFiltersSMP-9.6", "libvtkFiltersSMP-9", "libvtkFiltersSMP"]
+type = "lib"
+variable_name = "libvtkFiltersSMP"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkFiltersProgrammable-9.6", "libvtkFiltersProgrammable-9", "libvtkFiltersProgrammable"]
+type = "lib"
+variable_name = "libvtkFiltersProgrammable"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkFiltersPoints-9.6", "libvtkFiltersPoints-9", "libvtkFiltersPoints"]
+type = "lib"
+variable_name = "libvtkFiltersPoints"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkFiltersParallelImaging-9.6", "libvtkFiltersParallelImaging-9", "libvtkFiltersParallelImaging"]
+type = "lib"
+variable_name = "libvtkFiltersParallelImaging"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkFiltersGeometryPreview-9.6", "libvtkFiltersGeometryPreview-9", "libvtkFiltersGeometryPreview"]
+type = "lib"
+variable_name = "libvtkFiltersGeometryPreview"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkFiltersGeneric-9.6", "libvtkFiltersGeneric-9", "libvtkFiltersGeneric"]
+type = "lib"
+variable_name = "libvtkFiltersGeneric"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libvtkFiltersFlowPaths-9.6", "libvtkFiltersFlowPaths-9", "libvtkFiltersFlowPaths"]
+type = "lib"
+variable_name = "libvtkFiltersFlowPaths"
+
+[[sources]]
+hash = "aed12cec12a9609179bf66329070266627ca64244a10856a452b2a17ffb04a1d"
+type = "archive"
+unpack_target = ""
+url = "https://vtk.org/files/release/9.6/VTK-9.6.2.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "bundled"
+target = ""
+type = "directory"
+[[sources]]
+filename = "MacOSX10.14.sdk.tar.xz"
+hash = "0f03869f72df8705b832910517b47dd5b79eb4e160512602f593ed243b28715f"
+type = "file"
+url = "https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.14.sdk.tar.xz"

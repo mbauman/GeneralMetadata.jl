@@ -1,0 +1,124 @@
+augment_platform_block = """using Base.BinaryPlatforms\n\ntry\n    using CUDA_Compiler_jll\ncatch\n    # during initial package installation, CUDA_Compiler_jll may not be available.\n    # in that case, we just won't select an artifact.\nend\n\nfunction cuda_comparison_strategy(_a::String, _b::String, a_requested::Bool, b_requested::Bool)\n    # if either isn't a version number (e.g. \"none\"), perform a simple equality check\n    a = tryparse(VersionNumber, _a)\n    b = tryparse(VersionNumber, _b)\n    if a === nothing || b === nothing\n        return _a == _b\n    end\n\n    # if both are explicitly requested, require equality\n    if a_requested && b_requested\n        return Base.thisminor(a) == Base.thisminor(b)\n    end\n\n    # otherwise, an artifact is compatible with a JIT stack from the same major\n    # series that is at least as new as the artifact's minimum toolkit\n    function is_compatible(artifact::VersionNumber, host::VersionNumber)\n        artifact.major == host.major &&\n        Base.thisminor(artifact) <= Base.thisminor(host)\n    end\n    if a_requested\n        is_compatible(b, a)\n    else\n        is_compatible(a, b)\n    end\nend\n\nfunction augment_platform!(platform::Platform)\n    if !@isdefined(CUDA_Compiler_jll)\n        # don't set to nothing or Pkg will download any artifact\n        platform[\"cuda\"] = \"none\"\n    elseif !haskey(platform, \"cuda\")\n        # CUDA_Compiler_jll owns driver inspection and preference handling.\n        CUDA_Compiler_jll.augment_platform!(platform)\n    end\n    BinaryPlatforms.set_compare_strategy!(platform, \"cuda\", cuda_comparison_strategy)\n\n    return platform\nend"""
+init_block = ""
+julia_compat = "1.10"
+lazy_artifacts = false
+name = "CCCL_C"
+platforms = ["x86_64-linux-gnu-cuda+12.8", "aarch64-linux-gnu-cuda_platform+jetson-cuda+12.8", "aarch64-linux-gnu-cuda_platform+sbsa-cuda+12.8", "x86_64-w64-mingw32-cuda+12.8", "x86_64-linux-gnu-cuda+13.0", "aarch64-linux-gnu-cuda+13.0", "x86_64-w64-mingw32-cuda+13.0"]
+script = ["""cd $WORKSPACE/srcdir/cccl\n\nexport TMPDIR=${WORKSPACE}/tmpdir # nvcc needs a lot of tmp space\nmkdir -p ${TMPDIR}\n\n# the CMake provided in the build environment is too old; use CMake_jll instead\napk del cmake\n\n# Necessary operations to cross compile CUDA from x86_64 to aarch64\nif [[ \"${target}\" == aarch64-linux-* ]]; then\n\n   export LD_LIBRARY_PATH=\"/usr/lib/csl-musl-x86_64:/usr/lib/csl-glibc-x86_64:${LD_LIBRARY_PATH}\"\n\n   NVCC_DIR=(/workspace/srcdir/cuda_nvcc-linux-x86_64-*-archive)\n   NVVM_DIR=(/workspace/srcdir/libnvvm-linux-x86_64-*-archive)\n\n   rm -rf ${prefix}/cuda/bin\n   cp -a \"${NVCC_DIR[0]}/bin\" \"${prefix}/cuda/bin\"\n\n   # CUDA <= 12.9: nvvm may still be inside cuda_nvcc.\n   # CUDA >= 13.0: nvvm is a separate redist.\n   if [[ -d \"${NVCC_DIR[0]}/nvvm/bin\" ]]; then\n      rm -rf ${prefix}/cuda/nvvm/bin\n      cp -a \"${NVCC_DIR[0]}/nvvm/bin\" \"${prefix}/cuda/nvvm/bin\"\n\n      if [[ -d \"${NVCC_DIR[0]}/nvvm/lib64\" ]]; then\n         rm -rf ${prefix}/cuda/nvvm/lib64\n         cp -a \"${NVCC_DIR[0]}/nvvm/lib64\" \"${prefix}/cuda/nvvm/lib64\"\n      fi\n\n   elif [[ -d \"${NVVM_DIR[0]}/nvvm/bin\" ]]; then\n      rm -rf ${prefix}/cuda/nvvm/bin\n      cp -a \"${NVVM_DIR[0]}/nvvm/bin\" \"${prefix}/cuda/nvvm/bin\"\n\n      if [[ -d \"${NVVM_DIR[0]}/nvvm/lib64\" ]]; then\n         rm -rf ${prefix}/cuda/nvvm/lib64\n         cp -a \"${NVVM_DIR[0]}/nvvm/lib64\" \"${prefix}/cuda/nvvm/lib64\"\n      fi\n\n   else\n      echo \"ERROR: no host x86_64 nvvm/bin found; cannot cross-compile CUDA device code\"\n      exit 1\n   fi\n\n   export NVCC_PREPEND_FLAGS=\"-ccbin=${CXX}\"\nfi\n\nexport CUDA_HOME=${prefix}/cuda\nexport PATH=$PATH:$CUDA_HOME/bin\n\n# nvcc's link driver looks in lib64/, but the SDK ships lib/\nln -sf lib ${prefix}/cuda/lib64\n\n# the library contains essentially no SASS (all algorithm kernels are JIT-compiled with\n# NVRTC at runtime), so build only for the minimum supported architecture\ncuda_arch=$(sed -n 's/^set(minimum_cccl_arch \\([0-9]*\\).*/\\1/p' cmake/CCCLCheckCudaArchitectures.cmake)\n[[ -n \"${cuda_arch}\" ]] || { echo \"ERROR: could not determine minimum_cccl_arch\"; exit 1; }\n\ncmake -B build -GNinja \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DCMAKE_CUDA_COMPILER=${CUDA_HOME}/bin/nvcc \\\n    -DCMAKE_CUDA_HOST_COMPILER=${CXX} \\\n    -DCUDAToolkit_ROOT=${CUDA_HOME} \\\n    -DCMAKE_CUDA_ARCHITECTURES=${cuda_arch} \\\n    -DCCCL_ENABLE_C_PARALLEL=ON \\\n    -DCCCL_C_Parallel_ENABLE_TESTING=OFF \\\n    -DCCCL_ENABLE_LIBCUDACXX=OFF \\\n    -DCCCL_ENABLE_CUB=OFF \\\n    -DCCCL_ENABLE_THRUST=OFF \\\n    -DCCCL_ENABLE_TESTING=OFF \\\n    -DCCCL_ENABLE_EXAMPLES=OFF \\\n    -Dlibcudacxx_ENABLE_INSTALL_RULES=ON \\\n    -DCUB_ENABLE_INSTALL_RULES=ON \\\n    -DThrust_ENABLE_INSTALL_RULES=ON\ncmake --build build --parallel ${nproc}\n\n# installs the CUB/Thrust/libcudacxx header trees, which the library needs to feed NVRTC\n# at runtime; these must exactly match the library\ncmake --install build\n\n# the library and the C API headers have no install rules; install manually\ninstall -Dm755 build/lib/libcccl.c.parallel.so ${libdir}/libcccl.c.parallel.so\ncp -a c/parallel/include/cccl ${includedir}/cccl\n\n# drop the CMake package files that the header install rules drag in\nrm -rf ${prefix}/lib/cmake ${prefix}/lib64/cmake\n\ninstall_license LICENSE\n\nif [[ \"${target}\" == aarch64-linux-* ]]; then\n   # ensure products directory is clean\n   rm -rf ${prefix}/cuda\nelse\n   rm -f ${prefix}/cuda/lib64\nfi\n""", """cd $WORKSPACE/srcdir\nunzip -d wheel cuda_cccl.whl\n\n# the wheel ships one library per CUDA major\ncuda_major=$(echo $bb_full_target | sed -E 's/.*cuda\\+([0-9]+).*/\\1/')\ninstall -Dm755 wheel/cuda/compute/cu${cuda_major}/cccl/cccl.c.parallel.dll \\\n    ${libdir}/cccl.c.parallel.dll\n\n# headers from the pinned source: byte-identical to the wheel's, but with the same\n# line endings as the artifacts of the other platforms\ncd cccl\nmkdir -p ${includedir}\ncp -a cub/cub thrust/thrust libcudacxx/include/cuda libcudacxx/include/nv ${includedir}/\ncp -a c/parallel/include/cccl ${includedir}/cccl\n\ninstall_license LICENSE\n"""]
+toplevel_block = ""
+version = "v3.5.0"
+
+[[dependencies]]
+compat = ""
+name = "CMake_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 3
+version-minor = 31
+version-patch = 9
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 8
+version-patch = 1
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_static_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 12
+version-minor = 8
+version-patch = 1
+[[dependencies]]
+compat = "0.5"
+name = "CUDA_Compiler_jll"
+platforms = ["any"]
+top_level = false
+type = "runtimedependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 13
+version-minor = 0
+version-patch = 2
+[[dependencies]]
+compat = ""
+name = "CUDA_SDK_static_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 13
+version-minor = 0
+version-patch = 2
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libcccl.c.parallel", "cccl.c.parallel"]
+type = "lib"
+variable_name = "libcccl_c_parallel"
+[[products]]
+paths = ["include/cub/version.cuh"]
+type = "file"
+variable_name = "cub_version_header"
+[[products]]
+paths = ["include/thrust/version.h"]
+type = "file"
+variable_name = "thrust_version_header"
+[[products]]
+paths = ["include/cuda/std/version"]
+type = "file"
+variable_name = "libcudacxx_version_header"
+[[products]]
+paths = ["include/cccl/c/reduce.h"]
+type = "file"
+variable_name = "cccl_c_header"
+
+[[sources]]
+hash = "793a80bd837eaa758713462a170c896a9028b312"
+type = "git"
+unpack_target = ""
+url = "https://github.com/NVIDIA/cccl.git"
+[[sources]]
+hash = "9961b3484b6b71314063709a4f9529654f96782ad39e72bf1e00f070db8210d3"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/linux-x86_64/cuda_nvcc-linux-x86_64-12.8.93-archive.tar.xz"
+[[sources]]
+filename = "cuda_cccl.whl"
+hash = "3dc79837d45cd79e54bf7370f9d27f39285be5621a4d2c0252b6b9e83a57ae97"
+type = "file"
+url = "https://files.pythonhosted.org/packages/89/c5/865c61dba948d55d2403f54002c7b8685037458200dc6a728643b3f90b84/cuda_cccl-1.1.1-cp312-cp312-win_amd64.whl"
+[[sources]]
+hash = "48e35be3cfbf4b4fbc16828eaec8a7048ee789403049dc409f7b643d6259cf7a"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/linux-x86_64/cuda_nvcc-linux-x86_64-13.0.88-archive.tar.xz"
+[[sources]]
+hash = "17ef1665b63670887eeba7d908da5669fa8c66bb73b5b4c1367f49929c086353"
+type = "archive"
+unpack_target = ""
+url = "https://developer.download.nvidia.com/compute/cuda/redist/libnvvm/linux-x86_64/libnvvm-linux-x86_64-13.0.88-archive.tar.xz"

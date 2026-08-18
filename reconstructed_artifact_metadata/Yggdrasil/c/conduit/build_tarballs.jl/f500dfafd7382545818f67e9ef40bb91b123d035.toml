@@ -1,0 +1,174 @@
+augment_platform_block = """    using Base.BinaryPlatforms\n    # Can't use Preferences since we might be running this very early with a non-existing Manifest\nMPIPreferences_UUID = Base.UUID(\"3da0fdf6-3ccc-4f1b-acd9-58baa6c99267\")\nconst preferences = Base.get_preferences(MPIPreferences_UUID)\n\nconst binary_to_abi = Dict(\n    \"MPIABI_jll\" => \"MPIABI\",\n    \"MPICH_jll\" => \"MPICH\",\n    \"MPICH_CUDA_jll\" => \"MPICH\",\n    \"MPItrampoline_jll\" => \"MPItrampoline\",\n    \"MicrosoftMPI_jll\" => \"MicrosoftMPI\",\n    \"OpenMPI_jll\" => \"OpenMPI\",\n)\n\n# Keep logic in sync with MPIPreferences.jl\nfunction augment_mpi!(platform)\n    # Doesn't need to be `const` since we depend on MPIPreferences so we\n    # invalidate the cache when it changes.\n\n    # Determine which jll binary provides our MPI implementation.\n    # Use MPIPreferences if set, otherwise use either MPICH or MicrosoftMPI (on Windows).\n    # Note: MPIPreferences uses `Sys.iswindows()` without the `platform` argument.\n    binary = get(preferences, \"binary\", Sys.iswindows(platform) ? \"MicrosoftMPI_jll\" : \"MPICH_jll\")\n\n    # Convert the jll binary to an ABI\n    if binary == \"system\"\n        abi = get(preferences, \"abi\", nothing)\n        abi === nothing && error(\"MPIPreferences: Inconsistent state detected, `binary` is set to system, but `abi` is not set.\")\n    else\n        abi = get(binary_to_abi, binary, nothing)\n        abi == nothing && error(\"Unknown MPI binary: $binary\")\n    end\n\n    # Add an `mpi` entry to the platform if it's missing\n    if !haskey(platform, \"mpi\")\n        platform[\"mpi\"] = abi\n    end\n\n    return platform\nend\n\n    augment_platform!(platform::Platform) = augment_mpi!(platform)\n"""
+init_block = ""
+julia_compat = "1.10"
+lazy_artifacts = false
+name = "Conduit"
+platforms = ["i686-linux-gnu-cxx11-mpi+mpiabi", "x86_64-linux-gnu-cxx11-mpi+mpiabi", "aarch64-linux-gnu-cxx11-mpi+mpiabi", "armv6l-linux-gnueabihf-cxx11-mpi+mpiabi", "armv7l-linux-gnueabihf-cxx11-mpi+mpiabi", "powerpc64le-linux-gnu-cxx11-mpi+mpiabi", "riscv64-linux-gnu-cxx11-mpi+mpiabi", "i686-linux-musl-cxx11-mpi+mpiabi", "x86_64-linux-musl-cxx11-mpi+mpiabi", "aarch64-linux-musl-cxx11-mpi+mpiabi", "armv6l-linux-musleabihf-cxx11-mpi+mpiabi", "armv7l-linux-musleabihf-cxx11-mpi+mpiabi", "x86_64-apple-darwin-mpi+mpiabi", "aarch64-apple-darwin-mpi+mpiabi", "x86_64-unknown-freebsd-mpi+mpiabi", "aarch64-unknown-freebsd-mpi+mpiabi", "i686-linux-gnu-cxx11-mpi+mpich", "x86_64-linux-gnu-cxx11-mpi+mpich", "aarch64-linux-gnu-cxx11-mpi+mpich", "armv6l-linux-gnueabihf-cxx11-mpi+mpich", "armv7l-linux-gnueabihf-cxx11-mpi+mpich", "powerpc64le-linux-gnu-cxx11-mpi+mpich", "riscv64-linux-gnu-cxx11-mpi+mpich", "i686-linux-musl-cxx11-mpi+mpich", "x86_64-linux-musl-cxx11-mpi+mpich", "aarch64-linux-musl-cxx11-mpi+mpich", "armv6l-linux-musleabihf-cxx11-mpi+mpich", "armv7l-linux-musleabihf-cxx11-mpi+mpich", "x86_64-apple-darwin-mpi+mpich", "aarch64-apple-darwin-mpi+mpich", "x86_64-unknown-freebsd-mpi+mpich", "aarch64-unknown-freebsd-mpi+mpich", "i686-linux-gnu-cxx11-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-mpi+mpitrampoline", "aarch64-linux-gnu-cxx11-mpi+mpitrampoline", "armv6l-linux-gnueabihf-cxx11-mpi+mpitrampoline", "armv7l-linux-gnueabihf-cxx11-mpi+mpitrampoline", "powerpc64le-linux-gnu-cxx11-mpi+mpitrampoline", "riscv64-linux-gnu-cxx11-mpi+mpitrampoline", "x86_64-apple-darwin-mpi+mpitrampoline", "aarch64-apple-darwin-mpi+mpitrampoline", "x86_64-unknown-freebsd-mpi+mpitrampoline", "aarch64-unknown-freebsd-mpi+mpitrampoline", "i686-w64-mingw32-cxx11-mpi+microsoftmpi", "x86_64-w64-mingw32-cxx11-mpi+microsoftmpi", "i686-linux-gnu-cxx11-mpi+openmpi", "x86_64-linux-gnu-cxx11-mpi+openmpi", "aarch64-linux-gnu-cxx11-mpi+openmpi", "armv7l-linux-gnueabihf-cxx11-mpi+openmpi", "powerpc64le-linux-gnu-cxx11-mpi+openmpi", "riscv64-linux-gnu-cxx11-mpi+openmpi", "i686-linux-musl-cxx11-mpi+openmpi", "x86_64-linux-musl-cxx11-mpi+openmpi", "aarch64-linux-musl-cxx11-mpi+openmpi", "armv6l-linux-musleabihf-cxx11-mpi+openmpi", "armv7l-linux-musleabihf-cxx11-mpi+openmpi", "x86_64-apple-darwin-mpi+openmpi", "aarch64-apple-darwin-mpi+openmpi", "x86_64-unknown-freebsd-mpi+openmpi", "aarch64-unknown-freebsd-mpi+openmpi"]
+script = """cd ${WORKSPACE}/srcdir/conduit*\n\n# Provide C wrapper for some functions that generate example output, to make them callable from Julia\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/blueprint_mesh_examples_generate.patch\n\noptions=(\n    -DCMAKE_BUILD_TYPE=Release\n    -DCMAKE_INSTALL_PREFIX=${prefix}\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN}\n    -DBUILD_SHARED_LIBS=ON\n    -DENABLE_TESTS=OFF\n    -DENABLE_EXAMPLES=OFF\n    -DENABLE_UTILS=ON\n    -DENABLE_DOCS=OFF\n    -DENABLE_RELAY_WEBSERVER=OFF\n    -DENABLE_COVERAGE=OFF\n    -DENABLE_PYTHON=OFF\n    -DENABLE_FORTRAN=OFF\n    -DENABLE_OPENMP=ON\n    -DCONDUIT_ENABLE_TESTS=OFF\n    -DHDF5_DIR=${prefix}\n    -DSILO_DIR=${prefix}\n    -DZFP_DIR=${prefix}\n    -DZLIB_DIR=${prefix}\n)\nif [[ ${target} == i686*-mingw* ]]; then\n    # Conduit has build errors with MicrosoftMPI on 32-bit Intel, disable it\n    options+=(-DENABLE_MPI=OFF)\nelse\n    options+=(-DENABLE_MPI=ON)\nfi\n\ncmake -Bbuild \"${options[@]}\" src\ncmake --build build --parallel ${nproc}\ncmake --install build\n"""
+toplevel_block = ""
+version = "v0.9.8"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["i686-linux-gnu-cxx11-mpi+mpiabi", "x86_64-linux-gnu-cxx11-mpi+mpiabi", "aarch64-linux-gnu-cxx11-mpi+mpiabi", "armv6l-linux-gnueabihf-cxx11-mpi+mpiabi", "armv7l-linux-gnueabihf-cxx11-mpi+mpiabi", "powerpc64le-linux-gnu-cxx11-mpi+mpiabi", "riscv64-linux-gnu-cxx11-mpi+mpiabi", "i686-linux-musl-cxx11-mpi+mpiabi", "x86_64-linux-musl-cxx11-mpi+mpiabi", "aarch64-linux-musl-cxx11-mpi+mpiabi", "armv6l-linux-musleabihf-cxx11-mpi+mpiabi", "armv7l-linux-musleabihf-cxx11-mpi+mpiabi", "i686-linux-gnu-cxx11-mpi+mpich", "x86_64-linux-gnu-cxx11-mpi+mpich", "aarch64-linux-gnu-cxx11-mpi+mpich", "armv6l-linux-gnueabihf-cxx11-mpi+mpich", "armv7l-linux-gnueabihf-cxx11-mpi+mpich", "powerpc64le-linux-gnu-cxx11-mpi+mpich", "riscv64-linux-gnu-cxx11-mpi+mpich", "i686-linux-musl-cxx11-mpi+mpich", "x86_64-linux-musl-cxx11-mpi+mpich", "aarch64-linux-musl-cxx11-mpi+mpich", "armv6l-linux-musleabihf-cxx11-mpi+mpich", "armv7l-linux-musleabihf-cxx11-mpi+mpich", "i686-linux-gnu-cxx11-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-mpi+mpitrampoline", "aarch64-linux-gnu-cxx11-mpi+mpitrampoline", "armv6l-linux-gnueabihf-cxx11-mpi+mpitrampoline", "armv7l-linux-gnueabihf-cxx11-mpi+mpitrampoline", "powerpc64le-linux-gnu-cxx11-mpi+mpitrampoline", "riscv64-linux-gnu-cxx11-mpi+mpitrampoline", "i686-w64-mingw32-cxx11-mpi+microsoftmpi", "x86_64-w64-mingw32-cxx11-mpi+microsoftmpi", "i686-linux-gnu-cxx11-mpi+openmpi", "x86_64-linux-gnu-cxx11-mpi+openmpi", "aarch64-linux-gnu-cxx11-mpi+openmpi", "armv7l-linux-gnueabihf-cxx11-mpi+openmpi", "powerpc64le-linux-gnu-cxx11-mpi+openmpi", "riscv64-linux-gnu-cxx11-mpi+openmpi", "i686-linux-musl-cxx11-mpi+openmpi", "x86_64-linux-musl-cxx11-mpi+openmpi", "aarch64-linux-musl-cxx11-mpi+openmpi", "armv6l-linux-musleabihf-cxx11-mpi+openmpi", "armv7l-linux-musleabihf-cxx11-mpi+openmpi"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LLVMOpenMP_jll"
+platforms = ["x86_64-apple-darwin-mpi+mpiabi", "aarch64-apple-darwin-mpi+mpiabi", "x86_64-unknown-freebsd-mpi+mpiabi", "aarch64-unknown-freebsd-mpi+mpiabi", "x86_64-apple-darwin-mpi+mpich", "aarch64-apple-darwin-mpi+mpich", "x86_64-unknown-freebsd-mpi+mpich", "aarch64-unknown-freebsd-mpi+mpich", "x86_64-apple-darwin-mpi+mpitrampoline", "aarch64-apple-darwin-mpi+mpitrampoline", "x86_64-unknown-freebsd-mpi+mpitrampoline", "aarch64-unknown-freebsd-mpi+mpitrampoline", "x86_64-apple-darwin-mpi+openmpi", "aarch64-apple-darwin-mpi+openmpi", "x86_64-unknown-freebsd-mpi+openmpi", "aarch64-unknown-freebsd-mpi+openmpi"]
+top_level = false
+type = "dependency"
+uuid = "1d63c593-3942-5779-bab2-d838dc0a180e"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "2.2.1"
+name = "HDF5_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "4.12.3"
+name = "Silo_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.2.12"
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.0.2"
+name = "zfp_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.0.0"
+name = "MPIABI_jll"
+platforms = ["i686-linux-gnu-cxx11-mpi+mpiabi", "x86_64-linux-gnu-cxx11-mpi+mpiabi", "aarch64-linux-gnu-cxx11-mpi+mpiabi", "armv6l-linux-gnueabihf-cxx11-mpi+mpiabi", "armv7l-linux-gnueabihf-cxx11-mpi+mpiabi", "powerpc64le-linux-gnu-cxx11-mpi+mpiabi", "riscv64-linux-gnu-cxx11-mpi+mpiabi", "i686-linux-musl-cxx11-mpi+mpiabi", "x86_64-linux-musl-cxx11-mpi+mpiabi", "aarch64-linux-musl-cxx11-mpi+mpiabi", "armv6l-linux-musleabihf-cxx11-mpi+mpiabi", "armv7l-linux-musleabihf-cxx11-mpi+mpiabi", "x86_64-apple-darwin-mpi+mpiabi", "aarch64-apple-darwin-mpi+mpiabi", "x86_64-unknown-freebsd-mpi+mpiabi", "aarch64-unknown-freebsd-mpi+mpiabi"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "5.0.1"
+name = "MPICH_jll"
+platforms = ["i686-linux-gnu-cxx11-mpi+mpich", "x86_64-linux-gnu-cxx11-mpi+mpich", "aarch64-linux-gnu-cxx11-mpi+mpich", "armv6l-linux-gnueabihf-cxx11-mpi+mpich", "armv7l-linux-gnueabihf-cxx11-mpi+mpich", "powerpc64le-linux-gnu-cxx11-mpi+mpich", "riscv64-linux-gnu-cxx11-mpi+mpich", "i686-linux-musl-cxx11-mpi+mpich", "x86_64-linux-musl-cxx11-mpi+mpich", "aarch64-linux-musl-cxx11-mpi+mpich", "armv6l-linux-musleabihf-cxx11-mpi+mpich", "armv7l-linux-musleabihf-cxx11-mpi+mpich", "x86_64-apple-darwin-mpi+mpich", "aarch64-apple-darwin-mpi+mpich", "x86_64-unknown-freebsd-mpi+mpich", "aarch64-unknown-freebsd-mpi+mpich"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "5.5.6"
+name = "MPItrampoline_jll"
+platforms = ["i686-linux-gnu-cxx11-mpi+mpitrampoline", "x86_64-linux-gnu-cxx11-mpi+mpitrampoline", "aarch64-linux-gnu-cxx11-mpi+mpitrampoline", "armv6l-linux-gnueabihf-cxx11-mpi+mpitrampoline", "armv7l-linux-gnueabihf-cxx11-mpi+mpitrampoline", "powerpc64le-linux-gnu-cxx11-mpi+mpitrampoline", "riscv64-linux-gnu-cxx11-mpi+mpitrampoline", "x86_64-apple-darwin-mpi+mpitrampoline", "aarch64-apple-darwin-mpi+mpitrampoline", "x86_64-unknown-freebsd-mpi+mpitrampoline", "aarch64-unknown-freebsd-mpi+mpitrampoline"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MicrosoftMPI_jll"
+platforms = ["i686-w64-mingw32-cxx11-mpi+microsoftmpi", "x86_64-w64-mingw32-cxx11-mpi+microsoftmpi"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "4.1.9, 5.0.11"
+name = "OpenMPI_jll"
+platforms = ["i686-linux-gnu-cxx11-mpi+openmpi", "x86_64-linux-gnu-cxx11-mpi+openmpi", "aarch64-linux-gnu-cxx11-mpi+openmpi", "armv7l-linux-gnueabihf-cxx11-mpi+openmpi", "powerpc64le-linux-gnu-cxx11-mpi+openmpi", "riscv64-linux-gnu-cxx11-mpi+openmpi", "i686-linux-musl-cxx11-mpi+openmpi", "x86_64-linux-musl-cxx11-mpi+openmpi", "aarch64-linux-musl-cxx11-mpi+openmpi", "armv6l-linux-musleabihf-cxx11-mpi+openmpi", "armv7l-linux-musleabihf-cxx11-mpi+openmpi", "x86_64-apple-darwin-mpi+openmpi", "aarch64-apple-darwin-mpi+openmpi", "x86_64-unknown-freebsd-mpi+openmpi", "aarch64-unknown-freebsd-mpi+openmpi"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "0.1"
+name = "MPIPreferences"
+platforms = ["any"]
+top_level = true
+type = "dependency"
+uuid = "3da0fdf6-3ccc-4f1b-acd9-58baa6c99267"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+binnames = ["conduit_adjset_validate"]
+type = "exe"
+variable_name = "conduit_adjset_validate"
+[[products]]
+binnames = ["conduit_blueprint_verify"]
+type = "exe"
+variable_name = "conduit_blueprint_verify"
+[[products]]
+binnames = ["conduit_generate_data"]
+type = "exe"
+variable_name = "conduit_generate_data"
+[[products]]
+binnames = ["conduit_relay_io_convert"]
+type = "exe"
+variable_name = "conduit_relay_io_convert"
+[[products]]
+binnames = ["conduit_relay_io_ls"]
+type = "exe"
+variable_name = "conduit_relay_io_ls"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libconduit"]
+type = "lib"
+variable_name = "libconduit"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libconduit_blueprint"]
+type = "lib"
+variable_name = "libconduit_blueprint"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libconduit_relay"]
+type = "lib"
+variable_name = "libconduit_relay"
+
+[[sources]]
+hash = "e207016e453dd360b2d9a5a1245e53a9aa26ed83fdfb02cc08fc7bfed664f923"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/LLNL/conduit/releases/download/v0.9.7/conduit-v0.9.7-src-with-blt.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "bundled"
+target = ""
+type = "directory"
