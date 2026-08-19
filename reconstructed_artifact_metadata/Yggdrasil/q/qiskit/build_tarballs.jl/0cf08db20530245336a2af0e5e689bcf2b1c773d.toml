@@ -1,0 +1,59 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Qiskit"
+platforms = ["x86_64-linux-gnu", "x86_64-linux-musl", "aarch64-linux-gnu", "aarch64-linux-musl", "x86_64-apple-darwin", "aarch64-apple-darwin"]
+script = """macos_sdk_version=11.0\nmacosx_deployment_target=11.0\n# Move the SDK tarball out of `srcdir` on all platforms: any extra entry\n# in there defeats the automatic installation of license files, which\n# expects `srcdir` to contain a single top-level source directory.\nmv ${WORKSPACE}/srcdir/MacOSX${macos_sdk_version}.sdk.tar.xz ${WORKSPACE}/\nif [[ \"${target}\" == x86_64-apple-darwin* ]]; then\n    # Extract SDK. Also outside of `srcdir`, for the same reason.\n    echo \"Extracting MacOSX${macos_sdk_version}.sdk.tar.xz (this may take a while)\"\n    tar \\\n        --extract \\\n        --file=${WORKSPACE}/MacOSX${macos_sdk_version}.sdk.tar.xz \\\n        --directory=${WORKSPACE} \\\n        --warning=no-unknown-keyword\n    old_sdkroot=${SDKROOT}\n    new_sdkroot=${WORKSPACE}/MacOSX${macos_sdk_version}.sdk\n    # Make sure libc++ header files are available at `usr/include/c++/v1`.\n    # Some SDKs ship their own (e.g. 15.0), which we leave alone; for those\n    # that don't, symlink the ones from the default SDK. Note we symlink\n    # the `v1` subdirectory rather than the whole `c++` directory: some\n    # SDKs (e.g. 10.13) contain `usr/include/c++/4.2.1` (but no `v1`), and\n    # symlinking `c++` onto that existing directory would silently create\n    # a nested `c++/c++` link, so libc++ headers like <new> are not found.\n    if [[ ! -d ${new_sdkroot}/usr/include/c++/v1 ]]; then\n        mkdir -p ${new_sdkroot}/usr/include/c++\n        ln -sT ${old_sdkroot}/usr/include/c++/v1 ${new_sdkroot}/usr/include/c++/v1\n    fi\n    # In the build environment `usr/local` of the default sys-root is a\n    # symlink to the destdir prefix, which puts the header files of the\n    # dependencies on the compilers' default search path. No SDK ships a\n    # `usr/local`, so replicate that symlink in the new SDK. `-T` makes\n    # this fail loudly should some SDK ship a `usr/local` after all,\n    # instead of silently creating a nested `usr/local/local` link.\n    ln -sT ${old_sdkroot}/usr/local ${new_sdkroot}/usr/local\n    # Fix toolchain files\n    sed -i -e \"s+${old_sdkroot}+${new_sdkroot}+\" ${MESON_TARGET_TOOLCHAIN} ${CMAKE_TARGET_TOOLCHAIN}\n    # Fix compiler wrappers\n    sed -i -e \"s+${old_sdkroot}+${new_sdkroot}+\" $(find /opt/bin/${target}* -type f -print)\n    SDKROOT=${new_sdkroot}\n    export MACOSX_DEPLOYMENT_TARGET=${macosx_deployment_target}\nfi\n# not enough space in /tmp\nexport TMPDIR=$WORKSPACE/tmp\nmkdir -p $TMPDIR\n\n# not enough space in /\nexport OLD_CARGO_HOME=\"$CARGO_HOME\"\nexport CARGO_HOME=$WORKSPACE/cargo-home\ncp -a $OLD_CARGO_HOME $CARGO_HOME\n\ncd $WORKSPACE/srcdir/qiskit\n\n# The current Qiskit C API build instructions say to use a Makefile that is\n# improperly formed and not suitable for cross compilation.  So, instead,\n# we invoke Cargo directly and copy the handful of files that result to their\n# proper location.  Upstream issue: https://github.com/Qiskit/qiskit/issues/16250\nenv -u CARGO_BUILD_TARGET -u rust_target ${MACHTYPE}-cargo build -p qiskit-bindgen-cli\nenv -u CARGO_BUILD_TARGET -u rust_target ./target/debug/qiskit-bindgen-cli install -c crates/cext -o dist/c/include\n\nexport PYO3_PYTHON=${host_bindir}/python3\nexport PYO3_CROSS_LIB_DIR=$WORKSPACE/destdir/lib\nexport RUSTFLAGS=\"-L ${libdir}\"\n\n# avoid 'cannot create cdylib' error on musl targets\n# see https://github.com/rust-lang/cargo/issues/8607\n#     https://github.com/rust-lang/rust/issues/59302\nif [[ \"${target}\" == *-musl* ]]; then\n    export RUSTFLAGS=\"${RUSTFLAGS} -C target-feature=-crt-static\"\nfi\n\ncargo rustc --release --crate-type cdylib -p qiskit-cext\ninstall -Dvm 755 \"target/${rust_target}/release/libqiskit_cext.${dlext}\" \"${libdir}/libqiskit.${dlext}\"\ncp -vr dist/c/include/* \"${includedir}\"\ninstall_license LICENSE.txt\n"""
+toplevel_block = ""
+version = "v2.5.0"
+
+[[dependencies]]
+compat = ""
+name = "cbindgen_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+uuid = "a52b955f-5256-5bb0-8795-313e28591558"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Python_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "93d3a430-8e7c-50da-8e8d-3dfcfb3baf05"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Python_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+uuid = "93d3a430-8e7c-50da-8e8d-3dfcfb3baf05"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libqiskit"]
+type = "lib"
+variable_name = "libqiskit"
+
+[[sources]]
+hash = "bbfa6170e00da694700a83bcd3a01d19588d15ae"
+type = "git"
+unpack_target = ""
+url = "https://github.com/Qiskit/qiskit.git"
+[[sources]]
+filename = "MacOSX11.0.sdk.tar.xz"
+hash = "c8a9ff16196be43c35b699dd293f0c0563f1239c99caa6b3d53882e556a209bd"
+type = "file"
+url = "https://github.com/phracker/MacOSX-SDKs/releases/download/11.0-11.1/MacOSX11.0.sdk.tar.xz"
