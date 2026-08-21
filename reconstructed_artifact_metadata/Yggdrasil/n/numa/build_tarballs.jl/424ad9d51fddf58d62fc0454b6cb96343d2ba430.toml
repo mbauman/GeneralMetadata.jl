@@ -1,0 +1,37 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "NUMA"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf"]
+script = """cd ${WORKSPACE}/srcdir\n# Add the `set_mempolicy_home_node` syscall number for the architectures upstream doesn't list\ncd numactl*\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/home_node.patch\n./configure --prefix=${prefix} --build=${MACHTYPE} --host=${target}\nmake -j${nproc} numademo_CFLAGS=\"-O3 -funroll-loops\"\nmake install\ninstall_license LICENSE.*\n"""
+toplevel_block = ""
+version = "v2.0.19"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libnuma"]
+type = "lib"
+variable_name = "libnuma"
+[[products]]
+binnames = ["numactl"]
+type = "exe"
+variable_name = "numactl"
+[[products]]
+binnames = ["numastat"]
+type = "exe"
+variable_name = "numastat"
+
+[[sources]]
+hash = "f2672a0381cb59196e9c246bf8bcc43d5568bc457700a697f1a1df762b9af884"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/numactl/numactl/releases/download/v2.0.19/numactl-2.0.19.tar.gz"
+[[sources]]
+follow_symlinks = false
+path = "bundled"
+target = ""
+type = "directory"
