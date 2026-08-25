@@ -1,0 +1,28 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "tensorprimitives_tapp"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/tensorprimitives-rs\nif [[ \"${target}\" == *-musl* ]]; then\n    export RUSTFLAGS=\"-C target-feature=-crt-static\"\nfi\nexport CARGO_PROFILE_RELEASE_DEBUG=0\nexport CARGO_TARGET_DIR=${WORKSPACE}/target\ncargo build --release --locked -j${nproc} --target ${rust_target} -p tensorprimitives-tapp\ncrates/tensorprimitives-tapp/install.sh --prefix=\"${prefix}\" --libdir=\"${libdir}\" --includedir=\"${includedir}\" --artifacts=\"${CARGO_TARGET_DIR}/${rust_target}/release\" --no-licenses\ninstall_license LICENSE-MIT LICENSE-APACHE\n"""
+toplevel_block = ""
+version = "v0.1.0"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libtensorprimitives_tapp", "tensorprimitives_tapp"]
+type = "lib"
+variable_name = "libtensorprimitives_tapp"
+[[products]]
+paths = ["include/tapp.h"]
+type = "file"
+variable_name = "tapp_h"
+
+[[sources]]
+hash = "ca916fae1947efa526cf7177bf06018c042fd8a6"
+type = "git"
+unpack_target = ""
+url = "https://github.com/lkdvos/tensorprimitives-rs.git"

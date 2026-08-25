@@ -1,0 +1,34 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.10"
+lazy_artifacts = false
+name = "Randompack"
+platforms = ["x86_64-linux-gnu", "aarch64-linux-gnu", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "x86_64-linux-musl", "aarch64-linux-musl", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "x86_64-w64-mingw32"]
+script = """set -e\n# Work around stray AppleDouble files that can break Python site.py decoding.\nfind /usr/lib/python3.9/site-packages -maxdepth 1 -name '._*' -delete 2>/dev/null || true\n\ncd $WORKSPACE/srcdir\nSRC=$WORKSPACE/srcdir/randompack\n\nmanual_apple_build_backup() {\n  # Backup of the previous manual macOS build path. Keep this until the Meson\n  # macOS/aarch64 BinaryBuilder build has been verified.\n  BUILD=$WORKSPACE/build-manual\n  rm -rf $BUILD\n  mkdir -p $BUILD $prefix/lib $prefix/include $prefix/share/licenses/Randompack\n\n  CDEFS=\"-D_POSIX_C_SOURCE=200809L -D_DARWIN_C_SOURCE -DLOCAL_DPSTRF -DUSE_ACCEL_VV\"\n  COPTS=\"-O3 -fPIC -fno-math-errno -fno-trapping-math -fomit-frame-pointer\"\n  COPTS=\"$COPTS -fno-semantic-interposition\"\n  if echo \"$target\" | grep -q '^aarch64-apple-darwin'; then\n    COPTS=\"$COPTS -mcpu=apple-m1\"\n  fi\n\n  $CC -std=c11 $COPTS $CDEFS -I$SRC/src -c $SRC/src/printX.c -o $BUILD/printX.c.o\n  $CC -std=c11 $COPTS $CDEFS -I$SRC/src -c $SRC/src/rp_dpstrf.c -o $BUILD/rp_dpstrf.c.o\n  $CC -std=c11 $COPTS $CDEFS -I$SRC/src -c $SRC/src/randompack.c -o $BUILD/randompack.c.o\n\n  $CC -shared -o $prefix/lib/librandompack.dylib \\\n    $BUILD/randompack.c.o $BUILD/printX.c.o $BUILD/rp_dpstrf.c.o \\\n    -framework Accelerate -lm \\\n    -Wl,-install_name,@rpath/librandompack.dylib\n\n  cp $SRC/src/randompack.h $prefix/include/\n  cp $SRC/src/randompack_config.h $prefix/include/\n  cp $SRC/LICENSE $prefix/share/licenses/Randompack/LICENSE\n}\n\ncd $WORKSPACE\nrm -rf build\n\nP1=\"${prefix}/lib/pkgconfig:${prefix}/lib64/pkgconfig:${prefix}/share/pkgconfig\"\nexport PKG_CONFIG_PATH=\"$P1:${PKG_CONFIG_PATH:-}\"\nexport CPPFLAGS=\"-I${prefix}/include ${CPPFLAGS:-}\"\nexport LDFLAGS=\"-L${prefix}/lib -L${prefix}/lib64 ${LDFLAGS:-}\"\n\nif [[ \"${target}\" == x86_64-w64-mingw32 ]]; then\n  sed -i \"s/build_avx512 = build_avx512 and build_avx2/build_avx512 = build_avx512 and build_avx2 and host_system != 'windows'/\" $SRC/meson.build\n  sed -i \"/randompack_avx2_used/d; /randompack_avx2_reset/d\" $SRC/src/randompack.def\nfi\n\nmeson setup build $SRC \\\n  --cross-file=${MESON_TARGET_TOOLCHAIN} \\\n  --buildtype=release \\\n  --prefix=${prefix} \\\n  -Ddefault_library=shared \\\n  -Dblas=openblas \\\n  -Dbuild_examples=false \\\n  -Dbuild_tests=false \\\n  -Dbuild_fortran_interface=false\n\nninja -C build\nninja -C build install\n"""
+toplevel_block = ""
+version = "v0.1.10"
+
+[[dependencies]]
+compat = ""
+name = "OpenBLAS32_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "656ef2d0-ae68-5445-9ca0-591084a874a2"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["librandompack"]
+type = "lib"
+variable_name = "librandompack"
+
+[[sources]]
+hash = "67b128131973b9d7b38bdad702edba23b39c8fbd"
+type = "git"
+unpack_target = ""
+url = "https://github.com/jonasson2/randompack.git"
