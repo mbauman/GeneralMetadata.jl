@@ -1,0 +1,104 @@
+augment_platform_block = """    using Base.BinaryPlatforms\n    # Can't use Preferences since we might be running this very early with a non-existing Manifest\nMPIPreferences_UUID = Base.UUID(\"3da0fdf6-3ccc-4f1b-acd9-58baa6c99267\")\nconst preferences = Base.get_preferences(MPIPreferences_UUID)\n\nconst binary_to_abi = Dict(\n    \"MPIABI_jll\" => \"MPIABI\",\n    \"MPICH_jll\" => \"MPICH\",\n    \"MPICH_CUDA_jll\" => \"MPICH\",\n    \"MPItrampoline_jll\" => \"MPItrampoline\",\n    \"MicrosoftMPI_jll\" => \"MicrosoftMPI\",\n    \"OpenMPI_jll\" => \"OpenMPI\",\n)\n\n# Keep logic in sync with MPIPreferences.jl\nfunction augment_mpi!(platform)\n    # Doesn't need to be `const` since we depend on MPIPreferences so we\n    # invalidate the cache when it changes.\n\n    # Determine which jll binary provides our MPI implementation.\n    # Use MPIPreferences if set, otherwise use either MPICH or MicrosoftMPI (on Windows).\n    # Note: MPIPreferences uses `Sys.iswindows()` without the `platform` argument.\n    binary = get(preferences, \"binary\", Sys.iswindows(platform) ? \"MicrosoftMPI_jll\" : \"MPICH_jll\")\n\n    # Convert the jll binary to an ABI\n    if binary == \"system\"\n        abi = get(preferences, \"abi\", nothing)\n        abi === nothing && error(\"MPIPreferences: Inconsistent state detected, `binary` is set to system, but `abi` is not set.\")\n    else\n        abi = get(binary_to_abi, binary, nothing)\n        abi == nothing && error(\"Unknown MPI binary: $binary\")\n    end\n\n    # Add an `mpi` entry to the platform if it's missing\n    if !haskey(platform, \"mpi\")\n        platform[\"mpi\"] = abi\n    end\n\n    return platform\nend\n\n    augment_platform!(platform::Platform) = augment_mpi!(platform)\n"""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = true
+name = "SLATE"
+platforms = ["i686-linux-gnu-libgfortran5-cxx11-mpi+mpiabi", "x86_64-linux-gnu-libgfortran5-cxx11-mpi+mpiabi", "aarch64-linux-gnu-libgfortran5-cxx11-mpi+mpiabi", "armv6l-linux-gnueabihf-libgfortran5-cxx11-mpi+mpiabi", "armv7l-linux-gnueabihf-libgfortran5-cxx11-mpi+mpiabi", "powerpc64le-linux-gnu-libgfortran5-cxx11-mpi+mpiabi", "i686-linux-musl-libgfortran5-cxx11-mpi+mpiabi", "x86_64-linux-musl-libgfortran5-cxx11-mpi+mpiabi", "aarch64-linux-musl-libgfortran5-cxx11-mpi+mpiabi", "armv6l-linux-musleabihf-libgfortran5-cxx11-mpi+mpiabi", "armv7l-linux-musleabihf-libgfortran5-cxx11-mpi+mpiabi", "i686-linux-gnu-libgfortran5-cxx11-mpi+mpich", "x86_64-linux-gnu-libgfortran5-cxx11-mpi+mpich", "aarch64-linux-gnu-libgfortran5-cxx11-mpi+mpich", "armv6l-linux-gnueabihf-libgfortran5-cxx11-mpi+mpich", "armv7l-linux-gnueabihf-libgfortran5-cxx11-mpi+mpich", "powerpc64le-linux-gnu-libgfortran5-cxx11-mpi+mpich", "i686-linux-musl-libgfortran5-cxx11-mpi+mpich", "x86_64-linux-musl-libgfortran5-cxx11-mpi+mpich", "aarch64-linux-musl-libgfortran5-cxx11-mpi+mpich", "armv6l-linux-musleabihf-libgfortran5-cxx11-mpi+mpich", "armv7l-linux-musleabihf-libgfortran5-cxx11-mpi+mpich", "i686-linux-gnu-libgfortran5-cxx11-mpi+mpitrampoline", "x86_64-linux-gnu-libgfortran5-cxx11-mpi+mpitrampoline", "aarch64-linux-gnu-libgfortran5-cxx11-mpi+mpitrampoline", "armv6l-linux-gnueabihf-libgfortran5-cxx11-mpi+mpitrampoline", "armv7l-linux-gnueabihf-libgfortran5-cxx11-mpi+mpitrampoline", "powerpc64le-linux-gnu-libgfortran5-cxx11-mpi+mpitrampoline", "i686-linux-gnu-libgfortran5-cxx11-mpi+openmpi", "x86_64-linux-gnu-libgfortran5-cxx11-mpi+openmpi", "aarch64-linux-gnu-libgfortran5-cxx11-mpi+openmpi", "armv7l-linux-gnueabihf-libgfortran5-cxx11-mpi+openmpi", "powerpc64le-linux-gnu-libgfortran5-cxx11-mpi+openmpi", "i686-linux-musl-libgfortran5-cxx11-mpi+openmpi", "x86_64-linux-musl-libgfortran5-cxx11-mpi+openmpi", "aarch64-linux-musl-libgfortran5-cxx11-mpi+openmpi", "armv6l-linux-musleabihf-libgfortran5-cxx11-mpi+openmpi", "armv7l-linux-musleabihf-libgfortran5-cxx11-mpi+openmpi"]
+script = """cd slate\ngit submodule update --init\n\nmkdir build && cd build\n\nCMAKE_FLAGS=(-DCMAKE_INSTALL_PREFIX=${prefix}\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN}\n    -DCMAKE_BUILD_TYPE=\"Release\"\n    -DBUILD_SHARED_LIBS=ON\n    -Dblas=openblas\n    -Dgpu_backend=none\n    -Dbuild_tests=no\n    -DMPI_RUN_RESULT_CXX_libver_mpi_normal=\"0\"\n    -DMPI_RUN_RESULT_CXX_libver_mpi_normal__TRYRUN_OUTPUT=\"\"\n    -Drun_result=\"0\"\n    -Drun_result__TRYRUN_OUTPUT=\"ok\"\n    -Dblas_complex_return=return\n    -Dblas_int=int\n)\n\ncmake \"${CMAKE_FLAGS[@]}\" ..\nmake -j${nproc}\nmake install\n"""
+toplevel_block = ""
+version = "v2025.5.28"
+
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "OpenBLAS32_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.0.0"
+name = "MPIABI_jll"
+platforms = ["i686-linux-gnu-libgfortran5-cxx11-mpi+mpiabi", "x86_64-linux-gnu-libgfortran5-cxx11-mpi+mpiabi", "aarch64-linux-gnu-libgfortran5-cxx11-mpi+mpiabi", "armv6l-linux-gnueabihf-libgfortran5-cxx11-mpi+mpiabi", "armv7l-linux-gnueabihf-libgfortran5-cxx11-mpi+mpiabi", "powerpc64le-linux-gnu-libgfortran5-cxx11-mpi+mpiabi", "riscv64-linux-gnu-libgfortran5-cxx11-mpi+mpiabi", "i686-linux-musl-libgfortran5-cxx11-mpi+mpiabi", "x86_64-linux-musl-libgfortran5-cxx11-mpi+mpiabi", "aarch64-linux-musl-libgfortran5-cxx11-mpi+mpiabi", "armv6l-linux-musleabihf-libgfortran5-cxx11-mpi+mpiabi", "armv7l-linux-musleabihf-libgfortran5-cxx11-mpi+mpiabi"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "5.0.1"
+name = "MPICH_jll"
+platforms = ["i686-linux-gnu-libgfortran5-cxx11-mpi+mpich", "x86_64-linux-gnu-libgfortran5-cxx11-mpi+mpich", "aarch64-linux-gnu-libgfortran5-cxx11-mpi+mpich", "armv6l-linux-gnueabihf-libgfortran5-cxx11-mpi+mpich", "armv7l-linux-gnueabihf-libgfortran5-cxx11-mpi+mpich", "powerpc64le-linux-gnu-libgfortran5-cxx11-mpi+mpich", "riscv64-linux-gnu-libgfortran5-cxx11-mpi+mpich", "i686-linux-musl-libgfortran5-cxx11-mpi+mpich", "x86_64-linux-musl-libgfortran5-cxx11-mpi+mpich", "aarch64-linux-musl-libgfortran5-cxx11-mpi+mpich", "armv6l-linux-musleabihf-libgfortran5-cxx11-mpi+mpich", "armv7l-linux-musleabihf-libgfortran5-cxx11-mpi+mpich"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "5.5.6"
+name = "MPItrampoline_jll"
+platforms = ["i686-linux-gnu-libgfortran5-cxx11-mpi+mpitrampoline", "x86_64-linux-gnu-libgfortran5-cxx11-mpi+mpitrampoline", "aarch64-linux-gnu-libgfortran5-cxx11-mpi+mpitrampoline", "armv6l-linux-gnueabihf-libgfortran5-cxx11-mpi+mpitrampoline", "armv7l-linux-gnueabihf-libgfortran5-cxx11-mpi+mpitrampoline", "powerpc64le-linux-gnu-libgfortran5-cxx11-mpi+mpitrampoline", "riscv64-linux-gnu-libgfortran5-cxx11-mpi+mpitrampoline"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "MicrosoftMPI_jll"
+platforms = []
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "4.1.9, 5.0.11"
+name = "OpenMPI_jll"
+platforms = ["i686-linux-gnu-libgfortran5-cxx11-mpi+openmpi", "x86_64-linux-gnu-libgfortran5-cxx11-mpi+openmpi", "aarch64-linux-gnu-libgfortran5-cxx11-mpi+openmpi", "armv7l-linux-gnueabihf-libgfortran5-cxx11-mpi+openmpi", "powerpc64le-linux-gnu-libgfortran5-cxx11-mpi+openmpi", "riscv64-linux-gnu-libgfortran5-cxx11-mpi+openmpi", "i686-linux-musl-libgfortran5-cxx11-mpi+openmpi", "x86_64-linux-musl-libgfortran5-cxx11-mpi+openmpi", "aarch64-linux-musl-libgfortran5-cxx11-mpi+openmpi", "armv6l-linux-musleabihf-libgfortran5-cxx11-mpi+openmpi", "armv7l-linux-musleabihf-libgfortran5-cxx11-mpi+openmpi"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "0.1"
+name = "MPIPreferences"
+platforms = ["any"]
+top_level = true
+type = "dependency"
+uuid = "3da0fdf6-3ccc-4f1b-acd9-58baa6c99267"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libslate"]
+type = "lib"
+variable_name = "libslate"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libslate_lapack_api"]
+type = "lib"
+variable_name = "libslate_lapack_api"
+
+[[sources]]
+hash = "f8348a7c3de4f8fc60f5b8f78134df25ebc9061b"
+type = "git"
+unpack_target = ""
+url = "https://github.com/icl-utk-edu/slate.git"
