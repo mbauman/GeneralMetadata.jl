@@ -1,0 +1,106 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.9"
+lazy_artifacts = false
+name = "Cbc"
+platforms = ["i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx11", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir/Cbc*\n\n# Remove misleading libtool files\nrm -f ${prefix}/lib/*.la\nupdate_configure_scripts\n\n# old and custom autoconf\nsed -i s/elf64ppc/elf64lppc/ configure\n\nmkdir build\ncd build/\n\nexport CPPFLAGS=\"${CPPFLAGS} -DNDEBUG -I${includedir} -I${includedir}/coin\"\nif [[ ${target} == *mingw* ]]; then\n    export LDFLAGS=\"-L$prefix/bin\"\nelif [[ ${target} == *linux* ]]; then\n    export LDFLAGS=\"-ldl -lrt\"\nfi\n\n# BLAS and LAPACK\nif [[ \"${target}\" == *mingw* ]]; then\n  LBT=\"-lblastrampoline-5\"\nelse\n  LBT=\"-lblastrampoline\"\nfi\n\n../configure \\\n    --prefix=${prefix} \\\n    --build=${MACHTYPE} \\\n    --host=${target} \\\n    --with-pic \\\n    --disable-pkg-config \\\n    --disable-debug \\\n    --enable-shared \\\n    lt_cv_deplibs_check_method=pass_all \\\n    --with-asl-lib=\"-lasl\" \\\n    --with-blas \\\n    --with-blas-lib=\"-L${libdir} ${LBT}\" \\\n    --with-lapack \\\n    --with-lapack-lib=\"-L${libdir} ${LBT}\" \\\n    --with-clp-lib=\"-lClp\" \\\n    --with-coindepend-lib=\"-lCgl -lOsiClp -lClp -lOsi -lCoinUtils\" \\\n    --enable-cbc-parallel\n\nmake -j${nproc}\nmake install\n"""
+toplevel_block = ""
+version = "v200.1000.1300"
+
+[[dependencies]]
+compat = ""
+name = "ASL_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "0.6000.1000"
+name = "Cgl_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "100.1700.1100"
+name = "Clp_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "0.10800.1200"
+name = "Osi_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "200.1100.1300"
+name = "CoinUtils_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "5.4.0"
+name = "libblastrampoline_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "8e850b90-86db-534c-a0d3-1478176c7d93"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libCbc"]
+type = "lib"
+variable_name = "libCbc"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libOsiCbc"]
+type = "lib"
+variable_name = "libOsiCbc"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libCbcSolver"]
+type = "lib"
+variable_name = "libcbcsolver"
+[[products]]
+binnames = ["cbc"]
+type = "exe"
+variable_name = "cbc"
+
+[[sources]]
+hash = "8e898d0a4ab7bb5b202c2ebbf3f2d2c0823c1e9d"
+type = "git"
+unpack_target = ""
+url = "https://github.com/coin-or/Cbc.git"
