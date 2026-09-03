@@ -1,0 +1,24 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "libde265"
+platforms = ["i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx11", "riscv64-linux-gnu-cxx11", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx11"]
+script = """cd $WORKSPACE/srcdir/libde265-*\n\nmkdir build\n\nargs+=(-DCMAKE_TOOLCHAIN_FILE=$CMAKE_TARGET_TOOLCHAIN)\nargs+=(-DCMAKE_INSTALL_PREFIX=$prefix)\nargs+=(-DCMAKE_BUILD_TYPE=RELEASE)\nargs+=(-DCMAKE_EXE_LINKER_FLAGS=\"-pthread\")\nargs+=(-DCMAKE_SHARED_LINKER_FLAGS=\"-pthread\")\n\n# The AVX2/AVX-512 dispatch code uses `__builtin_cpu_supports`, which\n# requires the libgcc helpers `__cpu_model` and `__cpu_indicator_init`.\n# These are not provided by the macOS Clang toolchain, so the link fails\n# with undefined symbols. Disable these kernels; the SSE ones remain.\n# (These options have no effect on the aarch64 macOS build.)\nif [[ ${target} == *-apple-darwin* ]]; then\n    args+=(-DENABLE_AVX2=OFF)\n    args+=(-DENABLE_AVX512=OFF)\nfi\n\ncmake -B build -S . \"${args[@]}\"\n\ncmake --build build --parallel $nproc\ncmake --install build\n\n# The library's soversion was changed from \"\" (nothing) to \"0\" (zero)\n# during a \"maintenance release\". We undo this change to avoid\n# breaking the ABI. We should remove this work-around when the next\n# major version is available.\nif [[ ${target} == *darwin* ]]; then\n    # Remove symbolic links\n    rm ${libdir}/libde265.dylib\n    rm ${libdir}/libde265.0.dylib\n    # Rename file\n    mv ${libdir}/libde265.*.dylib ${libdir}/libde265.dylib\n    # Change install name\n    install_name_tool -id @rpath/libde265.dylib ${libdir}/libde265.dylib\nelif [[ ${target} == *mingw* ]]; then\n    # do nothing\n    :\nelse\n    # Change soname\n    patchelf --set-soname libde265.so ${libdir}/libde265.so\nfi\n"""
+toplevel_block = ""
+version = "v1.1.1000"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libde265"]
+type = "lib"
+variable_name = "libde265"
+
+[[sources]]
+hash = "fd48a927e94ed74fc7ce8829d222b9d8599fcbfe8b6448ba66705babc56ab219"
+type = "archive"
+unpack_target = ""
+url = "https://github.com/strukturag/libde265/releases/download/v1.1.1/libde265-1.1.1.tar.gz"

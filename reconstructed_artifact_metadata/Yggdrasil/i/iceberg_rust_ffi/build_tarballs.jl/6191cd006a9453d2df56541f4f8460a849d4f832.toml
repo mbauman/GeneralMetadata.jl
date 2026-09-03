@@ -1,0 +1,33 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.10"
+lazy_artifacts = false
+name = "iceberg_rust_ffi"
+platforms = ["aarch64-apple-darwin", "x86_64-linux-gnu", "x86_64-apple-darwin", "aarch64-linux-gnu"]
+script = """if [[ \"${target}\" == aarch64-* ]]; then\n    # aws-lc-sys (pulled in via rustls/hyper-rustls) requires the NEON and\n    # crypto extensions to be statically enabled on aarch64 (every real\n    # aarch64 CPU has them, but neither clang's bare arm64-apple-macosx\n    # target nor the aarch64-linux-gnu assembler enable them by default,\n    # so aws-lc-sys's hand-written crypto assembly fails to assemble:\n    # \"selected processor does not support `aese ...'\" etc). Same fix as\n    # the rcodesign recipe (for Apple) and needed for aarch64-linux-gnu too.\n    export CFLAGS=\"${CFLAGS} -march=armv8-a+crypto\"\nfi\n\ncd ${WORKSPACE}/srcdir/RustyIceberg.jl/iceberg_rust_ffi/\n\n# Build the library with native compilation\ncargo rustc --release --lib --crate-type=cdylib\n\n# Install the library\ninstall -Dvm 755 \"target/${rust_target}/release/libiceberg_rust_ffi.${dlext}\" \"${libdir}/libiceberg_rust_ffi.${dlext}\"\n"""
+toplevel_block = ""
+version = "v0.9.3"
+
+[[dependencies]]
+compat = "3.0.14"
+name = "OpenSSL_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libiceberg_rust_ffi"]
+type = "lib"
+variable_name = "libiceberg_rust_ffi"
+
+[[sources]]
+hash = "5c8767f37451c31a43205a9bd93c4255b0e727a1"
+type = "git"
+unpack_target = ""
+url = "https://github.com/RelationalAI/RustyIceberg.jl.git"

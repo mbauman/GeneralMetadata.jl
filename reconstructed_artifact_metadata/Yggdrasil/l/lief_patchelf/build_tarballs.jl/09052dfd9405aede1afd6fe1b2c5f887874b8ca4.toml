@@ -1,0 +1,35 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "LIEF_Patchelf"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "x86_64-w64-mingw32"]
+script = """export LIEF_VERSION_ENV=1.0.0\nexport LIEF_COMMIT=d05b3499b6934137e917c009a4df0a9dc8cb11c5\nexport LIEF_BRANCH=main\n# LIEF requires CMake >= 3.24; the build environment ships 3.21.\napk del cmake\n\ncd ${WORKSPACE}/srcdir/LIEF\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/0001-undef-major-minor.patch\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/0002-drop-tls-backend.patch\natomic_patch -p1 ${WORKSPACE}/srcdir/patches/0003-static-runtime-link-args.patch\n\nexport TMPDIR=${WORKSPACE}/tmp\nmkdir -p ${TMPDIR}\n\nlief_install=${WORKSPACE}/lief-install\nbridge_dir=${WORKSPACE}/cxx-bridge\nprecompiled=${WORKSPACE}/lief-rs\n\n# lief-ffi's build script only ever locates a prebuilt LIEF, never builds\n# one, so produce libLIEF.a and liblief-sys.a here and hand them to cargo.\n\n# LIEF_RUST_API installs the LIEF/rust headers the cxx bridge includes.\n# ASM, DEBUG_INFO, OBJC and DYLD_SHARED_CACHE are inverted: ON drops the\n# stub implementations the FFI needs and requires LIEF Extended.\n# The FFI is not feature-gated, so PE, COFF and MachO are all mandatory.\ncmake -GNinja -S . -B build-lief \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DCMAKE_INSTALL_LIBDIR=lib \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DBUILD_SHARED_LIBS=OFF \\\n    -DLIEF_RUST_API=ON \\\n    -DLIEF_INSTALL=ON \\\n    -DLIEF_ELF=ON -DLIEF_PE=ON -DLIEF_COFF=ON -DLIEF_MACHO=ON \\\n    -DLIEF_DEX=OFF -DLIEF_ART=OFF \\\n    -DLIEF_ASM=OFF -DLIEF_DEBUG_INFO=OFF -DLIEF_OBJC=OFF \\\n    -DLIEF_DYLD_SHARED_CACHE=OFF \\\n    -DLIEF_RUNTIME=OFF \\\n    -DLIEF_PRECOMPILED=OFF \\\n    -DLIEF_C_API=OFF \\\n    -DLIEF_EXAMPLES=OFF \\\n    -DLIEF_TESTS=OFF \\\n    -DLIEF_PYTHON_API=OFF \\\n    -DLIEF_USE_CCACHE=OFF \\\n    -DLIEF_USE_MELKOR=OFF\ncmake --build build-lief --parallel ${nproc}\n\n# The toolchain file assigns CMAKE_INSTALL_PREFIX with a plain set(), which\n# shadows -D, so pass --prefix or all of LIEF lands in the tarball.\ncmake --install build-lief --prefix ${lief_install}\n\n# cargo generates only the Rust half of each cxx bridge. The C++ half comes\n# from lief-ffigen, a host tool, which is why CARGO_BUILD_TARGET is unset.\nenv -u CARGO_BUILD_TARGET -u rust_target ${MACHTYPE}-cargo build --release \\\n    --manifest-path api/rust/crates/Cargo.toml -p lief-ffigen\napi/rust/crates/target/release/lief-ffigen \\\n    --output-dir ${bridge_dir} --source-dir api/rust/crates/lief-ffi\n\n# cmake-ffi installs liblief-sys.a and libLIEF.a side by side, which is the\n# lib/ layout LIEF_RUST_PRECOMPILED expects.\ncmake -GNinja -S api/rust/cmake-ffi -B build-ffi \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DLIEF_DIR=${lief_install}/lib/cmake/LIEF \\\n    -DCMAKE_PREFIX_PATH=${lief_install} \\\n    -DLIEF_RUST_FFI_SRC=${bridge_dir} \\\n    -DINSTALL_LIEF_CORE=ON\ncmake --build build-ffi --parallel ${nproc}\ncmake --install build-ffi --prefix ${precompiled}\n\n# Without these, cargo would quietly resolve -lLIEF from ${libdir} instead.\ntest -f ${precompiled}/lib/libLIEF.a\ntest -f ${precompiled}/lib/liblief-sys.a\n\nexport LIEF_RUST_PRECOMPILED=${precompiled}\n\n# Both archives are static, so LIEF and its vendored dependencies are always\n# absorbed into the binary; what is left is the system runtime. Patch 0003\n# adds a build.rs that emits the linker arguments for that; the CRT itself is\n# a codegen choice, so it has to come from RUSTFLAGS.\ncase \"${target}\" in\n    *-apple-darwin*)\n        # Apple ships no static libSystem, and libc++ is an OS component with\n        # a stable ABI, so darwin links both dynamically and needs no flags.\n        ;;\n    *-mingw*)\n        # link-cplusplus emits a bare -lstdc++ that -static-libstdc++ cannot\n        # override, so silence cc's detection; build.rs links it by path.\n        export CXXSTDLIB=\"\"\n        export RUSTFLAGS=\"${RUSTFLAGS} -C target-feature=+crt-static\"\n        ;;\n    *)\n        # Linux and FreeBSD. Under the default PIC model, +crt-static emits\n        # -static-pie and wants an rcrt1.o the sysroot lacks; a non-PIE link\n        # uses the ordinary crt1.o instead.\n        export RUSTFLAGS=\"${RUSTFLAGS} -C target-feature=+crt-static -C relocation-model=static\"\n        ;;\nesac\n\n# No --locked: patch 0002 prunes rustls, so the lockfile must be updated.\ncargo build --release --manifest-path tools/Cargo.toml -p lief-patchelf\n\ninstall -Dvm 755 \"tools/target/${rust_target}/release/lief-patchelf${exeext}\" \\\n                 \"${bindir}/lief-patchelf${exeext}\"\ninstall_license LICENSE\n"""
+toplevel_block = ""
+version = "v1.0.0"
+
+[[dependencies]]
+compat = ""
+name = "CMake_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 3
+version-minor = 31
+version-patch = 9
+
+[[products]]
+binnames = ["lief-patchelf"]
+type = "exe"
+variable_name = "lief_patchelf"
+
+[[sources]]
+hash = "d05b3499b6934137e917c009a4df0a9dc8cb11c5"
+type = "git"
+unpack_target = ""
+url = "https://github.com/lief-project/LIEF.git"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"

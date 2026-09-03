@@ -1,0 +1,29 @@
+augment_platform_block = ""
+dependencies = []
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "ASL"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-unknown-freebsd", "aarch64-unknown-freebsd", "i686-w64-mingw32", "x86_64-w64-mingw32"]
+script = """cd $WORKSPACE/srcdir/solvers/\nhead -17 asl.h > LICENSE.txt\nmkdir -p ${includedir}\nmkdir -p ${libdir}\n\nall_load=\"--whole-archive\"\nnoall_load=\"--no-whole-archive\"\nmakefile=\"makefile.u\"\ncflags=\"\"\n\nif [[ -f $WORKSPACE/srcdir/asl-extra/arith.h.$target ]]; then\n    cp $WORKSPACE/srcdir/asl-extra/arith.h.$target ./arith.h\nfi\n\nif [[ \"${target}\" == \"arm-linux-musleabihf\" ]]; then\n    cp $WORKSPACE/srcdir/asl-extra/arith.h.arm-linux-gnueabihf ./arith.h\nelif [[ $target == \"i686-linux-musl\" ]]; then\n    cp $WORKSPACE/srcdir/asl-extra/arith.h.i686-linux-gnu ./arith.h\nelif [[ \"${target}\" == \"aarch64-linux-musl\" ]]; then\n    cp $WORKSPACE/srcdir/asl-extra/arith.h.aarch64-linux-gnu ./arith.h\nelif [[ \"${target}\" == *-freebsd* ]]; then\n    cp $WORKSPACE/srcdir/asl-extra/arith.h.x86_64-linux-gnu ./arith.h\n    cflags=\"-D__XSI_VISIBLE=1\"\nelif [[ \"${target}\" == *-mingw* ]]; then\n    makefile=\"$WORKSPACE/srcdir/asl-extra/makefile.mingw\"\nelif [[ \"${target}\" == *-apple-* ]]; then\n    all_load=\"-all_load\"\n    noall_load=\"-noall_load\"\nfi\n\nmake -f $makefile CC=\"$CC\" CFLAGS=\"-O -fPIC $cflags\"\nc++ -fPIC -shared -I$WORKSPACE/srcdir/asl-extra -I. $WORKSPACE/srcdir/asl-extra/aslinterface.cc -Wl,${all_load} amplsolver.a -Wl,${noall_load} -o libasl.${dlext}\ncp libasl.${dlext} ${libdir}\ncp *.h ${includedir}\ncp *.hd ${includedir}\ninstall_license LICENSE.txt\n"""
+toplevel_block = ""
+version = "v0.1.4"
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libasl"]
+type = "lib"
+variable_name = "libasl"
+
+[[sources]]
+hash = "92bf92a8db0712c0e42c12f912151128dd192e8409ba1fea6f4b44cd5141a1de"
+type = "archive"
+unpack_target = ""
+url = "http://netlib.org/ampl/solvers.tgz"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"
