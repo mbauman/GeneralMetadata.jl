@@ -1,0 +1,165 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.6"
+lazy_artifacts = false
+name = "Elfutils"
+platforms = ["i686-linux-gnu", "x86_64-linux-gnu", "aarch64-linux-gnu", "armv6l-linux-gnueabihf", "armv7l-linux-gnueabihf", "powerpc64le-linux-gnu", "riscv64-linux-gnu", "i686-linux-musl", "x86_64-linux-musl", "aarch64-linux-musl", "armv6l-linux-musleabihf", "armv7l-linux-musleabihf"]
+script = """cd $WORKSPACE/srcdir/elfutils-*/\n\natomic_patch -p1 $WORKSPACE/srcdir/patches/initreg-sys-uio.patch\n\nif [[ ${target} = *-musl* ]] ; then\n    atomic_patch -p1 $WORKSPACE/srcdir/patches/fix-aarch64_fregs.patch\n    atomic_patch -p1 $WORKSPACE/srcdir/patches/musl-asm-ptrace-h.patch\n    atomic_patch -p1 $WORKSPACE/srcdir/patches/musl-macros.patch\n    atomic_patch -p1 $WORKSPACE/srcdir/patches/musl-strndupa.patch\n\n    cp $WORKSPACE/srcdir/files/error.h src/\n    cp $WORKSPACE/srcdir/files/error.h lib/\n\n    # install missing headers and `autopoint`\n    apk add bsd-compat-headers gettext-dev\n    # /usr/include isn't in search path of cross-cc, so copy cdefs.h\n    mkdir -p $prefix/include/sys\n    # Skip warning macro at top of file\n    tail -n +2 /usr/include/sys/cdefs.h >$prefix/include/sys/cdefs.h\n    autoreconf -vif\nfi\n\nexport CC=gcc\nexport CXX=g++\nCFLAGS=\"-Wno-error=unused-result\" CPPFLAGS=\"-I${prefix}/include\" ./configure \\\n    --prefix=${prefix} \\\n    --build=${MACHTYPE} \\\n    --host=${target} \\\n    --disable-debuginfod \\\n    --disable-libdebuginfod\nmake -j${nproc}\nmake install\nrm -f \"${includedir}/sys/cdefs.h\"\ninstall_license COPYING*\n"""
+toplevel_block = ""
+version = "v0.196.0"
+
+[[dependencies]]
+compat = ""
+name = "Zlib_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "1.0.9"
+name = "Bzip2_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "XZ_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "argp_standalone_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "fts_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = "~1.2.3"
+name = "obstack_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libasm"]
+type = "lib"
+variable_name = "libasm"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libdw"]
+type = "lib"
+variable_name = "libdw"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = false
+libnames = ["libelf"]
+type = "lib"
+variable_name = "libelf"
+[[products]]
+binnames = ["eu-addr2line"]
+type = "exe"
+variable_name = "eu_addr2line"
+[[products]]
+binnames = ["eu-ar"]
+type = "exe"
+variable_name = "eu_ar"
+[[products]]
+binnames = ["eu-elfclassify"]
+type = "exe"
+variable_name = "eu_elfclassify"
+[[products]]
+binnames = ["eu-elfcmp"]
+type = "exe"
+variable_name = "eu_elfcmp"
+[[products]]
+binnames = ["eu-elfcompress"]
+type = "exe"
+variable_name = "eu_elfcompress"
+[[products]]
+binnames = ["eu-elflint"]
+type = "exe"
+variable_name = "eu_elflint"
+[[products]]
+binnames = ["eu-findtextrel"]
+type = "exe"
+variable_name = "eu_findtextrel"
+[[products]]
+binnames = ["eu-make-debug-archive"]
+type = "exe"
+variable_name = "eu_make_debug_archive"
+[[products]]
+binnames = ["eu-nm"]
+type = "exe"
+variable_name = "eu_nm"
+[[products]]
+binnames = ["eu-objdump"]
+type = "exe"
+variable_name = "eu_objdump"
+[[products]]
+binnames = ["eu-ranlib"]
+type = "exe"
+variable_name = "eu_ranlib"
+[[products]]
+binnames = ["eu-readelf"]
+type = "exe"
+variable_name = "eu_readelf"
+[[products]]
+binnames = ["eu-size"]
+type = "exe"
+variable_name = "eu_size"
+[[products]]
+binnames = ["eu-stack"]
+type = "exe"
+variable_name = "eu_stack"
+[[products]]
+binnames = ["eu-strings"]
+type = "exe"
+variable_name = "eu_strings"
+[[products]]
+binnames = ["eu-strip"]
+type = "exe"
+variable_name = "eu_strip"
+[[products]]
+binnames = ["eu-unstrip"]
+type = "exe"
+variable_name = "eu_unstrip"
+
+[[sources]]
+hash = "fd5cc6b77ad6773cac93cb3f415f9318ac3b3455eecf801f6b4a742c4f6c7209"
+type = "archive"
+unpack_target = ""
+url = "https://sourceware.org/elfutils/ftp/0.196/elfutils-0.196.tar.bz2"
+[[sources]]
+follow_symlinks = false
+path = "./bundled"
+target = ""
+type = "directory"
