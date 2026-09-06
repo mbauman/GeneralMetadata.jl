@@ -1,0 +1,240 @@
+augment_platform_block = """using Base.BinaryPlatforms\nusing Libdl: dlopen, dlsym\n\nfunction augment_llvm!(platform::Platform)\n    haskey(platform, \"llvm_version\") && return platform\n\n    llvm_version = Base.libllvm_version\n    # does our LLVM build use assertions?\n    llvm_assertions = try\n        dlsym(dlopen(Base.libllvm_path()), \"_ZN4llvm24DisableABIBreakingChecksE\")\n        false\n    catch\n        true\n    end\n    platform[\"llvm_version\"] = if llvm_assertions\n        \"$(llvm_version.major).asserts\"\n    else\n        \"$(llvm_version.major)\"\n    end\n    return platform\nend\n\naugment_platform!(platform::Platform) = augment_llvm!(platform)\n"""
+init_block = ""
+julia_compat = "1.10"
+lazy_artifacts = true
+name = "Enzyme"
+platforms = ["i686-linux-gnu-cxx11-llvm_version+15", "x86_64-linux-gnu-cxx11-llvm_version+15", "aarch64-linux-gnu-cxx11-llvm_version+15", "armv6l-linux-gnueabihf-cxx11-llvm_version+15", "armv7l-linux-gnueabihf-cxx11-llvm_version+15", "powerpc64le-linux-gnu-cxx11-llvm_version+15", "x86_64-linux-musl-cxx11-llvm_version+15", "aarch64-linux-musl-cxx11-llvm_version+15", "armv6l-linux-musleabihf-cxx11-llvm_version+15", "armv7l-linux-musleabihf-cxx11-llvm_version+15", "x86_64-apple-darwin-llvm_version+15", "aarch64-apple-darwin-llvm_version+15", "x86_64-unknown-freebsd-llvm_version+15", "i686-w64-mingw32-cxx11-llvm_version+15", "x86_64-w64-mingw32-cxx11-llvm_version+15", "i686-linux-gnu-cxx11-llvm_version+15.asserts", "x86_64-linux-gnu-cxx11-llvm_version+15.asserts", "aarch64-linux-gnu-cxx11-llvm_version+15.asserts", "armv6l-linux-gnueabihf-cxx11-llvm_version+15.asserts", "armv7l-linux-gnueabihf-cxx11-llvm_version+15.asserts", "powerpc64le-linux-gnu-cxx11-llvm_version+15.asserts", "x86_64-linux-musl-cxx11-llvm_version+15.asserts", "aarch64-linux-musl-cxx11-llvm_version+15.asserts", "armv6l-linux-musleabihf-cxx11-llvm_version+15.asserts", "armv7l-linux-musleabihf-cxx11-llvm_version+15.asserts", "x86_64-apple-darwin-llvm_version+15.asserts", "aarch64-apple-darwin-llvm_version+15.asserts", "x86_64-unknown-freebsd-llvm_version+15.asserts", "i686-w64-mingw32-cxx11-llvm_version+15.asserts", "x86_64-w64-mingw32-cxx11-llvm_version+15.asserts", "i686-linux-gnu-cxx11-llvm_version+16", "x86_64-linux-gnu-cxx11-llvm_version+16", "aarch64-linux-gnu-cxx11-llvm_version+16", "armv6l-linux-gnueabihf-cxx11-llvm_version+16", "armv7l-linux-gnueabihf-cxx11-llvm_version+16", "powerpc64le-linux-gnu-cxx11-llvm_version+16", "x86_64-linux-musl-cxx11-llvm_version+16", "aarch64-linux-musl-cxx11-llvm_version+16", "armv6l-linux-musleabihf-cxx11-llvm_version+16", "armv7l-linux-musleabihf-cxx11-llvm_version+16", "x86_64-apple-darwin-llvm_version+16", "aarch64-apple-darwin-llvm_version+16", "x86_64-unknown-freebsd-llvm_version+16", "i686-w64-mingw32-cxx11-llvm_version+16", "x86_64-w64-mingw32-cxx11-llvm_version+16", "i686-linux-gnu-cxx11-llvm_version+16.asserts", "x86_64-linux-gnu-cxx11-llvm_version+16.asserts", "aarch64-linux-gnu-cxx11-llvm_version+16.asserts", "armv6l-linux-gnueabihf-cxx11-llvm_version+16.asserts", "armv7l-linux-gnueabihf-cxx11-llvm_version+16.asserts", "powerpc64le-linux-gnu-cxx11-llvm_version+16.asserts", "x86_64-linux-musl-cxx11-llvm_version+16.asserts", "aarch64-linux-musl-cxx11-llvm_version+16.asserts", "armv6l-linux-musleabihf-cxx11-llvm_version+16.asserts", "armv7l-linux-musleabihf-cxx11-llvm_version+16.asserts", "x86_64-apple-darwin-llvm_version+16.asserts", "aarch64-apple-darwin-llvm_version+16.asserts", "x86_64-unknown-freebsd-llvm_version+16.asserts", "i686-w64-mingw32-cxx11-llvm_version+16.asserts", "x86_64-w64-mingw32-cxx11-llvm_version+16.asserts", "i686-linux-gnu-cxx11-llvm_version+18", "x86_64-linux-gnu-cxx11-llvm_version+18", "aarch64-linux-gnu-cxx11-llvm_version+18", "armv6l-linux-gnueabihf-cxx11-llvm_version+18", "armv7l-linux-gnueabihf-cxx11-llvm_version+18", "powerpc64le-linux-gnu-cxx11-llvm_version+18", "x86_64-linux-musl-cxx11-llvm_version+18", "aarch64-linux-musl-cxx11-llvm_version+18", "armv6l-linux-musleabihf-cxx11-llvm_version+18", "armv7l-linux-musleabihf-cxx11-llvm_version+18", "x86_64-apple-darwin-llvm_version+18", "aarch64-apple-darwin-llvm_version+18", "x86_64-unknown-freebsd-llvm_version+18", "i686-w64-mingw32-cxx11-llvm_version+18", "x86_64-w64-mingw32-cxx11-llvm_version+18", "i686-linux-gnu-cxx11-llvm_version+18.asserts", "x86_64-linux-gnu-cxx11-llvm_version+18.asserts", "aarch64-linux-gnu-cxx11-llvm_version+18.asserts", "armv6l-linux-gnueabihf-cxx11-llvm_version+18.asserts", "armv7l-linux-gnueabihf-cxx11-llvm_version+18.asserts", "powerpc64le-linux-gnu-cxx11-llvm_version+18.asserts", "x86_64-linux-musl-cxx11-llvm_version+18.asserts", "aarch64-linux-musl-cxx11-llvm_version+18.asserts", "armv6l-linux-musleabihf-cxx11-llvm_version+18.asserts", "armv7l-linux-musleabihf-cxx11-llvm_version+18.asserts", "x86_64-apple-darwin-llvm_version+18.asserts", "aarch64-apple-darwin-llvm_version+18.asserts", "x86_64-unknown-freebsd-llvm_version+18.asserts", "i686-w64-mingw32-cxx11-llvm_version+18.asserts", "x86_64-w64-mingw32-cxx11-llvm_version+18.asserts", "i686-linux-gnu-cxx11-llvm_version+20", "x86_64-linux-gnu-cxx11-llvm_version+20", "aarch64-linux-gnu-cxx11-llvm_version+20", "armv6l-linux-gnueabihf-cxx11-llvm_version+20", "armv7l-linux-gnueabihf-cxx11-llvm_version+20", "powerpc64le-linux-gnu-cxx11-llvm_version+20", "x86_64-linux-musl-cxx11-llvm_version+20", "aarch64-linux-musl-cxx11-llvm_version+20", "armv6l-linux-musleabihf-cxx11-llvm_version+20", "armv7l-linux-musleabihf-cxx11-llvm_version+20", "x86_64-apple-darwin-llvm_version+20", "aarch64-apple-darwin-llvm_version+20", "x86_64-unknown-freebsd-llvm_version+20", "i686-w64-mingw32-cxx11-llvm_version+20", "x86_64-w64-mingw32-cxx11-llvm_version+20", "i686-linux-gnu-cxx11-llvm_version+20.asserts", "x86_64-linux-gnu-cxx11-llvm_version+20.asserts", "aarch64-linux-gnu-cxx11-llvm_version+20.asserts", "armv6l-linux-gnueabihf-cxx11-llvm_version+20.asserts", "armv7l-linux-gnueabihf-cxx11-llvm_version+20.asserts", "powerpc64le-linux-gnu-cxx11-llvm_version+20.asserts", "x86_64-linux-musl-cxx11-llvm_version+20.asserts", "aarch64-linux-musl-cxx11-llvm_version+20.asserts", "armv6l-linux-musleabihf-cxx11-llvm_version+20.asserts", "armv7l-linux-musleabihf-cxx11-llvm_version+20.asserts", "x86_64-apple-darwin-llvm_version+20.asserts", "aarch64-apple-darwin-llvm_version+20.asserts", "x86_64-unknown-freebsd-llvm_version+20.asserts", "i686-w64-mingw32-cxx11-llvm_version+20.asserts", "x86_64-w64-mingw32-cxx11-llvm_version+20.asserts"]
+script = ["""LLVM_MAJ_VER=15\nmacos_sdk_version=10.14\nmacosx_deployment_target=10.14\n# Move the SDK tarball out of `srcdir` on all platforms: any extra entry\n# in there defeats the automatic installation of license files, which\n# expects `srcdir` to contain a single top-level source directory.\nmv ${WORKSPACE}/srcdir/MacOSX${macos_sdk_version}.sdk.tar.xz ${WORKSPACE}/\nif [[ \"${target}\" == x86_64-apple-darwin* ]]; then\n    # Extract SDK. Also outside of `srcdir`, for the same reason.\n    echo \"Extracting MacOSX${macos_sdk_version}.sdk.tar.xz (this may take a while)\"\n    tar \\\n        --extract \\\n        --file=${WORKSPACE}/MacOSX${macos_sdk_version}.sdk.tar.xz \\\n        --directory=${WORKSPACE} \\\n        --warning=no-unknown-keyword\n    old_sdkroot=${SDKROOT}\n    new_sdkroot=${WORKSPACE}/MacOSX${macos_sdk_version}.sdk\n    # Make sure libc++ header files are available at `usr/include/c++/v1`.\n    # Some SDKs ship their own (e.g. 15.0), which we leave alone; for those\n    # that don't, symlink the ones from the default SDK. Note we symlink\n    # the `v1` subdirectory rather than the whole `c++` directory: some\n    # SDKs (e.g. 10.13) contain `usr/include/c++/4.2.1` (but no `v1`), and\n    # symlinking `c++` onto that existing directory would silently create\n    # a nested `c++/c++` link, so libc++ headers like <new> are not found.\n    if [[ ! -d ${new_sdkroot}/usr/include/c++/v1 ]]; then\n        mkdir -p ${new_sdkroot}/usr/include/c++\n        ln -sT ${old_sdkroot}/usr/include/c++/v1 ${new_sdkroot}/usr/include/c++/v1\n    fi\n    # In the build environment `usr/local` of the default sys-root is a\n    # symlink to the destdir prefix, which puts the header files of the\n    # dependencies on the compilers' default search path. No SDK ships a\n    # `usr/local`, so replicate that symlink in the new SDK. `-T` makes\n    # this fail loudly should some SDK ship a `usr/local` after all,\n    # instead of silently creating a nested `usr/local/local` link.\n    ln -sT ${old_sdkroot}/usr/local ${new_sdkroot}/usr/local\n    # Fix toolchain files\n    sed -i -e \"s+${old_sdkroot}+${new_sdkroot}+\" ${MESON_TARGET_TOOLCHAIN} ${CMAKE_TARGET_TOOLCHAIN}\n    # Fix compiler wrappers\n    sed -i -e \"s+${old_sdkroot}+${new_sdkroot}+\" $(find /opt/bin/${target}* -type f -print)\n    SDKROOT=${new_sdkroot}\n    export MACOSX_DEPLOYMENT_TARGET=${macosx_deployment_target}\nfi\ncd Enzyme\ninstall_license LICENSE\n\n# 1. Build HOST\nNATIVE_CMAKE_FLAGS=()\nNATIVE_CMAKE_FLAGS+=(-DENZYME_CLANG=ON)\nNATIVE_CMAKE_FLAGS+=(-DENZYME_ENABLE_BENCHMARKS=OFF)\nNATIVE_CMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=RelWithDebInfo)\nNATIVE_CMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING:BOOL=OFF)\n# Install things into $host_prefix\nNATIVE_CMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_HOST_TOOLCHAIN})\nNATIVE_CMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${host_prefix})\n# Tell CMake where LLVM is\nNATIVE_CMAKE_FLAGS+=(-DLLVM_DIR=\"${host_prefix}/lib/cmake/llvm\")\nNATIVE_CMAKE_FLAGS+=(-DBC_LOAD_FLAGS=\"-target ${target} --sysroot=/opt/${target}/${target}/sys-root --gcc-toolchain=/opt/${target}\")\nif [[ \"${target}\" == *mingw* ]]; then\n    NATIVE_CMAKE_FLAGS+=(-DCMAKE_CPP_FLAGS=-pthread)\n    NATIVE_CMAKE_FLAGS+=(-DCMAKE_C_FLAGS=-pthread)\nfi\n# Force the specific libzstd and libz to use.\nNATIVE_CMAKE_FLAGS+=(-DZLIB_LIBRARY_RELEASE=\"${host_libdir}/libz.so\")\nif [[ \"${LLVM_MAJ_VER}\" -ge \"20\" ]]; then\n    NATIVE_CMAKE_FLAGS+=(-Dzstd_LIBRARY=\"${host_libdir}/libzstd.so\")\nfi\n\ncmake -B build-native -S enzyme -GNinja \"${NATIVE_CMAKE_FLAGS[@]}\"\n\n# Only build blasheaders and tblgen\nninja -C build-native -j ${nproc} blasheaders enzyme-tblgen\n\n# On aarch64-apple we build the host tools with GCC 12 and we need to set the library path\n# to include the host compilers libstc++ instead of the CSL default.\nif [[ \"${target}\" == aarch64-apple* ]]; then\n    mv build-native/tools/enzyme-tblgen/enzyme-tblgen build-native/tools/enzyme-tblgen/enzyme-tblgen_actual\n    cat > build-native/tools/enzyme-tblgen/enzyme-tblgen << EOF\n#!/bin/bash\nexport LD_LIBRARY_PATH=/opt/x86_64-linux-musl/x86_64-linux-musl/lib64:\\$LD_LIBRARY_PATH\n`pwd`/build-native/tools/enzyme-tblgen/enzyme-tblgen_actual \"\\$@\"\nEOF\n    chmod +x build-native/tools/enzyme-tblgen/enzyme-tblgen\nfi\n\n# Check that we can execute enzyme-tblgen\nbuild-native/tools/enzyme-tblgen/enzyme-tblgen --version\n\n# 2. Cross-compile\nCMAKE_FLAGS=()\nCMAKE_FLAGS+=(-DENZYME_EXTERNAL_SHARED_LIB=ON)\nCMAKE_FLAGS+=(-DBC_LOAD_HEADER=`pwd`/build-native/BCLoad/gsl/blas_headers.h)\nCMAKE_FLAGS+=(-DEnzyme_TABLEGEN=`pwd`/build-native/tools/enzyme-tblgen/enzyme-tblgen)\nCMAKE_FLAGS+=(-DEnzyme_TABLEGEN_EXE=`pwd`/build-native/tools/enzyme-tblgen/enzyme-tblgen)\nCMAKE_FLAGS+=(-DENZYME_CLANG=OFF)\nCMAKE_FLAGS+=(-DENZYME_ENABLE_BENCHMARKS=OFF)\n\n# RelWithDebInfo for decent performance, with debugability\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=RelWithDebInfo)\n# Install things into $prefix\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix})\n# Explicitly use our cmake toolchain file and tell CMake we're cross-compiling\nif [[ \"${target}\" == *mingw* && \"${LLVM_MAJ_VER}\" -ge \"16\" ]]; then\n    CMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN%.*}_clang.cmake)\nelse\n    CMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\nfi\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING:BOOL=ON)\n# Tell CMake where LLVM is\nCMAKE_FLAGS+=(-DLLVM_DIR=\"${prefix}/lib/cmake/llvm\")\n# Force linking against shared lib\nCMAKE_FLAGS+=(-DLLVM_LINK_LLVM_DYLIB=ON)\n# Build the library\nCMAKE_FLAGS+=(-DBUILD_SHARED_LIBS=ON)\n\nif [[ \"${bb_full_target}\" == x86_64-apple-darwin* && \"${LLVM_MAJ_VER}\" -ge \"15\" ]]; then\n    if [[ \"${target}\" == x86_64-apple* ]]; then\n        CMAKE_FLAGS+=(-DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=10.14)\n        CMAKE_FLAGS+=(-DCMAKE_EXE_LINKER_FLAGS=\"-L${libdir}\")\n        CMAKE_FLAGS+=(-DCMAKE_SHARED_LINKER_FLAGS=\"-L${libdir}\")\n        CMAKE_FLAGS+=(-DCMAKE_MODULE_LINKER_FLAGS=\"-L${libdir}\")\n    fi\nelse\n    if [[ \"${target}\" == x86_64-apple* ]]; then\n        CMAKE_FLAGS+=(-DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=10.12)\n    fi\nfi\n\nif [[ \"${target}\" == *mingw* ]]; then\n    CMAKE_FLAGS+=(-DCMAKE_CPP_FLAGS=-pthread)\n    CMAKE_FLAGS+=(-DCMAKE_C_FLAGS=-pthread)\n    CMAKE_FLAGS+=(-DCMAKE_SHARED_LINKER_FLAGS=-pthread)\n    CMAKE_FLAGS+=(-DCMAKE_EXE_LINKER_FLAGS=-pthread)\nfi\n\necho ${CMAKE_FLAGS[@]}\ncmake -B build -S enzyme -GNinja ${CMAKE_FLAGS[@]}\n\nninja -C build -j ${nproc} install\n""", """LLVM_MAJ_VER=16\nmacos_sdk_version=10.14\nmacosx_deployment_target=10.14\n# Move the SDK tarball out of `srcdir` on all platforms: any extra entry\n# in there defeats the automatic installation of license files, which\n# expects `srcdir` to contain a single top-level source directory.\nmv ${WORKSPACE}/srcdir/MacOSX${macos_sdk_version}.sdk.tar.xz ${WORKSPACE}/\nif [[ \"${target}\" == x86_64-apple-darwin* ]]; then\n    # Extract SDK. Also outside of `srcdir`, for the same reason.\n    echo \"Extracting MacOSX${macos_sdk_version}.sdk.tar.xz (this may take a while)\"\n    tar \\\n        --extract \\\n        --file=${WORKSPACE}/MacOSX${macos_sdk_version}.sdk.tar.xz \\\n        --directory=${WORKSPACE} \\\n        --warning=no-unknown-keyword\n    old_sdkroot=${SDKROOT}\n    new_sdkroot=${WORKSPACE}/MacOSX${macos_sdk_version}.sdk\n    # Make sure libc++ header files are available at `usr/include/c++/v1`.\n    # Some SDKs ship their own (e.g. 15.0), which we leave alone; for those\n    # that don't, symlink the ones from the default SDK. Note we symlink\n    # the `v1` subdirectory rather than the whole `c++` directory: some\n    # SDKs (e.g. 10.13) contain `usr/include/c++/4.2.1` (but no `v1`), and\n    # symlinking `c++` onto that existing directory would silently create\n    # a nested `c++/c++` link, so libc++ headers like <new> are not found.\n    if [[ ! -d ${new_sdkroot}/usr/include/c++/v1 ]]; then\n        mkdir -p ${new_sdkroot}/usr/include/c++\n        ln -sT ${old_sdkroot}/usr/include/c++/v1 ${new_sdkroot}/usr/include/c++/v1\n    fi\n    # In the build environment `usr/local` of the default sys-root is a\n    # symlink to the destdir prefix, which puts the header files of the\n    # dependencies on the compilers' default search path. No SDK ships a\n    # `usr/local`, so replicate that symlink in the new SDK. `-T` makes\n    # this fail loudly should some SDK ship a `usr/local` after all,\n    # instead of silently creating a nested `usr/local/local` link.\n    ln -sT ${old_sdkroot}/usr/local ${new_sdkroot}/usr/local\n    # Fix toolchain files\n    sed -i -e \"s+${old_sdkroot}+${new_sdkroot}+\" ${MESON_TARGET_TOOLCHAIN} ${CMAKE_TARGET_TOOLCHAIN}\n    # Fix compiler wrappers\n    sed -i -e \"s+${old_sdkroot}+${new_sdkroot}+\" $(find /opt/bin/${target}* -type f -print)\n    SDKROOT=${new_sdkroot}\n    export MACOSX_DEPLOYMENT_TARGET=${macosx_deployment_target}\nfi\ncd Enzyme\ninstall_license LICENSE\n\n# 1. Build HOST\nNATIVE_CMAKE_FLAGS=()\nNATIVE_CMAKE_FLAGS+=(-DENZYME_CLANG=ON)\nNATIVE_CMAKE_FLAGS+=(-DENZYME_ENABLE_BENCHMARKS=OFF)\nNATIVE_CMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=RelWithDebInfo)\nNATIVE_CMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING:BOOL=OFF)\n# Install things into $host_prefix\nNATIVE_CMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_HOST_TOOLCHAIN})\nNATIVE_CMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${host_prefix})\n# Tell CMake where LLVM is\nNATIVE_CMAKE_FLAGS+=(-DLLVM_DIR=\"${host_prefix}/lib/cmake/llvm\")\nNATIVE_CMAKE_FLAGS+=(-DBC_LOAD_FLAGS=\"-target ${target} --sysroot=/opt/${target}/${target}/sys-root --gcc-toolchain=/opt/${target}\")\nif [[ \"${target}\" == *mingw* ]]; then\n    NATIVE_CMAKE_FLAGS+=(-DCMAKE_CPP_FLAGS=-pthread)\n    NATIVE_CMAKE_FLAGS+=(-DCMAKE_C_FLAGS=-pthread)\nfi\n# Force the specific libzstd and libz to use.\nNATIVE_CMAKE_FLAGS+=(-DZLIB_LIBRARY_RELEASE=\"${host_libdir}/libz.so\")\nif [[ \"${LLVM_MAJ_VER}\" -ge \"20\" ]]; then\n    NATIVE_CMAKE_FLAGS+=(-Dzstd_LIBRARY=\"${host_libdir}/libzstd.so\")\nfi\n\ncmake -B build-native -S enzyme -GNinja \"${NATIVE_CMAKE_FLAGS[@]}\"\n\n# Only build blasheaders and tblgen\nninja -C build-native -j ${nproc} blasheaders enzyme-tblgen\n\n# On aarch64-apple we build the host tools with GCC 12 and we need to set the library path\n# to include the host compilers libstc++ instead of the CSL default.\nif [[ \"${target}\" == aarch64-apple* ]]; then\n    mv build-native/tools/enzyme-tblgen/enzyme-tblgen build-native/tools/enzyme-tblgen/enzyme-tblgen_actual\n    cat > build-native/tools/enzyme-tblgen/enzyme-tblgen << EOF\n#!/bin/bash\nexport LD_LIBRARY_PATH=/opt/x86_64-linux-musl/x86_64-linux-musl/lib64:\\$LD_LIBRARY_PATH\n`pwd`/build-native/tools/enzyme-tblgen/enzyme-tblgen_actual \"\\$@\"\nEOF\n    chmod +x build-native/tools/enzyme-tblgen/enzyme-tblgen\nfi\n\n# Check that we can execute enzyme-tblgen\nbuild-native/tools/enzyme-tblgen/enzyme-tblgen --version\n\n# 2. Cross-compile\nCMAKE_FLAGS=()\nCMAKE_FLAGS+=(-DENZYME_EXTERNAL_SHARED_LIB=ON)\nCMAKE_FLAGS+=(-DBC_LOAD_HEADER=`pwd`/build-native/BCLoad/gsl/blas_headers.h)\nCMAKE_FLAGS+=(-DEnzyme_TABLEGEN=`pwd`/build-native/tools/enzyme-tblgen/enzyme-tblgen)\nCMAKE_FLAGS+=(-DEnzyme_TABLEGEN_EXE=`pwd`/build-native/tools/enzyme-tblgen/enzyme-tblgen)\nCMAKE_FLAGS+=(-DENZYME_CLANG=OFF)\nCMAKE_FLAGS+=(-DENZYME_ENABLE_BENCHMARKS=OFF)\n\n# RelWithDebInfo for decent performance, with debugability\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=RelWithDebInfo)\n# Install things into $prefix\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix})\n# Explicitly use our cmake toolchain file and tell CMake we're cross-compiling\nif [[ \"${target}\" == *mingw* && \"${LLVM_MAJ_VER}\" -ge \"16\" ]]; then\n    CMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN%.*}_clang.cmake)\nelse\n    CMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\nfi\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING:BOOL=ON)\n# Tell CMake where LLVM is\nCMAKE_FLAGS+=(-DLLVM_DIR=\"${prefix}/lib/cmake/llvm\")\n# Force linking against shared lib\nCMAKE_FLAGS+=(-DLLVM_LINK_LLVM_DYLIB=ON)\n# Build the library\nCMAKE_FLAGS+=(-DBUILD_SHARED_LIBS=ON)\n\nif [[ \"${bb_full_target}\" == x86_64-apple-darwin* && \"${LLVM_MAJ_VER}\" -ge \"15\" ]]; then\n    if [[ \"${target}\" == x86_64-apple* ]]; then\n        CMAKE_FLAGS+=(-DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=10.14)\n        CMAKE_FLAGS+=(-DCMAKE_EXE_LINKER_FLAGS=\"-L${libdir}\")\n        CMAKE_FLAGS+=(-DCMAKE_SHARED_LINKER_FLAGS=\"-L${libdir}\")\n        CMAKE_FLAGS+=(-DCMAKE_MODULE_LINKER_FLAGS=\"-L${libdir}\")\n    fi\nelse\n    if [[ \"${target}\" == x86_64-apple* ]]; then\n        CMAKE_FLAGS+=(-DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=10.12)\n    fi\nfi\n\nif [[ \"${target}\" == *mingw* ]]; then\n    CMAKE_FLAGS+=(-DCMAKE_CPP_FLAGS=-pthread)\n    CMAKE_FLAGS+=(-DCMAKE_C_FLAGS=-pthread)\n    CMAKE_FLAGS+=(-DCMAKE_SHARED_LINKER_FLAGS=-pthread)\n    CMAKE_FLAGS+=(-DCMAKE_EXE_LINKER_FLAGS=-pthread)\nfi\n\necho ${CMAKE_FLAGS[@]}\ncmake -B build -S enzyme -GNinja ${CMAKE_FLAGS[@]}\n\nninja -C build -j ${nproc} install\n""", """LLVM_MAJ_VER=18\nmacos_sdk_version=10.14\nmacosx_deployment_target=10.14\n# Move the SDK tarball out of `srcdir` on all platforms: any extra entry\n# in there defeats the automatic installation of license files, which\n# expects `srcdir` to contain a single top-level source directory.\nmv ${WORKSPACE}/srcdir/MacOSX${macos_sdk_version}.sdk.tar.xz ${WORKSPACE}/\nif [[ \"${target}\" == x86_64-apple-darwin* ]]; then\n    # Extract SDK. Also outside of `srcdir`, for the same reason.\n    echo \"Extracting MacOSX${macos_sdk_version}.sdk.tar.xz (this may take a while)\"\n    tar \\\n        --extract \\\n        --file=${WORKSPACE}/MacOSX${macos_sdk_version}.sdk.tar.xz \\\n        --directory=${WORKSPACE} \\\n        --warning=no-unknown-keyword\n    old_sdkroot=${SDKROOT}\n    new_sdkroot=${WORKSPACE}/MacOSX${macos_sdk_version}.sdk\n    # Make sure libc++ header files are available at `usr/include/c++/v1`.\n    # Some SDKs ship their own (e.g. 15.0), which we leave alone; for those\n    # that don't, symlink the ones from the default SDK. Note we symlink\n    # the `v1` subdirectory rather than the whole `c++` directory: some\n    # SDKs (e.g. 10.13) contain `usr/include/c++/4.2.1` (but no `v1`), and\n    # symlinking `c++` onto that existing directory would silently create\n    # a nested `c++/c++` link, so libc++ headers like <new> are not found.\n    if [[ ! -d ${new_sdkroot}/usr/include/c++/v1 ]]; then\n        mkdir -p ${new_sdkroot}/usr/include/c++\n        ln -sT ${old_sdkroot}/usr/include/c++/v1 ${new_sdkroot}/usr/include/c++/v1\n    fi\n    # In the build environment `usr/local` of the default sys-root is a\n    # symlink to the destdir prefix, which puts the header files of the\n    # dependencies on the compilers' default search path. No SDK ships a\n    # `usr/local`, so replicate that symlink in the new SDK. `-T` makes\n    # this fail loudly should some SDK ship a `usr/local` after all,\n    # instead of silently creating a nested `usr/local/local` link.\n    ln -sT ${old_sdkroot}/usr/local ${new_sdkroot}/usr/local\n    # Fix toolchain files\n    sed -i -e \"s+${old_sdkroot}+${new_sdkroot}+\" ${MESON_TARGET_TOOLCHAIN} ${CMAKE_TARGET_TOOLCHAIN}\n    # Fix compiler wrappers\n    sed -i -e \"s+${old_sdkroot}+${new_sdkroot}+\" $(find /opt/bin/${target}* -type f -print)\n    SDKROOT=${new_sdkroot}\n    export MACOSX_DEPLOYMENT_TARGET=${macosx_deployment_target}\nfi\ncd Enzyme\ninstall_license LICENSE\n\n# 1. Build HOST\nNATIVE_CMAKE_FLAGS=()\nNATIVE_CMAKE_FLAGS+=(-DENZYME_CLANG=ON)\nNATIVE_CMAKE_FLAGS+=(-DENZYME_ENABLE_BENCHMARKS=OFF)\nNATIVE_CMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=RelWithDebInfo)\nNATIVE_CMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING:BOOL=OFF)\n# Install things into $host_prefix\nNATIVE_CMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_HOST_TOOLCHAIN})\nNATIVE_CMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${host_prefix})\n# Tell CMake where LLVM is\nNATIVE_CMAKE_FLAGS+=(-DLLVM_DIR=\"${host_prefix}/lib/cmake/llvm\")\nNATIVE_CMAKE_FLAGS+=(-DBC_LOAD_FLAGS=\"-target ${target} --sysroot=/opt/${target}/${target}/sys-root --gcc-toolchain=/opt/${target}\")\nif [[ \"${target}\" == *mingw* ]]; then\n    NATIVE_CMAKE_FLAGS+=(-DCMAKE_CPP_FLAGS=-pthread)\n    NATIVE_CMAKE_FLAGS+=(-DCMAKE_C_FLAGS=-pthread)\nfi\n# Force the specific libzstd and libz to use.\nNATIVE_CMAKE_FLAGS+=(-DZLIB_LIBRARY_RELEASE=\"${host_libdir}/libz.so\")\nif [[ \"${LLVM_MAJ_VER}\" -ge \"20\" ]]; then\n    NATIVE_CMAKE_FLAGS+=(-Dzstd_LIBRARY=\"${host_libdir}/libzstd.so\")\nfi\n\ncmake -B build-native -S enzyme -GNinja \"${NATIVE_CMAKE_FLAGS[@]}\"\n\n# Only build blasheaders and tblgen\nninja -C build-native -j ${nproc} blasheaders enzyme-tblgen\n\n# On aarch64-apple we build the host tools with GCC 12 and we need to set the library path\n# to include the host compilers libstc++ instead of the CSL default.\nif [[ \"${target}\" == aarch64-apple* ]]; then\n    mv build-native/tools/enzyme-tblgen/enzyme-tblgen build-native/tools/enzyme-tblgen/enzyme-tblgen_actual\n    cat > build-native/tools/enzyme-tblgen/enzyme-tblgen << EOF\n#!/bin/bash\nexport LD_LIBRARY_PATH=/opt/x86_64-linux-musl/x86_64-linux-musl/lib64:\\$LD_LIBRARY_PATH\n`pwd`/build-native/tools/enzyme-tblgen/enzyme-tblgen_actual \"\\$@\"\nEOF\n    chmod +x build-native/tools/enzyme-tblgen/enzyme-tblgen\nfi\n\n# Check that we can execute enzyme-tblgen\nbuild-native/tools/enzyme-tblgen/enzyme-tblgen --version\n\n# 2. Cross-compile\nCMAKE_FLAGS=()\nCMAKE_FLAGS+=(-DENZYME_EXTERNAL_SHARED_LIB=ON)\nCMAKE_FLAGS+=(-DBC_LOAD_HEADER=`pwd`/build-native/BCLoad/gsl/blas_headers.h)\nCMAKE_FLAGS+=(-DEnzyme_TABLEGEN=`pwd`/build-native/tools/enzyme-tblgen/enzyme-tblgen)\nCMAKE_FLAGS+=(-DEnzyme_TABLEGEN_EXE=`pwd`/build-native/tools/enzyme-tblgen/enzyme-tblgen)\nCMAKE_FLAGS+=(-DENZYME_CLANG=OFF)\nCMAKE_FLAGS+=(-DENZYME_ENABLE_BENCHMARKS=OFF)\n\n# RelWithDebInfo for decent performance, with debugability\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=RelWithDebInfo)\n# Install things into $prefix\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix})\n# Explicitly use our cmake toolchain file and tell CMake we're cross-compiling\nif [[ \"${target}\" == *mingw* && \"${LLVM_MAJ_VER}\" -ge \"16\" ]]; then\n    CMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN%.*}_clang.cmake)\nelse\n    CMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\nfi\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING:BOOL=ON)\n# Tell CMake where LLVM is\nCMAKE_FLAGS+=(-DLLVM_DIR=\"${prefix}/lib/cmake/llvm\")\n# Force linking against shared lib\nCMAKE_FLAGS+=(-DLLVM_LINK_LLVM_DYLIB=ON)\n# Build the library\nCMAKE_FLAGS+=(-DBUILD_SHARED_LIBS=ON)\n\nif [[ \"${bb_full_target}\" == x86_64-apple-darwin* && \"${LLVM_MAJ_VER}\" -ge \"15\" ]]; then\n    if [[ \"${target}\" == x86_64-apple* ]]; then\n        CMAKE_FLAGS+=(-DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=10.14)\n        CMAKE_FLAGS+=(-DCMAKE_EXE_LINKER_FLAGS=\"-L${libdir}\")\n        CMAKE_FLAGS+=(-DCMAKE_SHARED_LINKER_FLAGS=\"-L${libdir}\")\n        CMAKE_FLAGS+=(-DCMAKE_MODULE_LINKER_FLAGS=\"-L${libdir}\")\n    fi\nelse\n    if [[ \"${target}\" == x86_64-apple* ]]; then\n        CMAKE_FLAGS+=(-DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=10.12)\n    fi\nfi\n\nif [[ \"${target}\" == *mingw* ]]; then\n    CMAKE_FLAGS+=(-DCMAKE_CPP_FLAGS=-pthread)\n    CMAKE_FLAGS+=(-DCMAKE_C_FLAGS=-pthread)\n    CMAKE_FLAGS+=(-DCMAKE_SHARED_LINKER_FLAGS=-pthread)\n    CMAKE_FLAGS+=(-DCMAKE_EXE_LINKER_FLAGS=-pthread)\nfi\n\necho ${CMAKE_FLAGS[@]}\ncmake -B build -S enzyme -GNinja ${CMAKE_FLAGS[@]}\n\nninja -C build -j ${nproc} install\n""", """LLVM_MAJ_VER=20\nmacos_sdk_version=10.14\nmacosx_deployment_target=10.14\n# Move the SDK tarball out of `srcdir` on all platforms: any extra entry\n# in there defeats the automatic installation of license files, which\n# expects `srcdir` to contain a single top-level source directory.\nmv ${WORKSPACE}/srcdir/MacOSX${macos_sdk_version}.sdk.tar.xz ${WORKSPACE}/\nif [[ \"${target}\" == x86_64-apple-darwin* ]]; then\n    # Extract SDK. Also outside of `srcdir`, for the same reason.\n    echo \"Extracting MacOSX${macos_sdk_version}.sdk.tar.xz (this may take a while)\"\n    tar \\\n        --extract \\\n        --file=${WORKSPACE}/MacOSX${macos_sdk_version}.sdk.tar.xz \\\n        --directory=${WORKSPACE} \\\n        --warning=no-unknown-keyword\n    old_sdkroot=${SDKROOT}\n    new_sdkroot=${WORKSPACE}/MacOSX${macos_sdk_version}.sdk\n    # Make sure libc++ header files are available at `usr/include/c++/v1`.\n    # Some SDKs ship their own (e.g. 15.0), which we leave alone; for those\n    # that don't, symlink the ones from the default SDK. Note we symlink\n    # the `v1` subdirectory rather than the whole `c++` directory: some\n    # SDKs (e.g. 10.13) contain `usr/include/c++/4.2.1` (but no `v1`), and\n    # symlinking `c++` onto that existing directory would silently create\n    # a nested `c++/c++` link, so libc++ headers like <new> are not found.\n    if [[ ! -d ${new_sdkroot}/usr/include/c++/v1 ]]; then\n        mkdir -p ${new_sdkroot}/usr/include/c++\n        ln -sT ${old_sdkroot}/usr/include/c++/v1 ${new_sdkroot}/usr/include/c++/v1\n    fi\n    # In the build environment `usr/local` of the default sys-root is a\n    # symlink to the destdir prefix, which puts the header files of the\n    # dependencies on the compilers' default search path. No SDK ships a\n    # `usr/local`, so replicate that symlink in the new SDK. `-T` makes\n    # this fail loudly should some SDK ship a `usr/local` after all,\n    # instead of silently creating a nested `usr/local/local` link.\n    ln -sT ${old_sdkroot}/usr/local ${new_sdkroot}/usr/local\n    # Fix toolchain files\n    sed -i -e \"s+${old_sdkroot}+${new_sdkroot}+\" ${MESON_TARGET_TOOLCHAIN} ${CMAKE_TARGET_TOOLCHAIN}\n    # Fix compiler wrappers\n    sed -i -e \"s+${old_sdkroot}+${new_sdkroot}+\" $(find /opt/bin/${target}* -type f -print)\n    SDKROOT=${new_sdkroot}\n    export MACOSX_DEPLOYMENT_TARGET=${macosx_deployment_target}\nfi\ncd Enzyme\ninstall_license LICENSE\n\n# 1. Build HOST\nNATIVE_CMAKE_FLAGS=()\nNATIVE_CMAKE_FLAGS+=(-DENZYME_CLANG=ON)\nNATIVE_CMAKE_FLAGS+=(-DENZYME_ENABLE_BENCHMARKS=OFF)\nNATIVE_CMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=RelWithDebInfo)\nNATIVE_CMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING:BOOL=OFF)\n# Install things into $host_prefix\nNATIVE_CMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_HOST_TOOLCHAIN})\nNATIVE_CMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${host_prefix})\n# Tell CMake where LLVM is\nNATIVE_CMAKE_FLAGS+=(-DLLVM_DIR=\"${host_prefix}/lib/cmake/llvm\")\nNATIVE_CMAKE_FLAGS+=(-DBC_LOAD_FLAGS=\"-target ${target} --sysroot=/opt/${target}/${target}/sys-root --gcc-toolchain=/opt/${target}\")\nif [[ \"${target}\" == *mingw* ]]; then\n    NATIVE_CMAKE_FLAGS+=(-DCMAKE_CPP_FLAGS=-pthread)\n    NATIVE_CMAKE_FLAGS+=(-DCMAKE_C_FLAGS=-pthread)\nfi\n# Force the specific libzstd and libz to use.\nNATIVE_CMAKE_FLAGS+=(-DZLIB_LIBRARY_RELEASE=\"${host_libdir}/libz.so\")\nif [[ \"${LLVM_MAJ_VER}\" -ge \"20\" ]]; then\n    NATIVE_CMAKE_FLAGS+=(-Dzstd_LIBRARY=\"${host_libdir}/libzstd.so\")\nfi\n\ncmake -B build-native -S enzyme -GNinja \"${NATIVE_CMAKE_FLAGS[@]}\"\n\n# Only build blasheaders and tblgen\nninja -C build-native -j ${nproc} blasheaders enzyme-tblgen\n\n# On aarch64-apple we build the host tools with GCC 12 and we need to set the library path\n# to include the host compilers libstc++ instead of the CSL default.\nif [[ \"${target}\" == aarch64-apple* ]]; then\n    mv build-native/tools/enzyme-tblgen/enzyme-tblgen build-native/tools/enzyme-tblgen/enzyme-tblgen_actual\n    cat > build-native/tools/enzyme-tblgen/enzyme-tblgen << EOF\n#!/bin/bash\nexport LD_LIBRARY_PATH=/opt/x86_64-linux-musl/x86_64-linux-musl/lib64:\\$LD_LIBRARY_PATH\n`pwd`/build-native/tools/enzyme-tblgen/enzyme-tblgen_actual \"\\$@\"\nEOF\n    chmod +x build-native/tools/enzyme-tblgen/enzyme-tblgen\nfi\n\n# Check that we can execute enzyme-tblgen\nbuild-native/tools/enzyme-tblgen/enzyme-tblgen --version\n\n# 2. Cross-compile\nCMAKE_FLAGS=()\nCMAKE_FLAGS+=(-DENZYME_EXTERNAL_SHARED_LIB=ON)\nCMAKE_FLAGS+=(-DBC_LOAD_HEADER=`pwd`/build-native/BCLoad/gsl/blas_headers.h)\nCMAKE_FLAGS+=(-DEnzyme_TABLEGEN=`pwd`/build-native/tools/enzyme-tblgen/enzyme-tblgen)\nCMAKE_FLAGS+=(-DEnzyme_TABLEGEN_EXE=`pwd`/build-native/tools/enzyme-tblgen/enzyme-tblgen)\nCMAKE_FLAGS+=(-DENZYME_CLANG=OFF)\nCMAKE_FLAGS+=(-DENZYME_ENABLE_BENCHMARKS=OFF)\n\n# RelWithDebInfo for decent performance, with debugability\nCMAKE_FLAGS+=(-DCMAKE_BUILD_TYPE=RelWithDebInfo)\n# Install things into $prefix\nCMAKE_FLAGS+=(-DCMAKE_INSTALL_PREFIX=${prefix})\n# Explicitly use our cmake toolchain file and tell CMake we're cross-compiling\nif [[ \"${target}\" == *mingw* && \"${LLVM_MAJ_VER}\" -ge \"16\" ]]; then\n    CMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN%.*}_clang.cmake)\nelse\n    CMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN})\nfi\nCMAKE_FLAGS+=(-DCMAKE_CROSSCOMPILING:BOOL=ON)\n# Tell CMake where LLVM is\nCMAKE_FLAGS+=(-DLLVM_DIR=\"${prefix}/lib/cmake/llvm\")\n# Force linking against shared lib\nCMAKE_FLAGS+=(-DLLVM_LINK_LLVM_DYLIB=ON)\n# Build the library\nCMAKE_FLAGS+=(-DBUILD_SHARED_LIBS=ON)\n\nif [[ \"${bb_full_target}\" == x86_64-apple-darwin* && \"${LLVM_MAJ_VER}\" -ge \"15\" ]]; then\n    if [[ \"${target}\" == x86_64-apple* ]]; then\n        CMAKE_FLAGS+=(-DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=10.14)\n        CMAKE_FLAGS+=(-DCMAKE_EXE_LINKER_FLAGS=\"-L${libdir}\")\n        CMAKE_FLAGS+=(-DCMAKE_SHARED_LINKER_FLAGS=\"-L${libdir}\")\n        CMAKE_FLAGS+=(-DCMAKE_MODULE_LINKER_FLAGS=\"-L${libdir}\")\n    fi\nelse\n    if [[ \"${target}\" == x86_64-apple* ]]; then\n        CMAKE_FLAGS+=(-DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=10.12)\n    fi\nfi\n\nif [[ \"${target}\" == *mingw* ]]; then\n    CMAKE_FLAGS+=(-DCMAKE_CPP_FLAGS=-pthread)\n    CMAKE_FLAGS+=(-DCMAKE_C_FLAGS=-pthread)\n    CMAKE_FLAGS+=(-DCMAKE_SHARED_LINKER_FLAGS=-pthread)\n    CMAKE_FLAGS+=(-DCMAKE_EXE_LINKER_FLAGS=-pthread)\nfi\n\necho ${CMAKE_FLAGS[@]}\ncmake -B build -S enzyme -GNinja ${CMAKE_FLAGS[@]}\n\nninja -C build -j ${nproc} install\n"""]
+toplevel_block = ""
+version = "v0.0.292"
+
+[[dependencies]]
+compat = ""
+name = "LLVM_full_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 15
+version-minor = 0
+version-patch = 7
+[[dependencies]]
+compat = ""
+name = "LLVM_full_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 15
+version-minor = 0
+version-patch = 7
+[[dependencies]]
+compat = ""
+name = "LLVM_full_assert_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 15
+version-minor = 0
+version-patch = 7
+[[dependencies]]
+compat = ""
+name = "LLVM_full_assert_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 15
+version-minor = 0
+version-patch = 7
+[[dependencies]]
+compat = ""
+name = "LLVM_full_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 16
+version-minor = 0
+version-patch = 6
+[[dependencies]]
+compat = ""
+name = "LLVM_full_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 16
+version-minor = 0
+version-patch = 6
+[[dependencies]]
+compat = ""
+name = "LLVM_full_assert_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 16
+version-minor = 0
+version-patch = 6
+[[dependencies]]
+compat = ""
+name = "LLVM_full_assert_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 16
+version-minor = 0
+version-patch = 6
+[[dependencies]]
+compat = ""
+name = "LLVM_full_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 18
+version-minor = 1
+version-patch = 7
+[[dependencies]]
+compat = ""
+name = "LLVM_full_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 18
+version-minor = 1
+version-patch = 7
+[[dependencies]]
+compat = ""
+name = "LLVM_full_assert_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 18
+version-minor = 1
+version-patch = 7
+[[dependencies]]
+compat = ""
+name = "LLVM_full_assert_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 18
+version-minor = 1
+version-patch = 7
+[[dependencies]]
+compat = ""
+name = "LLVM_full_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 20
+version-minor = 1
+version-patch = 8
+[[dependencies]]
+compat = ""
+name = "LLVM_full_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 20
+version-minor = 1
+version-patch = 8
+[[dependencies]]
+compat = ""
+name = "Zstd_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "Zstd_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "LLVM_full_assert_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 20
+version-minor = 1
+version-patch = 8
+[[dependencies]]
+compat = ""
+name = "LLVM_full_assert_jll"
+platforms = ["any"]
+top_level = false
+type = "builddependency"
+version-major = 20
+version-minor = 1
+version-patch = 8
+
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libEnzyme-15", "libEnzyme"]
+type = "lib"
+variable_name = "libEnzyme"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libEnzymeBCLoad-15", "libEnzymeBCLoad"]
+type = "lib"
+variable_name = "libEnzymeBCLoad"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libEnzyme-16", "libEnzyme"]
+type = "lib"
+variable_name = "libEnzyme"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libEnzymeBCLoad-16", "libEnzymeBCLoad"]
+type = "lib"
+variable_name = "libEnzymeBCLoad"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libEnzyme-18", "libEnzyme"]
+type = "lib"
+variable_name = "libEnzyme"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libEnzymeBCLoad-18", "libEnzymeBCLoad"]
+type = "lib"
+variable_name = "libEnzymeBCLoad"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libEnzyme-20", "libEnzyme"]
+type = "lib"
+variable_name = "libEnzyme"
+[[products]]
+dir_paths = []
+dlopen_flags = []
+dont_dlopen = true
+libnames = ["libEnzymeBCLoad-20", "libEnzymeBCLoad"]
+type = "lib"
+variable_name = "libEnzymeBCLoad"
+
+[[sources]]
+hash = "272285f96c3f3cc191ccb70a4007d93c2678224a"
+type = "git"
+unpack_target = ""
+url = "https://github.com/EnzymeAD/Enzyme.git"
+[[sources]]
+filename = "MacOSX10.14.sdk.tar.xz"
+hash = "0f03869f72df8705b832910517b47dd5b79eb4e160512602f593ed243b28715f"
+type = "file"
+url = "https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.14.sdk.tar.xz"
