@@ -1,0 +1,93 @@
+augment_platform_block = ""
+init_block = ""
+julia_compat = "1.10"
+lazy_artifacts = false
+name = "vst3sdk"
+platforms = ["i686-linux-gnu-cxx11", "x86_64-linux-gnu-cxx11", "aarch64-linux-gnu-cxx11", "armv6l-linux-gnueabihf-cxx11", "armv7l-linux-gnueabihf-cxx11", "powerpc64le-linux-gnu-cxx11", "riscv64-linux-gnu-cxx11", "i686-linux-musl-cxx11", "x86_64-linux-musl-cxx11", "aarch64-linux-musl-cxx11", "armv6l-linux-musleabihf-cxx11", "armv7l-linux-musleabihf-cxx11", "x86_64-apple-darwin", "aarch64-apple-darwin", "i686-w64-mingw32-cxx11", "x86_64-w64-mingw32-cxx11"]
+script = """macos_sdk_version=11.3\nmacosx_deployment_target=10.15\n# Move the SDK tarball out of `srcdir` on all platforms: any extra entry\n# in there defeats the automatic installation of license files, which\n# expects `srcdir` to contain a single top-level source directory.\nmv ${WORKSPACE}/srcdir/MacOSX${macos_sdk_version}.sdk.tar.xz ${WORKSPACE}/\nif [[ \"${target}\" == *-apple-darwin* ]]; then\n    # Extract SDK. Also outside of `srcdir`, for the same reason.\n    echo \"Extracting MacOSX${macos_sdk_version}.sdk.tar.xz (this may take a while)\"\n    tar \\\n        --extract \\\n        --file=${WORKSPACE}/MacOSX${macos_sdk_version}.sdk.tar.xz \\\n        --directory=${WORKSPACE} \\\n        --warning=no-unknown-keyword\n    old_sdkroot=${SDKROOT}\n    new_sdkroot=${WORKSPACE}/MacOSX${macos_sdk_version}.sdk\n    # Make sure libc++ header files are available at `usr/include/c++/v1`.\n    # Some SDKs ship their own (e.g. 15.0), which we leave alone; for those\n    # that don't, symlink the ones from the default SDK. Note we symlink\n    # the `v1` subdirectory rather than the whole `c++` directory: some\n    # SDKs (e.g. 10.13) contain `usr/include/c++/4.2.1` (but no `v1`), and\n    # symlinking `c++` onto that existing directory would silently create\n    # a nested `c++/c++` link, so libc++ headers like <new> are not found.\n    if [[ ! -d ${new_sdkroot}/usr/include/c++/v1 ]]; then\n        mkdir -p ${new_sdkroot}/usr/include/c++\n        ln -sT ${old_sdkroot}/usr/include/c++/v1 ${new_sdkroot}/usr/include/c++/v1\n    fi\n    # In the build environment `usr/local` of the default sys-root is a\n    # symlink to the destdir prefix, which puts the header files of the\n    # dependencies on the compilers' default search path. No SDK ships a\n    # `usr/local`, so replicate that symlink in the new SDK. `-T` makes\n    # this fail loudly should some SDK ship a `usr/local` after all,\n    # instead of silently creating a nested `usr/local/local` link.\n    ln -sT ${old_sdkroot}/usr/local ${new_sdkroot}/usr/local\n    # Fix toolchain files\n    sed -i -e \"s+${old_sdkroot}+${new_sdkroot}+\" ${MESON_TARGET_TOOLCHAIN} ${CMAKE_TARGET_TOOLCHAIN}\n    # Fix compiler wrappers\n    sed -i -e \"s+${old_sdkroot}+${new_sdkroot}+\" $(find /opt/bin/${target}* -type f -print)\n    SDKROOT=${new_sdkroot}\n    export MACOSX_DEPLOYMENT_TARGET=${macosx_deployment_target}\nfi\ncd ${WORKSPACE}/srcdir/vst3sdk\n# Put the submodules where the SDK's CMake expects them.\nrmdir base pluginterfaces public.sdk cmake\nmv ../vst3_base base\nmv ../vst3_pluginterfaces pluginterfaces\nmv ../vst3_public_sdk public.sdk\nmv ../vst3_cmake cmake\n# vstgui4, doc and tutorials stay empty: not built, not shipped.\nmkdir -p vstgui4 doc tutorials\n\ninstall_license LICENSE.txt\n\nif [[ \"${target}\" == *-mingw* ]]; then\n    # mingw's libstdc++ has no std::aligned_alloc either; the SDK's MSVC path\n    # (_aligned_malloc / _aligned_free from <malloc.h>) works with mingw too.\n    sed -i 's/defined(_MSC_VER)/defined(_WIN32)/g' public.sdk/source/vst/utility/alignedalloc.h\nfi\n\n# The SDK wants CMake >= 3.25: use the CMake_jll host build dependency\n# rather than the rootfs's older one.\napk del cmake\n\n# The SDK runs its platform detection (APPLE / WIN32 -> SMTG_MAC / SMTG_WIN)\n# before project(), i.e. before the toolchain file is loaded, so a cross\n# build is classified as the build host (Linux) unless told otherwise.\nPLATFORM_FLAGS=()\nif [[ \"${target}\" == *-apple-* ]]; then\n    # xcodebuild is not available: give the SDK an Xcode version so it does\n    # not abort; one architecture per build; no code signing.\n    export XCODE_VERSION=15.0\n    # The SDK's bundle post-build step calls codesign unconditionally; a\n    # no-op codesign shim stands in for it (nothing is signed here anyway).\n    mkdir -p ${WORKSPACE}/shim-bin\n    printf '#!/bin/sh\\nexit 0\\n' > ${WORKSPACE}/shim-bin/codesign\n    chmod +x ${WORKSPACE}/shim-bin/codesign\n    export PATH=\"${WORKSPACE}/shim-bin:${PATH}\"\n    PLATFORM_FLAGS+=(-DAPPLE=ON -DXCODE_VERSION=15.0 -DSMTG_BUILD_UNIVERSAL_BINARY=OFF -DSMTG_DISABLE_CODE_SIGNING=ON)\nelif [[ \"${target}\" == *-mingw* ]]; then\n    # UNIX is true on the build host before project() and the SDK's macro\n    # checks it before WIN32, so make the macro look at WIN32 first (the\n    # file has CRLF line endings, hence the CR strip).\n    sed -i 's/\\r$//' cmake/modules/SMTG_DetectPlatform.cmake\n    sed -i 's/^    if(APPLE)$/    if(WIN32)\\n        set(SMTG_WIN TRUE CACHE INTERNAL ${SMTG_PLATFORM_DETECTION_COMMENT})\\n    elseif(APPLE)/' \\\n        cmake/modules/SMTG_DetectPlatform.cmake\n    PLATFORM_FLAGS+=(-DWIN32=ON)\nfi\n\ncmake -B build -G Ninja \"${PLATFORM_FLAGS[@]}\" \\\n    -DCMAKE_INSTALL_PREFIX=${prefix} \\\n    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TARGET_TOOLCHAIN} \\\n    -DCMAKE_BUILD_TYPE=Release \\\n    -DCMAKE_POSITION_INDEPENDENT_CODE=ON \\\n    -DSMTG_ENABLE_VSTGUI_SUPPORT=OFF \\\n    -DSMTG_ENABLE_VST3_HOSTING_EXAMPLES=OFF \\\n    -DSMTG_ENABLE_VST3_PLUGIN_EXAMPLES=ON \\\n    -DSMTG_RUN_VST_VALIDATOR=OFF \\\n    -DSMTG_CREATE_PLUGIN_LINK=OFF \\\n    -DSMTG_CREATE_BUNDLE_FOR_WINDOWS=OFF \\\n    -DSMTG_CREATE_MODULE_INFO=OFF \\\n    -DSMTG_ENABLE_IOS_TARGETS=OFF\n# The libraries, plus two GUI-free examples: the SDK's gain example (the\n# sample-accurate variant) and a delay. The rest of the examples (mda-vst3\n# and friends) are large and not needed by anyone hosting.\ncmake --build build --parallel ${nproc} --target \\\n    base pluginterfaces sdk sdk_common sdk_hosting again-sample-accurate adelay\n\n# The SDK's CMake (SMTG_ConfigureCmakeGenerator.cmake) drops the per-config\n# subdirectory on Windows.\nif [[ \"${target}\" == *-mingw* ]]; then\n    BUILD_LIBDIR=build/lib\n    BUILD_VST3DIR=build/VST3\nelse\n    BUILD_LIBDIR=build/lib/Release\n    BUILD_VST3DIR=build/VST3/Release\nfi\n\n# Static libraries.\nmkdir -vp ${prefix}/lib/vst3sdk\ncp -v ${BUILD_LIBDIR}/*.a ${prefix}/lib/vst3sdk/\n\n# The source tree as headers + directly-compiled sources.\nmkdir -vp ${includedir}/vst3sdk\ncp -vr pluginterfaces base public.sdk ${includedir}/vst3sdk/\nrm -rfv ${includedir}/vst3sdk/public.sdk/samples/vst/mda-vst3/*/media \\\n        ${includedir}/vst3sdk/public.sdk/samples/vst-hosting \\\n        ${includedir}/vst3sdk/base/build ${includedir}/vst3sdk/*/.git*\nfind ${includedir}/vst3sdk -type f \\\n    \\( -name '*.png' -o -name '*.jpg' -o -name '*.uidesc' -o -name '*.rc' -o -name '.git*' \\) \\\n    -print -delete\n\n# Example plugin bundles (GUI-free), for hosting tests. Only the two built\n# above: on macOS the SDK's CMake lays out a bundle skeleton for every\n# plugin target at configure time.\nmkdir -vp ${prefix}/lib/vst3\ncp -vr ${BUILD_VST3DIR}/{again-sample-accurate,adelay}.vst3 ${prefix}/lib/vst3/\n"""
+toplevel_block = ""
+version = "v3.8.1"
+
+[[dependencies]]
+compat = ""
+name = "CMake_jll"
+platforms = ["any"]
+top_level = false
+type = "hostdependency"
+version-major = 0
+version-minor = 0
+version-patch = 0
+[[dependencies]]
+compat = ""
+name = "CompilerSupportLibraries_jll"
+platforms = ["any"]
+top_level = false
+type = "dependency"
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version-major = 0
+version-minor = 0
+version-patch = 0
+
+[[products]]
+paths = ["include/vst3sdk/pluginterfaces/base/funknown.h"]
+type = "file"
+variable_name = "funknown_h"
+[[products]]
+paths = ["include/vst3sdk/public.sdk/source/vst/hosting/module.h"]
+type = "file"
+variable_name = "hosting_module_h"
+[[products]]
+paths = ["lib/vst3sdk/libbase.a"]
+type = "file"
+variable_name = "libbase_a"
+[[products]]
+paths = ["lib/vst3sdk/libpluginterfaces.a"]
+type = "file"
+variable_name = "libpluginterfaces_a"
+[[products]]
+paths = ["lib/vst3sdk/libsdk.a"]
+type = "file"
+variable_name = "libsdk_a"
+[[products]]
+paths = ["lib/vst3sdk/libsdk_common.a"]
+type = "file"
+variable_name = "libsdk_common_a"
+[[products]]
+paths = ["lib/vst3sdk/libsdk_hosting.a"]
+type = "file"
+variable_name = "libsdk_hosting_a"
+[[products]]
+paths = ["lib/vst3/again-sample-accurate.vst3"]
+type = "file"
+variable_name = "again_sample_accurate_vst3"
+
+[[sources]]
+hash = "3cdf9ca5d1f5b1b21e0a86832aa4abe55607bd96"
+type = "git"
+unpack_target = ""
+url = "https://github.com/steinbergmedia/vst3sdk.git"
+[[sources]]
+hash = "fcf9da0bd27a16f7f03773a3a39822f28f5c8477"
+type = "git"
+unpack_target = ""
+url = "https://github.com/steinbergmedia/vst3_base.git"
+[[sources]]
+hash = "4f547e8e102b47de4a8b8aaf343c73b700786372"
+type = "git"
+unpack_target = ""
+url = "https://github.com/steinbergmedia/vst3_pluginterfaces.git"
+[[sources]]
+hash = "586dc5e6c8012c3e4b01c79389375cbe96bdb1da"
+type = "git"
+unpack_target = ""
+url = "https://github.com/steinbergmedia/vst3_public_sdk.git"
+[[sources]]
+hash = "054c9143cbb8d47fc4694e473f2ee3b4d951a8f5"
+type = "git"
+unpack_target = ""
+url = "https://github.com/steinbergmedia/vst3_cmake.git"
+[[sources]]
+filename = "MacOSX11.3.sdk.tar.xz"
+hash = "cd4f08a75577145b8f05245a2975f7c81401d75e9535dcffbb879ee1deefcbf4"
+type = "file"
+url = "https://github.com/phracker/MacOSX-SDKs/releases/download/11.3/MacOSX11.3.sdk.tar.xz"
